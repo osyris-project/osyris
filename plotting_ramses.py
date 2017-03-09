@@ -33,7 +33,6 @@ key[18] =  "logB"
 def ramses_output(nout=1,xc=0.5,yc=0.5,zc=0.5,lmax=0):
     if nout == -1:
         filelist = sorted(glob.glob('output*'))
-        print filelist
         infile = filelist[-1]
     else:
         infile = "output_"+str(nout).zfill(5)
