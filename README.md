@@ -23,7 +23,7 @@ pp.plot_histogram(mydata,'logrho','logT')
 
 ### From the terminal ###
 
-
+You can also plot a small collection of plots to a pdf file:
 ```
 #!bash
 
