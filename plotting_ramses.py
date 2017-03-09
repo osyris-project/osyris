@@ -42,7 +42,7 @@ def ramses_output(nout=1,xc=0.5,yc=0.5,zc=0.5,lmax=0):
 
 #======================================================================================
 
-def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None):
+def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=None):
 
     no_x = True
     no_y = True
@@ -98,7 +98,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None):
             z = log10(z)
         
         if axes:
-            cont = axes.contourf(x,y,z,20,cmap="YlGnBu")
+            cont = axes.contourf(x,y,z,20,cmap=cmap)
             axes.set_xlabel(var_x)
             axes.set_ylabel(var_y)
         else:
@@ -107,7 +107,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None):
             ratio = 0.7
             sizex = 10.0
             fig.set_size_inches(sizex,ratio*sizex)
-            cont = ax.contourf(x,y,z,20,cmap="YlGnBu")
+            cont = ax.contourf(x,y,z,20,cmap=cmap)
             ax.set_xlabel(var_x)
             ax.set_ylabel(var_y)
             if fname:
@@ -119,7 +119,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None):
 
 #======================================================================================
 
-def plot_slice(data_array,var_x,var_y,var_z,fname="fig.pdf",zlog=True,xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0):
+def plot_slice(data_array,var_x,var_y,var_z,fname="fig.pdf",zlog=True,xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0,cmap=None):
 
     no_x = True
     no_y = True
@@ -178,7 +178,7 @@ def plot_slice(data_array,var_x,var_y,var_z,fname="fig.pdf",zlog=True,xmin=0.0,x
         #ratio = 0.7
         #sizex = 10.0
         #fig.set_size_inches(sizex,ratio*sizex)
-        cont = ax.contourf(x,y,z,20,cmap="YlGnBu")
+        cont = ax.contourf(x,y,z,20,cmap=cmap)
         ax.set_xlabel(var_x)
         ax.set_ylabel(var_y)
         cbar = fig.colorbar(cont)
