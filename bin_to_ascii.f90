@@ -68,90 +68,11 @@ program amr2cell
   ! Temporary space for reading labels from the info file.
   character(LEN=128)::temp_label
   
-  
-  ! EOS parameters
-  integer  :: nRho,nEner,nTemp,ht,ii,jj,kk,ee,hh,gg,ie,ir,it
-  real(KIND=8) :: rhomin,rhomax,Emax,emin,yHe,Tmax,Tmin,eint,tp_eos,ww,xx,yy,zz
-  real(KIND=8),allocatable,dimension(:,:)::Rho_eos,Ener_eos,Temp_eos,P_eos,Cs_eos,S_eos,eint_eos
-  real(KIND=8),allocatable,dimension(:,:)::xH_eos, xH2_eos, xHe_eos,xHep_eos,Cv_eos,Dc_eos
   real(kind=8) :: xi,yi,zi,dxi,rhoi,ui,vi,wi,tempi,bxi,byi,bzi,bi
 
   call read_params
 
   maxrho = 0.0d0
-  
-  
-  if(eos.eq.1)then
-  
-     !--------------------------------
-     ! Read eos tables
-     !--------------------------------
-     open(10,file='tab_eos.dat',status='old',form='unformatted')
-     read(10) nRho,nEner
-     read(10) rhomin,rhomax,emin,Emax,yHe
-     
-     allocate(Rho_eos(nRho,nEner),Ener_eos(nRho,nEner),Temp_eos(nRho,nEner),P_eos(nRho,nEner))
-     allocate( Cs_eos(nRho,nEner),S_eos(nRho,nEner),  xH_eos(nRho,nEner), xH2_eos(nRho,nEner))
-     allocate(xHe_eos(nRho,nEner),xHep_eos(nRho,nEner),Cv_eos(nRho,nEner))
-
-     read(10)  rho_eos
-     read(10) Ener_eos
-     read(10) Temp_eos
-     read(10)    P_eos
-     read(10)    S_eos
-     read(10)   Cs_eos
-     read(10)   xH_eos
-     read(10)  xH2_eos
-     read(10)  xHe_eos
-     read(10) xHep_eos
-     close(10)
-     
-     do k=1,5
-        ii=0
-        jj=0
-        kk=0
-        hh=0
-        ee=0
-        gg=0
-        do ir=2,nRho-1
-           do ie=2,nener-1
-              if (Temp_eos(ir,ie) .eq. 0.0d0) then           
-                 ii = ii+1
-                 xx = Temp_eos(ir,ie+1) * Temp_eos(ir,ie-1) *  Temp_eos(ir-1,ie) * Temp_eos(ir+1,ie)
-                 yy = Temp_eos(ir+1,ie+1) * Temp_eos(ir+1,ie-1) *  Temp_eos(ir-1,ie-1) * Temp_eos(ir-1,ie+1)
-                 if(ie > 2 .and. ie < nener-1 .and. ir > 2 .and. ir < nRho-1)then
-                    ww = Temp_eos(ir,ie+2) * Temp_eos(ir,ie-2) *  Temp_eos(ir-2,ie) * Temp_eos(ir+2,ie)
-                 else
-                    ww = 0.0d0
-                 endif
-                 if(ie > 3 .and. ie < nener-2 .and. ir > 3 .and. ir < nRho-2)then
-                    zz = Temp_eos(ir+3,ie+3) * Temp_eos(ir-3,ie-3) *  Temp_eos(ir-3,ie+3) * Temp_eos(ir+3,ie-3)
-                 else
-                    zz = 0.0d0
-                 endif
-                 if (xx .ne. 0.) then
-                    Temp_eos(ir,ie) = 0.25d0*(Temp_eos(ir,ie+1)+Temp_eos(ir,ie-1)+Temp_eos(ir-1,ie)+Temp_eos(ir+1,ie))
-                    jj=jj+1              
-                 else if (yy .ne. 0. .and. k > 0) then
-                    Temp_eos(ir,ie) = 0.25d0*(Temp_eos(ir+1,ie+1)+Temp_eos(ir+1,ie-1)+Temp_eos(ir-1,ie+1)+Temp_eos(ir-1,ie-1))
-                    kk=kk+1
-                 else if (ww .ne. 0 .and. k > 1) then
-                    ee = ee +1
-                    Temp_eos(ir,ie) = 0.25d0*(Temp_eos(ir,ie+2)+Temp_eos(ir,ie-2)+Temp_eos(ir-2,ie)+Temp_eos(ir+2,ie))
-                 else if (zz .ne. 0 .and. k > 2) then
-                    hh=hh+1
-                    Temp_eos(ir,ie) = 0.25d0*(Temp_eos(ir+3,ie+3)+Temp_eos(ir+3,ie-3)+Temp_eos(ir-3,ie+3)+Temp_eos(ir-3,ie-3))
-                 else 
-                    gg=gg+1
-                 endif
-              endif
-           enddo
-        end do
-        
-
-     end do
-
-  end if
   
   write(*,*) 'Writing file: '//TRIM(outfich)
   open(unit=20,file=TRIM(outfich),form='formatted')
@@ -392,7 +313,8 @@ program amr2cell
   ! Loop over processor files
   do k=1,ncpu_read
      icpu=cpu_list(k)
-     call title(icpu,ncharcpu)
+!      call title(icpu,ncharcpu)
+     write(ncharcpu,'(i5.5)') icpu
 
      ! Open AMR file and skip header
      nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out'//TRIM(ncharcpu)
@@ -569,12 +491,7 @@ program amr2cell
                     byi = 0.5d0*(var(i,ind,6)+var(i,ind, 9))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
                     bzi = 0.5d0*(var(i,ind,7)+var(i,ind,10))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
 
-                    if(eos .eq. 1)then
-                        eint = var(i,ind,11)*ud*((ul/ut)**2)/(gamma-1.0d0)
-                        call temperature_eos(rhoi,eint,tempi,ht)
-                    else
-                        tempi = var(i,ind,11)*ud*((ul/ut)**2)*mu*mh/(rhoi*kb)
-                    endif
+                    tempi = var(i,ind,17)
 
                     xi = (x(i,1)-xcenter)*ul*boxlen
                     yi = (x(i,2)-ycenter)*ul*boxlen
@@ -686,90 +603,90 @@ contains
     
   end subroutine read_params
   
-  subroutine temperature_eos(rho_temp,Enint_temp,Teos,ht)
-!!$  use amr_commons
-!!$  use hydro_commons
-!!$  use units_commons
-  implicit none
-  !--------------------------------------------------------------
-  ! This routine computes the temperature from the density and 
-  ! internal volumic energy. Inputs/output are in code units.
-  !--------------------------------------------------------------
-  integer::i_t,i_r,i
-  integer::ht
-  real(kind=8), intent(in) :: Enint_temp,rho_temp
-  real(kind=8):: Enint,rho
-  real(kind=8), intent(out):: Teos
-  real(kind=8)::logr,tt,uu,y1,y2,y3,y4
-  real(kind=8):: le,lr
-  real(kind=8):: dd1,dd2,de1,de2
-  integer :: ir,ie
-  real(kind=8):: xx,drho,dener
-
-  if (enint_temp ==0.d0) then
-     teos=0.d0
-  else
-     ht=0
-
-     rho   = rho_temp !* scale_d             
-     Enint = Enint_temp !* scale_d*scale_v**2
-
-     drho  = (rhomax-rhomin)/float(nRho)
-     lr = 0.5d0 + (log10(rho )- rhomin )/drho
-
-     if (lr .ge. Nrho) then
-        write(*,*)'pb 1'
-        stop
-     endif
-     ir = floor(lr)
-
-     dEner = ( Emax  -   emin)/float(nEner)
-     le = 0.5d0 + (log10(Enint) - emin - log10(rho) )/dEner
-
-     if ((le .ge. nEner) ) then
-        write(*,*)'pb 2'
-        stop
-     endif
-
-     ie = floor(le)
-     if  (ir < 1 .or. ie < 1 ) then
-        write(*,*) 'inter_tp hors limite ir,ie,rho,enint = ',ir,ie,rho ,Enint 
-        ir=1.0d0
-        ie=1.0d0
-        stop
-     endif
-
-     dd1 = lr - float(ir)
-     dd2 = le - float(ie)
-
-     de1 = 1.0d0 - dd1
-     de2 = 1.0d0 - dd2
-
-     Teos=0.d0
-
-     Teos = Teos + de1*de2*Temp_eos(ir  ,ie  )
-     Teos = Teos + dd1*de2*Temp_eos(ir+1,ie  )
-     Teos = Teos + de1*dd2*Temp_eos(ir  ,ie+1)
-     Teos = Teos + dd1*dd2*Temp_eos(ir+1,ie+1)
-
-     Teos = Teos ! give T in K
-
-     xx =  Temp_eos(ir,ie)*Temp_eos(ir+1,ie)*Temp_eos(ir,ie+1)*Temp_eos(ir+1,ie+1) 
-
-     if (xx .eq. 0.0d0 ) then
-        ht=1
-        !     write(*,*) '**************** Pb_eos ****************'
-        !     write(*,*) 'ir,ie,i =',ir,ie,i
-        !     write(*,*) rho ,Enint 
-        !     write(*,*) Temp_eos(ir,ie  ), Temp_eos(ir+1,ie  ) 
-        !     write(*,*) Temp_eos(ir,ie+1), Temp_eos(ir+1,ie+1)
-        !     write(*,*) Temp_eos(ir,ie+2), Temp_eos(ir-1,ie+1)
-        !     write(*,*) 0.25*(Temp_eos(ir,ie+2) + Temp_eos(ir-1,ie+1) +   Temp_eos(ir+1,ie+1) +  Temp_eos(ir,ie))
-        !     stop
-     endif
-  endif
-
-end subroutine temperature_eos
+!   subroutine temperature_eos(rho_temp,Enint_temp,Teos,ht)
+! !!$  use amr_commons
+! !!$  use hydro_commons
+! !!$  use units_commons
+!   implicit none
+!   !--------------------------------------------------------------
+!   ! This routine computes the temperature from the density and 
+!   ! internal volumic energy. Inputs/output are in code units.
+!   !--------------------------------------------------------------
+!   integer::i_t,i_r,i
+!   integer::ht
+!   real(kind=8), intent(in) :: Enint_temp,rho_temp
+!   real(kind=8):: Enint,rho
+!   real(kind=8), intent(out):: Teos
+!   real(kind=8)::logr,tt,uu,y1,y2,y3,y4
+!   real(kind=8):: le,lr
+!   real(kind=8):: dd1,dd2,de1,de2
+!   integer :: ir,ie
+!   real(kind=8):: xx,drho,dener
+! 
+!   if (enint_temp ==0.d0) then
+!      teos=0.d0
+!   else
+!      ht=0
+! 
+!      rho   = rho_temp !* scale_d             
+!      Enint = Enint_temp !* scale_d*scale_v**2
+! 
+!      drho  = (rhomax-rhomin)/float(nRho)
+!      lr = 0.5d0 + (log10(rho )- rhomin )/drho
+! 
+!      if (lr .ge. Nrho) then
+!         write(*,*)'pb 1'
+!         stop
+!      endif
+!      ir = floor(lr)
+! 
+!      dEner = ( Emax  -   emin)/float(nEner)
+!      le = 0.5d0 + (log10(Enint) - emin - log10(rho) )/dEner
+! 
+!      if ((le .ge. nEner) ) then
+!         write(*,*)'pb 2'
+!         stop
+!      endif
+! 
+!      ie = floor(le)
+!      if  (ir < 1 .or. ie < 1 ) then
+!         write(*,*) 'inter_tp hors limite ir,ie,rho,enint = ',ir,ie,rho ,Enint 
+!         ir=1.0d0
+!         ie=1.0d0
+!         stop
+!      endif
+! 
+!      dd1 = lr - float(ir)
+!      dd2 = le - float(ie)
+! 
+!      de1 = 1.0d0 - dd1
+!      de2 = 1.0d0 - dd2
+! 
+!      Teos=0.d0
+! 
+!      Teos = Teos + de1*de2*Temp_eos(ir  ,ie  )
+!      Teos = Teos + dd1*de2*Temp_eos(ir+1,ie  )
+!      Teos = Teos + de1*dd2*Temp_eos(ir  ,ie+1)
+!      Teos = Teos + dd1*dd2*Temp_eos(ir+1,ie+1)
+! 
+!      Teos = Teos ! give T in K
+! 
+!      xx =  Temp_eos(ir,ie)*Temp_eos(ir+1,ie)*Temp_eos(ir,ie+1)*Temp_eos(ir+1,ie+1) 
+! 
+!      if (xx .eq. 0.0d0 ) then
+!         ht=1
+!         !     write(*,*) '**************** Pb_eos ****************'
+!         !     write(*,*) 'ir,ie,i =',ir,ie,i
+!         !     write(*,*) rho ,Enint 
+!         !     write(*,*) Temp_eos(ir,ie  ), Temp_eos(ir+1,ie  ) 
+!         !     write(*,*) Temp_eos(ir,ie+1), Temp_eos(ir+1,ie+1)
+!         !     write(*,*) Temp_eos(ir,ie+2), Temp_eos(ir-1,ie+1)
+!         !     write(*,*) 0.25*(Temp_eos(ir,ie+2) + Temp_eos(ir-1,ie+1) +   Temp_eos(ir+1,ie+1) +  Temp_eos(ir,ie))
+!         !     stop
+!      endif
+!   endif
+! 
+! end subroutine temperature_eos
 
 end program amr2cell
 
