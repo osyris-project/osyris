@@ -1,4 +1,5 @@
 from pylab import *
+import glob
 import read_ramses_data as rd
 
 #======================================================================================
@@ -30,7 +31,12 @@ key[18] =  "logB"
 #======================================================================================
 
 def ramses_output(nout=1,xc=0.5,yc=0.5,zc=0.5,lmax=0):
-    infile = "output_"+str(nout).zfill(5)
+    if nout == -1:
+        filelist = sorted(glob.glob('output*'))
+        print filelist
+        infile = filelist[-1]
+    else:
+        infile = "output_"+str(nout).zfill(5)
     [data1,nn] = rd.ramses_data(infile,xc,yc,zc,lmax)
     data2 = data1[:nn,:]
     return data2
