@@ -160,7 +160,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0,cmap=None,axes=None):
+def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
 
     if dir_z[0]=="z":
         dir_x = "x"
@@ -205,8 +205,8 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
     ymax =  0.5*dy
     
     
-    nx = 128
-    ny = 128
+    nx = resolution
+    ny = resolution
     dpx = (xmax-xmin)/nx
     dpy = (ymax-ymin)/ny
     
@@ -235,7 +235,6 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
                 v1[j,i] = v1[j,i] + datav[n]
                 z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
                 
-                
     z = z1/z2
     u = u1/z2
     v = v1/z2
@@ -243,25 +242,25 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
     
     x = linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-    iskip = 9
+    iskip = int(0.071*resolution)
     
     if axes:
-        cont = axes.contourf(x,y,z,20,cmap=cmap)
-        cbar = colorbar(cont,ax=axes)
-        vec1 = axes.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
-        axes.set_xlabel(dir_x)
-        axes.set_ylabel(dir_y)
+        ax = axes
     else:
         fig = matplotlib.pyplot.figure()
         ax  = fig.add_subplot(111)
-        cont = ax.contourf(x,y,z,20,cmap=cmap)
-        cbar = fig.colorbar(cont)
-        ax.set_xlabel(dir_x)
-        ax.set_ylabel(dir_y)
-        if fname:
-            fig.savefig(fname,bbox_inches="tight")
-        else:
-            show()
+        
+    cont = ax.contourf(x,y,z,20,cmap=cmap)
+    cbar = colorbar(cont,ax=ax)
+    vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
+    ax.set_xlabel(dir_x)
+    ax.set_ylabel(dir_y)
+    if fname:
+        fig.savefig(fname,bbox_inches="tight")
+    elif axes:
+        pass
+    else:
+        show()
         
     return
 
