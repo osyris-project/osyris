@@ -61,6 +61,8 @@ def get_variable(data_array,key="rho"):
         return data_array[:, 3]/au
     elif key=="dx":
         return data_array[:, 4]
+    elif key=="dx_au":
+        return data_array[:, 4]/au
     elif key=="rho":
         return data_array[:, 5]
     elif key=="vel":
@@ -198,54 +200,57 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
     ymin = -0.5*dy
     ymax =  0.5*dy
     
-    ## Make a guess for lmin
-    #lmin = 14
-    ## Find locations where l < lmin
-    #datal = get_variable(data_array,'level')[cube]
-    ##print shape(datal)
-    #locs = where(datal < lmin)
-    #print locs,shape(locs)
-    #[dum,nl] = shape(locs)
-    #nnew = 0
-    #for l in range(nl):
+    # Make a guess for lmin
+    lmin = 13
+    # Find locations where l < lmin
+    datal = get_variable(data_array,'level')[cube]
+    #print shape(datal)
+    locs = where(logical_or(datal < lmin,datal>=lmin-3))
+    print locs,shape(locs)
+    [dum,nl] = shape(locs)
+    nnew = 0
+    for l in range(nl):
         #print 'l is',l,nl
-        ##print locs[0][1]
-        #k = locs[0][l]
-        ##print datal[k]
-        #nextra = 2**(lmin-int(datal[k]))
-        #xc = datax[k]
-        #yc = datay[k]
-        #vc = dataz[k]
-        #nc = shape(datax)[0]
-        ##print shape(datax)[0],nc
-        #datax = resize(datax,(nc+nextra**2,1))
-        #datay = resize(datay,(nc+nextra**2,1))
-        #dataz = resize(dataz,(nc+nextra**2,1))
-        ##print shape(datax)
-        #dxcell = data_array[k,get_index("dx")]
-        #dxnew = dxcell/nextra
-        #ic = 0
-        #for j in range(nextra):
-            #yy = yc - 0.5*dxcell + (j+0.5)*dxnew
-            #for i in range(nextra):
-                #xx = xc - 0.5*dxcell + (i+0.5)*dxnew
-                #ic = ic + 1
-                #datax[nc+ic-1] = xx
-                #datay[nc+ic-1] = yy
-                #dataz[nc+ic-1] = vc
-                #nnew = nnew + 1
+        #print locs[0][1]
+        k = locs[0][l]
+        #print datal[k]
+        nextra = 2**(lmin-int(datal[k]))
+        xc = datax[k]
+        yc = datay[k]
+        vc = dataz[k]
+        nc = shape(datax)[0]
+        #print shape(datax)[0],nc
+        datax = resize(datax,(nc+nextra**2))
+        datay = resize(datay,(nc+nextra**2))
+        dataz = resize(dataz,(nc+nextra**2))
+        #print shape(datax)
+        dxcell = data_array[k,get_index("dx")]/au
+        dxnew = dxcell/nextra
+        ic = 0
+        for j in range(nextra):
+            yy = yc - 0.5*dxcell + (j+0.5)*dxnew
+            for i in range(nextra):
+                xx = xc - 0.5*dxcell + (i+0.5)*dxnew
+                ic = ic + 1
+                datax[nc+ic-1] = xx
+                datay[nc+ic-1] = yy
+                dataz[nc+ic-1] = vc
+                nnew = nnew + 1
+    
+    print shape(datax)
+    print datax[-1],datay[-1],dataz[-1]
     
     #print "added ",nnew," new cells"
     
-    # Parameters
-    # First pass: low resolution background
-    nx = 51
-    ny = 51
-    xe = linspace(xmin,xmax,nx)
-    ye = linspace(ymin,ymax,ny)
-    denominator1, xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe])
-    nominator1  , xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe], weights=dataz)
-    z1 = nominator1 / denominator1
+    ## Parameters
+    ## First pass: low resolution background
+    #nx = 51
+    #ny = 51
+    #xe = linspace(xmin,xmax,nx)
+    #ye = linspace(ymin,ymax,ny)
+    #denominator1, xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe])
+    #nominator1  , xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe], weights=dataz)
+    #z1 = nominator1 / denominator1
     #x1 = zeros([nx-1])
     #y1 = zeros([ny-1])
     #for i in range(nx-1):
@@ -317,9 +322,9 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
     #levs = linspace(zmin,zmax,20)
     
     if axes:
-        #cont = axes.contourf(x,y,z,20,cmap=cmap)
-        cont = axes.imshow(z1,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
-        cont = axes.imshow(z,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
+        cont = axes.contourf(x,y,z,20,cmap=cmap)
+        #cont = axes.imshow(z1,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
+        #cont = axes.imshow(z,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
         #axes.scatter(datax, datay, c=dataz)
         #cont2 = axes.contourf(x2,y2,z2,levels=levs,cmap=cmap)
         axes.set_xlabel(dir_x)
