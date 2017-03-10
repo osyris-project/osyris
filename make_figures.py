@@ -24,9 +24,11 @@ pp.plot_histogram(mydata,"logrho","logB",axes=ax1,cmap="YlGnBu")
 
 # Density - Temperature
 #pp.plot_histogram(mydata,"logrho","logT",fname="trho.pdf")
-pp.plot_histogram(mydata,"logrho","logT",axes=ax2,cmap="YlGnBu")
+#pp.plot_histogram(mydata,"logrho","logT",axes=ax2,cmap="YlGnBu")
 
 # x,y density slice
 #plot_slice(data,"x","y","rho",fname="rhoxy.pdf",zlog=True,xmin=-50.0,xmax=50.0,ymin=-50.0,ymax=50.0)
+pp.plot_slice(mydata,'y_au','logrho',dx=100,dy=100,axes=ax2)
+
 
 fig.savefig("plots.pdf",bbox_inches="tight")
