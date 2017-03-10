@@ -27,17 +27,17 @@ def get_index(key="rho"):
         return  7
     elif key=="B":
         return  8
-    elif key=="u":
+    elif key=="vel_x":
         return  9
-    elif key=="v":
+    elif key=="vel_y":
         return 10
-    elif key=="w":
+    elif key=="vel_z":
         return 11
-    elif key=="Bx":
+    elif key=="B_x":
         return 12
-    elif key=="By":
+    elif key=="B_y":
         return 13
-    elif key=="Bz":
+    elif key=="B_z":
         return 14
     else:
        print("Unknown key")
@@ -71,17 +71,17 @@ def get_variable(data_array,key="rho"):
         return data_array[:, 7]
     elif key=="B":
         return data_array[:, 8]
-    elif key=="u":
+    elif key=="vel_x":
         return data_array[:, 9]
-    elif key=="v":
+    elif key=="vel_y":
         return data_array[:,10]
-    elif key=="w":
+    elif key=="vel_z":
         return data_array[:,11]
-    elif key=="Bx":
+    elif key=="B_x":
         return data_array[:,12]
-    elif key=="By":
+    elif key=="B_y":
         return data_array[:,13]
-    elif key=="Bz":
+    elif key=="B_z":
         return data_array[:,14]
     elif key=="logrho":
         return log10(data_array[:,5])
@@ -160,7 +160,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None,axes=None):
+def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0,cmap=None,axes=None):
 
     if dir_z[0]=="z":
         dir_x = "x"
@@ -173,6 +173,9 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
         dir_y = "z"
     else:
         print("Bad z direction: "+dir_z)
+    
+    vec_x = vec+"_"+dir_x
+    vec_y = vec+"_"+dir_y
     
     if len(dir_z) > 1:
         dir_x = dir_x+dir_z[1:]
@@ -190,6 +193,8 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
     datax  = get_variable(data_array,dir_x)[cube]
     datay  = get_variable(data_array,dir_y)[cube]
     dataz  = get_variable(data_array,var  )[cube]
+    datau  = get_variable(data_array,vec_x)[cube]
+    datav  = get_variable(data_array,vec_y)[cube]
     celldx = get_variable(data_array,"dx_au")[cube]
     
     ncells = shape(datax)[0]
@@ -207,6 +212,9 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
     
     z1 = zeros([ny,nx])
     z2 = zeros([ny,nx])
+    u1 = zeros([ny,nx])
+    v1 = zeros([ny,nx])
+    z3 = zeros([ny,nx])
     
     for n in range(ncells):
         x1 = datax[n]-0.5*celldx[n]
@@ -223,17 +231,26 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
             for i in range(ix1,ix2+1):
                 z1[j,i] = z1[j,i] + dataz[n]
                 z2[j,i] = z2[j,i] + 1.0
+                u1[j,i] = u1[j,i] + datau[n]
+                v1[j,i] = v1[j,i] + datav[n]
+                z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
+                
                 
     z = z1/z2
+    u = u1/z2
+    v = v1/z2
+    w = z3/z2
     
     x = linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-        
+    iskip = 9
+    
     if axes:
         cont = axes.contourf(x,y,z,20,cmap=cmap)
+        cbar = colorbar(cont,ax=axes)
+        vec1 = axes.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
         axes.set_xlabel(dir_x)
         axes.set_ylabel(dir_y)
-        cbar = colorbar(cont,ax=axes)
     else:
         fig = matplotlib.pyplot.figure()
         ax  = fig.add_subplot(111)

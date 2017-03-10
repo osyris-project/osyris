@@ -355,7 +355,7 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
                     data_array(icell, 9) = bi
                     data_array(icell,10) = ui
                     data_array(icell,11) = vi
-                    data_array(icell,12) = yi
+                    data_array(icell,12) = wi
                     data_array(icell,13) = bxi
                     data_array(icell,14) = byi
                     data_array(icell,15) = bzi
