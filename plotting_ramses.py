@@ -185,159 +185,59 @@ def plot_slice(data_array,dir_z="z",var="rho",fname=None,dx=1.0,dy=1.0,cmap=None
     # Make a guess for slice thickness
     dz = 0.05*(0.5*(dx+dy))
     
-    #cube = where(logical_and(abs(data1) < 0.5*dx,abs(data2) < 0.5*dy,abs(data3) < 0.5*dz))
     cube = where(logical_and(abs(data1) < 0.5*dx,logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
-    #cube = where(abs(data3) < 0.5*dz)
     
-    datax = get_variable(data_array,dir_x)[cube]
-    datay = get_variable(data_array,dir_y)[cube]
-    dataz = get_variable(data_array,var  )[cube]
+    datax  = get_variable(data_array,dir_x)[cube]
+    datay  = get_variable(data_array,dir_y)[cube]
+    dataz  = get_variable(data_array,var  )[cube]
+    celldx = get_variable(data_array,"dx_au")[cube]
     
-    print shape(datax)
+    ncells = shape(datax)[0]
     
     xmin = -0.5*dx
     xmax =  0.5*dx
     ymin = -0.5*dy
     ymax =  0.5*dy
     
-    # Make a guess for lmin
-    lmin = 13
-    # Find locations where l < lmin
-    datal = get_variable(data_array,'level')[cube]
-    #print shape(datal)
-    locs = where(logical_or(datal < lmin,datal>=lmin-3))
-    print locs,shape(locs)
-    [dum,nl] = shape(locs)
-    nnew = 0
-    for l in range(nl):
-        #print 'l is',l,nl
-        #print locs[0][1]
-        k = locs[0][l]
-        #print datal[k]
-        nextra = 2**(lmin-int(datal[k]))
-        xc = datax[k]
-        yc = datay[k]
-        vc = dataz[k]
-        nc = shape(datax)[0]
-        #print shape(datax)[0],nc
-        datax = resize(datax,(nc+nextra**2))
-        datay = resize(datay,(nc+nextra**2))
-        dataz = resize(dataz,(nc+nextra**2))
-        #print shape(datax)
-        dxcell = data_array[k,get_index("dx")]/au
-        dxnew = dxcell/nextra
-        ic = 0
-        for j in range(nextra):
-            yy = yc - 0.5*dxcell + (j+0.5)*dxnew
-            for i in range(nextra):
-                xx = xc - 0.5*dxcell + (i+0.5)*dxnew
-                ic = ic + 1
-                datax[nc+ic-1] = xx
-                datay[nc+ic-1] = yy
-                dataz[nc+ic-1] = vc
-                nnew = nnew + 1
     
-    print shape(datax)
-    print datax[-1],datay[-1],dataz[-1]
+    nx = 128
+    ny = 128
+    dpx = (xmax-xmin)/nx
+    dpy = (ymax-ymin)/ny
     
-    #print "added ",nnew," new cells"
+    z1 = zeros([ny,nx])
+    z2 = zeros([ny,nx])
     
-    ## Parameters
-    ## First pass: low resolution background
-    #nx = 51
-    #ny = 51
-    #xe = linspace(xmin,xmax,nx)
-    #ye = linspace(ymin,ymax,ny)
-    #denominator1, xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe])
-    #nominator1  , xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe], weights=dataz)
-    #z1 = nominator1 / denominator1
-    #x1 = zeros([nx-1])
-    #y1 = zeros([ny-1])
-    #for i in range(nx-1):
-        #x1[i] = 0.5*(xe[i]+xe[i+1])
-    #for j in range(ny-1):
-        #y1[j] = 0.5*(ye[j]+ye[j+1])
-    # Second pass: high resolution foreground
-    nx = 101
-    ny = 101
-    xe = linspace(xmin,xmax,nx)
-    ye = linspace(ymin,ymax,ny)
-    denominator, xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe])
-    nominator  , xedges1, yedges1 = histogram2d(datay,datax,bins=[ye, xe], weights=dataz)
-    z = nominator / denominator
-    #zmin = amin(z2[where(denominator > 0.0)])
-    #zmax = amax(z2[where(denominator > 0.0)])
-    [nny,nnx] = shape(denominator)
-    x = zeros([nnx])
-    y = zeros([nny])
-    for i in range(nnx):
-        x[i] = 0.5*(xe[i]+xe[i+1])
-    for j in range(nny):
-        y[j] = 0.5*(ye[j]+ye[j+1])
-
-    ## Fill empty pixels
-    #if amin(denominator) < 1.0:
-        #print shape(denominator)
-        #[nny,nnx] = shape(denominator)
-        ## Make several iterations for large empty areas
-        #empty_cells_exist = True
-        #niter = 0
-        #while empty_cells_exist:
-            #niter = niter + 1
-            #empty_cells_exist = False
-            #nfix=0
-            #for j in range(nny):
-                #for i in range(nnx):
-                    #if denominator[j,i] < 1.0:
-                        ##print x[i],y[j]
-                        #d_loc = 0.0
-                        #n_loc = 0.0
-                        #count = 0.0
-                        ##print max(0,j-1),min(nny-1,j+1),max(0,i-1),min(nnx-1,i+1)
-                        #for jj in (max(0,j-1),min(nny-1,j+1)):
-                            #for ii in (max(0,i-1),min(nnx-1,i+1)):
-                                #if denominator[jj,ii] > 0.0:
-                                    #d_loc = d_loc + denominator[jj,ii]
-                                    #n_loc = n_loc +   nominator[jj,ii]
-                                    #count = count + 1.0
-                                    ##print i,j,ii,jj,d_loc,n_loc,count,denominator[jj,ii],nominator[jj,ii]
-                        #if count > 0.0:
-                            #denominator[j,i] = d_loc / count
-                            #nominator[j,i] = n_loc / count
-                            #empty_cells_exist = True
-                            #nfix = nfix + 1
-                        
-                        ##input("Press Enter to continue...")
-            ##print niter,empty_cells_exist,nfix
-            ##break
-            
-    #z = nominator / denominator
-
-
-
-
-
-    #print zmin,zmax
+    for n in range(ncells):
+        x1 = datax[n]-0.5*celldx[n]
+        x2 = datax[n]+0.5*celldx[n]
+        y1 = datay[n]-0.5*celldx[n]
+        y2 = datay[n]+0.5*celldx[n]
+        
+        ix1 = max(int((x1-xmin)/dpx),0)
+        ix2 = min(int((x2-xmin)/dpx),nx-1)
+        iy1 = max(int((y1-ymin)/dpy),0)
+        iy2 = min(int((y2-ymin)/dpy),ny-1)
+                
+        for j in range(iy1,iy2+1):
+            for i in range(ix1,ix2+1):
+                z1[j,i] = z1[j,i] + dataz[n]
+                z2[j,i] = z2[j,i] + 1.0
+                
+    z = z1/z2
     
-    #levs = linspace(zmin,zmax,20)
-    
+    x = linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+    y = linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+        
     if axes:
         cont = axes.contourf(x,y,z,20,cmap=cmap)
-        #cont = axes.imshow(z1,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
-        #cont = axes.imshow(z,cmap=cmap,interpolation='None',extent=[xmin,xmax,ymin,ymax])
-        #axes.scatter(datax, datay, c=dataz)
-        #cont2 = axes.contourf(x2,y2,z2,levels=levs,cmap=cmap)
         axes.set_xlabel(dir_x)
         axes.set_ylabel(dir_y)
-        cbar = colorbar(cont)
+        cbar = colorbar(cont,ax=axes)
     else:
         fig = matplotlib.pyplot.figure()
         ax  = fig.add_subplot(111)
-        #ratio = 0.7
-        #sizex = 10.0
-        #fig.set_size_inches(sizex,ratio*sizex)
         cont = ax.contourf(x,y,z,20,cmap=cmap)
-        #cont2 = ax.contourf(x2,y2,z2,levels=levs,cmap=cmap)
         cbar = fig.colorbar(cont)
         ax.set_xlabel(dir_x)
         ax.set_ylabel(dir_y)
