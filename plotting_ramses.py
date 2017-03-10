@@ -160,7 +160,7 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
+def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
 
     if dir_z[0]=="z":
         dir_x = "x"
@@ -174,8 +174,14 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
     else:
         print("Bad z direction: "+dir_z)
     
-    vec_x = vec+"_"+dir_x
-    vec_y = vec+"_"+dir_y
+    if vec:
+        vec_x = vec+"_"+dir_x
+        vec_y = vec+"_"+dir_y
+        
+    #if stream:
+        #str_x = stream+"_"+dir_x
+        #str_y = stream+"_"+dir_y
+    
     
     if len(dir_z) > 1:
         dir_x = dir_x+dir_z[1:]
@@ -193,8 +199,9 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
     datax  = get_variable(data_array,dir_x)[cube]
     datay  = get_variable(data_array,dir_y)[cube]
     dataz  = get_variable(data_array,var  )[cube]
-    datau  = get_variable(data_array,vec_x)[cube]
-    datav  = get_variable(data_array,vec_y)[cube]
+    if vec:
+        datau  = get_variable(data_array,vec_x)[cube]
+        datav  = get_variable(data_array,vec_y)[cube]
     celldx = get_variable(data_array,"dx_au")[cube]
     
     ncells = shape(datax)[0]
@@ -212,9 +219,10 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
     
     z1 = zeros([ny,nx])
     z2 = zeros([ny,nx])
-    u1 = zeros([ny,nx])
-    v1 = zeros([ny,nx])
-    z3 = zeros([ny,nx])
+    if vec:
+        u1 = zeros([ny,nx])
+        v1 = zeros([ny,nx])
+        z3 = zeros([ny,nx])
     
     for n in range(ncells):
         x1 = datax[n]-0.5*celldx[n]
@@ -231,14 +239,16 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
             for i in range(ix1,ix2+1):
                 z1[j,i] = z1[j,i] + dataz[n]
                 z2[j,i] = z2[j,i] + 1.0
-                u1[j,i] = u1[j,i] + datau[n]
-                v1[j,i] = v1[j,i] + datav[n]
-                z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
+                if vec:
+                    u1[j,i] = u1[j,i] + datau[n]
+                    v1[j,i] = v1[j,i] + datav[n]
+                    z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
                 
     z = z1/z2
-    u = u1/z2
-    v = v1/z2
-    w = z3/z2
+    if vec:
+        u = u1/z2
+        v = v1/z2
+        w = z3/z2
     
     x = linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
@@ -252,7 +262,13 @@ def plot_slice(data_array,dir_z="z",var="rho",vec="vel",fname=None,dx=1.0,dy=1.0
         
     cont = ax.contourf(x,y,z,20,cmap=cmap)
     cbar = colorbar(cont,ax=ax)
-    vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
+    if vec:
+        if streamlines:
+            if streamlines == "log":
+                w = log10(w)
+            strm = ax.streamplot(x,y,u,v,color=w,cmap='Greys')
+        else:
+            vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
     ax.set_xlabel(dir_x)
     ax.set_ylabel(dir_y)
     if fname:
