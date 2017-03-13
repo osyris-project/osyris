@@ -37,6 +37,9 @@ python make_figures.py 71
 ```
 #!python
 
+from pylab import *
+import plotting_ramses as pp
+
 # Physical constants
 au = 1.495980e+13
 
