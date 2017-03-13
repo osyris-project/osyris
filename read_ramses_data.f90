@@ -1,7 +1,8 @@
 !=============================================================================
 ! Modified version of AMR2CELL.f90 from the RAMSES source
 !=============================================================================
-subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
+subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,&
+                     & data_array,ncells,ncpu,ndim,levelmin,levelmax,nstep,boxsize,t)
 
   implicit none
   
@@ -11,21 +12,23 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
 
   ! Subroutine arguments
   character(LEN=*)              , intent(in ) :: infile
-  real*8                        , intent(in ) :: xcenter,ycenter,zcenter
   integer                       , intent(in ) :: lmax2
-  integer                       , intent(out) :: ncells
+  real*8                        , intent(in ) :: xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale
+  
+  integer                       , intent(out) :: ncells,ncpu,ndim,levelmin,levelmax,nstep
+  real*8                        , intent(out) :: boxsize,t
   real*8,dimension(nmax,nvarmax), intent(out) :: data_array
   
   ! Variables
-  integer :: ndim,i,j,k,twotondim,ivar,ncpu,nboundary,ngrid_current
+  integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current
   integer :: nx,ny,nz,ilevel,idim,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
-  integer :: nx_full,ny_full,nz_full,levelmin,ix,iy,iz
+  integer :: nx_full,ny_full,nz_full,ix,iy,iz
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
-  real*8 :: xmin=0.0d0,xmax=1.0d0,ymin=0.0d0,ymax=1.0d0,zmin=0.0d0,zmax=1.0d0
-  real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,boxlen,mu,t
+  real*8 :: xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0,zmin=0.0,zmax=1.0
+  real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
   real*8 :: xi,yi,zi,dxi,rhoi,ui,vi,wi,tempi,bxi,byi,bzi,bi,veli,ul,ud,ut
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
@@ -55,6 +58,8 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
 
   lmax = lmax2
   repository = trim(infile)
+  
+  
 
   !-----------------------------------------------
   ! Reading RAMSES data
@@ -87,7 +92,7 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
   close(10)
   twotondim=2**ndim
   xbound=(/dble(nx/2),dble(ny/2),dble(nz/2)/)
-
+  
   allocate(ngridfile(1:ncpu+nboundary,1:nlevelmax))
   allocate(ngridlevel(1:ncpu,1:nlevelmax))
   if(nboundary>0)allocate(ngridbound(1:nboundary,1:nlevelmax))
@@ -100,12 +105,12 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
 
   nomfich=TRIM(repository)//'/info_'//TRIM(nchar)//'.txt'
   open(unit=10,file=nomfich,form='formatted',status='old')
-  read (10,*)
-  read (10,*)
+  read (10,'(13x,I11)') ncpu
+  read (10,'(13x,I11)') ndim
   read (10,'(13x,I11)') levelmin
+  read (10,'(13x,I11)') levelmax
   read (10,*)
-  read (10,*)
-  read (10,*)
+  read (10,'(13x,I11)') nstep
   read (10,*)
   
   read (10,'(13x,E23.15)') boxlen
@@ -124,7 +129,20 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
   close(10)
   
   allocate(cpu_list(1:ncpu))
-
+  
+  if(deltax > 0.0d0)then
+      xmin = xcenter - 0.5d0*deltax*lscale/(boxlen*ul)
+      xmax = xcenter + 0.5d0*deltax*lscale/(boxlen*ul)
+  endif
+  if(deltax > 0.0d0)then
+     ymin = ycenter - 0.5d0*deltay*lscale/(boxlen*ul)
+     ymax = ycenter + 0.5d0*deltay*lscale/(boxlen*ul)
+  endif
+  if(deltax > 0.0d0)then
+     zmin = zcenter - 0.5d0*deltaz*lscale/(boxlen*ul)
+     zmax = zcenter + 0.5d0*deltaz*lscale/(boxlen*ul)
+  endif
+  
   !-----------------------
   ! Map parameters
   !-----------------------
@@ -228,7 +246,7 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
         ngrida=ngridfile(icpu,ilevel)
         grid(ilevel)%ngrid=ngrida
         if(ngrida>0)then
-           allocate(xg(1:ngrida,1:ndim))
+           allocate(xg (1:ngrida,1:ndim))
            allocate(son(1:ngrida,1:twotondim))
            allocate(var(1:ngrida,1:twotondim,1:nvarh))
            allocate(x  (1:ngrida,1:ndim))
@@ -332,9 +350,9 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
 
                     tempi = var(i,ind,17)
 
-                    xi = (x(i,1)-xcenter)*ul*boxlen
-                    yi = (x(i,2)-ycenter)*ul*boxlen
-                    zi = (x(i,3)-zcenter)*ul*boxlen
+                    xi = x(i,1)*ul*boxlen
+                    yi = x(i,2)*ul*boxlen
+                    zi = x(i,3)*ul*boxlen
                     dxi = dx*ul*boxlen
 
                     ui = var(i,ind,2)*ul/ut
@@ -380,6 +398,8 @@ subroutine ramses_data(infile,xcenter,ycenter,zcenter,lmax2,data_array,ncells)
   
   ncells = icell
   write(*,*) 'Read ',ncells,' cells'
+  
+  boxsize = boxlen*ul
 
 end subroutine ramses_data
 

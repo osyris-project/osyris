@@ -2,121 +2,87 @@ from pylab import *
 import glob
 import read_ramses_data as rd
 
-# === Physical constants ==============================================================
+#=======================================================================================
 
-au = 1.495980e+13
-
-##======================================================================================
-
-def get_index(key="rho"):
-    if key=="level":
-        return 0
-    elif key=="x":
-        return  1
-    elif key=="y":
-        return  2
-    elif key=="z":
-        return  3
-    elif key=="dx":
-        return  4
-    elif key=="rho":
-        return  5
-    elif key=="vel":
-        return  6
-    elif key=="T":
-        return  7
-    elif key=="B":
-        return  8
-    elif key=="vel_x":
-        return  9
-    elif key=="vel_y":
-        return 10
-    elif key=="vel_z":
-        return 11
-    elif key=="B_x":
-        return 12
-    elif key=="B_y":
-        return 13
-    elif key=="B_z":
-        return 14
-    else:
-       print("Unknown key")
-
+class RamsesOutput:
+ 
+    def __init__(self,nout=1,maxlevel=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=1.0):
+        
+        if nout == -1:
+            filelist = sorted(glob.glob("output*"))
+            infile = filelist[-1]
+        else:
+            infile = "output_"+str(nout).zfill(5)
+        
+        try:
+            center += 0
+            xc = center[0]
+            yc = center[1]
+            zc = center[2]
+        except TypeError:
+            xc = 0.5
+            yc = 0.5
+            zc = 0.5
+            
+        [data1,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scale)
+        
+        self.ncells  = nn
+        self.ncpu    = ncpu
+        self.ndim    = ndim
+        self.lmin    = lmin
+        self.lmax    = lmax
+        self.nstep   = nstep
+        self.boxsize = boxsize
+        self.time    = time
+        
+        self.level  = data1[:nn, 0]
+        self.dx     = data1[:nn, 4]
+        self.rho    = data1[:nn, 5]
+        self.T      = data1[:nn, 7]
+        
+        self.x = zeros([nn,4])
+        self.x[:,0] = data1[:nn, 1]
+        self.x[:,1] = data1[:nn, 2]
+        self.x[:,2] = data1[:nn, 3]
+        self.x[:,3] = data1[:nn, 4]/scale
+        
+        if center == "auto":
+            maxloc = argmax(self.rho)
+            xc = self.x[maxloc,0]
+            yc = self.x[maxloc,1]
+            zc = self.x[maxloc,2]
+        elif len(center) == 3:
+            xc = center[0]*self.boxsize
+            yc = center[1]*self.boxsize
+            zc = center[2]*self.boxsize
+        else:
+            xc = 0.5*self.boxsize
+            yc = 0.5*self.boxsize
+            zc = 0.5*self.boxsize
+        self.x[:,0] = (self.x[:,0] - xc)/scale
+        self.x[:,1] = (self.x[:,1] - yc)/scale
+        self.x[:,2] = (self.x[:,2] - zc)/scale
+        
+        self.vel = zeros([nn,4])
+        self.vel[:,0] = data1[:nn, 9]
+        self.vel[:,1] = data1[:nn,10]
+        self.vel[:,2] = data1[:nn,11]
+        self.vel[:,3] = data1[:nn, 6]
+        
+        self.B = zeros([nn,4])
+        self.B[:,0] = data1[:nn,12]
+        self.B[:,1] = data1[:nn,13]
+        self.B[:,2] = data1[:nn,14]
+        self.B[:,3] = data1[:nn, 8]
+        
 #======================================================================================
 
-def get_variable(data_array,key="rho"):
-    if key=="level":
-        return data_array[:, 0]
-    elif key=="x":
-        return data_array[:, 1]
-    elif key=="y":
-        return data_array[:, 2]
-    elif key=="z":
-        return data_array[:, 3]
-    elif key=="x_au":
-        return data_array[:, 1]/au
-    elif key=="y_au":
-        return data_array[:, 2]/au
-    elif key=="z_au":
-        return data_array[:, 3]/au
-    elif key=="dx":
-        return data_array[:, 4]
-    elif key=="dx_au":
-        return data_array[:, 4]/au
-    elif key=="rho":
-        return data_array[:, 5]
-    elif key=="vel":
-        return data_array[:, 6]
-    elif key=="T":
-        return data_array[:, 7]
-    elif key=="B":
-        return data_array[:, 8]
-    elif key=="vel_x":
-        return data_array[:, 9]
-    elif key=="vel_y":
-        return data_array[:,10]
-    elif key=="vel_z":
-        return data_array[:,11]
-    elif key=="B_x":
-        return data_array[:,12]
-    elif key=="B_y":
-        return data_array[:,13]
-    elif key=="B_z":
-        return data_array[:,14]
-    elif key=="logrho":
-        return log10(data_array[:,5])
-    elif key=="logvel":
-        return log10(data_array[:,6])
-    elif key=="logT":
-        return log10(data_array[:,7])
-    elif key=="logB":
-        return log10(data_array[:,8])
-    else:
-        print("Cannot fetch variable, unrecognised data key: "+key)
-
-#======================================================================================
-
-def ramses_output(nout=1,xc=0.5,yc=0.5,zc=0.5,lmax=0):
-    if nout == -1:
-        filelist = sorted(glob.glob("output*"))
-        infile = filelist[-1]
-    else:
-        infile = "output_"+str(nout).zfill(5)
-    [data1,nn] = rd.ramses_data(infile,xc,yc,zc,lmax)
-    data2 = data1[:nn,:]
-    return data2
-
-#======================================================================================
-
-def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=None):
+def plot_histogram(datax,datay,fname=None,zlog=True,axes=None,cmap=None):
 
     # Parameters
     nx = 101
     ny = 101
-    
-    datax = get_variable(data_array,var_x)
-    datay = get_variable(data_array,var_y)
-        
+            
     xmin = amin(datax)
     xmax = amax(datax)
     ymin = amin(datay)
@@ -140,8 +106,8 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
     
     if axes:
         cont = axes.contourf(x,y,z,20,cmap=cmap)
-        axes.set_xlabel(var_x)
-        axes.set_ylabel(var_y)
+        #axes.set_xlabel(datax.lab)
+        #axes.set_ylabel(datay.lab)
     else:
         fig = matplotlib.pyplot.figure()
         ax  = fig.add_subplot(111)
@@ -149,8 +115,8 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
         sizex = 10.0
         fig.set_size_inches(sizex,ratio*sizex)
         cont = ax.contourf(x,y,z,20,cmap=cmap)
-        ax.set_xlabel(var_x)
-        ax.set_ylabel(var_y)
+        #ax.set_xlabel(datax.lab)
+        #ax.set_ylabel(datay.lab)
         if fname:
             fig.savefig(fname,bbox_inches="tight")
         else:
@@ -160,57 +126,37 @@ def plot_histogram(data_array,var_x,var_y,fname=None,zlog=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
+def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
+    
+    try:
+        vectors = (shape(vec) > 0)
+    except NameError:
+        vectors = False
 
-    if dir_z[0]=="z":
-        dir_x = "x"
-        dir_y = "y"
-    elif dir_z[0]=="x":
-        dir_x = "y"
-        dir_y = "z"
-    elif dir_z[0]=="y":
-        dir_x = "x"
-        dir_y = "z"
-    else:
-        print("Bad z direction: "+dir_z)
-    
-    if vec:
-        vec_x = vec+"_"+dir_x
-        vec_y = vec+"_"+dir_y
-        
-    #if stream:
-        #str_x = stream+"_"+dir_x
-        #str_y = stream+"_"+dir_y
-    
-    
-    if len(dir_z) > 1:
-        dir_x = dir_x+dir_z[1:]
-        dir_y = dir_y+dir_z[1:]
-    
-    data1 = get_variable(data_array,dir_x)
-    data2 = get_variable(data_array,dir_y)
-    data3 = get_variable(data_array,dir_z)
-    
     # Make a guess for slice thickness
     dz = 0.05*(0.5*(dx+dy))
     
-    cube = where(logical_and(abs(data1) < 0.5*dx,logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
+    dirs = [(direction+1)%3,(direction+2)%3]
+    ix = amin(dirs)
+    iy = amax(dirs)
     
-    datax  = get_variable(data_array,dir_x)[cube]
-    datay  = get_variable(data_array,dir_y)[cube]
-    dataz  = get_variable(data_array,var  )[cube]
-    if vec:
-        datau  = get_variable(data_array,vec_x)[cube]
-        datav  = get_variable(data_array,vec_y)[cube]
-    celldx = get_variable(data_array,"dx_au")[cube]
-    
+    data1 = xyz[:,ix]
+    data2 = xyz[:,iy]
+    data3 = xyz[:,direction]
+    cube  = where(logical_and(abs(data1) < 0.5*dx,logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
+    datax = data1[cube]
+    datay = data2[cube]
+    dataz = var  [cube]
+    if vectors:
+        datau  = vec[:,ix][cube]
+        datav  = vec[:,iy][cube]
+    celldx = xyz[:,3][cube]
     ncells = shape(datax)[0]
     
     xmin = -0.5*dx
     xmax =  0.5*dx
     ymin = -0.5*dy
     ymax =  0.5*dy
-    
     
     nx = resolution
     ny = resolution
@@ -219,7 +165,7 @@ def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=N
     
     z1 = zeros([ny,nx])
     z2 = zeros([ny,nx])
-    if vec:
+    if vectors:
         u1 = zeros([ny,nx])
         v1 = zeros([ny,nx])
         z3 = zeros([ny,nx])
@@ -239,13 +185,13 @@ def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=N
             for i in range(ix1,ix2+1):
                 z1[j,i] = z1[j,i] + dataz[n]
                 z2[j,i] = z2[j,i] + 1.0
-                if vec:
+                if vectors:
                     u1[j,i] = u1[j,i] + datau[n]
                     v1[j,i] = v1[j,i] + datav[n]
                     z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
-                
+        
     z = z1/z2
-    if vec:
+    if vectors:
         u = u1/z2
         v = v1/z2
         w = z3/z2
@@ -262,15 +208,15 @@ def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=N
         
     cont = ax.contourf(x,y,z,20,cmap=cmap)
     cbar = colorbar(cont,ax=ax)
-    if vec:
+    if vectors:
         if streamlines:
             if streamlines == "log":
                 w = log10(w)
             strm = ax.streamplot(x,y,u,v,color=w,cmap='Greys')
         else:
             vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
-    ax.set_xlabel(dir_x)
-    ax.set_ylabel(dir_y)
+    #ax.set_xlabel(dir_x)
+    #ax.set_ylabel(dir_y)
     if fname:
         fig.savefig(fname,bbox_inches="tight")
     elif axes:
@@ -279,6 +225,3 @@ def plot_slice(data_array,dir_z="z",var="rho",vec=None,streamlines=False,fname=N
         show()
         
     return
-
-
-    

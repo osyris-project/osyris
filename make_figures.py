@@ -7,8 +7,11 @@ if len(sys.argv) > 1:
 else:
     nout = 1
 
+# Physical constants
+au = 1.495980e+13
+
 # Load data
-mydata=pp.ramses_output(nout=nout)
+mydata = pp.RamsesOutput(nout=nout,center="auto",scale=au)
 
 # Create figure
 fig = matplotlib.pyplot.figure()
@@ -26,18 +29,16 @@ dx = 100
 dy = 100
 
 # Density - B field
-pp.plot_histogram(mydata,"logrho","logB",axes=ax1,cmap="YlGnBu")
+pp.plot_histogram(log10(mydata.rho),log10(mydata.B[:,3]),axes=ax1,cmap="YlGnBu")
 # Density - Temperature
-pp.plot_histogram(mydata,"logrho","logT",axes=ax2,cmap="YlGnBu")
-
+pp.plot_histogram(log10(mydata.rho),log10(mydata.T),axes=ax2,cmap="YlGnBu")
 # x,y density slice
-pp.plot_slice(mydata,'y_au','logrho',vec="B",dx=dx,dy=dy,axes=ax3,streamlines=True)
+pp.plot_slice(mydata.x,log10(mydata.rho),direction=1,vec=mydata.B,dx=dx,dy=dy,axes=ax3,streamlines=True)
 # x,y density slice
-pp.plot_slice(mydata,'z_au','logrho',vec="vel",dx=dx,dy=dy,axes=ax4)
+pp.plot_slice(mydata.x,log10(mydata.rho),direction=2,vec=mydata.vel,dx=dx,dy=dy,axes=ax4)
 # x,z density slice
-pp.plot_slice(mydata,'y_au','logrho',vec="vel",dx=dx,dy=dy,axes=ax5)
+pp.plot_slice(mydata.x,log10(mydata.T),direction=0,vec=mydata.vel,dx=dx,dy=dy,axes=ax5,cmap='hot')
 # y,z density slice
-pp.plot_slice(mydata,'x_au','logrho',vec="vel",dx=dx,dy=dy,axes=ax6)
-
+pp.plot_slice(mydata.x,log10(mydata.rho),direction=1,vec=mydata.vel,dx=dx,dy=dy,axes=ax6)
 
 fig.savefig("plots.pdf",bbox_inches="tight")
