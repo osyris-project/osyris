@@ -29,7 +29,7 @@ dx = 100
 dy = 100
 
 # Density - B field
-pp.plot_histogram(log10(mydata.rho),log10(mydata.B[:,3]),axes=ax1,cmap="YlGnBu")
+pp.plot_histogram(log10(mydata.rho),log10(mydata.B[:,3]),dataz=mydata.level,axes=ax1,cmap="YlGnBu")
 # Density - Temperature
 pp.plot_histogram(log10(mydata.rho),log10(mydata.T),axes=ax2,cmap="YlGnBu")
 # x,y density slice
@@ -37,7 +37,7 @@ pp.plot_slice(mydata.x,log10(mydata.rho),direction=1,vec=mydata.B,dx=dx,dy=dy,ax
 # x,y density slice
 pp.plot_slice(mydata.x,log10(mydata.rho),direction=2,vec=mydata.vel,dx=dx,dy=dy,axes=ax4)
 # x,z density slice
-pp.plot_slice(mydata.x,log10(mydata.T),direction=0,vec=mydata.vel,dx=dx,dy=dy,axes=ax5,cmap='hot')
+pp.plot_slice(mydata.x,log10(mydata.T),direction=2,vec=mydata.vel,dx=dx,dy=dy,axes=ax5,cmap='hot')
 # y,z density slice
 pp.plot_slice(mydata.x,log10(mydata.rho),direction=1,vec=mydata.vel,dx=dx,dy=dy,axes=ax6)
 

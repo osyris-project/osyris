@@ -36,7 +36,7 @@ class RamsesOutput:
         self.time    = time
         
         self.level  = data1[:nn, 0]
-        self.dx     = data1[:nn, 4]
+        self.dx     = data1[:nn, 4]/scale
         self.rho    = data1[:nn, 5]
         self.T      = data1[:nn, 7]
         
@@ -77,7 +77,7 @@ class RamsesOutput:
         
 #======================================================================================
 
-def plot_histogram(datax,datay,fname=None,zlog=True,axes=None,cmap=None):
+def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=None):
 
     # Parameters
     nx = 101
@@ -93,6 +93,17 @@ def plot_histogram(datax,datay,fname=None,zlog=True,axes=None,cmap=None):
 
     z, yedges1, xedges1 = histogram2d(datay,datax,bins=(ye,xe))
 
+    try:
+        contourz = (len(dataz) > 0)
+    except TypeError:
+        contourz = False
+
+    if contourz:
+        z1, yedges1, xedges1 = histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
+        z2 = z1/z
+        zmin = amin(dataz)
+        zmax = amax(dataz)
+
     x = zeros([nx-1])
     y = zeros([ny-1])
 
@@ -105,22 +116,22 @@ def plot_histogram(datax,datay,fname=None,zlog=True,axes=None,cmap=None):
         z = log10(z)
     
     if axes:
-        cont = axes.contourf(x,y,z,20,cmap=cmap)
-        #axes.set_xlabel(datax.lab)
-        #axes.set_ylabel(datay.lab)
+        ax = axes
     else:
         fig = matplotlib.pyplot.figure()
         ax  = fig.add_subplot(111)
-        ratio = 0.7
-        sizex = 10.0
-        fig.set_size_inches(sizex,ratio*sizex)
-        cont = ax.contourf(x,y,z,20,cmap=cmap)
-        #ax.set_xlabel(datax.lab)
-        #ax.set_ylabel(datay.lab)
-        if fname:
-            fig.savefig(fname,bbox_inches="tight")
-        else:
-            show()
+    
+    cont = ax.contourf(x,y,z,20,cmap=cmap)
+    if contourz:
+        over = ax.contour(x,y,z2,levels=arange(zmin,zmax+1),colors='k')
+        ax.clabel(over,inline=1,fmt='%i')
+    
+    if fname:
+        fig.savefig(fname,bbox_inches="tight")
+    elif axes:
+        pass
+    else:
+        show()
 
     return
 
@@ -129,8 +140,8 @@ def plot_histogram(datax,datay,fname=None,zlog=True,axes=None,cmap=None):
 def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
     
     try:
-        vectors = (shape(vec) > 0)
-    except NameError:
+        vectors = (len(vec) > 0)
+    except TypeError:
         vectors = False
 
     # Make a guess for slice thickness
