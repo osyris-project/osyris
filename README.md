@@ -19,7 +19,7 @@ f2py -c read_ramses_data.f90 -m read_ramses_data
 #!python
 import plotting_ramses as pp
 mydata = pp.ramses_output(71)
-pp.plot_histogram(mydata,'logrho','logT')
+pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"))
 ```
 
 ### From the terminal ###
