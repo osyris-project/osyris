@@ -19,7 +19,7 @@ f2py -c read_ramses_data.f90 -m read_ramses_data
 #!python
 import plotting_ramses as pp
 mydata = pp.RamsesOutput(71)
-pp.plot_histogram(mydata.get("rho"),mydata.get("B"))
+pp.plot_histogram(mydata.get("density"),mydata.get("B"))
 ```
 
 ### From the terminal ###
@@ -57,8 +57,8 @@ ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
 # Create new fields
-mydata.new_field(name="log_rho",values=log10(mydata.get_values("rho")),unit="g/cm3",label="log(Density)")
-mydata.new_field(name="log_T",values=log10(mydata.get_values("T")),unit="K",label="log(T)")
+mydata.new_field(name="log_rho",values=log10(mydata.get_values("density")),unit="g/cm3",label="log(Density)")
+mydata.new_field(name="log_T",values=log10(mydata.get_values("temperature")),unit="K",label="log(T)")
 mydata.new_field(name="log_B",values=log10(mydata.get_values("B")),unit="G",label="log(B)")
 
 # Histogram Density vs B field, with overlayed AMR level contours
@@ -67,7 +67,7 @@ pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("le
 # You can also feed simple data arrays to the plot_histogram routine, it does not have to be the "mydata" fields
 # Note that in this case you will not have labels on the plot axes
 # Histogram Density vs Temperature
-pp.plot_histogram(log10(mydata.get_values("rho")),log10(mydata.get_values("T")),var_z=mydata.get_values("level"),axes=ax2,cmap="YlGnBu")
+pp.plot_histogram(log10(mydata.get_values("density")),log10(mydata.get_values("temperature")),var_z=mydata.get_values("level"),axes=ax2,cmap="YlGnBu")
 
 # Define size of the slices
 dx = 100
@@ -76,11 +76,11 @@ dy = 100
 #x,z density slice with B field streamlines
 pp.plot_slice(mydata,"log_rho",direction="y",vec="B",dx=dx,dy=dy,axes=ax3,streamlines=True)
 # x,y density slice with velocity vectors
-pp.plot_slice(mydata,"log_rho",direction="z",vec="vel",dx=dx,dy=dy,axes=ax4)
+pp.plot_slice(mydata,"log_rho",direction="z",vec="velocity",dx=dx,dy=dy,axes=ax4)
 # x,y temperature slice with velocity vectors
-pp.plot_slice(mydata,"log_T",direction="z",vec="vel",dx=dx,dy=dy,axes=ax5,cmap='hot')
+pp.plot_slice(mydata,"log_T",direction="z",vec="velocity",dx=dx,dy=dy,axes=ax5,cmap='hot')
 # x,z density slice with velocity vectors
-pp.plot_slice(mydata,"log_rho",direction="y",vec="vel",dx=dx,dy=dy,axes=ax6)
+pp.plot_slice(mydata,"log_rho",direction="y",vec="velocity",dx=dx,dy=dy,axes=ax6)
 
 fig.savefig("plots.pdf",bbox_inches="tight")
 ```
