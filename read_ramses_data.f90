@@ -128,10 +128,10 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   close(10)
   
   ! Open hydro file descriptor ------------------------
-  nomfich = TRIM(repository)//'/hydro_file_descriptor.txt'
+  nomfich = trim(repository)//'/hydro_file_descriptor.txt'
   inquire(file=trim(nomfich),exist=ok)
   if(ok)then
-      open(unit=11,file=TRIM(repository)//'/hydro_file_descriptor.txt',form='formatted',status='old')
+      open(unit=11,file=trim(nomfich),form='formatted',status='old')
       read(11,'(13x,I11)') nvarh
       do i = 1,nvarh
          read(11,'(14x,a)') string
