@@ -128,13 +128,24 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   close(10)
   
   ! Open hydro file descriptor ------------------------
-  open(unit=11,file=TRIM(repository)//'/hydro_file_descriptor.txt',form='formatted',status='old')
-  read(11,'(13x,I11)') nvarh
-  do i = 1,nvarh
-     read(11,'(14x,a)') string
-     data_names = trim(data_names)//' '//string
-  enddo
-  close(11)
+  nomfich = TRIM(repository)//'/hydro_file_descriptor.txt'
+  inquire(file=trim(nomfich),exist=ok)
+  if(ok)then
+      open(unit=11,file=TRIM(repository)//'/hydro_file_descriptor.txt',form='formatted',status='old')
+      read(11,'(13x,I11)') nvarh
+      do i = 1,nvarh
+         read(11,'(14x,a)') string
+         data_names = trim(data_names)//' '//string
+      enddo
+      close(11)
+  else
+      ! Attempt to make a guess on output structure for old runs
+      nvarh=17
+      data_names = 'density velocity_x velocity_y velocity_z '//&
+                 &'B_left_x B_left_y B_left_z B_right_x B_right_y B_right_z '//&
+                 &'thermal_pressure radiative_energy_1 passive_scalar_1 '//&
+                 &'passive_scalar_2 passive_scalar_3 passive_scalar_4 temperature'
+  endif
   ! The total number of variables returned to python will
   ! be nvarh + 5: 3 coordinates, dx and ilevel
   nvar_tot = nvarh+5
