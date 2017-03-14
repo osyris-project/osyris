@@ -30,18 +30,18 @@ mydata.new_field(name="log_rho",values=log10(mydata.get_values("rho")),unit="g/c
 mydata.new_field(name="log_T",values=log10(mydata.get_values("T")),unit="K",label="log(T)")
 mydata.new_field(name="log_B",values=log10(mydata.get_values("B")),unit="G",label="log(B)")
 
-# Density - B field
+# Density vs B field
 pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("level"),axes=ax1,cmap="YlGnBu")
-# Density - Temperature
+# Density vs Temperature
 pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_T"),var_z=mydata.get("level"),axes=ax2,cmap="YlGnBu")
 
-#x,y density slice
+#x,z density slice with B field
 pp.plot_slice(mydata,"log_rho",direction="y",vec="B",dx=dx,dy=dy,axes=ax3,streamlines=True)
-# x,y density slice
+# x,y density slice with velocity
 pp.plot_slice(mydata,"log_rho",direction="z",vec="vel",dx=dx,dy=dy,axes=ax4)
-# x,z density slice
+# x,y temperature slice with velocity
 pp.plot_slice(mydata,"log_T",direction="z",vec="vel",dx=dx,dy=dy,axes=ax5,cmap='hot')
-# y,z density slice
+# z,z density slice with velocity
 pp.plot_slice(mydata,"log_rho",direction="y",vec="vel",dx=dx,dy=dy,axes=ax6)
 
 fig.savefig("plots.pdf",bbox_inches="tight")

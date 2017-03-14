@@ -179,6 +179,10 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
     contourz = True
     try:
         dataz = var_z["values"]
+        zlabel = True
+    except IndexError:
+        dataz = var_z
+        zlabel = False
     except TypeError:
         contourz = False
 
@@ -209,8 +213,9 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
     if contourz:
         over = ax.contour(x,y,z2,levels=arange(zmin,zmax+1),colors='k')
         ax.clabel(over,inline=1,fmt='%i')
-        leg = [over.collections[0]]
-        ax.legend(leg,[var_z["label"]],loc=2)
+        if zlabel:
+            leg = [over.collections[0]]
+            ax.legend(leg,[var_z["label"]],loc=2)
     
     if xlabel: 
         ax.set_xlabel(var_x["label"]+" ["+var_x["unit"]+"]")
