@@ -88,4 +88,5 @@ fig.savefig("plots.pdf",bbox_inches="tight")
 
 ### Contributors ###
 
-* Neil Vaytet (owner)
+* Neil Vaytet (StarPlan/NBI)
+* Tommaso Grassi (StarPlan/NBI)
