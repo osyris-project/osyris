@@ -325,7 +325,7 @@ def get_units(string,ud,ul,ut,scale="cm"):
     elif string[0:2] == "B_":
         return [sqrt(4.0*pi*ud*(ul/ut)**2),"G"]
     elif string[0:8] == "thermal_pressure":
-        return [ud*((ul/ut)**2),"dyne"]
+        return [ud*((ul/ut)**2),"g/cm/s2"]
     elif string == "x":
         return [ul,scale]
     elif string == "y":
