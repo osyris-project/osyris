@@ -66,7 +66,7 @@ pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("le
 # You can also feed simple data arrays to the plot_histogram routine, it does not have to be the "mydata" fields
 # Note that in this case you will not have labels on the plot axes
 # Histogram Density vs Temperature
-pp.plot_histogram(log10(mydata.get_values("rho")),log10(mydata.get_values("T")),axes=ax2,cmap="YlGnBu")
+pp.plot_histogram(log10(mydata.get_values("rho")),log10(mydata.get_values("T")),var_z=mydata.get_values("level"),axes=ax2,cmap="YlGnBu")
 
 # Define size of the slices
 dx = 100
