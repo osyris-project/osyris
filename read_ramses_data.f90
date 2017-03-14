@@ -2,13 +2,13 @@
 ! Modified version of AMR2CELL.f90 from the RAMSES source
 !=============================================================================
 subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,&
-                     & data_array,ncells,ncpu,ndim,levelmin,levelmax,nstep,boxsize,t)
+                     & data_array,data_names,ncells,ncpu,ndim,levelmin,levelmax,nstep,boxsize,t,ud,ul,ut)
 
   implicit none
   
   ! Array dimensions
   integer, parameter :: nmax=10000000
-  integer, parameter :: nvarmax=15
+  integer, parameter :: nvarmax=50
 
   ! Subroutine arguments
   character(LEN=*)              , intent(in ) :: infile
@@ -16,26 +16,28 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   real*8                        , intent(in ) :: xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale
   
   integer                       , intent(out) :: ncells,ncpu,ndim,levelmin,levelmax,nstep
-  real*8                        , intent(out) :: boxsize,t
+  real*8                        , intent(out) :: boxsize,t,ud,ul,ut
   real*8,dimension(nmax,nvarmax), intent(out) :: data_array
+  character(len=500)            , intent(out) :: data_names
   
   ! Variables
-  integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current
+  integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
   integer :: nx,ny,nz,ilevel,idim,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
-  integer :: nx_full,ny_full,nz_full,ix,iy,iz
+  integer :: nx_full,ny_full,nz_full,ix,iy,iz,s_start,s_end
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
   real*8 :: xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0,zmin=0.0,zmax=1.0
   real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
-  real*8 :: xi,yi,zi,dxi,rhoi,ui,vi,wi,tempi,bxi,byi,bzi,bi,veli,ul,ud,ut
+!   real*8 :: xi,yi,zi,dxi,rhoi,ui,vi,wi,tempi,bxi,byi,bzi,bi,veli,ul,ud,ut
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
   real*8, dimension(1:8,1:3)              :: xc
   real*8, dimension(    1:3)              :: xbound=(/0.0d0,0.0d0,0.0d0/)
   
   character(LEN=5  ) :: nchar,ncharcpu
+  character(LEN=50 ) :: string
   character(LEN=128) :: nomfich,repository
   
   logical                            :: ok,ok_cell
@@ -58,8 +60,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
 
   lmax = lmax2
   repository = trim(infile)
-  
-  
 
   !-----------------------------------------------
   ! Reading RAMSES data
@@ -127,6 +127,23 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   read (10,'(13x,E23.15)') mu
   read (10,'(13x,I11)') ngrp
   close(10)
+  
+  ! Open hydro file descriptor
+  open(unit=11,file=TRIM(repository)//'/hydro_file_descriptor.txt',form='formatted',status='old')
+  read(11,'(13x,I11)') nvarh
+  do i = 1,nvarh
+     read(11,'(14x,a)') string
+     data_names = trim(data_names)//' '//string
+  enddo
+  close(11)
+  ! The total number of variables returned to python will
+  ! be nvarh + 5: 3 coordinates, dx and ilevel
+  nvar_tot = nvarh+5
+  data_names = trim(data_names)//' '//"level"
+  data_names = trim(data_names)//' '//"x"
+  data_names = trim(data_names)//' '//"y"
+  data_names = trim(data_names)//' '//"z"
+  data_names = trim(data_names)//' '//"dx"
   
   allocate(cpu_list(1:ncpu))
   
@@ -248,7 +265,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
         if(ngrida>0)then
            allocate(xg (1:ngrida,1:ndim))
            allocate(son(1:ngrida,1:twotondim))
-           allocate(var(1:ngrida,1:twotondim,1:nvarh))
+           allocate(var(1:ngrida,1:twotondim,1:nvar_tot))
            allocate(x  (1:ngrida,1:ndim))
            allocate(ref(1:ngrida))
         endif
@@ -336,47 +353,58 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
 
                  if(ok_cell)then
                  
-                                   
-                    rhoi = var(i,ind,1)*ud
-
-                    bi   = sqrt(0.25d0*((var(i,ind,5)+var(i,ind,8))**2 &
-                         &         +(var(i,ind,6)+var(i,ind,9))**2 &
-                         &         +(var(i,ind,7)+var(i,ind,10))**2) &
-                         &         *4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-
-                    bxi = 0.5d0*(var(i,ind,5)+var(i,ind, 8))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-                    byi = 0.5d0*(var(i,ind,6)+var(i,ind, 9))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-                    bzi = 0.5d0*(var(i,ind,7)+var(i,ind,10))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-
-                    tempi = var(i,ind,17)
-
-                    xi = x(i,1)*ul*boxlen
-                    yi = x(i,2)*ul*boxlen
-                    zi = x(i,3)*ul*boxlen
-                    dxi = dx*ul*boxlen
-
-                    ui = var(i,ind,2)*ul/ut
-                    vi = var(i,ind,3)*ul/ut
-                    wi = var(i,ind,4)*ul/ut
-                    
-                    veli = sqrt(ui*ui+vi*vi+wi*wi)
-
                     icell = icell + 1
-                    data_array(icell, 1) = real(ilevel)
-                    data_array(icell, 2) = xi
-                    data_array(icell, 3) = yi
-                    data_array(icell, 4) = zi
-                    data_array(icell, 5) = dxi
-                    data_array(icell, 6) = rhoi
-                    data_array(icell, 7) = veli
-                    data_array(icell, 8) = tempi
-                    data_array(icell, 9) = bi
-                    data_array(icell,10) = ui
-                    data_array(icell,11) = vi
-                    data_array(icell,12) = wi
-                    data_array(icell,13) = bxi
-                    data_array(icell,14) = byi
-                    data_array(icell,15) = bzi
+                 
+                    var(i,ind,nvarh+1) = real(ilevel)
+                    var(i,ind,nvarh+2) = x(i,1)*boxlen
+                    var(i,ind,nvarh+3) = x(i,2)*boxlen
+                    var(i,ind,nvarh+4) = x(i,3)*boxlen
+                    var(i,ind,nvarh+5) = dx*boxlen
+                 
+                    do ivar = 1,nvar_tot                    
+                       data_array(icell,ivar) = var(i,ind,ivar)
+                    enddo
+                 
+!                     rhoi = var(i,ind,1)*ud
+! 
+!                     bi   = sqrt(0.25d0*((var(i,ind,5)+var(i,ind,8))**2 &
+!                          &         +(var(i,ind,6)+var(i,ind,9))**2 &
+!                          &         +(var(i,ind,7)+var(i,ind,10))**2) &
+!                          &         *4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
+! 
+!                     bxi = 0.5d0*(var(i,ind,5)+var(i,ind, 8))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
+!                     byi = 0.5d0*(var(i,ind,6)+var(i,ind, 9))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
+!                     bzi = 0.5d0*(var(i,ind,7)+var(i,ind,10))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
+! 
+!                     tempi = var(i,ind,17)
+! 
+!                     xi = x(i,1)*ul*boxlen
+!                     yi = x(i,2)*ul*boxlen
+!                     zi = x(i,3)*ul*boxlen
+!                     dxi = dx*ul*boxlen
+! 
+!                     ui = var(i,ind,2)*ul/ut
+!                     vi = var(i,ind,3)*ul/ut
+!                     wi = var(i,ind,4)*ul/ut
+!                     
+!                     veli = sqrt(ui*ui+vi*vi+wi*wi)
+! 
+!                     icell = icell + 1
+!                     data_array(icell, 1) = real(ilevel)
+!                     data_array(icell, 2) = xi
+!                     data_array(icell, 3) = yi
+!                     data_array(icell, 4) = zi
+!                     data_array(icell, 5) = dxi
+!                     data_array(icell, 6) = rhoi
+!                     data_array(icell, 7) = veli
+!                     data_array(icell, 8) = tempi
+!                     data_array(icell, 9) = bi
+!                     data_array(icell,10) = ui
+!                     data_array(icell,11) = vi
+!                     data_array(icell,12) = wi
+!                     data_array(icell,13) = bxi
+!                     data_array(icell,14) = byi
+!                     data_array(icell,15) = bzi
                                         
                  end if
               end do
@@ -400,6 +428,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   write(*,*) 'Read ',ncells,' cells'
   
   boxsize = boxlen*ul
+  
+!   write(*,*) data_names
 
 end subroutine ramses_data
-

@@ -26,7 +26,11 @@ class RamsesOutput:
         
         scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
         
-        [data1,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        [data1,names,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        
+        #print data1
+        ##print shape(names)
+        #print names.split()
         
         self.data = dict()
         
@@ -39,23 +43,24 @@ class RamsesOutput:
         self.data["info"]["nstep"]   = nstep
         self.data["info"]["boxsize"] = boxsize
         self.data["info"]["time"]    = time
+        self.data["info"]["ud"]      = ud
+        self.data["info"]["ul"]      = ul
+        self.data["info"]["ut"]      = ut
         
-        list_vars = ["level"    , "x"  , "y"  , "z"  , "dx"       , "rho"    , "vel"     , "T"          , "B"             , "vel_x", "vel_y", "vel_z", "B_x", "B_y", "B_z"]
-        list_unit = ["None"     , scale, scale, scale, scale      , "g/cm3"  , "cm/s"    , "K"          , "G"             , "cm/s" , "cm/s" , "cm/s" , "G"  , "G"  , "G"  ]
-        list_labs = ["AMR level", "x"  , "y"  , "z"  , "Cell size", "Density", "Velocity", "Temperature", "Magnetic field", "vel_x", "vel_y", "vel_z", "B_x", "B_y", "B_z"]
-        
+        list_vars = names.split()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
             self.data[theKey] = dict()
-            self.data[theKey]["values"] = data1[:nn,i]
-            self.data[theKey]["unit"  ] = list_unit[i]
-            self.data[theKey]["label" ] = list_labs[i]
+            [norm,uu] = get_units(theKey,ud,ul,ut,scale)
+            self.data[theKey]["values"] = data1[:nn,i]*norm
+            self.data[theKey]["unit"  ] = uu
+            self.data[theKey]["label" ] = theKey
         
         # Modifications for coordinates and cell sizes
         try:
             lc = len(center)
             if center == "auto":
-                maxloc = argmax(self.data["rho"]["values"])
+                maxloc = argmax(self.data["density"]["values"])
                 xc = self.data["x"]["values"][maxloc]
                 yc = self.data["y"]["values"][maxloc]
                 zc = self.data["z"]["values"][maxloc]
@@ -75,6 +80,27 @@ class RamsesOutput:
         self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
         
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        
+        # Magnetic field
+        self.data["B_x"] = dict()
+        self.data["B_x"]["values"] = 0.5*(self.data["B_left_x"]["values"]+self.data["B_right_x"]["values"])
+        self.data["B_x"]["unit"  ] = "G"
+        self.data["B_x"]["label" ] = "B_x"
+        
+        self.data["B_y"] = dict()
+        self.data["B_y"]["values"] = 0.5*(self.data["B_left_y"]["values"]+self.data["B_right_y"]["values"])
+        self.data["B_y"]["unit"  ] = "G"
+        self.data["B_y"]["label" ] = "B_y"
+        
+        self.data["B_z"] = dict()
+        self.data["B_z"]["values"] = 0.5*(self.data["B_left_z"]["values"]+self.data["B_right_z"]["values"])
+        self.data["B_z"]["unit"  ] = "G"
+        self.data["B_z"]["label" ] = "B_z"
+        
+        self.data["B"] = dict()
+        self.data["B"]["values"] = sqrt*(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
+        self.data["B"]["unit"  ] = "G"
+        self.data["B"]["label" ] = "B"
     
     #------------------------------------------------------------------------------
     
@@ -93,6 +119,9 @@ class RamsesOutput:
         self.data[name]["values"] = values
         self.data[name]["unit"  ] = unit
         self.data[name]["label" ] = label
+        
+    
+        
         
 #======================================================================================
 
@@ -292,3 +321,24 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
         show()
         
     return
+
+def get_units(string,ud,ul,ut,scale="cm"):
+    if string == "density":
+        return [ud,"g/cm3"]
+    elif string[0:8] == "velocity":
+        return [ul/ut,"cm/s"]
+    elif string[0:2] == "B_":
+        return [sqrt(4.0*pi*ud*(ul/ut)**2),"G"]
+    elif string[0:8] == "thermal_pressure":
+        return [ud*((ul/ut)**2),"dyne"]
+    elif string == "x":
+        return [ul,scale]
+    elif string == "y":
+        return [ul,scale]
+    elif string == "z":
+        return [ul,scale]
+    elif string == "dx":
+        return [ul,scale]
+    else:
+        return [1.0,""]
+        
