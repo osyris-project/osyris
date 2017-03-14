@@ -40,41 +40,18 @@ class RamsesOutput:
         self.data["info"]["boxsize"] = boxsize
         self.data["info"]["time"]    = time
         
-        self.data["level"] = dict()
-        self.data["level"]["values"] = data1[:nn,0]
-        self.data["level"]["unit"  ] = "None"
-        self.data["level"]["label" ] = "AMR level"
+        list_vars = ["level"    , "x"  , "y"  , "z"  , "dx"       , "rho"    , "vel"     , "T"          , "B"             , "vel_x", "vel_y", "vel_z", "B_x", "B_y", "B_z"]
+        list_unit = ["None"     , scale, scale, scale, scale      , "g/cm3"  , "cm/s"    , "K"          , "G"             , "cm/s" , "cm/s" , "cm/s" , "G"  , "G"  , "G"  ]
+        list_labs = ["AMR level", "x"  , "y"  , "z"  , "Cell size", "Density", "Velocity", "Temperature", "Magnetic field", "vel_x", "vel_y", "vel_z", "B_x", "B_y", "B_z"]
         
-        self.data["dx"] = dict()
-        self.data["dx"]["values"] = data1[:nn,4]/scalelist[scale]
-        self.data["dx"]["unit"  ] = scale
-        self.data["dx"]["label" ] = "dx"
+        for i in range(len(list_vars)):
+            theKey = list_vars[i]
+            self.data[theKey] = dict()
+            self.data[theKey]["values"] = data1[:nn,i]
+            self.data[theKey]["unit"  ] = list_unit[i]
+            self.data[theKey]["label" ] = list_labs[i]
         
-        self.data["rho"] = dict()
-        self.data["rho"]["values"] = data1[:nn, 5]
-        self.data["rho"]["unit"  ] = "g/cm3"
-        self.data["rho"]["label" ] = "Density"
-        
-        self.data["T"] = dict()
-        self.data["T"]["values"] = data1[:nn, 7]
-        self.data["T"]["unit"  ] = "K"
-        self.data["T"]["label" ] = "Temperature"
-        
-        self.data["x"] = dict()
-        self.data["x"]["values"] = data1[:nn,1]
-        self.data["x"]["unit"  ] = scale
-        self.data["x"]["label" ] = "x"
-        
-        self.data["y"] = dict()
-        self.data["y"]["values"] = data1[:nn,2]
-        self.data["y"]["unit"  ] = scale
-        self.data["y"]["label" ] = "y"
-        
-        self.data["z"] = dict()
-        self.data["z"]["values"] = data1[:nn,3]
-        self.data["z"]["unit"  ] = scale
-        self.data["z"]["label" ] = "z"
-                
+        # Modifications for coordinates and cell sizes
         if center == "auto":
             maxloc = argmax(self.data["rho"]["values"])
             xc = self.data["x"]["values"][maxloc]
@@ -92,51 +69,19 @@ class RamsesOutput:
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
         self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
         
-        self.data["vel_x"] = dict()
-        self.data["vel_x"]["values"] = data1[:nn,9]
-        self.data["vel_x"]["unit"  ] = "cm/s"
-        self.data["vel_x"]["label" ] = "vel_x"
-        
-        self.data["vel_y"] = dict()
-        self.data["vel_y"]["values"] = data1[:nn,10]
-        self.data["vel_y"]["unit"  ] = "cm/s"
-        self.data["vel_y"]["label" ] = "vel_y"
-        
-        self.data["vel_z"] = dict()
-        self.data["vel_z"]["values"] = data1[:nn,11]
-        self.data["vel_z"]["unit"  ] = "cm/s"
-        self.data["vel_z"]["label" ] = "vel_z"
-        
-        self.data["vel"] = dict()
-        self.data["vel"]["values"] = data1[:nn,6]
-        self.data["vel"]["unit"  ] = "cm/s"
-        self.data["vel"]["label" ] = "vel"
-        
-        self.data["B_x"] = dict()
-        self.data["B_x"]["values"] = data1[:nn,12]
-        self.data["B_x"]["unit"  ] = "G"
-        self.data["B_x"]["label" ] = "B_x"
-        
-        self.data["B_y"] = dict()
-        self.data["B_y"]["values"] = data1[:nn,13]
-        self.data["B_y"]["unit"  ] = "G"
-        self.data["B_y"]["label" ] = "B_y"
-        
-        self.data["B_z"] = dict()
-        self.data["B_z"]["values"] = data1[:nn,14]
-        self.data["B_z"]["unit"  ] = "G"
-        self.data["B_z"]["label" ] = "B_z"
-        
-        self.data["B"] = dict()
-        self.data["B"]["values"] = data1[:nn,8]
-        self.data["B"]["unit"  ] = "G"
-        self.data["B"]["label" ] = "B"
-        
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+    
+    #------------------------------------------------------------------------------
+    
     def get_values(self,variable,key="values"):
         return self.data[variable][key]
     
+    #------------------------------------------------------------------------------
+    
     def get(self,variable):
         return self.data[variable]
+    
+    #------------------------------------------------------------------------------
     
     def new_field(self,name,values,unit,label):
         self.data[name] = dict()
