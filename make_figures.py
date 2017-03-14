@@ -35,13 +35,13 @@ pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("le
 # Density vs Temperature
 pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_T"),var_z=mydata.get("level"),axes=ax2,cmap="YlGnBu")
 
-##x,z density slice with B field
-#pp.plot_slice(mydata,"log_rho",direction="y",vec="B",dx=dx,dy=dy,axes=ax3,streamlines=True)
-## x,y density slice with velocity
-#pp.plot_slice(mydata,"log_rho",direction="z",vec="vel",dx=dx,dy=dy,axes=ax4)
-## x,y temperature slice with velocity
-#pp.plot_slice(mydata,"log_T",direction="z",vec="vel",dx=dx,dy=dy,axes=ax5,cmap='hot')
-## z,z density slice with velocity
-#pp.plot_slice(mydata,"log_rho",direction="y",vec="vel",dx=dx,dy=dy,axes=ax6)
+#x,z density slice with B field
+pp.plot_slice(mydata,"log_rho",direction="y",vec="B",dx=dx,dy=dy,axes=ax3,streamlines=True)
+# x,y density slice with velocity
+pp.plot_slice(mydata,"log_rho",direction="z",vec="velocity",dx=dx,dy=dy,axes=ax4)
+# x,y temperature slice with velocity
+pp.plot_slice(mydata,"log_T",direction="z",vec="velocity",dx=dx,dy=dy,axes=ax5,cmap='hot')
+# z,z density slice with velocity
+pp.plot_slice(mydata,"log_rho",direction="y",vec="velocity",dx=dx,dy=dy,axes=ax6)
 
 fig.savefig("plots.pdf",bbox_inches="tight")

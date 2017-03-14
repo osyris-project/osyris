@@ -30,7 +30,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   
   real*8 :: xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0,zmin=0.0,zmax=1.0
   real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
-!   real*8 :: xi,yi,zi,dxi,rhoi,ui,vi,wi,tempi,bxi,byi,bzi,bi,veli,ul,ud,ut
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
   real*8, dimension(1:8,1:3)              :: xc
@@ -128,7 +127,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   read (10,'(13x,I11)') ngrp
   close(10)
   
-  ! Open hydro file descriptor
+  ! Open hydro file descriptor ------------------------
   open(unit=11,file=TRIM(repository)//'/hydro_file_descriptor.txt',form='formatted',status='old')
   read(11,'(13x,I11)') nvarh
   do i = 1,nvarh
@@ -144,6 +143,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   data_names = trim(data_names)//' '//"y"
   data_names = trim(data_names)//' '//"z"
   data_names = trim(data_names)//' '//"dx"
+  ! ---------------------------------------------------
   
   allocate(cpu_list(1:ncpu))
   
@@ -364,47 +364,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
                     do ivar = 1,nvar_tot                    
                        data_array(icell,ivar) = var(i,ind,ivar)
                     enddo
-                 
-!                     rhoi = var(i,ind,1)*ud
-! 
-!                     bi   = sqrt(0.25d0*((var(i,ind,5)+var(i,ind,8))**2 &
-!                          &         +(var(i,ind,6)+var(i,ind,9))**2 &
-!                          &         +(var(i,ind,7)+var(i,ind,10))**2) &
-!                          &         *4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-! 
-!                     bxi = 0.5d0*(var(i,ind,5)+var(i,ind, 8))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-!                     byi = 0.5d0*(var(i,ind,6)+var(i,ind, 9))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-!                     bzi = 0.5d0*(var(i,ind,7)+var(i,ind,10))*sqrt(4.0d0*acos(-1.0d0)*ud*(ul/ut)**2)
-! 
-!                     tempi = var(i,ind,17)
-! 
-!                     xi = x(i,1)*ul*boxlen
-!                     yi = x(i,2)*ul*boxlen
-!                     zi = x(i,3)*ul*boxlen
-!                     dxi = dx*ul*boxlen
-! 
-!                     ui = var(i,ind,2)*ul/ut
-!                     vi = var(i,ind,3)*ul/ut
-!                     wi = var(i,ind,4)*ul/ut
-!                     
-!                     veli = sqrt(ui*ui+vi*vi+wi*wi)
-! 
-!                     icell = icell + 1
-!                     data_array(icell, 1) = real(ilevel)
-!                     data_array(icell, 2) = xi
-!                     data_array(icell, 3) = yi
-!                     data_array(icell, 4) = zi
-!                     data_array(icell, 5) = dxi
-!                     data_array(icell, 6) = rhoi
-!                     data_array(icell, 7) = veli
-!                     data_array(icell, 8) = tempi
-!                     data_array(icell, 9) = bi
-!                     data_array(icell,10) = ui
-!                     data_array(icell,11) = vi
-!                     data_array(icell,12) = wi
-!                     data_array(icell,13) = bxi
-!                     data_array(icell,14) = byi
-!                     data_array(icell,15) = bzi
                                         
                  end if
               end do
@@ -429,6 +388,4 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   
   boxsize = boxlen*ul
   
-!   write(*,*) data_names
-
 end subroutine ramses_data

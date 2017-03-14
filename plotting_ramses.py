@@ -28,10 +28,6 @@ class RamsesOutput:
         
         [data1,names,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
-        #print data1
-        ##print shape(names)
-        #print names.split()
-        
         self.data = dict()
         
         self.data["info"] = dict()
@@ -98,7 +94,7 @@ class RamsesOutput:
         self.data["B_z"]["label" ] = "B_z"
         
         self.data["B"] = dict()
-        self.data["B"]["values"] = sqrt*(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
+        self.data["B"]["values"] = sqrt(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
         self.data["B"]["unit"  ] = "G"
         self.data["B"]["label" ] = "B"
     
@@ -119,9 +115,6 @@ class RamsesOutput:
         self.data[name]["values"] = values
         self.data[name]["unit"  ] = unit
         self.data[name]["label" ] = label
-        
-    
-        
         
 #======================================================================================
 
@@ -322,6 +315,8 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
         
     return
 
+#======================================================================================
+
 def get_units(string,ud,ul,ut,scale="cm"):
     if string == "density":
         return [ud,"g/cm3"]
@@ -341,4 +336,3 @@ def get_units(string,ud,ul,ut,scale="cm"):
         return [ul,scale]
     else:
         return [1.0,""]
-        
