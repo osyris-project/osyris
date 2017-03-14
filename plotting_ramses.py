@@ -52,16 +52,21 @@ class RamsesOutput:
             self.data[theKey]["label" ] = list_labs[i]
         
         # Modifications for coordinates and cell sizes
-        if center == "auto":
-            maxloc = argmax(self.data["rho"]["values"])
-            xc = self.data["x"]["values"][maxloc]
-            yc = self.data["y"]["values"][maxloc]
-            zc = self.data["z"]["values"][maxloc]
-        elif len(center) == 3:
-            xc = center[0]*self.data["info"]["boxsize"]
-            yc = center[1]*self.data["info"]["boxsize"]
-            zc = center[2]*self.data["info"]["boxsize"]
-        else:
+        try:
+            lc = len(center)
+            if center == "auto":
+                maxloc = argmax(self.data["rho"]["values"])
+                xc = self.data["x"]["values"][maxloc]
+                yc = self.data["y"]["values"][maxloc]
+                zc = self.data["z"]["values"][maxloc]
+            elif lc == 3:
+                xc = center[0]*self.data["info"]["boxsize"]
+                yc = center[1]*self.data["info"]["boxsize"]
+                zc = center[2]*self.data["info"]["boxsize"]
+            else:
+                print "Bad center value"
+                return
+        except TypeError:
             xc = 0.5*self.data["info"]["boxsize"]
             yc = 0.5*self.data["info"]["boxsize"]
             zc = 0.5*self.data["info"]["boxsize"]
