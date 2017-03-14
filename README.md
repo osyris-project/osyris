@@ -60,7 +60,7 @@ mydata.new_field(name="log_rho",values=log10(mydata.get_values("rho")),unit="g/c
 mydata.new_field(name="log_T",values=log10(mydata.get_values("T")),unit="K",label="log(T)")
 mydata.new_field(name="log_B",values=log10(mydata.get_values("B")),unit="G",label="log(B)")
 
-# Histogram Density vs B field
+# Histogram Density vs B field, with overlayed AMR level contours
 pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("level"),axes=ax1,cmap="YlGnBu")
 
 # You can also feed simple data arrays to the plot_histogram routine, it does not have to be the "mydata" fields
