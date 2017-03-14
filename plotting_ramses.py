@@ -6,7 +6,7 @@ import read_ramses_data as rd
 
 class RamsesOutput:
  
-    def __init__(self,nout=1,maxlevel=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=1.0):
+    def __init__(self,nout=1,maxlevel=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
         
         if nout == -1:
             filelist = sorted(glob.glob("output*"))
@@ -23,65 +23,148 @@ class RamsesOutput:
             xc = 0.5
             yc = 0.5
             zc = 0.5
-            
-        [data1,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scale)
         
-        self.ncells  = nn
-        self.ncpu    = ncpu
-        self.ndim    = ndim
-        self.lmin    = lmin
-        self.lmax    = lmax
-        self.nstep   = nstep
-        self.boxsize = boxsize
-        self.time    = time
+        scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
         
-        self.level  = data1[:nn, 0]
-        self.dx     = data1[:nn, 4]/scale
-        self.rho    = data1[:nn, 5]
-        self.T      = data1[:nn, 7]
+        [data1,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
-        self.x = zeros([nn,4])
-        self.x[:,0] = data1[:nn, 1]
-        self.x[:,1] = data1[:nn, 2]
-        self.x[:,2] = data1[:nn, 3]
-        self.x[:,3] = data1[:nn, 4]/scale
+        self.data = dict()
         
+        self.data["info"] = dict()
+        self.data["info"]["ncells"]  = nn
+        self.data["info"]["ncpu"]    = ncpu
+        self.data["info"]["ndim"]    = ndim
+        self.data["info"]["lmin"]    = lmin
+        self.data["info"]["lmax"]    = lmax
+        self.data["info"]["nstep"]   = nstep
+        self.data["info"]["boxsize"] = boxsize
+        self.data["info"]["time"]    = time
+        
+        self.data["level"] = dict()
+        self.data["level"]["values"] = data1[:nn,0]
+        self.data["level"]["unit"  ] = "None"
+        self.data["level"]["label" ] = "AMR level"
+        
+        self.data["dx"] = dict()
+        self.data["dx"]["values"] = data1[:nn,4]/scalelist[scale]
+        self.data["dx"]["unit"  ] = scale
+        self.data["dx"]["label" ] = "dx"
+        
+        self.data["rho"] = dict()
+        self.data["rho"]["values"] = data1[:nn, 5]
+        self.data["rho"]["unit"  ] = "g/cm3"
+        self.data["rho"]["label" ] = "Density"
+        
+        self.data["T"] = dict()
+        self.data["T"]["values"] = data1[:nn, 7]
+        self.data["T"]["unit"  ] = "K"
+        self.data["T"]["label" ] = "Temperature"
+        
+        self.data["x"] = dict()
+        self.data["x"]["values"] = data1[:nn,1]
+        self.data["x"]["unit"  ] = scale
+        self.data["x"]["label" ] = "x"
+        
+        self.data["y"] = dict()
+        self.data["y"]["values"] = data1[:nn,2]
+        self.data["y"]["unit"  ] = scale
+        self.data["y"]["label" ] = "y"
+        
+        self.data["z"] = dict()
+        self.data["z"]["values"] = data1[:nn,3]
+        self.data["z"]["unit"  ] = scale
+        self.data["z"]["label" ] = "z"
+                
         if center == "auto":
-            maxloc = argmax(self.rho)
-            xc = self.x[maxloc,0]
-            yc = self.x[maxloc,1]
-            zc = self.x[maxloc,2]
+            maxloc = argmax(self.data["rho"]["values"])
+            xc = self.data["x"]["values"][maxloc]
+            yc = self.data["y"]["values"][maxloc]
+            zc = self.data["z"]["values"][maxloc]
         elif len(center) == 3:
-            xc = center[0]*self.boxsize
-            yc = center[1]*self.boxsize
-            zc = center[2]*self.boxsize
+            xc = center[0]*self.data["info"]["boxsize"]
+            yc = center[1]*self.data["info"]["boxsize"]
+            zc = center[2]*self.data["info"]["boxsize"]
         else:
-            xc = 0.5*self.boxsize
-            yc = 0.5*self.boxsize
-            zc = 0.5*self.boxsize
-        self.x[:,0] = (self.x[:,0] - xc)/scale
-        self.x[:,1] = (self.x[:,1] - yc)/scale
-        self.x[:,2] = (self.x[:,2] - zc)/scale
+            xc = 0.5*self.data["info"]["boxsize"]
+            yc = 0.5*self.data["info"]["boxsize"]
+            zc = 0.5*self.data["info"]["boxsize"]
+        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[scale]
+        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
+        self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
         
-        self.vel = zeros([nn,4])
-        self.vel[:,0] = data1[:nn, 9]
-        self.vel[:,1] = data1[:nn,10]
-        self.vel[:,2] = data1[:nn,11]
-        self.vel[:,3] = data1[:nn, 6]
+        self.data["vel_x"] = dict()
+        self.data["vel_x"]["values"] = data1[:nn,9]
+        self.data["vel_x"]["unit"  ] = "cm/s"
+        self.data["vel_x"]["label" ] = "vel_x"
         
-        self.B = zeros([nn,4])
-        self.B[:,0] = data1[:nn,12]
-        self.B[:,1] = data1[:nn,13]
-        self.B[:,2] = data1[:nn,14]
-        self.B[:,3] = data1[:nn, 8]
+        self.data["vel_y"] = dict()
+        self.data["vel_y"]["values"] = data1[:nn,10]
+        self.data["vel_y"]["unit"  ] = "cm/s"
+        self.data["vel_y"]["label" ] = "vel_y"
+        
+        self.data["vel_z"] = dict()
+        self.data["vel_z"]["values"] = data1[:nn,11]
+        self.data["vel_z"]["unit"  ] = "cm/s"
+        self.data["vel_z"]["label" ] = "vel_z"
+        
+        self.data["vel"] = dict()
+        self.data["vel"]["values"] = data1[:nn,6]
+        self.data["vel"]["unit"  ] = "cm/s"
+        self.data["vel"]["label" ] = "vel"
+        
+        self.data["B_x"] = dict()
+        self.data["B_x"]["values"] = data1[:nn,12]
+        self.data["B_x"]["unit"  ] = "G"
+        self.data["B_x"]["label" ] = "B_x"
+        
+        self.data["B_y"] = dict()
+        self.data["B_y"]["values"] = data1[:nn,13]
+        self.data["B_y"]["unit"  ] = "G"
+        self.data["B_y"]["label" ] = "B_y"
+        
+        self.data["B_z"] = dict()
+        self.data["B_z"]["values"] = data1[:nn,14]
+        self.data["B_z"]["unit"  ] = "G"
+        self.data["B_z"]["label" ] = "B_z"
+        
+        self.data["B"] = dict()
+        self.data["B"]["values"] = data1[:nn,8]
+        self.data["B"]["unit"  ] = "G"
+        self.data["B"]["label" ] = "B"
+        
+    def get_values(self,variable,key="values"):
+        return self.data[variable][key]
+    
+    def get(self,variable):
+        return self.data[variable]
+    
+    def new_field(self,name,values,unit,label):
+        self.data[name] = dict()
+        self.data[name]["values"] = values
+        self.data[name]["unit"  ] = unit
+        self.data[name]["label" ] = label
         
 #======================================================================================
 
-def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=None):
+def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
 
     # Parameters
     nx = 101
     ny = 101
+    
+    try:
+        datax = var_x["values"]
+        xlabel = True
+    except IndexError:
+        datax = var_x
+        xlabel = False
+        
+    try:
+        datay = var_y["values"]
+        ylabel = True
+    except IndexError:
+        datay = var_y
+        ylabel = False
             
     xmin = amin(datax)
     xmax = amax(datax)
@@ -93,8 +176,9 @@ def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=No
 
     z, yedges1, xedges1 = histogram2d(datay,datax,bins=(ye,xe))
 
+    contourz = True
     try:
-        contourz = (len(dataz) > 0)
+        dataz = var_z["values"]
     except TypeError:
         contourz = False
 
@@ -112,7 +196,7 @@ def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=No
     for j in range(ny-1):
         y[j] = 0.5*(ye[j]+ye[j+1])
 
-    if zlog:
+    if logz:
         z = log10(z)
     
     if axes:
@@ -125,6 +209,13 @@ def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=No
     if contourz:
         over = ax.contour(x,y,z2,levels=arange(zmin,zmax+1),colors='k')
         ax.clabel(over,inline=1,fmt='%i')
+        leg = [over.collections[0]]
+        ax.legend(leg,[var_z["label"]],loc=2)
+    
+    if xlabel: 
+        ax.set_xlabel(var_x["label"]+" ["+var_x["unit"]+"]")
+    if ylabel:
+        ax.set_ylabel(var_y["label"]+" ["+var_y["unit"]+"]")
     
     if fname:
         fig.savefig(fname,bbox_inches="tight")
@@ -137,31 +228,35 @@ def plot_histogram(datax,datay,dataz=None,fname=None,zlog=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
+def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
     
-    try:
-        vectors = (len(vec) > 0)
-    except TypeError:
-        vectors = False
+    if direction == "z":
+        dir_x = "x"
+        dir_y = "y"
+    elif direction == "y":
+        dir_x = "x"
+        dir_y = "z"
+    elif direction == "x":
+        dir_x = "y"
+        dir_y = "z"
+    else:
+        print "Bad direction for slice"
+        return
 
     # Make a guess for slice thickness
     dz = 0.05*(0.5*(dx+dy))
     
-    dirs = [(direction+1)%3,(direction+2)%3]
-    ix = amin(dirs)
-    iy = amax(dirs)
-    
-    data1 = xyz[:,ix]
-    data2 = xyz[:,iy]
-    data3 = xyz[:,direction]
+    data1 = ramsesdata.get_values(dir_x)
+    data2 = ramsesdata.get_values(dir_y)
+    data3 = ramsesdata.get_values(direction)
     cube  = where(logical_and(abs(data1) < 0.5*dx,logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
     datax = data1[cube]
     datay = data2[cube]
-    dataz = var  [cube]
-    if vectors:
-        datau  = vec[:,ix][cube]
-        datav  = vec[:,iy][cube]
-    celldx = xyz[:,3][cube]
+    dataz = ramsesdata.get_values(var)[cube]
+    if vec:
+        datau = ramsesdata.get_values(vec+"_"+dir_x)[cube]
+        datav = ramsesdata.get_values(vec+"_"+dir_y)[cube]
+    celldx = ramsesdata.get_values("dx")[cube]
     ncells = shape(datax)[0]
     
     xmin = -0.5*dx
@@ -176,7 +271,7 @@ def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,
     
     z1 = zeros([ny,nx])
     z2 = zeros([ny,nx])
-    if vectors:
+    if vec:
         u1 = zeros([ny,nx])
         v1 = zeros([ny,nx])
         z3 = zeros([ny,nx])
@@ -196,13 +291,13 @@ def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,
             for i in range(ix1,ix2+1):
                 z1[j,i] = z1[j,i] + dataz[n]
                 z2[j,i] = z2[j,i] + 1.0
-                if vectors:
+                if vec:
                     u1[j,i] = u1[j,i] + datau[n]
                     v1[j,i] = v1[j,i] + datav[n]
                     z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
         
     z = z1/z2
-    if vectors:
+    if vec:
         u = u1/z2
         v = v1/z2
         w = z3/z2
@@ -219,15 +314,21 @@ def plot_slice(xyz,var,direction=2,vec=None,streamlines=False,fname=None,dx=1.0,
         
     cont = ax.contourf(x,y,z,20,cmap=cmap)
     cbar = colorbar(cont,ax=ax)
-    if vectors:
+    if vec:
         if streamlines:
             if streamlines == "log":
                 w = log10(w)
             strm = ax.streamplot(x,y,u,v,color=w,cmap='Greys')
         else:
             vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
-    #ax.set_xlabel(dir_x)
-    #ax.set_ylabel(dir_y)
+    xlab = ramsesdata.get_values(dir_x,key="label")+" ["+ramsesdata.get_values(dir_x,key="unit")+"]"
+    ylab = ramsesdata.get_values(dir_y,key="label")+" ["+ramsesdata.get_values(dir_y,key="unit")+"]"
+    zlab = ramsesdata.get_values(var,key="label")+" ["+ramsesdata.get_values(var,key="unit")+"]"
+    ax.set_xlabel(xlab)
+    ax.set_ylabel(ylab)
+    cbar.ax.set_ylabel(zlab)
+    #cbar.ax.yaxis.set_label_position("left")
+    cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
     if fname:
         fig.savefig(fname,bbox_inches="tight")
     elif axes:
