@@ -24,7 +24,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
   integer :: nx,ny,nz,ilevel,idim,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
-  integer :: nx_full,ny_full,nz_full,ix,iy,iz,s_start,s_end
+  integer :: nx_full,ny_full,nz_full,ix,iy,iz
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
