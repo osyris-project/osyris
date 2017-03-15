@@ -5,7 +5,8 @@ This is a small collection of python plotting scripts for RAMSES data. It is not
 
 ### Installation ###
 
-You must first run 'f2py' on the fortran subroutine which reads in the RAMSES data:
+You will need matplotlib and f2py installed on your system.
+Before plotting, you must first run 'f2py' on the fortran subroutine which reads in the RAMSES data:
 
 ```
 #!bash
