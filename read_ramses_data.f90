@@ -22,7 +22,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   
   ! Variables
   integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
-  integer :: nx,ny,nz,ilevel,idim,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
+  integer :: nx,ny,nz,ilevel,n,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
   integer :: nx_full,ny_full,nz_full,ix,iy,iz
   integer, dimension(:  ), allocatable :: cpu_list
@@ -281,9 +281,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
               read(10) ! Skip next index
               read(10) ! Skip prev index
               ! Read grid center
-              do idim=1,ndim
+              do n=1,ndim
                  if(j.eq.icpu)then
-                    read(10)xg(:,idim)
+                    read(10)xg(:,n)
                  else
                     read(10)
                  endif
@@ -335,9 +335,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
 
               ! Compute cell center
               do i=1,ngrida
-                 x(i,1)=(xg(i,1)+xc(ind,1)-xbound(1))
-                 x(i,2)=(xg(i,2)+xc(ind,2)-xbound(2))
-                 if(ndim>2) x(i,3)=(xg(i,3)+xc(ind,3)-xbound(3))
+                 do n = 1,ndim
+                    x(i,n)=(xg(i,n)+xc(ind,n)-xbound(n))
+                 enddo
               end do
               ! Check if cell is refined
               do i=1,ngrida
