@@ -96,12 +96,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   allocate(ngridlevel(1:ncpu,1:nlevelmax))
   if(nboundary>0)allocate(ngridbound(1:nboundary,1:nlevelmax))
 
-  if(ndim==2)then
-     write(*,*)'Output file contains 2D data'
-     write(*,*)'Aborting'
-     stop
-  endif
-
   nomfich=TRIM(repository)//'/info_'//TRIM(nchar)//'.txt'
   open(unit=10,file=nomfich,form='formatted',status='old')
   read (10,'(13x,I11)') ncpu
@@ -123,8 +117,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   read (10,'(13x,E23.15)') ul
   read (10,'(13x,E23.15)') ud
   read (10,'(13x,E23.15)') ut
-  read (10,'(13x,E23.15)') mu
-  read (10,'(13x,I11)') ngrp
   close(10)
   
   ! Open hydro file descriptor ------------------------
@@ -258,9 +250,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
         ! Geometry
         dx=0.5d0**ilevel
         dx2=0.5d0*dx
-        nx_full=2**ilevel
-        ny_full=2**ilevel
-        nz_full=2**ilevel
         do ind=1,twotondim
            iz=(ind-1)/4
            iy=(ind-1-4*iz)/2
@@ -274,11 +263,13 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
         ngrida=ngridfile(icpu,ilevel)
         grid(ilevel)%ngrid=ngrida
         if(ngrida>0)then
-           allocate(xg (1:ngrida,1:ndim))
+           allocate(xg (1:ngrida,1:3))
            allocate(son(1:ngrida,1:twotondim))
            allocate(var(1:ngrida,1:twotondim,1:nvar_tot))
-           allocate(x  (1:ngrida,1:ndim))
+           allocate(x  (1:ngrida,1:3))
            allocate(ref(1:ngrida))
+           x  = 0.0d0
+           xg = 0.0d0
         endif
 
         ! Loop over domains
@@ -346,7 +337,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
               do i=1,ngrida
                  x(i,1)=(xg(i,1)+xc(ind,1)-xbound(1))
                  x(i,2)=(xg(i,2)+xc(ind,2)-xbound(2))
-                 x(i,3)=(xg(i,3)+xc(ind,3)-xbound(3))
+                 if(ndim>2) x(i,3)=(xg(i,3)+xc(ind,3)-xbound(3))
               end do
               ! Check if cell is refined
               do i=1,ngrida

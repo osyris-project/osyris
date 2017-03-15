@@ -51,7 +51,7 @@ class RamsesOutput:
             self.data[theKey]["values"] = data1[:nn,i]*norm
             self.data[theKey]["unit"  ] = uu
             self.data[theKey]["label" ] = theKey
-        
+
         # Modifications for coordinates and cell sizes
         try:
             lc = len(center)
@@ -73,7 +73,8 @@ class RamsesOutput:
             zc = 0.5*self.data["info"]["boxsize"]
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[scale]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
-        self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
+        if ndim > 2:
+            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
         
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
         
