@@ -27,10 +27,10 @@ ax6 = fig.add_subplot(236)
 dx = 100
 dy = 100
 
-# Create new fields
-mydata.new_field(name="log_rho",values=np.log10(mydata.get_values("density")),unit="g/cm3",label="log(Density)")
-mydata.new_field(name="log_T",values=np.log10(mydata.get_values("temperature")),unit="K",label="log(T)")
-mydata.new_field(name="log_B",values=np.log10(mydata.get_values("B")),unit="G",label="log(B)")
+## Create new fields
+#mydata.new_field(name="log_rho",values=np.log10(mydata.get_values("density")),unit="g/cm3",label="log(Density)")
+#mydata.new_field(name="log_T",values=np.log10(mydata.get_values("temperature")),unit="K",label="log(T)")
+#mydata.new_field(name="log_B",values=np.log10(mydata.get_values("B")),unit="G",label="log(B)")
 
 # Density vs B field
 pp.plot_histogram(mydata.get("log_rho"),mydata.get("log_B"),var_z=mydata.get("level"),axes=ax1,cmap="YlGnBu")

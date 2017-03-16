@@ -100,6 +100,22 @@ class RamsesOutput:
         self.data["B"]["unit"  ] = "G"
         self.data["B"]["label" ] = "B"
     
+        # Commonly used log quantities
+        self.data["log_rho"] = dict()
+        self.data["log_rho"]["values"] = np.log10(self.data["density"]["values"])
+        self.data["log_rho"]["unit"  ] = "g/cm"
+        self.data["log_rho"]["label" ] = "log(Density)"
+        
+        self.data["log_T"] = dict()
+        self.data["log_T"]["values"] = np.log10(self.data["temperature"]["values"])
+        self.data["log_T"]["unit"  ] = "K"
+        self.data["log_T"]["label" ] = "log(T)"
+        
+        self.data["log_B"] = dict()
+        self.data["log_B"]["values"] = np.log10(self.data["B"]["values"])
+        self.data["log_B"]["unit"  ] = "G"
+        self.data["log_B"]["label" ] = "log(B)"
+    
     #------------------------------------------------------------------------------
     
     def get_values(self,variable,key="values"):
