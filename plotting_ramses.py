@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 class RamsesOutput:
  
-    def __init__(self,nout=1,maxlevel=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
         
         if nout == -1:
             filelist = sorted(glob.glob("output*"))
@@ -27,24 +27,24 @@ class RamsesOutput:
         
         scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
         
-        [data1,names,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
         print " Generating data structure... please wait"
         
         self.data = dict()
         
         self.data["info"] = dict()
-        self.data["info"]["ncells"]  = nn
-        self.data["info"]["ncpu"]    = ncpu
-        self.data["info"]["ndim"]    = ndim
-        self.data["info"]["lmin"]    = lmin
-        self.data["info"]["lmax"]    = lmax
-        self.data["info"]["nstep"]   = nstep
-        self.data["info"]["boxsize"] = boxsize
-        self.data["info"]["time"]    = time
-        self.data["info"]["ud"]      = ud
-        self.data["info"]["ul"]      = ul
-        self.data["info"]["ut"]      = ut
+        self.data["info"]["ncells"]   = nn
+        self.data["info"]["ncpu"]     = ncpu
+        self.data["info"]["ndim"]     = ndim
+        self.data["info"]["levelmin"] = levelmin
+        self.data["info"]["levelmax"] = levelmax
+        self.data["info"]["nstep"]    = nstep
+        self.data["info"]["boxsize"]  = boxsize
+        self.data["info"]["time"]     = time
+        self.data["info"]["ud"]       = ud
+        self.data["info"]["ul"]       = ul
+        self.data["info"]["ut"]       = ut
         
         list_vars = names.split()
         for i in range(len(list_vars)):
