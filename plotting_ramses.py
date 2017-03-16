@@ -27,6 +27,8 @@ class RamsesOutput:
         
         scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
         
+        print "========================================"
+        
         [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
         print "Generating data structure... please wait"
@@ -131,6 +133,8 @@ class RamsesOutput:
         print "The variables are:"
         for key in sorted(self.data):
             print key+" ["+self.data[key]["unit"]+"]"
+        print "========================================"
+        
     
     #------------------------------------------------------------------------------
     
