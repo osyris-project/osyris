@@ -173,7 +173,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   if(lmax==0)then
      lmax=nlevelmax
   endif
-  write(*,*)'time=',t
+!   write(*,*)'time=',t
   xxmin=xmin ; xxmax=xmax
   yymin=ymin ; yymax=ymax
   zzmin=zmin ; zzmax=zmax
@@ -209,6 +209,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   icell = 0
 
   ! Loop over processor files
+  write(*,'(a,i5,a)')'Processing ',ncpu_read,' files'
   do k=1,ncpu_read
      icpu=cpu_list(k)
      write(ncharcpu,'(i5.5)') icpu
@@ -216,7 +217,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
      ! Open AMR file and skip header
      nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out'//TRIM(ncharcpu)
      open(unit=10,file=nomfich,status='old',form='unformatted')
-     write(*,*)'Processing file '//TRIM(nomfich)
+!      write(*,*)'Processing file '//TRIM(nomfich)
      do i=1,21
         read(10)
      end do
@@ -395,7 +396,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   ! End loop over cpus
   
   ncells = icell
-  write(*,*) 'Read ',ncells,' cells'
+  write(*,'(a,i9,a)') 'Read ',ncells,' cells'
   
   boxsize = boxlen*ul
   

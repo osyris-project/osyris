@@ -29,7 +29,7 @@ class RamsesOutput:
         
         [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
-        print " Generating data structure... please wait"
+        print "Generating data structure... please wait"
         
         self.data = dict()
         
@@ -97,6 +97,14 @@ class RamsesOutput:
         self.data["B_z"]["unit"  ] = "G"
         self.data["B_z"]["label" ] = "B_z"
         
+        # Free up some memory
+        del self.data["B_left_x"]
+        del self.data["B_left_y"]
+        del self.data["B_left_z"]
+        del self.data["B_right_x"]
+        del self.data["B_right_y"]
+        del self.data["B_right_z"]
+        
         self.data["B"] = dict()
         self.data["B"]["values"] = np.sqrt(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
         self.data["B"]["unit"  ] = "G"
@@ -105,7 +113,7 @@ class RamsesOutput:
         # Commonly used log quantities
         self.data["log_rho"] = dict()
         self.data["log_rho"]["values"] = np.log10(self.data["density"]["values"])
-        self.data["log_rho"]["unit"  ] = "g/cm"
+        self.data["log_rho"]["unit"  ] = "g/cm3"
         self.data["log_rho"]["label" ] = "log(Density)"
         
         self.data["log_T"] = dict()
@@ -118,7 +126,9 @@ class RamsesOutput:
         self.data["log_B"]["unit"  ] = "G"
         self.data["log_B"]["label" ] = "log(B)"
         
-        print " "+infile+" successfully loaded."
+        print infile+" successfully loaded."
+        for key in self.data:
+            print key
     
     #------------------------------------------------------------------------------
     
