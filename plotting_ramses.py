@@ -45,6 +45,7 @@ class RamsesOutput:
         self.data["info"]["ud"]       = ud
         self.data["info"]["ul"]       = ul
         self.data["info"]["ut"]       = ut
+        self.data["info"]["unit"]     = ""
         
         list_vars = names.split()
         for i in range(len(list_vars)):
@@ -126,9 +127,10 @@ class RamsesOutput:
         self.data["log_B"]["unit"  ] = "G"
         self.data["log_B"]["label" ] = "log(B)"
         
-        print infile+" successfully loaded."
-        for key in self.data:
-            print key
+        print infile+" successfully loaded"
+        print "The variables are:"
+        for key in sorted(self.data):
+            print key+" ["+self.data[key]["unit"]+"]"
     
     #------------------------------------------------------------------------------
     
@@ -367,8 +369,10 @@ def get_units(string,ud,ul,ut,scale="cm"):
         return [ul/ut,"cm/s"]
     elif string[0:2] == "B_":
         return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-    elif string[0:8] == "thermal_pressure":
+    elif string == "thermal_pressure":
         return [ud*((ul/ut)**2),"g/cm/s2"]
+    elif string[0:16] == "radiative_energy":
+        return [ud*((ul/ut)**2),"erg/cm3"]
     elif string == "x":
         return [ul,scale]
     elif string == "y":
@@ -377,5 +381,7 @@ def get_units(string,ud,ul,ut,scale="cm"):
         return [ul,scale]
     elif string == "dx":
         return [ul,scale]
+    elif string == "temperature":
+        return [1.0,"K"]
     else:
         return [1.0,""]
