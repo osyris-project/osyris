@@ -1,6 +1,7 @@
-from pylab import *
+import numpy as np
 import glob
 import read_ramses_data as rd
+import matplotlib.pyplot as plt
 
 #=======================================================================================
 
@@ -56,7 +57,7 @@ class RamsesOutput:
         try:
             lc = len(center)
             if center == "auto":
-                maxloc = argmax(self.data["density"]["values"])
+                maxloc = np.argmax(self.data["density"]["values"])
                 xc = self.data["x"]["values"][maxloc]
                 yc = self.data["y"]["values"][maxloc]
                 zc = self.data["z"]["values"][maxloc]
@@ -95,7 +96,7 @@ class RamsesOutput:
         self.data["B_z"]["label" ] = "B_z"
         
         self.data["B"] = dict()
-        self.data["B"]["values"] = sqrt(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
+        self.data["B"]["values"] = np.sqrt(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
         self.data["B"]["unit"  ] = "G"
         self.data["B"]["label" ] = "B"
     
@@ -119,7 +120,7 @@ class RamsesOutput:
         
 #======================================================================================
 
-def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
+def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,new_window=False):
 
     # Parameters
     nx = 101
@@ -127,27 +128,27 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
     
     try:
         datax = var_x["values"]
-        xlabel = True
+        xlabel = var_x["label"]+" ["+var_x["unit"]+"]"
     except IndexError:
         datax = var_x
-        xlabel = False
+        xlabel = ""
         
     try:
         datay = var_y["values"]
-        ylabel = True
+        ylabel = var_y["label"]+" ["+var_y["unit"]+"]"
     except IndexError:
         datay = var_y
-        ylabel = False
+        ylabel = ""
             
-    xmin = amin(datax)
-    xmax = amax(datax)
-    ymin = amin(datay)
-    ymax = amax(datay)
+    xmin = np.amin(datax)
+    xmax = np.amax(datax)
+    ymin = np.amin(datay)
+    ymax = np.amax(datay)
 
-    xe = linspace(xmin,xmax,nx)
-    ye = linspace(ymin,ymax,ny)
+    xe = np.linspace(xmin,xmax,nx)
+    ye = np.linspace(ymin,ymax,ny)
 
-    z, yedges1, xedges1 = histogram2d(datay,datax,bins=(ye,xe))
+    z, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
 
     contourz = True
     try:
@@ -160,13 +161,13 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
         contourz = False
 
     if contourz:
-        z1, yedges1, xedges1 = histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
+        z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
         z2 = z1/z
-        zmin = amin(dataz)
-        zmax = amax(dataz)
+        zmin = np.amin(dataz)
+        zmax = np.amax(dataz)
 
-    x = zeros([nx-1])
-    y = zeros([ny-1])
+    x = np.zeros([nx-1])
+    y = np.zeros([ny-1])
 
     for i in range(nx-1):
         x[i] = 0.5*(xe[i]+xe[i+1])
@@ -174,33 +175,35 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
         y[j] = 0.5*(ye[j]+ye[j+1])
 
     if logz:
-        z = log10(z)
+        z = np.log10(z)
     
+    # Begin plotting -------------------------------------
     if axes:
-        ax = axes
+        theplot = axes
     else:
-        fig = matplotlib.pyplot.figure()
-        ax  = fig.add_subplot(111)
-    
-    cont = ax.contourf(x,y,z,20,cmap=cmap)
+        plt.clf()
+        plt.subplot(111)
+        theplot = plt
+        
+    cont = theplot.contourf(x,y,z,20,cmap=cmap)
     if contourz:
-        over = ax.contour(x,y,z2,levels=arange(zmin,zmax+1),colors='k')
-        ax.clabel(over,inline=1,fmt='%i')
+        over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
+        theplot.clabel(over,inline=1,fmt='%i')
         if zlabel:
             leg = [over.collections[0]]
-            ax.legend(leg,[var_z["label"]],loc=2)
-    
-    if xlabel: 
-        ax.set_xlabel(var_x["label"]+" ["+var_x["unit"]+"]")
-    if ylabel:
-        ax.set_ylabel(var_y["label"]+" ["+var_y["unit"]+"]")
-    
+            theplot.legend(leg,[var_z["label"]],loc=2)
+    if axes:
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+    else:
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
     if fname:
-        fig.savefig(fname,bbox_inches="tight")
+        plt.savefig(fname,bbox_inches="tight")
     elif axes:
         pass
     else:
-        show()
+        plt.show(block=False)
 
     return
 
@@ -227,7 +230,7 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
     data1 = ramsesdata.get_values(dir_x)
     data2 = ramsesdata.get_values(dir_y)
     data3 = ramsesdata.get_values(direction)
-    cube  = where(logical_and(abs(data1) < 0.5*dx,logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
+    cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
     datax = data1[cube]
     datay = data2[cube]
     dataz = ramsesdata.get_values(var)[cube]
@@ -235,7 +238,7 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
         datau = ramsesdata.get_values(vec+"_"+dir_x)[cube]
         datav = ramsesdata.get_values(vec+"_"+dir_y)[cube]
     celldx = ramsesdata.get_values("dx")[cube]
-    ncells = shape(datax)[0]
+    ncells = np.shape(datax)[0]
     
     xmin = -0.5*dx
     xmax =  0.5*dx
@@ -247,12 +250,12 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
     dpx = (xmax-xmin)/nx
     dpy = (ymax-ymin)/ny
     
-    z1 = zeros([ny,nx])
-    z2 = zeros([ny,nx])
+    z1 = np.zeros([ny,nx])
+    z2 = np.zeros([ny,nx])
     if vec:
-        u1 = zeros([ny,nx])
-        v1 = zeros([ny,nx])
-        z3 = zeros([ny,nx])
+        u1 = np.zeros([ny,nx])
+        v1 = np.zeros([ny,nx])
+        z3 = np.zeros([ny,nx])
     
     for n in range(ncells):
         x1 = datax[n]-0.5*celldx[n]
@@ -272,7 +275,7 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
                 if vec:
                     u1[j,i] = u1[j,i] + datau[n]
                     v1[j,i] = v1[j,i] + datav[n]
-                    z3[j,i] = z3[j,i] + sqrt(datau[n]**2+datav[n]**2)
+                    z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
         
     z = z1/z2
     if vec:
@@ -280,40 +283,49 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
         v = v1/z2
         w = z3/z2
     
-    x = linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    y = linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+    x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+    y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     iskip = int(0.071*resolution)
     
-    if axes:
-        ax = axes
-    else:
-        fig = matplotlib.pyplot.figure()
-        ax  = fig.add_subplot(111)
-        
-    cont = ax.contourf(x,y,z,20,cmap=cmap)
-    cbar = colorbar(cont,ax=ax)
-    if vec:
-        if streamlines:
-            if streamlines == "log":
-                w = log10(w)
-            strm = ax.streamplot(x,y,u,v,color=w,cmap='Greys')
-        else:
-            vect = ax.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
     xlab = ramsesdata.get_values(dir_x,key="label")+" ["+ramsesdata.get_values(dir_x,key="unit")+"]"
     ylab = ramsesdata.get_values(dir_y,key="label")+" ["+ramsesdata.get_values(dir_y,key="unit")+"]"
     zlab = ramsesdata.get_values(var,key="label")+" ["+ramsesdata.get_values(var,key="unit")+"]"
-    ax.set_xlabel(xlab)
-    ax.set_ylabel(ylab)
+    
+    # Begin plotting -------------------------------------
+    if axes:
+        theplot = axes
+    else:
+        plt.clf()
+        plt.subplot(111)
+        theplot = plt
+    
+    cont = theplot.contourf(x,y,z,20,cmap=cmap)
+    if axes:
+        cbar = plt.colorbar(cont,ax=theplot)
+        theplot.set_xlabel(xlab)
+        theplot.set_ylabel(ylab)
+    else:
+        cbar = plt.colorbar(cont)
+        plt.xlabel(xlab)
+        plt.ylabel(ylab)
+    if vec:
+        if streamlines:
+            if streamlines == "log":
+                w = np.log10(w)
+            strm = theplot.streamplot(x,y,u,v,color=w,cmap='Greys')
+        else:
+            vect = theplot.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
+    
     cbar.ax.set_ylabel(zlab)
-    #cbar.ax.yaxis.set_label_position("left")
     cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
+    
     if fname:
-        fig.savefig(fname,bbox_inches="tight")
+        plt.savefig(fname,bbox_inches="tight")
     elif axes:
         pass
     else:
-        show()
-        
+        plt.show(block=False)
+    
     return
 
 #======================================================================================
@@ -324,7 +336,7 @@ def get_units(string,ud,ul,ut,scale="cm"):
     elif string[0:8] == "velocity":
         return [ul/ut,"cm/s"]
     elif string[0:2] == "B_":
-        return [sqrt(4.0*pi*ud*(ul/ut)**2),"G"]
+        return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
     elif string[0:8] == "thermal_pressure":
         return [ud*((ul/ut)**2),"g/cm/s2"]
     elif string == "x":
