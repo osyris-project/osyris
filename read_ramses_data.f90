@@ -141,6 +141,10 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   ! The total number of variables returned to python will
   ! be nvarh + 5: 3 coordinates, dx and ilevel
   nvar_tot = nvarh+5
+  if(nvar_tot > nvarmax)then
+     write(*,*) 'Not enough space for variables, increase nvarmax'
+     stop
+  endif
   data_names = trim(data_names)//' '//"level"
   data_names = trim(data_names)//' '//"x"
   data_names = trim(data_names)//' '//"y"
@@ -356,6 +360,11 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
                  if(ok_cell)then
                  
                     icell = icell + 1
+                    
+                    if(icell > nmax)then
+                       write(*,*) 'Not enough memory space, increase nmax'
+                       stop
+                    endif
                  
                     var(i,ind,nvarh+1) = real(ilevel)
                     var(i,ind,nvarh+2) = x(i,1)*boxlen
