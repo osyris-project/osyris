@@ -29,6 +29,8 @@ class RamsesOutput:
         
         [data1,names,nn,ncpu,ndim,lmin,lmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,maxlevel,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
+        print " Generating data structure... please wait"
+        
         self.data = dict()
         
         self.data["info"] = dict()
@@ -115,6 +117,8 @@ class RamsesOutput:
         self.data["log_B"]["values"] = np.log10(self.data["B"]["values"])
         self.data["log_B"]["unit"  ] = "G"
         self.data["log_B"]["label" ] = "log(B)"
+        
+        print " "+infile+" successfully loaded."
     
     #------------------------------------------------------------------------------
     
