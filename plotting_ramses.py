@@ -120,7 +120,7 @@ class RamsesOutput:
         
 #======================================================================================
 
-def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,new_window=False):
+def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
 
     # Parameters
     nx = 101
