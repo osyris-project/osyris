@@ -245,7 +245,7 @@ def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=No
 
 #======================================================================================
 
-def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=1.0,cmap=None,axes=None,resolution=128):
+def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
     
     if direction == "z":
         dir_x = "x"
@@ -259,6 +259,10 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
     else:
         print "Bad direction for slice"
         return
+    
+    # Make it possible to call with only one size in the arguments
+    if dy == 0.0:
+        dy = dx
 
     # Make a guess for slice thickness and iterate if no points are found in the slice
     dz = 0.05*(0.5*(dx+dy))
