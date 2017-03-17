@@ -4,6 +4,7 @@ import read_ramses_data as rd
 import matplotlib.pyplot as plt
 
 #=======================================================================================
+#=======================================================================================
 
 # This is the class which will hold the data that you read from the Ramses output
 # It calls "rd.ramses_data" which is a fortran file reader.
@@ -54,7 +55,7 @@ class RamsesOutput:
         for i in range(len(list_vars)):
             theKey = list_vars[i]
             self.data[theKey] = dict()
-            [norm,uu] = get_units(theKey,ud,ul,ut,scale)
+            [norm,uu] = self.get_units(theKey,ud,ul,ut,scale)
             self.data[theKey]["values"] = data1[:nn,i]*norm
             self.data[theKey]["unit"  ] = uu
             self.data[theKey]["label" ] = theKey
@@ -136,267 +137,258 @@ class RamsesOutput:
             print key+" ["+self.data[key]["unit"]+"]"
         print "========================================"
         
-    
-    #------------------------------------------------------------------------------
+    #=======================================================================================
+    #=======================================================================================
     
     def get_values(self,variable,key="values"):
         return self.data[variable][key]
     
-    #------------------------------------------------------------------------------
+    #=======================================================================================
+    #=======================================================================================
     
     def get(self,variable):
         return self.data[variable]
-    
-    #------------------------------------------------------------------------------
+        
+    #=======================================================================================
+    #=======================================================================================
+
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
+
+        # Parameters
+        nx = 101
+        ny = 101
+        
+        datax  = self.data[var_x]["values"]
+        xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
+        datay  = self.data[var_y]["values"]
+        ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
+                
+        xmin = np.amin(datax)
+        xmax = np.amax(datax)
+        ymin = np.amin(datay)
+        ymax = np.amax(datay)
+
+        xe = np.linspace(xmin,xmax,nx)
+        ye = np.linspace(ymin,ymax,ny)
+
+        z, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
+
+        contourz = True
+        try:
+            dataz = self.data[var_z]["values"]
+        except KeyError:
+            contourz = False
+
+        if contourz:
+            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
+            z2 = z1/z
+            zmin = np.amin(dataz)
+            zmax = np.amax(dataz)
+
+        x = np.zeros([nx-1])
+        y = np.zeros([ny-1])
+
+        for i in range(nx-1):
+            x[i] = 0.5*(xe[i]+xe[i+1])
+        for j in range(ny-1):
+            y[j] = 0.5*(ye[j]+ye[j+1])
+
+        if logz:
+            z = np.log10(z)
+        
+        # Begin plotting -------------------------------------
+        if axes:
+            theplot = axes
+        else:
+            plt.clf()
+            plt.subplot(111)
+            theplot = plt
+            
+        cont = theplot.contourf(x,y,z,20,cmap=cmap)
+        if contourz:
+            over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
+            theplot.clabel(over,inline=1,fmt='%i')
+            leg = [over.collections[0]]
+            theplot.legend(leg,[self.data[var_z]["label"]],loc=2)
+        if axes:
+            axes.set_xlabel(xlabel)
+            axes.set_ylabel(ylabel)
+        else:
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+        if fname:
+            plt.savefig(fname,bbox_inches="tight")
+        elif axes:
+            pass
+        else:
+            plt.show(block=False)
+
+        return
+
+    #=======================================================================================
+    #=======================================================================================
+
+    def plot_slice(self,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
+        
+        if direction == "z":
+            dir_x = "x"
+            dir_y = "y"
+        elif direction == "y":
+            dir_x = "x"
+            dir_y = "z"
+        elif direction == "x":
+            dir_x = "y"
+            dir_y = "z"
+        else:
+            print "Bad direction for slice"
+            return
+        
+        # Make it possible to call with only one size in the arguments
+        if dy == 0.0:
+            dy = dx
+
+        # Make a guess for slice thickness and iterate if no points are found in the slice
+        dz = 0.05*(0.5*(dx+dy))
+        no_points = True
+        while no_points:
+            data1 = self.data[dir_x    ]["values"]
+            data2 = self.data[dir_y    ]["values"]
+            data3 = self.data[direction]["values"]
+            cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
+            datax = data1[cube]
+            if len(datax) == 0:
+                dz = 2.0*dz
+            else:
+                no_points = False
+                
+        datay = data2[cube]
+        dataz = self.data[var]["values"][cube]
+        if vec:
+            datau = self.data[vec+"_"+dir_x]["values"][cube]
+            datav = self.data[vec+"_"+dir_y]["values"][cube]
+        celldx = self.data["dx"]["values"][cube]
+        ncells = np.shape(datax)[0]
+        
+        xmin = -0.5*dx
+        xmax =  0.5*dx
+        ymin = -0.5*dy
+        ymax =  0.5*dy
+        
+        nx = resolution
+        ny = resolution
+        dpx = (xmax-xmin)/nx
+        dpy = (ymax-ymin)/ny
+        
+        z1 = np.zeros([ny,nx])
+        z2 = np.zeros([ny,nx])
+        if vec:
+            u1 = np.zeros([ny,nx])
+            v1 = np.zeros([ny,nx])
+            z3 = np.zeros([ny,nx])
+        
+        for n in range(ncells):
+            x1 = datax[n]-0.5*celldx[n]
+            x2 = datax[n]+0.5*celldx[n]
+            y1 = datay[n]-0.5*celldx[n]
+            y2 = datay[n]+0.5*celldx[n]
+            
+            ix1 = max(int((x1-xmin)/dpx),0)
+            ix2 = min(int((x2-xmin)/dpx),nx-1)
+            iy1 = max(int((y1-ymin)/dpy),0)
+            iy2 = min(int((y2-ymin)/dpy),ny-1)
+                    
+            for j in range(iy1,iy2+1):
+                for i in range(ix1,ix2+1):
+                    z1[j,i] = z1[j,i] + dataz[n]
+                    z2[j,i] = z2[j,i] + 1.0
+                    if vec:
+                        u1[j,i] = u1[j,i] + datau[n]
+                        v1[j,i] = v1[j,i] + datav[n]
+                        z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
+            
+        z = z1/z2
+        if vec:
+            u = u1/z2
+            v = v1/z2
+            w = z3/z2
+        
+        x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+        y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+        iskip = int(0.071*resolution)
+        
+        xlab = self.data[dir_x]["label"]+" ["+self.data[dir_x]["unit"]+"]"
+        ylab = self.data[dir_y]["label"]+" ["+self.data[dir_y]["unit"]+"]"
+        zlab = self.data[var  ]["label"]+" ["+self.data[var  ]["unit"]+"]"
+        
+        # Begin plotting -------------------------------------
+        if axes:
+            theplot = axes
+        else:
+            plt.clf()
+            plt.subplot(111)
+            theplot = plt
+        
+        cont = theplot.contourf(x,y,z,20,cmap=cmap)
+        if axes:
+            cbar = plt.colorbar(cont,ax=theplot)
+            theplot.set_xlabel(xlab)
+            theplot.set_ylabel(ylab)
+        else:
+            cbar = plt.colorbar(cont)
+            plt.xlabel(xlab)
+            plt.ylabel(ylab)
+        if vec:
+            if streamlines:
+                if streamlines == "log":
+                    w = np.log10(w)
+                strm = theplot.streamplot(x,y,u,v,color=w,cmap='Greys')
+            else:
+                vect = theplot.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
+        
+        cbar.ax.set_ylabel(zlab)
+        cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
+        
+        if fname:
+            plt.savefig(fname,bbox_inches="tight")
+        elif axes:
+            pass
+        else:
+            plt.show(block=False)
+        
+        return
+
+    #=======================================================================================
+    #=======================================================================================
+
+    def get_units(self,string,ud,ul,ut,scale="cm"):
+        if string == "density":
+            return [ud,"g/cm3"]
+        elif string.startswith("velocity"):
+            return [ul/ut,"cm/s"]
+        elif string.startswith("B_"):
+            return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
+        elif string == "thermal_pressure":
+            return [ud*((ul/ut)**2),"g/cm/s2"]
+        elif string.startswith("radiative_energy"):
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string == "x":
+            return [ul,scale]
+        elif string == "y":
+            return [ul,scale]
+        elif string == "z":
+            return [ul,scale]
+        elif string == "dx":
+            return [ul,scale]
+        elif string == "temperature":
+            return [1.0,"K"]
+        else:
+            return [1.0,""]
+
+    #=======================================================================================
+    #=======================================================================================
     
     def new_field(self,name,values,unit,label):
         self.data[name] = dict()
         self.data[name]["values"] = values
         self.data[name]["unit"  ] = unit
         self.data[name]["label" ] = label
-        
-#======================================================================================
-
-def plot_histogram(var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
-
-    # Parameters
-    nx = 101
-    ny = 101
-    
-    try:
-        datax = var_x["values"]
-        xlabel = var_x["label"]+" ["+var_x["unit"]+"]"
-    except IndexError:
-        datax = var_x
-        xlabel = ""
-        
-    try:
-        datay = var_y["values"]
-        ylabel = var_y["label"]+" ["+var_y["unit"]+"]"
-    except IndexError:
-        datay = var_y
-        ylabel = ""
-            
-    xmin = np.amin(datax)
-    xmax = np.amax(datax)
-    ymin = np.amin(datay)
-    ymax = np.amax(datay)
-
-    xe = np.linspace(xmin,xmax,nx)
-    ye = np.linspace(ymin,ymax,ny)
-
-    z, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
-
-    contourz = True
-    try:
-        dataz = var_z["values"]
-        zlabel = True
-    except IndexError:
-        dataz = var_z
-        zlabel = False
-    except TypeError:
-        contourz = False
-
-    if contourz:
-        z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
-        z2 = z1/z
-        zmin = np.amin(dataz)
-        zmax = np.amax(dataz)
-
-    x = np.zeros([nx-1])
-    y = np.zeros([ny-1])
-
-    for i in range(nx-1):
-        x[i] = 0.5*(xe[i]+xe[i+1])
-    for j in range(ny-1):
-        y[j] = 0.5*(ye[j]+ye[j+1])
-
-    if logz:
-        z = np.log10(z)
-    
-    # Begin plotting -------------------------------------
-    if axes:
-        theplot = axes
-    else:
-        plt.clf()
-        plt.subplot(111)
-        theplot = plt
-        
-    cont = theplot.contourf(x,y,z,20,cmap=cmap)
-    if contourz:
-        over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
-        theplot.clabel(over,inline=1,fmt='%i')
-        if zlabel:
-            leg = [over.collections[0]]
-            theplot.legend(leg,[var_z["label"]],loc=2)
-    if axes:
-        axes.set_xlabel(xlabel)
-        axes.set_ylabel(ylabel)
-    else:
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-    if fname:
-        plt.savefig(fname,bbox_inches="tight")
-    elif axes:
-        pass
-    else:
-        plt.show(block=False)
-
-    return
-
-#======================================================================================
-
-def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
-    
-    if direction == "z":
-        dir_x = "x"
-        dir_y = "y"
-    elif direction == "y":
-        dir_x = "x"
-        dir_y = "z"
-    elif direction == "x":
-        dir_x = "y"
-        dir_y = "z"
-    else:
-        print "Bad direction for slice"
-        return
-    
-    # Make it possible to call with only one size in the arguments
-    if dy == 0.0:
-        dy = dx
-
-    # Make a guess for slice thickness and iterate if no points are found in the slice
-    dz = 0.05*(0.5*(dx+dy))
-    no_points = True
-    while no_points:
-        data1 = ramsesdata.get_values(dir_x)
-        data2 = ramsesdata.get_values(dir_y)
-        data3 = ramsesdata.get_values(direction)
-        cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
-        datax = data1[cube]
-        if len(datax) == 0:
-            dz = 2.0*dz
-        else:
-            no_points = False
-            
-    datay = data2[cube]
-    dataz = ramsesdata.get_values(var)[cube]
-    if vec:
-        datau = ramsesdata.get_values(vec+"_"+dir_x)[cube]
-        datav = ramsesdata.get_values(vec+"_"+dir_y)[cube]
-    celldx = ramsesdata.get_values("dx")[cube]
-    ncells = np.shape(datax)[0]
-    
-    xmin = -0.5*dx
-    xmax =  0.5*dx
-    ymin = -0.5*dy
-    ymax =  0.5*dy
-    
-    nx = resolution
-    ny = resolution
-    dpx = (xmax-xmin)/nx
-    dpy = (ymax-ymin)/ny
-    
-    z1 = np.zeros([ny,nx])
-    z2 = np.zeros([ny,nx])
-    if vec:
-        u1 = np.zeros([ny,nx])
-        v1 = np.zeros([ny,nx])
-        z3 = np.zeros([ny,nx])
-    
-    for n in range(ncells):
-        x1 = datax[n]-0.5*celldx[n]
-        x2 = datax[n]+0.5*celldx[n]
-        y1 = datay[n]-0.5*celldx[n]
-        y2 = datay[n]+0.5*celldx[n]
-        
-        ix1 = max(int((x1-xmin)/dpx),0)
-        ix2 = min(int((x2-xmin)/dpx),nx-1)
-        iy1 = max(int((y1-ymin)/dpy),0)
-        iy2 = min(int((y2-ymin)/dpy),ny-1)
-                
-        for j in range(iy1,iy2+1):
-            for i in range(ix1,ix2+1):
-                z1[j,i] = z1[j,i] + dataz[n]
-                z2[j,i] = z2[j,i] + 1.0
-                if vec:
-                    u1[j,i] = u1[j,i] + datau[n]
-                    v1[j,i] = v1[j,i] + datav[n]
-                    z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
-        
-    z = z1/z2
-    if vec:
-        u = u1/z2
-        v = v1/z2
-        w = z3/z2
-    
-    x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-    iskip = int(0.071*resolution)
-    
-    xlab = ramsesdata.get_values(dir_x,key="label")+" ["+ramsesdata.get_values(dir_x,key="unit")+"]"
-    ylab = ramsesdata.get_values(dir_y,key="label")+" ["+ramsesdata.get_values(dir_y,key="unit")+"]"
-    zlab = ramsesdata.get_values(var,key="label")+" ["+ramsesdata.get_values(var,key="unit")+"]"
-    
-    # Begin plotting -------------------------------------
-    if axes:
-        theplot = axes
-    else:
-        plt.clf()
-        plt.subplot(111)
-        theplot = plt
-    
-    cont = theplot.contourf(x,y,z,20,cmap=cmap)
-    if axes:
-        cbar = plt.colorbar(cont,ax=theplot)
-        theplot.set_xlabel(xlab)
-        theplot.set_ylabel(ylab)
-    else:
-        cbar = plt.colorbar(cont)
-        plt.xlabel(xlab)
-        plt.ylabel(ylab)
-    if vec:
-        if streamlines:
-            if streamlines == "log":
-                w = np.log10(w)
-            strm = theplot.streamplot(x,y,u,v,color=w,cmap='Greys')
-        else:
-            vect = theplot.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
-    
-    cbar.ax.set_ylabel(zlab)
-    cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
-    
-    if fname:
-        plt.savefig(fname,bbox_inches="tight")
-    elif axes:
-        pass
-    else:
-        plt.show(block=False)
-    
-    return
-
-#======================================================================================
-
-def get_units(string,ud,ul,ut,scale="cm"):
-    if string == "density":
-        return [ud,"g/cm3"]
-    elif string.startswith("velocity"):
-        return [ul/ut,"cm/s"]
-    elif string.startswith("B_"):
-        return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-    elif string == "thermal_pressure":
-        return [ud*((ul/ut)**2),"g/cm/s2"]
-    elif string.startswith("radiative_energy"):
-        return [ud*((ul/ut)**2),"erg/cm3"]
-    elif string == "x":
-        return [ul,scale]
-    elif string == "y":
-        return [ul,scale]
-    elif string == "z":
-        return [ul,scale]
-    elif string == "dx":
-        return [ul,scale]
-    elif string == "temperature":
-        return [1.0,"K"]
-    else:
-        return [1.0,""]
