@@ -62,7 +62,7 @@ ax6 = fig.add_subplot(236)
 mydata.plot_histogram("log_rho","log_B",var_z="level",axes=ax1,cmap="YlGnBu")
 
 # Create new field
-mydata.new_field(name="log_vel",values=np.log10(np.sqrt(mydata.get_values("velocity_x")**2+mydata.get_values("velocity_y")**2+mydata.get_values("velocity_z")**2)),unit="cm/s",label="log(Velocity)")
+mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
 # Histogram Density vs Velocity
 mydata.plot_histogram("log_rho","log_vel",axes=ax2,cmap="YlGnBu")
