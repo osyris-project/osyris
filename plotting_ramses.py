@@ -56,9 +56,11 @@ class RamsesOutput:
             theKey = list_vars[i]
             self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,ud,ul,ut,scale)
-            self.data[theKey]["values"] = data1[:nn,i]*norm
-            self.data[theKey]["unit"  ] = uu
-            self.data[theKey]["label" ] = theKey
+            self.data[theKey]["values"   ] = data1[:nn,i]*norm
+            self.data[theKey]["unit"     ] = uu
+            self.data[theKey]["label"    ] = theKey
+            self.data[theKey]["operation"] = ""
+            
 
         # Modifications for coordinates and cell sizes
         try:
@@ -87,49 +89,15 @@ class RamsesOutput:
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
         
         # Magnetic field
-        self.data["B_x"] = dict()
-        self.data["B_x"]["values"] = 0.5*(self.data["B_left_x"]["values"]+self.data["B_right_x"]["values"])
-        self.data["B_x"]["unit"  ] = "G"
-        self.data["B_x"]["label" ] = "B_x"
-        
-        self.data["B_y"] = dict()
-        self.data["B_y"]["values"] = 0.5*(self.data["B_left_y"]["values"]+self.data["B_right_y"]["values"])
-        self.data["B_y"]["unit"  ] = "G"
-        self.data["B_y"]["label" ] = "B_y"
-        
-        self.data["B_z"] = dict()
-        self.data["B_z"]["values"] = 0.5*(self.data["B_left_z"]["values"]+self.data["B_right_z"]["values"])
-        self.data["B_z"]["unit"  ] = "G"
-        self.data["B_z"]["label" ] = "B_z"
-        
-        # Free up some memory
-        del self.data["B_left_x"]
-        del self.data["B_left_y"]
-        del self.data["B_left_z"]
-        del self.data["B_right_x"]
-        del self.data["B_right_y"]
-        del self.data["B_right_z"]
-        
-        self.data["B"] = dict()
-        self.data["B"]["values"] = np.sqrt(self.data["B_x"]["values"]**2+self.data["B_y"]["values"]**2+self.data["B_z"]["values"]**2)
-        self.data["B"]["unit"  ] = "G"
-        self.data["B"]["label" ] = "B"
+        self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
+        self.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x")
+        self.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x")
+        self.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
     
         # Commonly used log quantities
-        self.data["log_rho"] = dict()
-        self.data["log_rho"]["values"] = np.log10(self.data["density"]["values"])
-        self.data["log_rho"]["unit"  ] = "g/cm3"
-        self.data["log_rho"]["label" ] = "log(Density)"
-        
-        self.data["log_T"] = dict()
-        self.data["log_T"]["values"] = np.log10(self.data["temperature"]["values"])
-        self.data["log_T"]["unit"  ] = "K"
-        self.data["log_T"]["label" ] = "log(T)"
-        
-        self.data["log_B"] = dict()
-        self.data["log_B"]["values"] = np.log10(self.data["B"]["values"])
-        self.data["log_B"]["unit"  ] = "G"
-        self.data["log_B"]["label" ] = "log(B)"
+        self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log_rho")
+        self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log_T")
+        self.new_field(name="log_B",operation="np.log10(B)",unit="g/cm3",label="log_B")
         
         print infile+" successfully loaded"
         print "The variables are:"
@@ -140,14 +108,36 @@ class RamsesOutput:
     #=======================================================================================
     #=======================================================================================
     
-    def get_values(self,variable,key="values"):
-        return self.data[variable][key]
+    def new_field(self,name,operation,unit,label):
+        
+        op_parsed = self.parse_operation(operation)
+        self.data[name] = dict()
+        self.data[name]["values"   ] = eval(op_parsed)
+        self.data[name]["unit"     ] = unit
+        self.data[name]["label"    ] = label
+        self.data[name]["operation"] = operation
+        
+        return
     
     #=======================================================================================
     #=======================================================================================
     
-    def get(self,variable):
-        return self.data[variable]
+    def parse_operation(self,operation):
+        
+        expression = " "+operation+" "
+        key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        for key in key_list:
+            keyval = "self.data[\""+key+"\"][\"values\"]"
+            loc = expression.find(key)
+            if loc > -1:
+                char_before = expression[loc-1]
+                char_after  = expression[loc+len(key)]
+                bad_before = (char_before.isalpha() or (char_before == "_"))
+                bad_after = (char_after.isalpha() or (char_after == "_"))
+                if (not bad_before) and (not bad_after):
+                    expression = expression.replace(key,keyval)
+            
+        return expression
         
     #=======================================================================================
     #=======================================================================================
@@ -383,12 +373,3 @@ class RamsesOutput:
             return [1.0,"K"]
         else:
             return [1.0,""]
-
-    #=======================================================================================
-    #=======================================================================================
-    
-    def new_field(self,name,values,unit,label):
-        self.data[name] = dict()
-        self.data[name]["values"] = values
-        self.data[name]["unit"  ] = unit
-        self.data[name]["label" ] = label
