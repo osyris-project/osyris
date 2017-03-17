@@ -260,14 +260,20 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
         print "Bad direction for slice"
         return
 
-    # Make a guess for slice thickness
+    # Make a guess for slice thickness and iterate if no points are found in the slice
     dz = 0.05*(0.5*(dx+dy))
-    
-    data1 = ramsesdata.get_values(dir_x)
-    data2 = ramsesdata.get_values(dir_y)
-    data3 = ramsesdata.get_values(direction)
-    cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
-    datax = data1[cube]
+    no_points = True
+    while no_points:
+        data1 = ramsesdata.get_values(dir_x)
+        data2 = ramsesdata.get_values(dir_y)
+        data3 = ramsesdata.get_values(direction)
+        cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
+        datax = data1[cube]
+        if len(datax) == 0:
+            dz = 2.0*dz
+        else:
+            no_points = False
+            
     datay = data2[cube]
     dataz = ramsesdata.get_values(var)[cube]
     if vec:
