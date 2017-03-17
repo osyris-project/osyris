@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 
 #=======================================================================================
 
+# This is the class which will hold the data that you read from the Ramses output
+# It calls "rd.ramses_data" which is a fortran file reader.
+# It then stores the data in a dictionary named "data"
 class RamsesOutput:
  
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
@@ -33,22 +36,20 @@ class RamsesOutput:
         
         print "Generating data structure... please wait"
         
+        self.info = dict()
+        self.info["ncells"]   = nn
+        self.info["ncpu"]     = ncpu
+        self.info["ndim"]     = ndim
+        self.info["levelmin"] = levelmin
+        self.info["levelmax"] = levelmax
+        self.info["nstep"]    = nstep
+        self.info["boxsize"]  = boxsize
+        self.info["time"]     = time
+        self.info["ud"]       = ud
+        self.info["ul"]       = ul
+        self.info["ut"]       = ut
+        
         self.data = dict()
-        
-        self.data["info"] = dict()
-        self.data["info"]["ncells"]   = nn
-        self.data["info"]["ncpu"]     = ncpu
-        self.data["info"]["ndim"]     = ndim
-        self.data["info"]["levelmin"] = levelmin
-        self.data["info"]["levelmax"] = levelmax
-        self.data["info"]["nstep"]    = nstep
-        self.data["info"]["boxsize"]  = boxsize
-        self.data["info"]["time"]     = time
-        self.data["info"]["ud"]       = ud
-        self.data["info"]["ul"]       = ul
-        self.data["info"]["ut"]       = ut
-        self.data["info"]["unit"]     = ""
-        
         list_vars = names.split()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
@@ -67,16 +68,16 @@ class RamsesOutput:
                 yc = self.data["y"]["values"][maxloc]
                 zc = self.data["z"]["values"][maxloc]
             elif lc == 3:
-                xc = center[0]*self.data["info"]["boxsize"]
-                yc = center[1]*self.data["info"]["boxsize"]
-                zc = center[2]*self.data["info"]["boxsize"]
+                xc = center[0]*self.info["boxsize"]
+                yc = center[1]*self.info["boxsize"]
+                zc = center[2]*self.info["boxsize"]
             else:
                 print "Bad center value"
                 return
         except TypeError:
-            xc = 0.5*self.data["info"]["boxsize"]
-            yc = 0.5*self.data["info"]["boxsize"]
-            zc = 0.5*self.data["info"]["boxsize"]
+            xc = 0.5*self.info["boxsize"]
+            yc = 0.5*self.info["boxsize"]
+            zc = 0.5*self.info["boxsize"]
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[scale]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
         if ndim > 2:
@@ -379,13 +380,13 @@ def plot_slice(ramsesdata,var="rho",direction="z",vec=None,streamlines=False,fna
 def get_units(string,ud,ul,ut,scale="cm"):
     if string == "density":
         return [ud,"g/cm3"]
-    elif string[0:8] == "velocity":
+    elif string.startswith("velocity"):
         return [ul/ut,"cm/s"]
-    elif string[0:2] == "B_":
+    elif string.startswith("B_"):
         return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
     elif string == "thermal_pressure":
         return [ud*((ul/ut)**2),"g/cm/s2"]
-    elif string[0:16] == "radiative_energy":
+    elif string.startswith("radiative_energy"):
         return [ud*((ul/ut)**2),"erg/cm3"]
     elif string == "x":
         return [ul,scale]
