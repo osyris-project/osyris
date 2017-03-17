@@ -159,7 +159,6 @@ class RamsesOutput:
     def new_field(self,name,operation,unit,label):
         
         [op_parsed,depth] = self.parse_operation(operation)
-        #print op_parsed
         self.data[name] = dict()
         self.data[name]["values"   ] = eval(op_parsed)
         self.data[name]["unit"     ] = unit
@@ -178,37 +177,55 @@ class RamsesOutput:
     def parse_operation(self,operation):
         
         max_depth = 0
-        # Add space before and after to make it easier when searching for characters before
-        # and after.
+        # Add space before and after to make it easier when searching for characters before and after
         expression = " "+operation+" "
         # Sort the list of variable keys in the order of the longest to the shortest.
+        # This guards against replacing 'B' inside 'logB' for example.
         key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
-        #print key_list
+        # For replacing, we need to create a list of hash keys to replace on instance at a time
+        hashkeys  = dict()
+        hashcount = 0
         for key in key_list:
-            loc = expression.find(key)
-            if loc > -1:
-                char_before = expression[loc-1]
-                char_after  = expression[loc+len(key)]
-                bad_before = (char_before.isalpha() or (char_before == "_"))
-                bad_after = (char_after.isalpha() or (char_after == "_"))
-                #print "|"+char_before+"|  --  |"+char_before+"|"
-                if (not bad_before) and (not bad_after):
-                    expression = expression.replace(key,"self.data[\""+key+"\"][\"values\"]")
-                    max_depth = max(max_depth,self.data[key]["depth"])
-            
+            hashcount += 1
+            # Search for all instances in string
+            loop = True
+            while loop:
+                loc = expression.find(key)
+                if loc == -1:
+                    loop = False
+                else:
+                    # Check character before and after. If they are either a letter or a '_'
+                    # then the instance is actually part of another variable or function name.
+                    char_before = expression[loc-1]
+                    char_after  = expression[loc+len(key)]
+                    bad_before = (char_before.isalpha() or (char_before == "_"))
+                    bad_after = (char_after.isalpha() or (char_after == "_"))
+                    if (not bad_before) and (not bad_after):
+                        theHash = "#"+str(hashcount).zfill(3)+"#"
+                        # Store the data key in the hash table
+                        hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
+                        expression = expression.replace(key,theHash,1)
+                        max_depth = max(max_depth,self.data[key]["depth"])
+        # Now go through all the hashes in the table and build the final expression
+        for theHash in hashkeys.keys():
+            expression = expression.replace(theHash,hashkeys[theHash])
+    
         return [expression,max_depth]
     
     #=======================================================================================
+    # The update_values function reads in a new ramses output and updates the fields in an
+    # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    
     def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
         
+        # Generate filename
         if nout == -1:
             filelist = sorted(glob.glob("output*"))
             infile = filelist[-1]
         else:
             infile = "output_"+str(nout).zfill(5)
         
+        # It's possible to define a new center
         try:
             center += 0
             xc,yc,zc = center[0:3]
@@ -217,14 +234,17 @@ class RamsesOutput:
         
         print divider
         
+        # Call the data loader
         [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
+        # Return if file is not found
         if fail:
             print divider
             return
         
         print "Updating data structure... please wait"
         
+        # Loop through the existing data fields and update the values with the data1 array
         list_vars = names.split()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
@@ -233,18 +253,18 @@ class RamsesOutput:
             self.data[theKey]["unit"     ] = uu
             self.data[theKey]["label"    ] = theKey
             self.data[theKey]["operation"] = ""
+            self.data[theKey]["depth"    ] = 0
         
         # Modifications for coordinates and cell sizes
         self.re_center(center,scale,ndim)
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
         
-        # Now go through the fields and update the values of fields that have a operation attached to them
+        # Now go through the fields and update the values of fields that have an operation attached to them
         # IMPORTANT: this needs to be done in the right order: use the depth key to determine which
         # variables depend on others
         key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
         for key in key_list:
             if len(self.data[key]["operation"]) > 0:
-                #op_parsed = self.parse_operation(self.data[key]["operation"])
                 print "Re-valuating "+key
                 self.data[key]["values"] = eval(self.data[key]["operation"])
                 
@@ -253,43 +273,67 @@ class RamsesOutput:
         
     #=======================================================================================
     #=======================================================================================
-
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None):
+    # PLOTTING FUNCTIONS
+    #=======================================================================================
+    #=======================================================================================
+        
+    #=======================================================================================
+    # Plot a 2D histogram with two variables as input. This is used for instance to plot the
+    # temperature as a function of density for every cell in the mesh. The input arguments
+    # are:
+    # - var_x: a string containing the key for the variable along the x axis, e.g. "log_rho"
+    # - var_y: a string containing the key for the variable along the y axis, e.g. "log_T"
+    # - var_z: a string containing the key for a 3rd variable whose contours as overlayed
+    # - fname: if specified, the figure is saved to file
+    # - logz : if True, the colormap is logarithmic
+    # - axes : if specified, the data is plotted on the specified axes (see demo).
+    # - cmap : the colormap
+    # - resolution: the data is binned in a 2D matrix of size 'resolution' 
+    #=======================================================================================
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101):
 
         # Parameters
-        nx = 101
-        ny = 101
+        nx = resolution
+        ny = resolution
         
+        # Get the data values and units
         datax  = self.data[var_x]["values"]
         datay  = self.data[var_y]["values"]
         xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
-                
+        
+        # Define plotting range
         xmin = np.amin(datax)
         xmax = np.amax(datax)
         ymin = np.amin(datay)
         ymax = np.amax(datay)
         
+        # Construct some edge specifiers for the histogram2d function call
         xe = np.linspace(xmin,xmax,nx)
         ye = np.linspace(ymin,ymax,ny)
 
+        # Call the numpy histogram2d function
         z, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
 
+        # Determine if dataz is present
         contourz = True
         try:
             dataz = self.data[var_z]["values"]
         except KeyError:
             contourz = False
 
+        # If dataz is present, compute contour using dataz as weights. One then divides
+        # by the data count obtained from the previous call to histogram2d to get the
+        # average values.
         if contourz:
             z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
             z2 = z1/z
             zmin = np.amin(dataz)
             zmax = np.amax(dataz)
 
+        # In the contour plots, x and y are the centers of the cells, instead of the edges.
         x = np.zeros([nx-1])
         y = np.zeros([ny-1])
-
         for i in range(nx-1):
             x[i] = 0.5*(xe[i]+xe[i+1])
         for j in range(ny-1):
@@ -305,8 +349,10 @@ class RamsesOutput:
             plt.clf()
             plt.subplot(111)
             theplot = plt
-            
+        
+        # First plot the filled colour contours
         cont = theplot.contourf(x,y,z,20,cmap=cmap)
+        # If dataz is specified, overlay black contours
         if contourz:
             over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
             theplot.clabel(over,inline=1,fmt='%i')
@@ -328,10 +374,25 @@ class RamsesOutput:
         return
 
     #=======================================================================================
+    # Plot a 2D slice through the data cube. The arguments are:
+    # - var        : the key for the variable to be plotted, e.g. "density" or "log_rho"
+    # - direction  : the direction normal to the plane of the slice
+    # - vec        : the vector field to be overplotted. For velocity, one should supply
+    #                "velocity" as input and the routine will search for "velocity_x" and
+    #                "velocity_y" in the variable fields.
+    # - streamlines: if true, streamlines are drawn for the vector fields instead of arrows.
+    #                In addition, if you set streamlines="log", the coloring of the
+    #                streamlines will be logarithmic.
+    # - fname      : if specified, the figure is saved to file.
+    # - dx         : the x extent of the slice, in units of scale (see data loader)
+    # - dy         : the y extent of the slice, in units of scale. If not specified, dy = dx
+    # - cmap       : the colormap
+    # - axes       : if specified, the data is plotted on the specified axes (see demo).
+    # - resolution : number of pixels in the slice.
     #=======================================================================================
-
-    def plot_slice(self,var="rho",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
+    def plot_slice(self,var="density",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
         
+        # Define x,y directions depending on the input direction
         if direction == "z":
             dir_x = "x"
             dir_y = "y"
@@ -362,7 +423,8 @@ class RamsesOutput:
                 dz = 2.0*dz
             else:
                 no_points = False
-                
+        
+        # Load the rest of the data
         datay = data2[cube]
         dataz = self.data[var]["values"][cube]
         if vec:
@@ -371,16 +433,17 @@ class RamsesOutput:
         celldx = self.data["dx"]["values"][cube]
         ncells = np.shape(datax)[0]
         
+        # Define slice extent and resolution
         xmin = -0.5*dx
         xmax =  0.5*dx
         ymin = -0.5*dy
         ymax =  0.5*dy
+        nx   = resolution
+        ny   = resolution
+        dpx  = (xmax-xmin)/nx
+        dpy  = (ymax-ymin)/ny
         
-        nx = resolution
-        ny = resolution
-        dpx = (xmax-xmin)/nx
-        dpy = (ymax-ymin)/ny
-        
+        # We now create empty data arrays that will be filled by the cell data
         z1 = np.zeros([ny,nx])
         z2 = np.zeros([ny,nx])
         if vec:
@@ -388,17 +451,20 @@ class RamsesOutput:
             v1 = np.zeros([ny,nx])
             z3 = np.zeros([ny,nx])
         
+        # Loop through all data cells and find extent covered by the current cell size
         for n in range(ncells):
             x1 = datax[n]-0.5*celldx[n]
             x2 = datax[n]+0.5*celldx[n]
             y1 = datay[n]-0.5*celldx[n]
             y2 = datay[n]+0.5*celldx[n]
             
+            # Find the indices of the slice pixels which are covered by the current cell
             ix1 = max(int((x1-xmin)/dpx),0)
             ix2 = min(int((x2-xmin)/dpx),nx-1)
             iy1 = max(int((y1-ymin)/dpy),0)
             iy2 = min(int((y2-ymin)/dpy),ny-1)
-                    
+            
+            # Fill in the slice pixels with data
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
                     z1[j,i] = z1[j,i] + dataz[n]
@@ -407,17 +473,20 @@ class RamsesOutput:
                         u1[j,i] = u1[j,i] + datau[n]
                         v1[j,i] = v1[j,i] + datav[n]
                         z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
-            
+        
+        # Compute z averages
         z = z1/z2
         if vec:
             u = u1/z2
             v = v1/z2
             w = z3/z2
         
+        # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
         y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
         iskip = int(0.071*resolution)
         
+        # Define axes labels
         xlab = self.data[dir_x]["label"]+" ["+self.data[dir_x]["unit"]+"]"
         ylab = self.data[dir_y]["label"]+" ["+self.data[dir_y]["unit"]+"]"
         zlab = self.data[var  ]["label"]+" ["+self.data[var  ]["unit"]+"]"
@@ -460,8 +529,11 @@ class RamsesOutput:
         return
 
     #=======================================================================================
+    # The function get_units returns the appropriate scaling for a variable which was read
+    # in code units by the data loader. It tries to identify if we are dealing with a
+    # density or a pressure and returns the appropriate combination of ud, ul and ut. It
+    # also returns the unit as a string for plotting on the axes.
     #=======================================================================================
-
     def get_units(self,string,ud,ul,ut,scale="cm"):
         if string == "density":
             return [ud,"g/cm3"]

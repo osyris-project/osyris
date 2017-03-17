@@ -8,7 +8,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   implicit none
   
   ! Array dimensions
-  integer, parameter :: nmax=5000000
+  integer, parameter :: nmax=3000000
   integer, parameter :: nvarmax=25
 
   ! Subroutine arguments
