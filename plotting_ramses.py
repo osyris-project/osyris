@@ -16,14 +16,31 @@ divider = "============================================"
 #=======================================================================================
 class RamsesOutput:
  
+    #===================================================================================
+    # The constructor reads in the data and fills the data structure which is a python
+    # dictionary. The arguments are:
+    # - nout  : the number of the output. It can be -1 for the last output
+    # - lmax  : maximum AMR level to be read
+    # - center: used to re-centre the mesh coordinates around a given center. Possible
+    #           values are and array of 3 numbers between 0 and 1, e.g. [0.51,0.46,0.33]
+    #           or you can use center="auto" to automatically find the densest cell
+    # - dx    : size of the domain to be read in the x dimension, in units of scale
+    # - dy    : size of the domain to be read in the y dimension, in units of scale
+    # - dz    : size of the domain to be read in the z dimension, in units of scale
+    # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
+    #           and "pc"
+    #===================================================================================
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
         
+        # Generate filename from output number
         if nout == -1:
             filelist = sorted(glob.glob("output*"))
             infile = filelist[-1]
         else:
             infile = "output_"+str(nout).zfill(5)
         
+        # Define a center for reading in the data. If it is set to "auto", then it is
+        # first set to [0.5,0.5,0.5] for the output reader.
         try:
             center += 0
             xc,yc,zc = center[0:3]
@@ -32,14 +49,19 @@ class RamsesOutput:
         
         print divider
         
+        # This calls the Fortran data reader and returns the values into the data1 array.
+        # It tries to read a hydro_file_descriptor.txt to get a list of variables.
+        # If that file is not found, it makes an educated guess for the file contents.
         [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
+        # Clean exit if the file was not found
         if fail:
             print divider
             return
         
         print "Generating data structure... please wait"
         
+        # Create a small information dictionary
         self.info = {"ncells"  : nn      ,\
                      "ncpu"    : ncpu    ,\
                      "ndim"    : ndim    ,\
@@ -53,6 +75,19 @@ class RamsesOutput:
                      "ut"      : ut      ,\
                      "center"  : center   }
         
+        # This is the master data dictionary. For each entry, the dict has 5 fields.
+        # It loops through the list of variables that it got from the file loader.
+        # For example, for the density:
+        # - data["density"]["values"   ]: holds the values for the density, which have
+        #                                 been normalized to cgs using 'ud'
+        # - data["density"]["unit"     ]: a string containing the units
+        # - data["density"]["label"    ]: a string containing the variable name
+        # - data["density"]["operation"]: an operation, if the variable has been
+        #                                 derived from other variables. This is empty
+        #                                 if it is a core variable.
+        # - data["density"]["depth"    ]: a depth which tells you on how many layers
+        #                                 of derived variables the current variables
+        #                                 depends on.
         self.data = dict()
         list_vars = names.split()
         for i in range(len(list_vars)):
@@ -64,11 +99,12 @@ class RamsesOutput:
             self.data[theKey]["label"    ] = theKey
             self.data[theKey]["operation"] = ""
             self.data[theKey]["depth"    ] = 0
-            
 
         # Modifications for coordinates and cell sizes
         self.re_center(center,scale,ndim)
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        
+        # We now use the 'new_field' function to create commonly used variables
         
         # Magnetic field
         self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
@@ -88,6 +124,8 @@ class RamsesOutput:
         print divider
     
     #=======================================================================================
+    # The re_center function shifts the coordinates axes around a center. If center="auto"
+    # then the function find the cell with the highest density.
     #=======================================================================================
     def re_center(self,center,scale,ndim):
         
@@ -113,10 +151,15 @@ class RamsesOutput:
             self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
             
     #=======================================================================================
+    # The new field function is used to create a new data field. Say you want to take the
+    # log of the density. You create a new field by calling:
+    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+    # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
     def new_field(self,name,operation,unit,label):
         
         [op_parsed,depth] = self.parse_operation(operation)
+        #print op_parsed
         self.data[name] = dict()
         self.data[name]["values"   ] = eval(op_parsed)
         self.data[name]["unit"     ] = unit
@@ -127,12 +170,20 @@ class RamsesOutput:
         return
     
     #=======================================================================================
+    # The operation parser converts an operation string into an expression which contains
+    # variables from the data dictionary. If a name from the variable list, e.g. "density",
+    # is found in the operation, it is replaced by self.data["density"]["values"] so that it
+    # can be properly evaluated by the 'eval' function in the 'new_field' function.
     #=======================================================================================
     def parse_operation(self,operation):
         
         max_depth = 0
+        # Add space before and after to make it easier when searching for characters before
+        # and after.
         expression = " "+operation+" "
+        # Sort the list of variable keys in the order of the longest to the shortest.
         key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        #print key_list
         for key in key_list:
             loc = expression.find(key)
             if loc > -1:
@@ -140,6 +191,7 @@ class RamsesOutput:
                 char_after  = expression[loc+len(key)]
                 bad_before = (char_before.isalpha() or (char_before == "_"))
                 bad_after = (char_after.isalpha() or (char_after == "_"))
+                #print "|"+char_before+"|  --  |"+char_before+"|"
                 if (not bad_before) and (not bad_after):
                     expression = expression.replace(key,"self.data[\""+key+"\"][\"values\"]")
                     max_depth = max(max_depth,self.data[key]["depth"])
