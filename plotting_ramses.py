@@ -73,7 +73,8 @@ class RamsesOutput:
                      "ud"      : ud      ,\
                      "ul"      : ul      ,\
                      "ut"      : ut      ,\
-                     "center"  : center   }
+                     "center"  : center  ,\
+                     "scale"   : scale    }
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
@@ -93,7 +94,7 @@ class RamsesOutput:
         for i in range(len(list_vars)):
             theKey = list_vars[i]
             self.data[theKey] = dict()
-            [norm,uu] = self.get_units(theKey,ud,ul,ut,scale)
+            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
             self.data[theKey]["values"   ] = data1[:nn,i]*norm
             self.data[theKey]["unit"     ] = uu
             self.data[theKey]["label"    ] = theKey
@@ -101,8 +102,8 @@ class RamsesOutput:
             self.data[theKey]["depth"    ] = 0
 
         # Modifications for coordinates and cell sizes
-        self.re_center(center,scale,ndim)
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        self.re_center()
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
         
         # We now use the 'new_field' function to create commonly used variables
         
@@ -127,28 +128,28 @@ class RamsesOutput:
     # The re_center function shifts the coordinates axes around a center. If center="auto"
     # then the function find the cell with the highest density.
     #=======================================================================================
-    def re_center(self,center,scale,ndim):
+    def re_center(self):
         
         try:
-            lc = len(center)
-            if center == "auto":
+            lc = len(self.info["center"])
+            if self.info["center"] == "auto":
                 maxloc = np.argmax(self.data["density"]["values"])
                 xc = self.data["x"]["values"][maxloc]
                 yc = self.data["y"]["values"][maxloc]
                 zc = self.data["z"]["values"][maxloc]
             elif lc == 3:
-                xc = center[0]*self.info["boxsize"]
-                yc = center[1]*self.info["boxsize"]
-                zc = center[2]*self.info["boxsize"]
+                xc = self.info["center"][0]*self.info["boxsize"]
+                yc = self.info["center"][1]*self.info["boxsize"]
+                zc = self.info["center"][2]*self.info["boxsize"]
             else:
                 print "Bad center value"
                 return
         except TypeError:
             xc = yc = zc = 0.5*self.info["boxsize"]
-        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[scale]
-        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
-        if ndim > 2:
-            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
+        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[self.info["scale"]]
+        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[self.info["scale"]]
+        if self.info["ndim"] > 2:
+            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[self.info["scale"]]
             
     #=======================================================================================
     # The new field function is used to create a new data field. Say you want to take the
@@ -216,7 +217,7 @@ class RamsesOutput:
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
+    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=""):
         
         # Generate filename
         if nout == -1:
@@ -231,11 +232,14 @@ class RamsesOutput:
             xc,yc,zc = center[0:3]
         except TypeError:
             xc = yc = zc = 0.5
+            
+        if len(scale) > 0:
+            self.info["scale"] = scale
         
         print divider
         
         # Call the data loader
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[self.info["scale"]])
         
         # Return if file is not found
         if fail:
@@ -248,7 +252,7 @@ class RamsesOutput:
         list_vars = names.split()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
-            [norm,uu] = self.get_units(theKey,ud,ul,ut,scale)
+            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
             self.data[theKey]["values"   ] = data1[:nn,i]*norm
             self.data[theKey]["unit"     ] = uu
             self.data[theKey]["label"    ] = theKey
@@ -256,8 +260,8 @@ class RamsesOutput:
             self.data[theKey]["depth"    ] = 0
         
         # Modifications for coordinates and cell sizes
-        self.re_center(center,scale,ndim)
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        self.re_center()
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
         
         # Now go through the fields and update the values of fields that have an operation attached to them
         # IMPORTANT: this needs to be done in the right order: use the depth key to determine which
