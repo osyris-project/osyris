@@ -265,7 +265,7 @@ class RamsesOutput:
         key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
         for key in key_list:
             if len(self.data[key]["operation"]) > 0:
-                print "Re-valuating "+key
+                print "Re-computing "+key
                 self.data[key]["values"] = eval(self.data[key]["operation"])
                 
         print "Data successfully updated with values from "+infile
@@ -273,7 +273,7 @@ class RamsesOutput:
         
     #=======================================================================================
     #=======================================================================================
-    # PLOTTING FUNCTIONS
+    #                                 PLOTTING FUNCTIONS
     #=======================================================================================
     #=======================================================================================
         
