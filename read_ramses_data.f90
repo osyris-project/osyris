@@ -24,7 +24,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
   integer :: nx,ny,nz,ilevel,n,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
-  integer :: nx_full,ny_full,nz_full,ix,iy,iz
+  integer :: nx_full,ny_full,nz_full,ix,iy,iz,istep,iprog,percentage
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
@@ -207,10 +207,18 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   ! Compute projected variables
   !----------------------------------------------
   icell = 0
-
+  istep = 10
+  iprog = 1
   ! Loop over processor files
   write(*,'(a,i5,a)')'Processing ',ncpu_read,' files'
   do k=1,ncpu_read
+  
+     percentage = nint(real(k)*100.0/real(ncpu_read))
+     if(percentage .ge. iprog*istep)then
+        write(*,'(i3,a)') percentage,'%'
+        iprog = iprog + 1
+     endif
+  
      icpu=cpu_list(k)
      write(ncharcpu,'(i5.5)') icpu
 
