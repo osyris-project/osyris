@@ -2,7 +2,8 @@
 ! Modified version of AMR2CELL.f90 from the RAMSES source
 !=============================================================================
 subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,&
-                     & data_array,data_names,ncells,ncpu,ndim,levelmin,levelmax,nstep,boxsize,t,ud,ul,ut)
+                     & data_array,data_names,ncells,ncpu,ndim,levelmin,levelmax,nstep,&
+                     & boxsize,t,ud,ul,ut,failed)
 
   implicit none
   
@@ -19,6 +20,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   real*8                        , intent(out) :: boxsize,t,ud,ul,ut
   real*8,dimension(nmax,nvarmax), intent(out) :: data_array
   character(len=500)            , intent(out) :: data_names
+  logical                       , intent(out) :: failed
   
   ! Variables
   integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
@@ -55,8 +57,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
 
   type(level),dimension(1:100) :: grid
 
-!=============================================================================
+  !=============================================================================
 
+  failed = .false.
   lmax = lmax2
   repository = trim(infile)
 
@@ -68,14 +71,16 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   nomfich=TRIM(repository)//'/hydro_'//TRIM(nchar)//'.out00001'
   inquire(file=nomfich, exist=ok) ! verify input file 
   if ( .not. ok ) then
-     print *,TRIM(nomfich)//' not found.'
-     stop
+     write(*,'(a)') TRIM(nomfich)//' not found.'
+     failed = .true.
+     return
   endif
   nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out00001'
   inquire(file=nomfich, exist=ok) ! verify input file 
   if ( .not. ok ) then
-     print *,TRIM(nomfich)//' not found.'
-     stop
+     write(*,'(a)') TRIM(nomfich)//' not found.'
+     failed = .true.
+     return
   endif
 
   nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out00001'
@@ -142,8 +147,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   ! be nvarh + 5: 3 coordinates, dx and ilevel
   nvar_tot = nvarh+5
   if(nvar_tot > nvarmax)then
-     write(*,*) 'Not enough space for variables, increase nvarmax'
-     stop
+     write(*,'(a)') 'Not enough space for variables, increase nvarmax'
+     failed = .true.
+     return
   endif
   data_names = trim(data_names)//' '//"level"
   data_names = trim(data_names)//' '//"x"
@@ -371,8 +377,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
                     icell = icell + 1
                     
                     if(icell > nmax)then
-                       write(*,*) 'Not enough memory space, increase nmax'
-                       stop
+                       write(*,'(a)') 'Not enough memory space, increase nmax or decrease lmax.'
+                       failed = .true.
+                       return
                     endif
                  
                     var(i,ind,nvarh+1) = real(ilevel)
@@ -407,5 +414,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   write(*,'(a,i9,a)') 'Read ',ncells,' cells'
   
   boxsize = boxlen*ul
+  
+  return
   
 end subroutine ramses_data

@@ -4,11 +4,16 @@ import read_ramses_data as rd
 import matplotlib.pyplot as plt
 
 #=======================================================================================
+# Common variables
 #=======================================================================================
+scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
+divider = "============================================"
 
+#=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
 # It calls "rd.ramses_data" which is a fortran file reader.
 # It then stores the data in a dictionary named "data"
+#=======================================================================================
 class RamsesOutput:
  
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
@@ -21,34 +26,32 @@ class RamsesOutput:
         
         try:
             center += 0
-            xc = center[0]
-            yc = center[1]
-            zc = center[2]
+            xc,yc,zc = center[0:3]
         except TypeError:
-            xc = 0.5
-            yc = 0.5
-            zc = 0.5
+            xc = yc = zc = 0.5
         
-        scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
+        print divider
         
-        print "========================================"
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        if fail:
+            print divider
+            return
         
         print "Generating data structure... please wait"
         
-        self.info = dict()
-        self.info["ncells"]   = nn
-        self.info["ncpu"]     = ncpu
-        self.info["ndim"]     = ndim
-        self.info["levelmin"] = levelmin
-        self.info["levelmax"] = levelmax
-        self.info["nstep"]    = nstep
-        self.info["boxsize"]  = boxsize
-        self.info["time"]     = time
-        self.info["ud"]       = ud
-        self.info["ul"]       = ul
-        self.info["ut"]       = ut
+        self.info = {"ncells"  : nn      ,\
+                     "ncpu"    : ncpu    ,\
+                     "ndim"    : ndim    ,\
+                     "levelmin": levelmin,\
+                     "levelmax": levelmax,\
+                     "nstep"   : nstep   ,\
+                     "boxsize" : boxsize ,\
+                     "time"    : time*ut ,\
+                     "ud"      : ud      ,\
+                     "ul"      : ul      ,\
+                     "ut"      : ut      ,\
+                     "center"  : center   }
         
         self.data = dict()
         list_vars = names.split()
@@ -60,9 +63,34 @@ class RamsesOutput:
             self.data[theKey]["unit"     ] = uu
             self.data[theKey]["label"    ] = theKey
             self.data[theKey]["operation"] = ""
+            self.data[theKey]["depth"    ] = 0
             
 
         # Modifications for coordinates and cell sizes
+        self.re_center(center,scale,ndim)
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        
+        # Magnetic field
+        self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
+        self.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x")
+        self.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x")
+        self.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
+    
+        # Commonly used log quantities
+        self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+        self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
+        self.new_field(name="log_B",operation="np.log10(B)",unit="g/cm3",label="log(B)")
+        
+        print infile+" successfully loaded"
+        print "The variables are:"
+        for key in sorted(self.data):
+            print key+" ["+self.data[key]["unit"]+"]"
+        print divider
+    
+    #=======================================================================================
+    #=======================================================================================
+    def re_center(self,center,scale,ndim):
+        
         try:
             lc = len(center)
             if center == "auto":
@@ -78,56 +106,34 @@ class RamsesOutput:
                 print "Bad center value"
                 return
         except TypeError:
-            xc = 0.5*self.info["boxsize"]
-            yc = 0.5*self.info["boxsize"]
-            zc = 0.5*self.info["boxsize"]
+            xc = yc = zc = 0.5*self.info["boxsize"]
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[scale]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[scale]
         if ndim > 2:
             self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[scale]
-        
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
-        
-        # Magnetic field
-        self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
-        self.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x")
-        self.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x")
-        self.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
-    
-        # Commonly used log quantities
-        self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log_rho")
-        self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log_T")
-        self.new_field(name="log_B",operation="np.log10(B)",unit="g/cm3",label="log_B")
-        
-        print infile+" successfully loaded"
-        print "The variables are:"
-        for key in sorted(self.data):
-            print key+" ["+self.data[key]["unit"]+"]"
-        print "========================================"
-        
+            
     #=======================================================================================
     #=======================================================================================
-    
     def new_field(self,name,operation,unit,label):
         
-        op_parsed = self.parse_operation(operation)
+        [op_parsed,depth] = self.parse_operation(operation)
         self.data[name] = dict()
         self.data[name]["values"   ] = eval(op_parsed)
         self.data[name]["unit"     ] = unit
         self.data[name]["label"    ] = label
-        self.data[name]["operation"] = operation
+        self.data[name]["operation"] = op_parsed
+        self.data[name]["depth"    ] = depth+1
         
         return
     
     #=======================================================================================
     #=======================================================================================
-    
     def parse_operation(self,operation):
         
+        max_depth = 0
         expression = " "+operation+" "
         key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
         for key in key_list:
-            keyval = "self.data[\""+key+"\"][\"values\"]"
             loc = expression.find(key)
             if loc > -1:
                 char_before = expression[loc-1]
@@ -135,9 +141,63 @@ class RamsesOutput:
                 bad_before = (char_before.isalpha() or (char_before == "_"))
                 bad_after = (char_after.isalpha() or (char_after == "_"))
                 if (not bad_before) and (not bad_after):
-                    expression = expression.replace(key,keyval)
+                    expression = expression.replace(key,"self.data[\""+key+"\"][\"values\"]")
+                    max_depth = max(max_depth,self.data[key]["depth"])
             
-        return expression
+        return [expression,max_depth]
+    
+    #=======================================================================================
+    #=======================================================================================
+    
+    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
+        
+        if nout == -1:
+            filelist = sorted(glob.glob("output*"))
+            infile = filelist[-1]
+        else:
+            infile = "output_"+str(nout).zfill(5)
+        
+        try:
+            center += 0
+            xc,yc,zc = center[0:3]
+        except TypeError:
+            xc = yc = zc = 0.5
+        
+        print divider
+        
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        
+        if fail:
+            print divider
+            return
+        
+        print "Updating data structure... please wait"
+        
+        list_vars = names.split()
+        for i in range(len(list_vars)):
+            theKey = list_vars[i]
+            [norm,uu] = self.get_units(theKey,ud,ul,ut,scale)
+            self.data[theKey]["values"   ] = data1[:nn,i]*norm
+            self.data[theKey]["unit"     ] = uu
+            self.data[theKey]["label"    ] = theKey
+            self.data[theKey]["operation"] = ""
+        
+        # Modifications for coordinates and cell sizes
+        self.re_center(center,scale,ndim)
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[scale]
+        
+        # Now go through the fields and update the values of fields that have a operation attached to them
+        # IMPORTANT: this needs to be done in the right order: use the depth key to determine which
+        # variables depend on others
+        key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
+        for key in key_list:
+            if len(self.data[key]["operation"]) > 0:
+                #op_parsed = self.parse_operation(self.data[key]["operation"])
+                print "Re-valuating "+key
+                self.data[key]["values"] = eval(self.data[key]["operation"])
+                
+        print "Data successfully updated with values from "+infile
+        print divider
         
     #=======================================================================================
     #=======================================================================================
@@ -149,15 +209,15 @@ class RamsesOutput:
         ny = 101
         
         datax  = self.data[var_x]["values"]
-        xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         datay  = self.data[var_y]["values"]
+        xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
                 
         xmin = np.amin(datax)
         xmax = np.amax(datax)
         ymin = np.amin(datay)
         ymax = np.amax(datay)
-
+        
         xe = np.linspace(xmin,xmax,nx)
         ye = np.linspace(ymin,ymax,ny)
 
