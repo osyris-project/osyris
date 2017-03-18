@@ -124,7 +124,9 @@ class RamsesOutput:
             self.print_info()
         print divider
         
-        
+    #=======================================================================================
+    # Print information about the data that was loaded.
+    #=======================================================================================
     def print_info(self):
         print "--------------------------------------------"
         for key in sorted(self.info.keys()):
@@ -142,8 +144,6 @@ class RamsesOutput:
         print "The variables are:"
         print "Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4)
         for key in sorted(self.data.keys()):
-            #lendiff = maxlen-len(key)
-            #print lendiff
             print key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+str(np.amax(self.data[key]["values"])).ljust(maxlen4)
         return
     
