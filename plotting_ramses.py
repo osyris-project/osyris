@@ -30,7 +30,7 @@ class RamsesOutput:
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm"):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",verbose=False):
         
         # Generate filename from output number
         if nout == -1:
@@ -104,6 +104,7 @@ class RamsesOutput:
         # Modifications for coordinates and cell sizes
         self.re_center()
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
+        self.info["boxsize"] = self.info["boxsize"]/scalelist[self.info["scale"]]
         
         # We now use the 'new_field' function to create commonly used variables
         
@@ -119,10 +120,32 @@ class RamsesOutput:
         self.new_field(name="log_B",operation="np.log10(B)",unit="g/cm3",label="log(B)")
         
         print infile+" successfully loaded"
-        print "The variables are:"
-        for key in sorted(self.data):
-            print key+" ["+self.data[key]["unit"]+"]"
+        if verbose:
+            self.print_info()
         print divider
+        
+        
+    def print_info(self):
+        print "--------------------------------------------"
+        for key in sorted(self.info.keys()):
+            print key+": "+str(self.info[key])
+        print "--------------------------------------------"
+        maxlen1 = 0
+        maxlen2 = 0
+        maxlen3 = 0
+        maxlen4 = 0
+        for key in sorted(self.data.keys()):
+            maxlen1 = max(maxlen1,len(key))
+            maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
+            maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
+            maxlen4 = max(maxlen4,len(str(np.amax(self.data[key]["values"]))))
+        print "The variables are:"
+        print "Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4)
+        for key in sorted(self.data.keys()):
+            #lendiff = maxlen-len(key)
+            #print lendiff
+            print key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+str(np.amax(self.data[key]["values"])).ljust(maxlen4)
+        return
     
     #=======================================================================================
     # The re_center function shifts the coordinates axes around a center. If center="auto"
