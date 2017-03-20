@@ -154,7 +154,6 @@ class RamsesOutput:
         maxlen3 = 0
         maxlen4 = 0
         for key in sorted(self.data.keys()):
-            print key,self.data[key]["unit"]
             maxlen1 = max(maxlen1,len(key))
             maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
             maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
@@ -268,7 +267,7 @@ class RamsesOutput:
     def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path=""):
         
         # Generate filename
-        infile = self.generate_fname(nout)
+        infile = self.generate_fname(nout,path)
         
         # It's possible to define a new center
         try:
@@ -464,7 +463,7 @@ class RamsesOutput:
         else:
             plt.show(block=False)
 
-        return
+        return x,y,z
 
     #=======================================================================================
     # Plot a 2D slice through the data cube. The arguments are:
@@ -483,7 +482,7 @@ class RamsesOutput:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=None,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
+    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -619,4 +618,7 @@ class RamsesOutput:
         else:
             plt.show(block=False)
         
-        return
+        if vec:
+            return x,y,z,u,v,w
+        else:
+            return x,y,z
