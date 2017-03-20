@@ -30,14 +30,10 @@ class RamsesOutput:
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",verbose=False):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",verbose=False,path=""):
         
         # Generate filename from output number
-        if nout == -1:
-            filelist = sorted(glob.glob("output*"))
-            infile = filelist[-1]
-        else:
-            infile = "output_"+str(nout).zfill(5)
+        infile = self.generate_fname(nout,path)
         
         # Define a center for reading in the data. If it is set to "auto", then it is
         # first set to [0.5,0.5,0.5] for the output reader.
@@ -127,6 +123,23 @@ class RamsesOutput:
         if verbose:
             self.print_info()
         print divider
+    
+    #=======================================================================================
+    # Generate the file name
+    #=======================================================================================
+    def generate_fname(self,nout,path=""):
+        
+        if nout == -1:
+            filelist = sorted(glob.glob("output*"))
+            infile = filelist[-1]
+        else:
+            infile = "output_"+str(nout).zfill(5)
+        if len(path) > 0:
+            if path[-1] != "/":
+                path=path+"/"
+            infile = path+infile
+            
+        return infile
         
     #=======================================================================================
     # Print information about the data that was loaded.
@@ -252,14 +265,10 @@ class RamsesOutput:
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=""):
+    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path=""):
         
         # Generate filename
-        if nout == -1:
-            filelist = sorted(glob.glob("output*"))
-            infile = filelist[-1]
-        else:
-            infile = "output_"+str(nout).zfill(5)
+        infile = self.generate_fname(nout)
         
         # It's possible to define a new center
         try:
