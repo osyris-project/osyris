@@ -113,7 +113,7 @@ class RamsesOutput:
         self.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x")
         self.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x")
         self.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
-    
+        
         # Commonly used log quantities
         self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
@@ -137,6 +137,7 @@ class RamsesOutput:
         maxlen3 = 0
         maxlen4 = 0
         for key in sorted(self.data.keys()):
+            print key,self.data[key]["unit"]
             maxlen1 = max(maxlen1,len(key))
             maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
             maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
@@ -181,11 +182,17 @@ class RamsesOutput:
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation,unit="",label=""):
+    def new_field(self,name,operation,unit="",label="",verbose=False):
         
         [op_parsed,depth] = self.parse_operation(operation)
+        try:
+            new_data = eval(op_parsed)
+        except NameError:
+            if verbose:
+                print "Error parsing operation when trying to create variable: "+name
+            return
         self.data[name] = dict()
-        self.data[name]["values"   ] = eval(op_parsed)
+        self.data[name]["values"   ] = new_data
         self.data[name]["unit"     ] = unit
         self.data[name]["label"    ] = label
         self.data[name]["operation"] = op_parsed
