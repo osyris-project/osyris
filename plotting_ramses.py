@@ -107,6 +107,10 @@ class RamsesOutput:
         self.info["boxsize"] = self.info["boxsize"]/scalelist[self.info["scale"]]
         
         # We now use the 'new_field' function to create commonly used variables
+        # Note that this function is protected against variables that do not exist.
+        # If you have a purely hydro simulation with no B field, the fields below will
+        # simply not be created. By default, this function does not output an error
+        # message. You can ask it to do so by sending 'verbose=True' in the argument list.
         
         # Magnetic field
         self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
