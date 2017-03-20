@@ -315,6 +315,36 @@ class RamsesOutput:
         print divider
         
     #=======================================================================================
+    # The function get_units returns the appropriate scaling for a variable which was read
+    # in code units by the data loader. It tries to identify if we are dealing with a
+    # density or a pressure and returns the appropriate combination of ud, ul and ut. It
+    # also returns the unit as a string for plotting on the axes.
+    #=======================================================================================
+    def get_units(self,string,ud,ul,ut,scale="cm"):
+        if string == "density":
+            return [ud,"g/cm3"]
+        elif string.startswith("velocity"):
+            return [ul/ut,"cm/s"]
+        elif string.startswith("B_"):
+            return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
+        elif string == "thermal_pressure":
+            return [ud*((ul/ut)**2),"g/cm/s2"]
+        elif string.startswith("radiative_energy"):
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string == "x":
+            return [ul,scale]
+        elif string == "y":
+            return [ul,scale]
+        elif string == "z":
+            return [ul,scale]
+        elif string == "dx":
+            return [ul,scale]
+        elif string == "temperature":
+            return [1.0,"K"]
+        else:
+            return [1.0,""]
+        
+    #=======================================================================================
     #=======================================================================================
     #                                 PLOTTING FUNCTIONS
     #=======================================================================================
@@ -570,33 +600,3 @@ class RamsesOutput:
             plt.show(block=False)
         
         return
-
-    #=======================================================================================
-    # The function get_units returns the appropriate scaling for a variable which was read
-    # in code units by the data loader. It tries to identify if we are dealing with a
-    # density or a pressure and returns the appropriate combination of ud, ul and ut. It
-    # also returns the unit as a string for plotting on the axes.
-    #=======================================================================================
-    def get_units(self,string,ud,ul,ut,scale="cm"):
-        if string == "density":
-            return [ud,"g/cm3"]
-        elif string.startswith("velocity"):
-            return [ul/ut,"cm/s"]
-        elif string.startswith("B_"):
-            return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-        elif string == "thermal_pressure":
-            return [ud*((ul/ut)**2),"g/cm/s2"]
-        elif string.startswith("radiative_energy"):
-            return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string == "x":
-            return [ul,scale]
-        elif string == "y":
-            return [ul,scale]
-        elif string == "z":
-            return [ul,scale]
-        elif string == "dx":
-            return [ul,scale]
-        elif string == "temperature":
-            return [1.0,"K"]
-        else:
-            return [1.0,""]
