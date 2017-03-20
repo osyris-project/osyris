@@ -382,7 +382,7 @@ class RamsesOutput:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101,copy=False):
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101,copy=False,xmin=False,xmax=False,ymin=False,ymax=False):
 
         # Parameters
         nx = resolution
@@ -395,10 +395,14 @@ class RamsesOutput:
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
         
         # Define plotting range
-        xmin = np.amin(datax)
-        xmax = np.amax(datax)
-        ymin = np.amin(datay)
-        ymax = np.amax(datay)
+        if (not xmin):
+            xmin = np.amin(datax)
+        if (not xmax):
+            xmax = np.amax(datax)
+        if (not ymin):
+            ymin = np.amin(datay)
+        if (not ymax):
+            ymax = np.amax(datay)
         
         # Construct some edge specifiers for the histogram2d function call
         xe = np.linspace(xmin,xmax,nx)
