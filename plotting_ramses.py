@@ -382,7 +382,7 @@ class RamsesOutput:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101):
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101,copy=False):
 
         # Parameters
         nx = resolution
@@ -463,7 +463,10 @@ class RamsesOutput:
         else:
             plt.show(block=False)
 
-        return x,y,z
+        if copy:
+            return x,y,z
+        else:
+            return
 
     #=======================================================================================
     # Plot a 2D slice through the data cube. The arguments are:
@@ -482,7 +485,7 @@ class RamsesOutput:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128):
+    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -618,7 +621,10 @@ class RamsesOutput:
         else:
             plt.show(block=False)
         
-        if vec:
-            return x,y,z,u,v,w
+        if copy:
+            if vec:
+                return x,y,z,u,v,w
+            else:
+                return x,y,z
         else:
-            return x,y,z
+            return
