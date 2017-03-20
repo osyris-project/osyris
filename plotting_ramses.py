@@ -152,7 +152,7 @@ class RamsesOutput:
     # then the function find the cell with the highest density.
     #=======================================================================================
     def re_center(self):
-        
+
         try:
             lc = len(self.info["center"])
             if self.info["center"] == "auto":
@@ -169,6 +169,7 @@ class RamsesOutput:
                 return
         except TypeError:
             xc = yc = zc = 0.5*self.info["boxsize"]
+            
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[self.info["scale"]]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[self.info["scale"]]
         if self.info["ndim"] > 2:
@@ -268,6 +269,21 @@ class RamsesOutput:
         if fail:
             print divider
             return
+        
+        # It is safer to re-update all the info variables
+        self.info["ncells"  ] = nn
+        self.info["ncpu"    ] = ncpu
+        self.info["ndim"    ] = ndim
+        self.info["levelmin"] = levelmin
+        self.info["levelmax"] = levelmax
+        self.info["nstep"   ] = nstep
+        self.info["boxsize" ] = boxsize
+        self.info["time"    ] = time*ut
+        self.info["ud"      ] = ud
+        self.info["ul"      ] = ul
+        self.info["ut"      ] = ut
+        #self.info["center"  ] = center
+        #self.info["scale"   ] = scale
         
         print "Updating data structure... please wait"
         
@@ -432,7 +448,7 @@ class RamsesOutput:
         else:
             print "Bad direction for slice"
             return
-        
+                
         # Make it possible to call with only one size in the arguments
         if dy == 0.0:
             dy = dx
