@@ -181,7 +181,7 @@ class RamsesOutput:
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation,unit,label):
+    def new_field(self,name,operation,unit="",label=""):
         
         [op_parsed,depth] = self.parse_operation(operation)
         self.data[name] = dict()
