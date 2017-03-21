@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import plotting_ramses as pp
+import osiris as pp
 import sys
 
 # Read arguments
