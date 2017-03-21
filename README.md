@@ -1,5 +1,5 @@
 ![demo.png](https://bitbucket.org/repo/jq5boX/images/1336351696-demo.png)
-# Plotting Ramses #
+# Osiris #
 
 This is a small collection of python plotting scripts for RAMSES data. It is not meant to replace large projects such as Pymses, it's purpose is more to plot small 'quick and dirty' diagnostics while a simulation is running.
 
@@ -18,7 +18,7 @@ f2py -c read_ramses_data.f90 -m read_ramses_data
 
 ```
 #!python
-import plotting_ramses as pp
+import osiris as pp
 mydata = pp.RamsesOutput(71)
 mydata.plot_histogram("log_rho","log_B")
 ```
@@ -41,7 +41,7 @@ python make_figures.py 71
 
 import matplotlib.pyplot as plt
 import numpy as np
-import plotting_ramses as pp
+import osiris as pp
 
 # Load data: select only cells 100 au on each side of a center located at (0.5,0.5,0.5)
 mydata = pp.RamsesOutput(nout=71,center=[0.5,0.5,0.5],scale="au",dx=200,dy=200,dz=200)
