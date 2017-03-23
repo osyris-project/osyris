@@ -382,11 +382,11 @@ class RamsesOutput:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=101,copy=False,xmin=None,xmax=None,ymin=None,ymax=None):
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=100,copy=False,xmin=None,xmax=None,ymin=None,ymax=None):
 
         # Parameters
-        nx = resolution
-        ny = resolution
+        nx = resolution+1
+        ny = resolution+1
         
         # Get the data values and units
         datax  = self.data[var_x]["values"]
