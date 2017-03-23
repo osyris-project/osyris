@@ -395,22 +395,42 @@ class RamsesOutput:
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
         
         # Define plotting range
+        autoxmin = False
+        autoxmax = False
+        autoymin = False
+        autoymax = False
+        
         try:
             xmin += 0
         except TypeError:
             xmin = np.amin(datax)
+            autoxmin = True
         try:
             xmax += 0
         except TypeError:
             xmax = np.amax(datax)
+            autoxmax = True
         try:
             ymin += 0
         except TypeError:
             ymin = np.amin(datay)
+            autoymin = True
         try:
             ymax += 0
         except TypeError:
             ymax = np.amax(datay)
+            autoymax = True
+        
+        dx = xmax-xmin
+        dy = ymax-ymin
+        if autoxmin:
+            xmin = xmin - 0.05*dx
+        if autoxmax:
+            xmax = xmax + 0.05*dx
+        if autoymin:
+            ymin = ymin - 0.05*dy
+        if autoymax:
+            ymax = ymax + 0.05*dy
         
         # Construct some edge specifiers for the histogram2d function call
         xe = np.linspace(xmin,xmax,nx)
