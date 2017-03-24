@@ -517,7 +517,7 @@ class RamsesData:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False):
+    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -611,7 +611,6 @@ class RamsesData:
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
         y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-        iskip = int(0.071*resolution)
         
         # Define axes labels
         xlab = self.data[dir_x]["label"]+" ["+self.data[dir_x]["unit"]+"]"
@@ -641,7 +640,11 @@ class RamsesData:
                     w = np.log10(w)
                 strm = theplot.streamplot(x,y,u,v,color=w,cmap='Greys')
             else:
-                vect = theplot.quiver(x[::iskip],y[::iskip],u[::iskip,::iskip],v[::iskip,::iskip],w[::iskip,::iskip],cmap='Greys',pivot='mid')
+                try:
+                    vskip += 0
+                except TypeError:
+                    vskip = int(0.071*resolution)
+                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=np.amax(w)*10.0, scale_units='width')
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 

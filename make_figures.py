@@ -34,7 +34,7 @@ mydata.plot_histogram("log_rho","log_T",axes=ax2,cmap="YlGnBu")
 #x,z density slice with B field
 mydata.plot_slice("log_rho",direction="y",vec="B",dx=dx,axes=ax3,streamlines=True)
 # x,y density slice with velocity
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=dx,axes=ax4)
+mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=dx,axes=ax4,vskip=4)
 # x,y temperature slice with velocity
 mydata.plot_slice("log_T",direction="z",vec="velocity",dx=dx,axes=ax5,cmap="hot")
 # x,z density slice with velocity
