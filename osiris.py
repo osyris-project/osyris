@@ -517,7 +517,7 @@ class RamsesData:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None):
+    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,nc=20):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -619,7 +619,7 @@ class RamsesData:
             plt.subplot(111)
             theplot = plt
         
-        cont = theplot.contourf(x,y,z,20,cmap=cmap)
+        cont = theplot.contourf(x,y,z,nc,cmap=cmap)
         if axes:
             cbar = plt.colorbar(cont,ax=theplot)
             theplot.set_xlabel(xlab)
