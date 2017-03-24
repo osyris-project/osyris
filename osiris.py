@@ -644,7 +644,7 @@ class RamsesData:
                     vskip += 0
                 except TypeError:
                     vskip = int(0.071*resolution)
-                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=np.amax(w)*10.0, scale_units='width')
+                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid')
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
