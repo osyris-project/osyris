@@ -129,7 +129,7 @@ class RamsesData:
             list_shape = np.shape(np.shape(self.sinklist))[0]
             if list_shape == 1:
                 self.nsinks = int(self.sinklist[0])
-            else
+            else:
                 self.nsinks = int(np.amax(self.sinklist[:,0]))
         except IOError:
             self.nsinks = 0
