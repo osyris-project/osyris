@@ -30,7 +30,8 @@ class RamsesData:
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",verbose=False,path=""):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",\
+                 verbose=False,path=""):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -45,10 +46,12 @@ class RamsesData:
         
         print divider
         
-        # This calls the Fortran data reader and returns the values into the data1 array.
-        # It tries to read a hydro_file_descriptor.txt to get a list of variables.
-        # If that file is not found, it makes an educated guess for the file contents.
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        # This calls the Fortran data reader and returns the values into the data1
+        # array. It tries to read a hydro_file_descriptor.txt to get a list of
+        # variables. If that file is not found, it makes an educated guess for the file
+        # contents.
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
+                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
         
         # Clean exit if the file was not found
         if fail:
@@ -117,7 +120,7 @@ class RamsesData:
         # Commonly used log quantities
         self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
-        self.new_field(name="log_B",operation="np.log10(B)",unit="g/cm3",label="log(B)")
+        self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
         
         print infile+" successfully loaded"
         if verbose:
@@ -161,7 +164,9 @@ class RamsesData:
         print "The variables are:"
         print "Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4)
         for key in sorted(self.data.keys()):
-            print key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+str(np.amax(self.data[key]["values"])).ljust(maxlen4)
+            print key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
+                  str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+\
+                  str(np.amax(self.data[key]["values"])).ljust(maxlen4)
         return
     
     #=======================================================================================
@@ -225,12 +230,14 @@ class RamsesData:
     def parse_operation(self,operation):
         
         max_depth = 0
-        # Add space before and after to make it easier when searching for characters before and after
+        # Add space before and after to make it easier when searching for characters before
+        # and after
         expression = " "+operation+" "
         # Sort the list of variable keys in the order of the longest to the shortest.
         # This guards against replacing 'B' inside 'logB' for example.
         key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
-        # For replacing, we need to create a list of hash keys to replace on instance at a time
+        # For replacing, we need to create a list of hash keys to replace on instance at a
+        # time
         hashkeys  = dict()
         hashcount = 0
         for key in key_list:
@@ -243,7 +250,8 @@ class RamsesData:
                     loop = False
                 else:
                     # Check character before and after. If they are either a letter or a '_'
-                    # then the instance is actually part of another variable or function name.
+                    # then the instance is actually part of another variable or function
+                    # name.
                     char_before = expression[loc-1]
                     char_after  = expression[loc+len(key)]
                     bad_before = (char_before.isalpha() or (char_before == "_"))
@@ -282,7 +290,8 @@ class RamsesData:
         print divider
         
         # Call the data loader
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[self.info["scale"]])
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
+              rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[self.info["scale"]])
         
         # Return if file is not found
         if fail:
@@ -321,9 +330,9 @@ class RamsesData:
         self.re_center()
         self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
         
-        # Now go through the fields and update the values of fields that have an operation attached to them
-        # IMPORTANT: this needs to be done in the right order: use the depth key to determine which
-        # variables depend on others
+        # Now go through the fields and update the values of fields that have an operation
+        # attached to them. IMPORTANT!: this needs to be done in the right order: use the
+        # depth key to determine which variables depend on others
         key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
         for key in key_list:
             if len(self.data[key]["operation"]) > 0:
@@ -382,7 +391,9 @@ class RamsesData:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,nc=20):
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,\
+                       cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
+                       ymax=None,nc=20,new_window=False):
 
         # Parameters
         nx = resolution+1
@@ -469,6 +480,10 @@ class RamsesData:
         # Begin plotting -------------------------------------
         if axes:
             theplot = axes
+        elif new_window:
+            plt.figure()
+            plt.subplot(111)
+            theplot = plt
         else:
             plt.clf()
             plt.subplot(111)
@@ -517,7 +532,9 @@ class RamsesData:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,nc=20):
+    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,\
+                   dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
+                   nc=20,new_window=False):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -614,6 +631,10 @@ class RamsesData:
         # Begin plotting -------------------------------------
         if axes:
             theplot = axes
+        elif new_window:
+            plt.figure()
+            plt.subplot(111)
+            theplot = plt
         else:
             plt.clf()
             plt.subplot(111)
@@ -638,7 +659,8 @@ class RamsesData:
                     vskip += 0
                 except TypeError:
                     vskip = int(0.071*resolution)
-                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=10.0*np.amax(w))
+                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
+                                      w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=10.0*np.amax(w))
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
