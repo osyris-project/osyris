@@ -538,7 +538,7 @@ class RamsesData:
             dy = dx
 
         # Select only the cells in contact with the slice
-        cube = np.where(np.logical_and(abs(self.data[dir_x]["values"]) < 0.5*dx,np.logical_and(abs(self.data[dir_y]["values"]) < 0.5*dy,abs(self.data[direction]["values"]) <= self.data["dx"]["values"])))
+        cube = np.where(np.logical_and(abs(self.data[dir_x]["values"]) < 0.5*dx,np.logical_and(abs(self.data[dir_y]["values"]) < 0.5*dy,abs(self.data[direction]["values"]) <= 0.5*self.data["dx"]["values"])))
         
         datax = self.data[dir_x]["values"][cube]
         datay = self.data[dir_y]["values"][cube]
