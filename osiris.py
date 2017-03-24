@@ -537,23 +537,12 @@ class RamsesData:
         if dy == 0.0:
             dy = dx
 
-        # Make a guess for slice thickness and iterate if no points are found in the slice
-        dz = 0.05*(0.5*(dx+dy))
-        no_points = True
-        while no_points:
-            data1 = self.data[dir_x    ]["values"]
-            data2 = self.data[dir_y    ]["values"]
-            data3 = self.data[direction]["values"]
-            cube  = np.where(np.logical_and(abs(data1) < 0.5*dx,np.logical_and(abs(data2) < 0.5*dy,abs(data3) < 0.5*dz)))
-            datax = data1[cube]
-            if len(datax) == 0:
-                dz = 2.0*dz
-            else:
-                no_points = False
+        # Select only the cells in contact with the slice
+        cube = np.where(np.logical_and(abs(self.data[dir_x]["values"]) < 0.5*dx,np.logical_and(abs(self.data[dir_y]["values"]) < 0.5*dy,abs(self.data[direction]["values"]) <= self.data["dx"]["values"])))
         
-        # Load the rest of the data
-        datay = data2[cube]
-        dataz = self.data[var]["values"][cube]
+        datax = self.data[dir_x]["values"][cube]
+        datay = self.data[dir_y]["values"][cube]
+        dataz = self.data[var  ]["values"][cube]
         if vec:
             datau = self.data[vec+"_"+dir_x]["values"][cube]
             datav = self.data[vec+"_"+dir_y]["values"][cube]
@@ -602,6 +591,7 @@ class RamsesData:
                         z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
         
         # Compute z averages
+        z2[np.where(z2 == 0.0)] = 1.0
         z = z1/z2
         if vec:
             u = u1/z2
@@ -644,7 +634,7 @@ class RamsesData:
                     vskip += 0
                 except TypeError:
                     vskip = int(0.071*resolution)
-                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid')
+                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=10.0*np.amax(w))
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 

@@ -24,7 +24,7 @@ ax4 = fig.add_subplot(234)
 ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
-dx = 100
+dx = 150
 
 # Density vs B field
 mydata.plot_histogram("log_rho","log_B",var_z="level",axes=ax1,cmap="YlGnBu")
@@ -34,7 +34,7 @@ mydata.plot_histogram("log_rho","log_T",axes=ax2,cmap="YlGnBu")
 #x,z density slice with B field
 mydata.plot_slice("log_rho",direction="y",vec="B",dx=dx,axes=ax3,streamlines=True)
 # x,y density slice with velocity
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=dx,axes=ax4)
+mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=dx,axes=ax4,vskip=4)
 # x,y temperature slice with velocity
 mydata.plot_slice("log_T",direction="z",vec="velocity",dx=dx,axes=ax5,cmap="hot")
 # x,z density slice with velocity
