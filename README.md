@@ -19,7 +19,7 @@ f2py -c read_ramses_data.f90 -m read_ramses_data
 ```
 #!python
 import osiris as pp
-mydata = pp.RamsesOutput(71)
+mydata = pp.RamsesData(71)
 mydata.plot_histogram("log_rho","log_B")
 ```
 
@@ -44,7 +44,7 @@ import numpy as np
 import osiris as pp
 
 # Load data: select only cells 100 au on each side of a center located at (0.5,0.5,0.5)
-mydata = pp.RamsesOutput(nout=71,center=[0.5,0.5,0.5],scale="au",dx=200,dy=200,dz=200)
+mydata = pp.RamsesData(nout=71,center=[0.5,0.5,0.5],scale="au",dx=200,dy=200,dz=200)
 
 # Create figure
 fig = plt.figure()

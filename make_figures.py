@@ -10,7 +10,7 @@ else:
     nout = 1
 
 # Load data
-mydata = pp.RamsesOutput(nout=nout,center="auto",scale="au")
+mydata = pp.RamsesData(nout=nout,center="auto",scale="au")
 
 # Create figure
 fig = plt.figure()
