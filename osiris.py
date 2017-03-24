@@ -382,7 +382,7 @@ class RamsesData:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,ymax=None):
+    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,nc=20):
 
         # Parameters
         nx = resolution+1
@@ -475,7 +475,7 @@ class RamsesData:
             theplot = plt
         
         # First plot the filled colour contours
-        cont = theplot.contourf(x,y,z,20,cmap=cmap)
+        cont = theplot.contourf(x,y,z,nc,cmap=cmap)
         # If dataz is specified, overlay black contours
         if contourz:
             over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
