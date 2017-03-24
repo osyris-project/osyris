@@ -216,7 +216,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   istep = 10
   iprog = 1
   ! Loop over processor files
-  write(*,'(a,i5,a)')'Processing ',ncpu_read,' files'
+  write(*,'(a,i5,a)')'Processing ',ncpu_read,' files in '//trim(repository)
   do k=1,ncpu_read
   
      percentage = nint(real(k)*100.0/real(ncpu_read))
