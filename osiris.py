@@ -122,6 +122,18 @@ class RamsesData:
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
         
+        # Load sink particles if any
+        sinkfile = "sink_"+infile.split("_")[1]+".csv"
+        try:
+            self.sinklist = np.loadtxt(sinkfile)
+            list_shape = np.shape(np.shape(self.sinklist))[0]
+            if list_shape == 1:
+                self.nsinks = int(self.sinklist[0])
+            else
+                self.nsinks = int(np.amax(self.sinklist[:,0]))
+        except IOError:
+            self.nsinks = 0
+        
         print infile+" successfully loaded"
         if verbose:
             self.print_info()
