@@ -716,7 +716,7 @@ class RamsesData:
                 except TypeError:
                     vskip = int(0.071*resolution)
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
-                                      w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=10.0*np.amax(w))
+                                      w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=15.0*np.amax(w))
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
