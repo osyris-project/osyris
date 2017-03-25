@@ -723,9 +723,10 @@ class RamsesData:
         
         if self.info["nsinks"] > 0:
             for key in self.sinks.keys():
-                circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),self.sinks[key]["radius"],edgecolor="none",facecolor="w",alpha=0.5)
-                circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),self.sinks[key]["radius"],facecolor="none",edgecolor="k")
-                circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),self.sinks[key]["radius"]*0.2,color="k")
+                crad = max(self.sinks[key]["radius"],dx*0.01)
+                circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
+                circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
+                circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
                 theAxes.add_patch(circle1)
                 theAxes.add_patch(circle2)
                 theAxes.add_patch(circle3)
