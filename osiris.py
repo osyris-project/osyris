@@ -210,8 +210,8 @@ class RamsesData:
     #=======================================================================================
     def read_sinks(self,infile):
         
-        sinkfile = infile+"/sink_"+infile.split("_")[1]+".csv"
-        infofile = infile+"/info_"+infile.split("_")[1]+".txt"
+        sinkfile = infile+"/sink_"+infile.split("_")[-1]+".csv"
+        infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
         try:
             sinklist = np.loadtxt(sinkfile,delimiter=",")
             list_shape = np.shape(np.shape(sinklist))[0]
