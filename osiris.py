@@ -123,17 +123,9 @@ class RamsesData:
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
         
         # Load sink particles if any
-        sinkfile = "sink_"+infile.split("_")[1]+".csv"
-        try:
-            self.sinklist = np.loadtxt(sinkfile)
-            list_shape = np.shape(np.shape(self.sinklist))[0]
-            if list_shape == 1:
-                self.nsinks = int(self.sinklist[0])
-            else
-                self.nsinks = int(np.amax(self.sinklist[:,0]))
-        except IOError:
-            self.nsinks = 0
+        self.read_sinks(infile)
         
+        # Print exit message
         print infile+" successfully loaded"
         if verbose:
             self.print_info()
@@ -203,11 +195,66 @@ class RamsesData:
                 return
         except TypeError:
             xc = yc = zc = 0.5*self.info["boxsize"]
+        
             
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[self.info["scale"]]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[self.info["scale"]]
         if self.info["ndim"] > 2:
             self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[self.info["scale"]]
+        self.info["xc"] = xc/scalelist[self.info["scale"]]
+        self.info["yc"] = yc/scalelist[self.info["scale"]]
+        self.info["zc"] = zc/scalelist[self.info["scale"]]
+        
+    #=======================================================================================
+    # This function reads the sink particle data if present.
+    #=======================================================================================
+    def read_sinks(self,infile):
+        
+        sinkfile = infile+"/sink_"+infile.split("_")[1]+".csv"
+        infofile = infile+"/info_"+infile.split("_")[1]+".txt"
+        try:
+            sinklist = np.loadtxt(sinkfile,delimiter=",")
+            list_shape = np.shape(np.shape(sinklist))[0]
+            if list_shape == 1:
+                sinklist = [sinklist[:],sinklist[:]]
+            
+            self.info["nsinks"] = int(sinklist[-1][0])
+            f = open(infofile).read()
+            pos1 = f.find("ir_cloud")
+            pos2 = f.find("\n",pos1)
+            dx_sink = int(f[pos1:pos2].split("=")[1])
+            r_sink = (self.info["boxsize"]/(2.0**self.info["levelmax"]))*dx_sink
+            
+            self.sinks = dict()
+            for i in range(self.info["nsinks"]):
+                key = "sink"+str(i+1).zfill(5)
+                self.sinks[key] = dict()
+                self.sinks[key]["mass"    ] = sinklist[i][ 1]
+                self.sinks[key]["dmf"     ] = sinklist[i][ 2]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["boxsize"]-self.info["xc"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["boxsize"]-self.info["yc"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["boxsize"]-self.info["zc"]
+                self.sinks[key]["vx"      ] = sinklist[i][ 6]
+                self.sinks[key]["vy"      ] = sinklist[i][ 7]
+                self.sinks[key]["vz"      ] = sinklist[i][ 8]
+                self.sinks[key]["period"  ] = sinklist[i][ 9]
+                self.sinks[key]["lx"      ] = sinklist[i][10]
+                self.sinks[key]["ly"      ] = sinklist[i][11]
+                self.sinks[key]["lz"      ] = sinklist[i][12]
+                self.sinks[key]["acc_rate"] = sinklist[i][13]
+                self.sinks[key]["acc_lum" ] = sinklist[i][14]
+                self.sinks[key]["age"     ] = sinklist[i][15]
+                self.sinks[key]["int_lum" ] = sinklist[i][16]
+                self.sinks[key]["Teff"    ] = sinklist[i][17]
+                self.sinks[key]["radius"  ] = r_sink
+            
+            print "Read %i sink particles" % self.info["nsinks"]
+                
+        except IOError:
+            
+            self.info["nsinks"] = 0
+                
+        return
             
     #=======================================================================================
     # The new field function is used to create a new data field. Say you want to take the
@@ -350,9 +397,14 @@ class RamsesData:
             if len(self.data[key]["operation"]) > 0:
                 print "Re-computing "+key
                 self.data[key]["values"] = eval(self.data[key]["operation"])
+        
+        # Load sink particles if any
+        self.read_sinks(infile)
                 
         print "Data successfully updated with values from "+infile
         print divider
+        
+        return
         
     #=======================================================================================
     # The function get_units returns the appropriate scaling for a variable which was read
@@ -491,30 +543,26 @@ class RamsesData:
         
         # Begin plotting -------------------------------------
         if axes:
-            theplot = axes
+            theAxes = axes
         elif new_window:
             plt.figure()
             plt.subplot(111)
-            theplot = plt
+            theAxes = plt.gca()
         else:
             plt.clf()
             plt.subplot(111)
-            theplot = plt
+            theAxes = plt.gca()
         
         # First plot the filled colour contours
-        cont = theplot.contourf(x,y,z,nc,cmap=cmap)
+        cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
         # If dataz is specified, overlay black contours
         if contourz:
-            over = theplot.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
-            theplot.clabel(over,inline=1,fmt='%i')
+            over = theAxes.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
+            theAxes.clabel(over,inline=1,fmt='%i')
             leg = [over.collections[0]]
-            theplot.legend(leg,[self.data[var_z]["label"]],loc=2)
-        if axes:
-            axes.set_xlabel(xlabel)
-            axes.set_ylabel(ylabel)
-        else:
-            plt.xlabel(xlabel)
-            plt.ylabel(ylabel)
+            theAxes.legend(leg,[self.data[var_z]["label"]],loc=2)
+        theAxes.set_xlabel(xlabel)
+        theAxes.set_ylabel(ylabel)
         if fname:
             plt.savefig(fname,bbox_inches="tight")
         elif axes:
@@ -567,11 +615,11 @@ class RamsesData:
             dy = dx
 
         # Select only the cells in contact with the slice
-        cube = np.where(np.logical_and(self.data[dir_x]["values"]-0.5*self.data["dx"]["values"] <  0.5*dx,\
-                        np.logical_and(self.data[dir_x]["values"]+0.5*self.data["dx"]["values"] > -0.5*dx,\
-                        np.logical_and(self.data[dir_y]["values"]-0.5*self.data["dx"]["values"] <  0.5*dy,\
-                        np.logical_and(self.data[dir_y]["values"]+0.5*self.data["dx"]["values"] > -0.5*dy,\
-                               abs(self.data[direction]["values"]) <= 0.5*self.data["dx"]["values"])))))
+        cube = np.where(np.logical_and(self.data[dir_x]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dx,\
+                        np.logical_and(self.data[dir_x]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dx,\
+                        np.logical_and(self.data[dir_y]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dy,\
+                        np.logical_and(self.data[dir_y]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dy,\
+                               abs(self.data[direction]["values"]) <= 0.51*self.data["dx"]["values"])))))
         
         datax = self.data[dir_x]["values"][cube]
         datay = self.data[dir_y]["values"][cube]
@@ -581,6 +629,7 @@ class RamsesData:
             datav = self.data[vec+"_"+dir_y]["values"][cube]
         celldx = self.data["dx"]["values"][cube]
         ncells = np.shape(datax)[0]
+        #print ncells,self.data[direction]["values"][cube],np.amin(self.data[direction]["values"][cube]),np.amax(self.data[direction]["values"][cube])
         
         # Define slice extent and resolution
         xmin = -0.5*dx
@@ -642,41 +691,45 @@ class RamsesData:
         
         # Begin plotting -------------------------------------
         if axes:
-            theplot = axes
+            theAxes = axes
         elif new_window:
             plt.figure()
             plt.subplot(111)
-            theplot = plt
+            theAxes = plt.gca()
         else:
             plt.clf()
             plt.subplot(111)
-            theplot = plt
+            theAxes = plt.gca()
         
-        cont = theplot.contourf(x,y,z,nc,cmap=cmap)
-        if axes:
-            cbar = plt.colorbar(cont,ax=theplot)
-            theplot.set_xlabel(xlab)
-            theplot.set_ylabel(ylab)
-        else:
-            cbar = plt.colorbar(cont)
-            plt.xlabel(xlab)
-            plt.ylabel(ylab)
+        cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
+        cbar = plt.colorbar(cont,ax=theAxes)
+        theAxes.set_xlabel(xlab)
+        theAxes.set_ylabel(ylab)
         if vec:
             if streamlines:
                 if streamlines == "log":
                     w = np.log10(w)
-                strm = theplot.streamplot(x,y,u,v,color=w,cmap='Greys')
+                strm = theAxes.streamplot(x,y,u,v,color=w,cmap='Greys')
             else:
                 try:
                     vskip += 0
                 except TypeError:
                     vskip = int(0.071*resolution)
-                vect = theplot.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
                                       w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=10.0*np.amax(w))
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
         
+        if self.info["nsinks"] > 0:
+            for key in self.sinks.keys():
+                circle1 = plt.Circle((self.sinks[key]["x"],self.sinks[key]["y"]),self.sinks[key]["radius"],edgecolor="none",facecolor="w",alpha=0.5)
+                circle2 = plt.Circle((self.sinks[key]["x"],self.sinks[key]["y"]),self.sinks[key]["radius"],facecolor="none",edgecolor="k")
+                circle3 = plt.Circle((self.sinks[key]["x"],self.sinks[key]["y"]),self.sinks[key]["radius"]*0.2,color="k")
+                theAxes.add_patch(circle1)
+                theAxes.add_patch(circle2)
+                theAxes.add_patch(circle3)
+                
         if fname:
             plt.savefig(fname,bbox_inches="tight")
         elif axes:
