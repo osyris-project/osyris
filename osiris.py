@@ -231,9 +231,9 @@ class RamsesData:
                 self.sinks[key] = dict()
                 self.sinks[key]["mass"    ] = sinklist[i][ 1]
                 self.sinks[key]["dmf"     ] = sinklist[i][ 2]
-                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["boxsize"]-self.info["xc"]
-                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["boxsize"]-self.info["yc"]
-                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["boxsize"]-self.info["zc"]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["xc"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["yc"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["zc"]
                 self.sinks[key]["vx"      ] = sinklist[i][ 6]
                 self.sinks[key]["vy"      ] = sinklist[i][ 7]
                 self.sinks[key]["vz"      ] = sinklist[i][ 8]
