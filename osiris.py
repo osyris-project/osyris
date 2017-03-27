@@ -459,6 +459,12 @@ class RamsesData:
             return [1.0,"K"]
         else:
             return [1.0,""]
+    
+    #=======================================================================================
+    # The function get_values returns the values of the selected variable
+    #=======================================================================================
+    def get_values(self,var):
+        return self.data[var]["values"]
         
     #=======================================================================================
     #=======================================================================================
@@ -481,7 +487,7 @@ class RamsesData:
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
-                       ymax=None,nc=20,new_window=False):
+                       ymax=None,nc=20,new_window=False,evol=False):
 
         # Parameters
         nx = resolution+1
@@ -581,10 +587,20 @@ class RamsesData:
         cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
         # If dataz is specified, overlay black contours
         if contourz:
-            over = theAxes.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors='k')
-            theAxes.clabel(over,inline=1,fmt='%i')
+            over = theAxes.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors="k")
+            theAxes.clabel(over,inline=1,fmt="%i")
             leg = [over.collections[0]]
             theAxes.legend(leg,[self.data[var_z]["label"]],loc=2)
+        if evol:
+            f = open(evol,"a")
+            imax = np.argmax(datax)
+            f.write("%.14e  %.14e  %.14e\n" % (self.info["time"],datax[imax],datay[imax]))
+            f.close()
+            datat = np.loadtxt(evol)
+            #print np.shape(np.shape(datat))[0]
+            if np.shape(np.shape(datat))[0] > 1:
+                theAxes.plot(datat[:,1],datat[:,2],color="k",lw=3)
+            
         theAxes.set_xlabel(xlabel)
         theAxes.set_ylabel(ylabel)
         if fname:
@@ -752,13 +768,16 @@ class RamsesData:
                 vskip = int(0.071*resolution)
             if vcmap:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      w1[::vskip,::vskip],cmap=vcmap,pivot='mid',scale=15.0*np.amax(w1))
+                                      w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=15.0*np.amax(w1))
             else:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      color='w',pivot='mid',scale=15.0*np.amax(w1))
+                                      color="w",pivot="mid",scale=15.0*np.amax(w1))
         
         if stream:
             if scmap:
+                if scmap.startswith("log"):
+                    w2 = np.log10(w2)
+                    scmap = scmap.split(",")[1]
                 strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
             else:
                 strm = theAxes.streamplot(x,y,u2,v2,color="w")
