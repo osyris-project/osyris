@@ -109,6 +109,11 @@ class RamsesData:
         # simply not be created. By default, this function does not output an error
         # message. You can ask it to do so by sending 'verbose=True' in the argument list.
         
+        # Velocity field (in case conservative variables are dumped)
+        self.new_field(name="velocity_x",operation="momentum_x/density",unit="cm/s",label="velocity_x")
+        self.new_field(name="velocity_y",operation="momentum_y/density",unit="cm/s",label="velocity_y")
+        self.new_field(name="velocity_z",operation="momentum_z/density",unit="cm/s",label="velocity_z")
+        
         # Magnetic field
         self.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x")
         self.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x")
@@ -429,10 +434,14 @@ class RamsesData:
             return [ud,"g/cm3"]
         elif string.startswith("velocity"):
             return [ul/ut,"cm/s"]
+        elif string.startswith("momentum"):
+            return [ud*ul/ut,"g/cm2/s"]
         elif string.startswith("B_"):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
         elif string == "thermal_pressure":
-            return [ud*((ul/ut)**2),"g/cm/s2"]
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string == "total_energy":
+            return [ud*((ul/ut)**2),"erg/cm3"]
         elif string.startswith("radiative_energy"):
             return [ud*((ul/ut)**2),"erg/cm3"]
         elif string == "x":
@@ -606,7 +615,7 @@ class RamsesData:
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False,vcmap=False,scmap=False):
+                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -754,7 +763,7 @@ class RamsesData:
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
         
-        if self.info["nsinks"] > 0:
+        if self.info["nsinks"] > 0 and sinks:
             for key in self.sinks.keys():
                 crad = max(self.sinks[key]["radius"],dx*0.01)
                 circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
