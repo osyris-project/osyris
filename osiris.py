@@ -594,7 +594,7 @@ class RamsesData:
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False):
+                   nc=20,new_window=False,vcmap=False):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -715,8 +715,12 @@ class RamsesData:
                     vskip += 0
                 except TypeError:
                     vskip = int(0.071*resolution)
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
-                                      w[::vskip,::vskip],cmap='Greys',pivot='mid',scale=15.0*np.amax(w))
+                if vcmap:
+                    vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
+                                          w[::vskip,::vskip],cmap=vcmap,pivot='mid',scale=15.0*np.amax(w))
+                else:
+                    vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
+                                          color='w',pivot='mid',scale=15.0*np.amax(w))
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
