@@ -592,9 +592,9 @@ class RamsesData:
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    def plot_slice(self,var="density",direction="z",vec=False,streamlines=False,fname=None,\
+    def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False,vcmap=False):
+                   nc=20,new_window=False,vcmap=False,scmap=False):
         
         # Define x,y directions depending on the input direction
         if direction == "z":
@@ -625,8 +625,11 @@ class RamsesData:
         datay = self.data[dir_y]["values"][cube]
         dataz = self.data[var  ]["values"][cube]
         if vec:
-            datau = self.data[vec+"_"+dir_x]["values"][cube]
-            datav = self.data[vec+"_"+dir_y]["values"][cube]
+            datau1 = self.data[vec+"_"+dir_x]["values"][cube]
+            datav1 = self.data[vec+"_"+dir_y]["values"][cube]
+        if stream:
+            datau2 = self.data[stream+"_"+dir_x]["values"][cube]
+            datav2 = self.data[stream+"_"+dir_y]["values"][cube]
         celldx = self.data["dx"]["values"][cube]
         ncells = np.shape(datax)[0]
         #print ncells,self.data[direction]["values"][cube],np.amin(self.data[direction]["values"][cube]),np.amax(self.data[direction]["values"][cube])
@@ -642,12 +645,16 @@ class RamsesData:
         dpy  = (ymax-ymin)/ny
         
         # We now create empty data arrays that will be filled by the cell data
-        z1 = np.zeros([ny,nx])
-        z2 = np.zeros([ny,nx])
+        za = np.zeros([ny,nx])
+        zb = np.zeros([ny,nx])
         if vec:
             u1 = np.zeros([ny,nx])
             v1 = np.zeros([ny,nx])
-            z3 = np.zeros([ny,nx])
+            z1 = np.zeros([ny,nx])
+        if stream:
+            u2 = np.zeros([ny,nx])
+            v2 = np.zeros([ny,nx])
+            z2 = np.zeros([ny,nx])
         
         # Loop through all data cells and find extent covered by the current cell size
         for n in range(ncells):
@@ -665,20 +672,28 @@ class RamsesData:
             # Fill in the slice pixels with data
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
-                    z1[j,i] = z1[j,i] + dataz[n]
-                    z2[j,i] = z2[j,i] + 1.0
+                    za[j,i] = za[j,i] + dataz[n]
+                    zb[j,i] = zb[j,i] + 1.0
                     if vec:
-                        u1[j,i] = u1[j,i] + datau[n]
-                        v1[j,i] = v1[j,i] + datav[n]
-                        z3[j,i] = z3[j,i] + np.sqrt(datau[n]**2+datav[n]**2)
+                        u1[j,i] = u1[j,i] + datau1[n]
+                        v1[j,i] = v1[j,i] + datav1[n]
+                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)
+                    if stream:
+                        u2[j,i] = u2[j,i] + datau2[n]
+                        v2[j,i] = v2[j,i] + datav2[n]
+                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)
         
         # Compute z averages
-        z2[np.where(z2 == 0.0)] = 1.0
-        z = z1/z2
+        zb[np.where(zb == 0.0)] = 1.0
+        z = za/zb
         if vec:
-            u = u1/z2
-            v = v1/z2
-            w = z3/z2
+            u1 = u1/zb
+            v1 = v1/zb
+            w1 = z1/zb
+        if stream:
+            u2 = u2/zb
+            v2 = v2/zb
+            w2 = z2/zb
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
@@ -705,22 +720,24 @@ class RamsesData:
         cbar = plt.colorbar(cont,ax=theAxes)
         theAxes.set_xlabel(xlab)
         theAxes.set_ylabel(ylab)
+        
         if vec:
-            if streamlines:
-                if streamlines == "log":
-                    w = np.log10(w)
-                strm = theAxes.streamplot(x,y,u,v,color=w,cmap='Greys')
+            try:
+                vskip += 0
+            except TypeError:
+                vskip = int(0.071*resolution)
+            if vcmap:
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                      w1[::vskip,::vskip],cmap=vcmap,pivot='mid',scale=15.0*np.amax(w1))
             else:
-                try:
-                    vskip += 0
-                except TypeError:
-                    vskip = int(0.071*resolution)
-                if vcmap:
-                    vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
-                                          w[::vskip,::vskip],cmap=vcmap,pivot='mid',scale=15.0*np.amax(w))
-                else:
-                    vect = theAxes.quiver(x[::vskip],y[::vskip],u[::vskip,::vskip],v[::vskip,::vskip],\
-                                          color='w',pivot='mid',scale=15.0*np.amax(w))
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                      color='w',pivot='mid',scale=15.0*np.amax(w1))
+        
+        if stream:
+            if scmap:
+                strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
+            else:
+                strm = theAxes.streamplot(x,y,u2,v2,color="w")
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
@@ -743,8 +760,12 @@ class RamsesData:
             plt.show(block=False)
         
         if copy:
-            if vec:
-                return x,y,z,u,v,w
+            if vec and stream:
+                return x,y,z,u1,v1,w1,u2,v2,w2
+            elif vec:
+                return x,y,z,u1,v1,w1
+            elif stream:
+                return x,y,z,u2,v2,w2
             else:
                 return x,y,z
         else:
