@@ -23,17 +23,7 @@ mydata = pp.RamsesData(71)
 mydata.plot_histogram("log_rho","log_B")
 ```
 
-### From the terminal ###
-
-You can also plot a small collection of plots to a pdf file:
-```
-#!bash
-
-python make_figures.py 71
-
-```
-
-### Short example ###
+### Demo ###
 
 
 ```
