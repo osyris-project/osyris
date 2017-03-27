@@ -487,7 +487,14 @@ class RamsesData:
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
-                       ymax=None,nc=20,new_window=False,evol=False):
+                       ymax=None,nc=20,new_window=False,evol=False,update=None):
+
+        # Possibility of updating the data from inside the plotting routines
+        try:
+            update += 0
+            self.update_values(nout=update)
+        except TypeError:
+            pass
 
         # Parameters
         nx = resolution+1
@@ -597,7 +604,6 @@ class RamsesData:
             f.write("%.14e  %.14e  %.14e\n" % (self.info["time"],datax[imax],datay[imax]))
             f.close()
             datat = np.loadtxt(evol)
-            #print np.shape(np.shape(datat))[0]
             if np.shape(np.shape(datat))[0] > 1:
                 theAxes.plot(datat[:,1],datat[:,2],color="k",lw=3)
             
@@ -634,7 +640,14 @@ class RamsesData:
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True):
+                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None):
+        
+        # Possibility of updating the data from inside the plotting routines
+        try:
+            update += 0
+            self.update_values(nout=update)
+        except TypeError:
+            pass
         
         # Define x,y directions depending on the input direction
         if direction == "z":
