@@ -223,6 +223,13 @@ class RamsesData:
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
         try:
             sinklist = np.loadtxt(sinkfile,delimiter=",")
+        except IOError:
+            self.info["nsinks"] = 0
+            return
+        
+        if np.shape(sinklist)[0] == 0:
+            self.info["nsinks"] = 0
+        else:
             list_shape = np.shape(np.shape(sinklist))[0]
             if list_shape == 1:
                 sinklist = [sinklist[:],sinklist[:]]
@@ -258,11 +265,7 @@ class RamsesData:
                 self.sinks[key]["radius"  ] = r_sink
             
             print "Read %i sink particles" % self.info["nsinks"]
-                
-        except IOError:
             
-            self.info["nsinks"] = 0
-                
         return
             
     #=======================================================================================
