@@ -102,8 +102,6 @@ class RamsesData:
 
         # Modifications for coordinates and cell sizes
         self.re_center()
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
-        self.info["boxsize"] = self.info["boxsize"]/scalelist[self.info["scale"]]
         
         # We now use the 'new_field' function to create commonly used variables
         # Note that this function is protected against variables that do not exist.
@@ -205,6 +203,12 @@ class RamsesData:
         self.info["yc"] = yc/scalelist[self.info["scale"]]
         self.info["zc"] = zc/scalelist[self.info["scale"]]
         
+        # Re-scale the cell and box sizes
+        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
+        self.info["boxsize"] = self.info["boxsize"]/scalelist[self.info["scale"]]
+        
+        return
+        
     #=======================================================================================
     # This function reads the sink particle data if present.
     #=======================================================================================
@@ -300,11 +304,11 @@ class RamsesData:
         hashkeys  = dict()
         hashcount = 0
         for key in key_list:
-            hashcount += 1
             # Search for all instances in string
             loop = True
+            loc = 0
             while loop:
-                loc = expression.find(key)
+                loc = expression.find(key,loc)
                 if loc == -1:
                     loop = False
                 else:
@@ -315,12 +319,19 @@ class RamsesData:
                     char_after  = expression[loc+len(key)]
                     bad_before = (char_before.isalpha() or (char_before == "_"))
                     bad_after = (char_after.isalpha() or (char_after == "_"))
+                    hashcount += 1
                     if (not bad_before) and (not bad_after):
-                        theHash = "#"+str(hashcount).zfill(3)+"#"
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
                         # Store the data key in the hash table
                         hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
                         expression = expression.replace(key,theHash,1)
                         max_depth = max(max_depth,self.data[key]["depth"])
+                    else:
+                        # Replace anyway to prevent from replacing "x" in "max("
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
+                        hashkeys[theHash] = key
+                        expression = expression.replace(key,theHash,1)
+                    loc += 1
         # Now go through all the hashes in the table and build the final expression
         for theHash in hashkeys.keys():
             expression = expression.replace(theHash,hashkeys[theHash])
@@ -331,7 +342,7 @@ class RamsesData:
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path=""):
+    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path="",verbose=False):
         
         # Generate filename
         infile = self.generate_fname(nout,path)
@@ -385,9 +396,8 @@ class RamsesData:
             self.data[theKey]["operation"] = ""
             self.data[theKey]["depth"    ] = 0
         
-        # Modifications for coordinates and cell sizes
+        # Re-center
         self.re_center()
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
         
         # Now go through the fields and update the values of fields that have an operation
         # attached to them. IMPORTANT!: this needs to be done in the right order: use the
@@ -402,6 +412,8 @@ class RamsesData:
         self.read_sinks(infile)
                 
         print "Data successfully updated with values from "+infile
+        if verbose:
+            self.print_info()
         print divider
         
         return
