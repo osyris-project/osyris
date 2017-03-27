@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import osiris as pp
-import sys
 
 # Load data
 mydata = pp.RamsesData(nout=71,center="auto",scale="au")
