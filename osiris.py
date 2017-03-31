@@ -87,7 +87,7 @@ class RamsesData:
     #=======================================================================================
     # Load the data from fortran routine
     #=======================================================================================
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,fail=False):
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
