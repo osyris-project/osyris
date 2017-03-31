@@ -33,75 +33,8 @@ class RamsesData:
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",\
                  verbose=False,path=""):
         
-        # Generate filename from output number
-        infile = self.generate_fname(nout,path)
-        
-        # Define a center for reading in the data. If it is set to "auto", then it is
-        # first set to [0.5,0.5,0.5] for the output reader.
-        try:
-            center += 0
-            xc,yc,zc = center[0:3]
-        except TypeError:
-            xc = yc = zc = 0.5
-        
-        print divider
-        
-        # This calls the Fortran data reader and returns the values into the data1
-        # array. It tries to read a hydro_file_descriptor.txt to get a list of
-        # variables. If that file is not found, it makes an educated guess for the file
-        # contents.
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
-                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
-        
-        # Clean exit if the file was not found
-        if fail:
-            print divider
-            return
-        
-        print "Generating data structure... please wait"
-        
-        # Create a small information dictionary
-        self.info = {"ncells"  : nn      ,\
-                     "ncpu"    : ncpu    ,\
-                     "ndim"    : ndim    ,\
-                     "levelmin": levelmin,\
-                     "levelmax": levelmax,\
-                     "nstep"   : nstep   ,\
-                     "boxsize" : boxsize ,\
-                     "time"    : time*ut ,\
-                     "ud"      : ud      ,\
-                     "ul"      : ul      ,\
-                     "ut"      : ut      ,\
-                     "center"  : center  ,\
-                     "scale"   : scale    }
-        
-        # This is the master data dictionary. For each entry, the dict has 5 fields.
-        # It loops through the list of variables that it got from the file loader.
-        # For example, for the density:
-        # - data["density"]["values"   ]: holds the values for the density, which have
-        #                                 been normalized to cgs using 'ud'
-        # - data["density"]["unit"     ]: a string containing the units
-        # - data["density"]["label"    ]: a string containing the variable name
-        # - data["density"]["operation"]: an operation, if the variable has been
-        #                                 derived from other variables. This is empty
-        #                                 if it is a core variable.
-        # - data["density"]["depth"    ]: a depth which tells you on how many layers
-        #                                 of derived variables the current variables
-        #                                 depends on.
-        self.data = dict()
-        list_vars = names.split()
-        for i in range(len(list_vars)):
-            theKey = list_vars[i]
-            self.data[theKey] = dict()
-            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
-            self.data[theKey]["values"   ] = data1[:nn,i]*norm
-            self.data[theKey]["unit"     ] = uu
-            self.data[theKey]["label"    ] = theKey
-            self.data[theKey]["operation"] = ""
-            self.data[theKey]["depth"    ] = 0
-
-        # Modifications for coordinates and cell sizes
-        self.re_center()
+        # Load the Ramses data using the loader function
+        self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
         
         # We now use the 'new_field' function to create commonly used variables
         # Note that this function is protected against variables that do not exist.
@@ -125,14 +58,11 @@ class RamsesData:
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
         
-        # Load sink particles if any
-        self.read_sinks(infile)
-        
         # Print exit message
-        print infile+" successfully loaded"
+        print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
-        print divider
+        print(divider)
     
     #=======================================================================================
     # Generate the file name
@@ -150,15 +80,100 @@ class RamsesData:
             infile = path+infile
             
         return infile
+    
+    #=======================================================================================
+    # Load the data from fortran routine
+    #=======================================================================================
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False):
         
+        # Generate filename from output number
+        infile = self.generate_fname(nout,path)
+        
+        # Define a center for reading in the data. If it is set to "auto", then it is
+        # first set to [0.5,0.5,0.5] for the output reader.
+        try:
+            center += 0
+            xc,yc,zc = center[0:3]
+        except TypeError:
+            xc = yc = zc = 0.5
+        
+        print(divider)
+        
+        # This calls the Fortran data reader and returns the values into the data1
+        # array. It tries to read a hydro_file_descriptor.txt to get a list of
+        # variables. If that file is not found, it makes an educated guess for the file
+        # contents.
+        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
+                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+        
+        # Clean exit if the file was not found
+        if fail:
+            print(divider)
+            return
+        
+        print("Generating data structure... please wait")
+        
+        # Create a small information dictionary
+        if not update:
+            self.info = dict()
+        self.info["ncells"  ] = nn
+        self.info["ncpu"    ] = ncpu
+        self.info["ndim"    ] = ndim
+        self.info["levelmin"] = levelmin
+        self.info["levelmax"] = levelmax
+        self.info["nstep"   ] = nstep
+        self.info["boxsize" ] = boxsize
+        self.info["time"    ] = time*ut
+        self.info["ud"      ] = ud
+        self.info["ul"      ] = ul
+        self.info["ut"      ] = ut
+        self.info["center"  ] = center
+        self.info["scale"   ] = scale
+        self.info["infile"  ] = infile
+        
+        # This is the master data dictionary. For each entry, the dict has 5 fields.
+        # It loops through the list of variables that it got from the file loader.
+        # For example, for the density:
+        # - data["density"]["values"   ]: holds the values for the density, which have
+        #                                 been normalized to cgs using 'ud'
+        # - data["density"]["unit"     ]: a string containing the units
+        # - data["density"]["label"    ]: a string containing the variable name
+        # - data["density"]["operation"]: an operation, if the variable has been
+        #                                 derived from other variables. This is empty
+        #                                 if it is a core variable.
+        # - data["density"]["depth"    ]: a depth which tells you on how many layers
+        #                                 of derived variables the current variables
+        #                                 depends on.
+        if not update:
+            self.data = dict()
+        list_vars = names.decode().split()
+        for i in range(len(list_vars)):
+            theKey = list_vars[i]
+            if not update:
+                self.data[theKey] = dict()
+            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
+            self.data[theKey]["values"   ] = data1[:nn,i]*norm
+            self.data[theKey]["unit"     ] = uu
+            self.data[theKey]["label"    ] = theKey
+            self.data[theKey]["operation"] = ""
+            self.data[theKey]["depth"    ] = 0
+
+        # Modifications for coordinates and cell sizes
+        self.re_center()
+        
+        # Load sink particles if any
+        self.read_sinks(infile)
+        
+        return
+    
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
     def print_info(self):
-        print "--------------------------------------------"
+        print("--------------------------------------------")
         for key in sorted(self.info.keys()):
-            print key+": "+str(self.info[key])
-        print "--------------------------------------------"
+            print(key+": "+str(self.info[key]))
+        print("--------------------------------------------")
         maxlen1 = 0
         maxlen2 = 0
         maxlen3 = 0
@@ -168,12 +183,12 @@ class RamsesData:
             maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
             maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
             maxlen4 = max(maxlen4,len(str(np.amax(self.data[key]["values"]))))
-        print "The variables are:"
-        print "Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4)
+        print("The variables are:")
+        print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
         for key in sorted(self.data.keys()):
-            print key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
+            print(key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
                   str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+\
-                  str(np.amax(self.data[key]["values"])).ljust(maxlen4)
+                  str(np.amax(self.data[key]["values"])).ljust(maxlen4))
         return
     
     #=======================================================================================
@@ -194,7 +209,7 @@ class RamsesData:
                 yc = self.info["center"][1]*self.info["boxsize"]
                 zc = self.info["center"][2]*self.info["boxsize"]
             else:
-                print "Bad center value"
+                print("Bad center value")
                 return
         except TypeError:
             xc = yc = zc = 0.5*self.info["boxsize"]
@@ -264,7 +279,7 @@ class RamsesData:
                 self.sinks[key]["Teff"    ] = sinklist[i][17]
                 self.sinks[key]["radius"  ] = r_sink
             
-            print "Read %i sink particles" % self.info["nsinks"]
+            print("Read %i sink particles" % self.info["nsinks"])
             
         return
             
@@ -281,7 +296,7 @@ class RamsesData:
             new_data = eval(op_parsed)
         except NameError:
             if verbose:
-                print "Error parsing operation when trying to create variable: "+name
+                print("Error parsing operation when trying to create variable: "+name)
             return
         self.data[name] = dict()
         self.data[name]["values"   ] = new_data
@@ -352,60 +367,18 @@ class RamsesData:
     #=======================================================================================
     def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path="",verbose=False):
         
-        # Generate filename
-        infile = self.generate_fname(nout,path)
-        
-        # It's possible to define a new center
+        # Check if a new center is requested. If not, use same center as before
         try:
-            center += 0
-            xc,yc,zc = center[0:3]
+            dummy = len(center)
         except TypeError:
-            xc = yc = zc = 0.5
-            
+            center = self.info["center"]
+        
+        # Check if new scale is requested. If not, use same scale as before
         if len(scale) > 0:
             self.info["scale"] = scale
         
-        print divider
-        
-        # Call the data loader
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
-              rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[self.info["scale"]])
-        
-        # Return if file is not found
-        if fail:
-            print divider
-            return
-        
-        # It is safer to re-update all the info variables
-        self.info["ncells"  ] = nn
-        self.info["ncpu"    ] = ncpu
-        self.info["ndim"    ] = ndim
-        self.info["levelmin"] = levelmin
-        self.info["levelmax"] = levelmax
-        self.info["nstep"   ] = nstep
-        self.info["boxsize" ] = boxsize
-        self.info["time"    ] = time*ut
-        self.info["ud"      ] = ud
-        self.info["ul"      ] = ul
-        self.info["ut"      ] = ut
-        #self.info["center"  ] = center
-        #self.info["scale"   ] = scale
-        
-        print "Updating data structure... please wait"
-        
-        # Loop through the existing data fields and update the values with the data1 array
-        list_vars = names.split()
-        for i in range(len(list_vars)):
-            theKey = list_vars[i]
-            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
-            self.data[theKey]["values"   ] = data1[:nn,i]*norm
-            self.data[theKey]["unit"     ] = uu
-            self.data[theKey]["label"    ] = theKey
-            self.data[theKey]["operation"] = ""
-            self.data[theKey]["depth"    ] = 0
-        
-        # Re-center
-        self.re_center()
+        # Load the Ramses data using the loader function
+        self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=self.info["scale"],path=path,update=True)
         
         # Now go through the fields and update the values of fields that have an operation
         # attached to them. IMPORTANT!: this needs to be done in the right order: use the
@@ -413,16 +386,13 @@ class RamsesData:
         key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
         for key in key_list:
             if len(self.data[key]["operation"]) > 0:
-                print "Re-computing "+key
+                print("Re-computing "+key)
                 self.data[key]["values"] = eval(self.data[key]["operation"])
         
-        # Load sink particles if any
-        self.read_sinks(infile)
-                
-        print "Data successfully updated with values from "+infile
+        print("Data successfully updated with values from "+self.info["infile"])
         if verbose:
             self.print_info()
-        print divider
+        print(divider)
         
         return
         
@@ -660,7 +630,7 @@ class RamsesData:
             dir_x = "y"
             dir_y = "z"
         else:
-            print "Bad direction for slice"
+            print("Bad direction for slice")
             return
                 
         # Make it possible to call with only one size in the arguments
@@ -685,7 +655,6 @@ class RamsesData:
             datav2 = self.data[stream+"_"+dir_y]["values"][cube]
         celldx = self.data["dx"]["values"][cube]
         ncells = np.shape(datax)[0]
-        #print ncells,self.data[direction]["values"][cube],np.amin(self.data[direction]["values"][cube]),np.amax(self.data[direction]["values"][cube])
         
         # Define slice extent and resolution
         xmin = -0.5*dx
