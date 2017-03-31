@@ -8,7 +8,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   implicit none
   
   ! Array dimensions
-  integer, parameter :: nmax=1000000
+  integer, parameter :: nmax=3000000
   integer, parameter :: nvarmax=22
 
   ! Subroutine arguments
@@ -30,12 +30,12 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
-  real*8 :: xmin=0.0,xmax=1.0,ymin=0.0,ymax=1.0,zmin=0.0,zmax=1.0
+  real*8 :: xmin,xmax,ymin,ymax,zmin,zmax
   real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
   real*8, dimension(1:8,1:3)              :: xc
-  real*8, dimension(    1:3)              :: xbound=(/0.0d0,0.0d0,0.0d0/)
+  real*8, dimension(    1:3)              :: xbound
   
   character(LEN=5  ) :: nchar,ncharcpu
   character(LEN=50 ) :: string
@@ -62,6 +62,13 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   failed = .false.
   lmax = lmax2
   repository = trim(infile)
+  xmin=0.0d0
+  xmax=1.0d0
+  ymin=0.0d0
+  ymax=1.0d0
+  zmin=0.0d0
+  zmax=1.0d0
+  xbound=(/0.0d0,0.0d0,0.0d0/)
 
   !-----------------------------------------------
   ! Reading RAMSES data
