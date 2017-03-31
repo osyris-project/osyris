@@ -782,7 +782,12 @@ class RamsesData:
             else:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                       color="w",pivot="mid",scale=15.0*np.amax(w1))
-        
+
+            scale=np.max(w1[::vskip,::vskip])
+            unit_u = self.data[vec+"_"+dir_x]["unit"]
+            theAxes.quiverkey(vect, 0.70, -0.08, scale,r'%.2e [%s]' % (scale, unit_u),\
+                                  labelpos="E", coordinates="axes", color="w", labelcolor="k")
+
         if stream:
             if scmap:
                 if scmap.startswith("log"):
@@ -796,6 +801,7 @@ class RamsesData:
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
         
         if self.info["nsinks"] > 0 and sinks:
+            sinkMasstot=0.0
             for key in self.sinks.keys():
                 crad = max(self.sinks[key]["radius"],dx*0.01)
                 circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
@@ -804,7 +810,12 @@ class RamsesData:
                 theAxes.add_patch(circle1)
                 theAxes.add_patch(circle2)
                 theAxes.add_patch(circle3)
-                
+                sinkMasstot+=self.sinks[key]["mass"]
+            theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
+
+        title="%.3f kyr" % (self.info["time"]/3.15576e10)
+        theAxes.set_title(title)
+
         if fname:
             plt.savefig(fname,bbox_inches="tight")
         elif axes:

@@ -8,8 +8,8 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   implicit none
   
   ! Array dimensions
-  integer, parameter :: nmax=3000000
-  integer, parameter :: nvarmax=25
+  integer, parameter :: nmax=1000000
+  integer, parameter :: nvarmax=22
 
   ! Subroutine arguments
   character(LEN=*)              , intent(in ) :: infile
@@ -164,11 +164,11 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
       xmin = xcenter - 0.5d0*deltax*lscale/(boxlen*ul)
       xmax = xcenter + 0.5d0*deltax*lscale/(boxlen*ul)
   endif
-  if(deltax > 0.0d0)then
+  if(deltay > 0.0d0)then
      ymin = ycenter - 0.5d0*deltay*lscale/(boxlen*ul)
      ymax = ycenter + 0.5d0*deltay*lscale/(boxlen*ul)
   endif
-  if(deltax > 0.0d0)then
+  if(deltaz > 0.0d0)then
      zmin = zcenter - 0.5d0*deltaz*lscale/(boxlen*ul)
      zmax = zcenter + 0.5d0*deltaz*lscale/(boxlen*ul)
   endif
