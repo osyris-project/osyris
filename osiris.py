@@ -6,7 +6,12 @@ import matplotlib.pyplot as plt
 #=======================================================================================
 # Common variables
 #=======================================================================================
-scalelist = {"cm": 1.0, "au": 1.495980e+13, "pc": 3.085678e+18}
+constants = {"cm" : 1.0         ,\
+             "au" : 1.495980e+13,\
+             "pc" : 3.085678e+18,\
+             "yr" : 365.25*86400.0,\
+             "kyr": 365.25*86400.0*1000.0}
+
 divider = "============================================"
 
 #=======================================================================================
@@ -107,7 +112,7 @@ class RamsesData:
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
         [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
-                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,scalelist[scale])
+                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,constants[scale])
         
         # Clean exit if the file was not found
         if fail:
@@ -219,17 +224,17 @@ class RamsesData:
             xc = yc = zc = 0.5*self.info["boxsize"]
         
             
-        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/scalelist[self.info["scale"]]
-        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/scalelist[self.info["scale"]]
+        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/constants[self.info["scale"]]
+        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/constants[self.info["scale"]]
         if self.info["ndim"] > 2:
-            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/scalelist[self.info["scale"]]
-        self.info["xc"] = xc/scalelist[self.info["scale"]]
-        self.info["yc"] = yc/scalelist[self.info["scale"]]
-        self.info["zc"] = zc/scalelist[self.info["scale"]]
+            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/constants[self.info["scale"]]
+        self.info["xc"] = xc/constants[self.info["scale"]]
+        self.info["yc"] = yc/constants[self.info["scale"]]
+        self.info["zc"] = zc/constants[self.info["scale"]]
         
         # Re-scale the cell and box sizes
-        self.data["dx"]["values"] = self.data["dx"]["values"]/scalelist[self.info["scale"]]
-        self.info["boxsize"] = self.info["boxsize"]/scalelist[self.info["scale"]]
+        self.data["dx"]["values"] = self.data["dx"]["values"]/constants[self.info["scale"]]
+        self.info["boxsize"] = self.info["boxsize"]/constants[self.info["scale"]]
         
         return
         
@@ -266,9 +271,9 @@ class RamsesData:
                 self.sinks[key] = dict()
                 self.sinks[key]["mass"    ] = sinklist[i][ 1]
                 self.sinks[key]["dmf"     ] = sinklist[i][ 2]
-                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["xc"]
-                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["yc"]
-                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]/scalelist[self.info["scale"]]-self.info["zc"]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]/constants[self.info["scale"]]-self.info["xc"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]/constants[self.info["scale"]]-self.info["yc"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]/constants[self.info["scale"]]-self.info["zc"]
                 self.sinks[key]["vx"      ] = sinklist[i][ 6]
                 self.sinks[key]["vy"      ] = sinklist[i][ 7]
                 self.sinks[key]["vz"      ] = sinklist[i][ 8]
@@ -797,8 +802,8 @@ class RamsesData:
                 sinkMasstot+=self.sinks[key]["mass"]
             theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
 
-        title="%.3f kyr" % (self.info["time"]/3.15576e10)
-        theAxes.set_title(title)
+        theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/constants["kyr"]))
+        theAxes.set_aspect("equal")
 
         if fname:
             plt.savefig(fname,bbox_inches="tight")
