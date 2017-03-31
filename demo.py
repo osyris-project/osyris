@@ -3,7 +3,7 @@ import numpy as np
 import osiris as pp
 
 # Load data
-mydata = pp.RamsesData(nout=71,center="auto",scale="au")
+mydata = pp.RamsesData(nout=71,center="max:density",scale="au")
 
 # Create figure
 fig = plt.figure()

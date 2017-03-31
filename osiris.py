@@ -65,6 +65,9 @@ class RamsesData:
         self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
+
+        # Re-center the mesh around chosen center
+        self.re_center()
         
         # Print exit message
         print(self.info["infile"]+" successfully loaded")
@@ -167,9 +170,6 @@ class RamsesData:
             self.data[theKey]["operation"] = ""
             self.data[theKey]["depth"    ] = 0
 
-        # Modifications for coordinates and cell sizes
-        self.re_center()
-        
         # Load sink particles if any
         self.read_sinks(infile)
         
@@ -206,23 +206,40 @@ class RamsesData:
     #=======================================================================================
     def re_center(self):
 
-        try:
+        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
             lc = len(self.info["center"])
-            if self.info["center"] == "auto":
-                maxloc = np.argmax(self.data["density"]["values"])
-                xc = self.data["x"]["values"][maxloc]
-                yc = self.data["y"]["values"][maxloc]
-                zc = self.data["z"]["values"][maxloc]
-            elif lc == 3:
-                xc = self.info["center"][0]*self.info["boxsize"]
-                yc = self.info["center"][1]*self.info["boxsize"]
-                zc = self.info["center"][2]*self.info["boxsize"]
-            else:
-                print("Bad center value")
-                return
-        except TypeError:
+            try: # check if center contains numbers
+                self.info["center"][0] += 0
+                if lc == 3:
+                    xc = self.info["center"][0]*self.info["boxsize"]
+                    yc = self.info["center"][1]*self.info["boxsize"]
+                    zc = self.info["center"][2]*self.info["boxsize"]
+                else:
+                    print("Bad center format: must have 3 numbers as input.")
+                    return
+            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+                if self.info["center"].startswith("sink"):
+                    xc = self.sinks[self.info["center"]]["x"]
+                    yc = self.sinks[self.info["center"]]["y"]
+                    zc = self.sinks[self.info["center"]]["z"]
+                elif self.info["center"].startswith("max"):
+                    cvar=self.info["center"].split(":")[1]
+                    maxloc = np.argmax(self.data[cvar]["values"])
+                    xc = self.data["x"]["values"][maxloc]
+                    yc = self.data["y"]["values"][maxloc]
+                    zc = self.data["z"]["values"][maxloc]
+                elif self.info["center"].startswith("min"):
+                    cvar=self.info["center"].split(":")[1]
+                    minloc = np.argmin(self.data[cvar]["values"])
+                    xc = self.data["x"]["values"][minloc]
+                    yc = self.data["y"]["values"][minloc]
+                    zc = self.data["z"]["values"][minloc]
+                else:
+                    print("Bad center value:"+str(self.info["center"]))
+                    return
+                
+        except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
-        
             
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/constants[self.info["scale"]]
         self.data["y"]["values"] = (self.data["y"]["values"] - yc)/constants[self.info["scale"]]
@@ -235,6 +252,15 @@ class RamsesData:
         # Re-scale the cell and box sizes
         self.data["dx"]["values"] = self.data["dx"]["values"]/constants[self.info["scale"]]
         self.info["boxsize"] = self.info["boxsize"]/constants[self.info["scale"]]
+        
+        # Re-center sinks
+        if self.info["nsinks"] > 0:
+            for i in range(self.info["nsinks"]):
+                key = "sink"+str(i+1)
+                self.sinks[key]["x"     ] = self.sinks[key]["x"]/constants[self.info["scale"]]-self.info["xc"]
+                self.sinks[key]["y"     ] = self.sinks[key]["y"]/constants[self.info["scale"]]-self.info["yc"]
+                self.sinks[key]["z"     ] = self.sinks[key]["z"]/constants[self.info["scale"]]-self.info["zc"]
+                self.sinks[key]["radius"] = self.sinks[key]["radius"]*self.info["boxsize"]
         
         return
         
@@ -263,17 +289,17 @@ class RamsesData:
             pos1 = f.find("ir_cloud")
             pos2 = f.find("\n",pos1)
             dx_sink = int(f[pos1:pos2].split("=")[1])
-            r_sink = (self.info["boxsize"]/(2.0**self.info["levelmax"]))*dx_sink
+            r_sink = dx_sink/(2.0**self.info["levelmax"])
             
             self.sinks = dict()
             for i in range(self.info["nsinks"]):
-                key = "sink"+str(i+1).zfill(5)
+                key = "sink"+str(i+1)
                 self.sinks[key] = dict()
                 self.sinks[key]["mass"    ] = sinklist[i][ 1]
                 self.sinks[key]["dmf"     ] = sinklist[i][ 2]
-                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]/constants[self.info["scale"]]-self.info["xc"]
-                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]/constants[self.info["scale"]]-self.info["yc"]
-                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]/constants[self.info["scale"]]-self.info["zc"]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]
                 self.sinks[key]["vx"      ] = sinklist[i][ 6]
                 self.sinks[key]["vy"      ] = sinklist[i][ 7]
                 self.sinks[key]["vz"      ] = sinklist[i][ 8]
@@ -404,6 +430,9 @@ class RamsesData:
             if len(self.data[key]["operation"]) > 0:
                 print("Re-computing "+key)
                 self.data[key]["values"] = eval(self.data[key]["operation"])
+        
+        # Re-center the mesh around chosen center
+        self.re_center()
         
         print("Data successfully updated with values from "+self.info["infile"])
         if verbose:
