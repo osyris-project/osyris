@@ -84,3 +84,4 @@ fig.savefig("demo.pdf",bbox_inches="tight")
 
 * Neil Vaytet (StarPlan/NBI)
 * Tommaso Grassi (StarPlan/NBI)
+* Matthias González (CEA Saclay)
