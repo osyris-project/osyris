@@ -34,7 +34,10 @@ class RamsesData:
                  verbose=False,path=""):
         
         # Load the Ramses data using the loader function
-        self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
+        
+        if status == 0:
+            return
         
         # We now use the 'new_field' function to create commonly used variables
         # Note that this function is protected against variables that do not exist.
@@ -69,22 +72,22 @@ class RamsesData:
     #=======================================================================================
     def generate_fname(self,nout,path=""):
         
-        if nout == -1:
-            filelist = sorted(glob.glob("output*"))
-            infile = filelist[-1]
-        else:
-            infile = "output_"+str(nout).zfill(5)
         if len(path) > 0:
             if path[-1] != "/":
                 path=path+"/"
-            infile = path+infile
+        
+        if nout == -1:
+            filelist = sorted(glob.glob(path+"output*"))
+            infile = filelist[-1]
+        else:
+            infile = path+"output_"+str(nout).zfill(5)
             
         return infile
     
     #=======================================================================================
     # Load the data from fortran routine
     #=======================================================================================
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False):
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,fail=False):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -109,7 +112,7 @@ class RamsesData:
         # Clean exit if the file was not found
         if fail:
             print(divider)
-            return
+            return 0
         
         print("Generating data structure... please wait")
         
@@ -164,7 +167,7 @@ class RamsesData:
         # Load sink particles if any
         self.read_sinks(infile)
         
-        return
+        return 1
     
     #=======================================================================================
     # Print information about the data that was loaded.
@@ -378,7 +381,10 @@ class RamsesData:
             self.info["scale"] = scale
         
         # Load the Ramses data using the loader function
-        self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=self.info["scale"],path=path,update=True)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=self.info["scale"],path=path,update=True)
+        
+        if status == 0:
+            return
         
         # Now go through the fields and update the values of fields that have an operation
         # attached to them. IMPORTANT!: this needs to be done in the right order: use the
