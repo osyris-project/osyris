@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import glob
 import read_ramses_data as rd
 import matplotlib.pyplot as plt
@@ -138,16 +139,12 @@ class RamsesData:
     # Generate the file name
     #=======================================================================================
     def generate_fname(self,nout,path=""):
-        
+
         if nout == -1:
-            filelist = sorted(glob.glob("output*"))
+            filelist = sorted(glob.glob(os.path.join(path,"output*")))
             infile = filelist[-1]
         else:
-            infile = "output_"+str(nout).zfill(5)
-        if len(path) > 0:
-            if path[-1] != "/":
-                path=path+"/"
-            infile = path+infile
+            infile = os.path.join(path,"output_"+str(nout).zfill(5))
             
         return infile
         
