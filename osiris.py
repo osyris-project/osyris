@@ -133,6 +133,7 @@ class RamsesData:
         self.info["center"  ] = center
         self.info["scale"   ] = scale
         self.info["infile"  ] = infile
+        self.info["path"    ] = path
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
@@ -377,11 +378,15 @@ class RamsesData:
             center = self.info["center"]
         
         # Check if new scale is requested. If not, use same scale as before
-        if len(scale) > 0:
-            self.info["scale"] = scale
+        if len(scale) == 0:
+            scale = self.info["scale"]
+        
+        # Check if new path is requested. If not, use same path as before
+        if len(path) == 0:
+            path = self.info["path"]
         
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=self.info["scale"],path=path,update=True)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,update=True)
         
         if status == 0:
             return
@@ -761,9 +766,10 @@ class RamsesData:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                       color="w",pivot="mid",scale=15.0*np.amax(w1))
 
+            # Plot the scale of the vectors under the axes
             scale=np.max(w1[::vskip,::vskip])
             unit_u = self.data[vec+"_"+dir_x]["unit"]
-            theAxes.quiverkey(vect, 0.70, -0.08, scale,r'%.2e [%s]' % (scale, unit_u),\
+            theAxes.quiverkey(vect, 0.70, -0.08, scale,"%.2e [%s]" % (scale, unit_u),\
                                   labelpos="E", coordinates="axes", color="w", labelcolor="k")
 
         if stream:
