@@ -656,7 +656,7 @@ class RamsesData:
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
-                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=False):
+                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None):
         
         # Possibility of updating the data from inside the plotting routines
         try:
