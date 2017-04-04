@@ -656,7 +656,8 @@ class RamsesData:
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
-                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None):
+                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
+                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08]):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -768,9 +769,15 @@ class RamsesData:
         y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
         
         # Define axes labels
-        xlab = self.data[dir_x]["label"]+" ["+self.data[dir_x]["unit"]+"]"
-        ylab = self.data[dir_y]["label"]+" ["+self.data[dir_y]["unit"]+"]"
-        zlab = self.data[var  ]["label"]+" ["+self.data[var  ]["unit"]+"]"
+        xlab = self.data[dir_x]["label"]
+        if len(self.data[dir_x]["unit"]) > 0:
+            xlab += " ["+self.data[dir_x]["unit"]+"]"
+        ylab = self.data[dir_y]["label"]
+        if len(self.data[dir_y]["unit"]) > 0:
+            ylab += " ["+self.data[dir_y]["unit"]+"]"
+        zlab = self.data[var  ]["label"]
+        if len(self.data[var  ]["unit"]) > 0:
+            zlab += " ["+self.data[var  ]["unit"]+"]"
         
         # Define colorbar limits
         need_levels = False
@@ -822,14 +829,13 @@ class RamsesData:
                                       w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=vsize*vscale)
             else:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      color="w",pivot="mid",scale=vsize*vscale)
+                                      color=vcolor,pivot="mid",scale=vsize*vscale)
 
             # Plot the scale of the vectors under the axes
-            #scale=np.max(w1[::vskip,::vskip])
             unit_u = self.data[vec+"_"+dir_x]["unit"]
             #theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2e [%s]" % (vscale, unit_u),\
                                   #labelpos="E", coordinates="axes", color="k", labelcolor="k")
-            theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2f [%s]" % (vscale, unit_u),\
+            theAxes.quiverkey(vect,qkey_pos[0],qkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
                                   labelpos="E", coordinates="axes", color="k", labelcolor="k")
 
         if stream:
@@ -839,7 +845,7 @@ class RamsesData:
                     scmap = scmap.split(",")[1]
                 strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
             else:
-                strm = theAxes.streamplot(x,y,u2,v2,color="w")
+                strm = theAxes.streamplot(x,y,u2,v2,color=scolor)
         
         cbar.ax.set_ylabel(zlab)
         cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
