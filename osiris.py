@@ -656,7 +656,7 @@ class RamsesData:
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
-                   zmin=None,zmax=None,extend="neither"):
+                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -811,17 +811,25 @@ class RamsesData:
                 vskip += 0
             except TypeError:
                 vskip = int(0.071*resolution)
+            
+            try:
+                vscale += 0
+            except TypeError:
+                vscale = np.amax(w1[::vskip,::vskip])
+            
             if vcmap:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=15.0*np.amax(w1))
+                                      w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=vsize*vscale)
             else:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      color="w",pivot="mid",scale=15.0*np.amax(w1))
+                                      color="w",pivot="mid",scale=vsize*vscale)
 
             # Plot the scale of the vectors under the axes
-            scale=np.max(w1[::vskip,::vskip])
+            #scale=np.max(w1[::vskip,::vskip])
             unit_u = self.data[vec+"_"+dir_x]["unit"]
-            theAxes.quiverkey(vect, 0.70, -0.08, scale,"%.2e [%s]" % (scale, unit_u),\
+            #theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2e [%s]" % (vscale, unit_u),\
+                                  #labelpos="E", coordinates="axes", color="k", labelcolor="k")
+            theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2f [%s]" % (vscale, unit_u),\
                                   labelpos="E", coordinates="axes", color="k", labelcolor="k")
 
         if stream:
@@ -849,7 +857,11 @@ class RamsesData:
                 sinkMasstot+=self.sinks[key]["mass"]
             theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
 
-        theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/constants["kyr"]))
+        try:
+            title += ""
+            theAxes.set_title(title)
+        except TypeError:
+            theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/constants["kyr"]))
         theAxes.set_aspect("equal")
 
         if fname:
