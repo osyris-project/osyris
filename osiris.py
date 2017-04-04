@@ -810,6 +810,8 @@ class RamsesData:
         
         cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
         cbar = plt.colorbar(cont,ax=theAxes)
+        cbar.ax.set_ylabel(zlab)
+        cbar.ax.yaxis.set_label_coords(-1.2,0.5)
         theAxes.set_xlabel(xlab)
         theAxes.set_ylabel(ylab)
         
@@ -846,9 +848,6 @@ class RamsesData:
                 strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
             else:
                 strm = theAxes.streamplot(x,y,u2,v2,color=scolor)
-        
-        cbar.ax.set_ylabel(zlab)
-        cbar.ax.yaxis.set_label_coords(-1.0,0.5) 
         
         if self.info["nsinks"] > 0 and sinks:
             sinkMasstot=0.0
