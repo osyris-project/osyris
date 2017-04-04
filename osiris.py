@@ -655,7 +655,8 @@ class RamsesData:
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None):
+                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
+                   zmin=None,zmax=None,extend="neither"):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -771,6 +772,23 @@ class RamsesData:
         ylab = self.data[dir_y]["label"]+" ["+self.data[dir_y]["unit"]+"]"
         zlab = self.data[var  ]["label"]+" ["+self.data[var  ]["unit"]+"]"
         
+        # Define colorbar limits
+        need_levels = False
+        try:
+            zmin += 0
+            need_levels = True
+        except TypeError:
+            zmin = np.amin(z)
+        try:
+            zmax += 0
+            need_levels = True
+        except TypeError:
+            zmax = np.amax(z)
+        if need_levels:
+            clevels = np.linspace(zmin,zmax,nc)
+        else:
+            clevels = None
+        
         # Begin plotting -------------------------------------
         if axes:
             theAxes = axes
@@ -783,7 +801,7 @@ class RamsesData:
             plt.subplot(111)
             theAxes = plt.gca()
         
-        cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
+        cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
         cbar = plt.colorbar(cont,ax=theAxes)
         theAxes.set_xlabel(xlab)
         theAxes.set_ylabel(ylab)
@@ -804,7 +822,7 @@ class RamsesData:
             scale=np.max(w1[::vskip,::vskip])
             unit_u = self.data[vec+"_"+dir_x]["unit"]
             theAxes.quiverkey(vect, 0.70, -0.08, scale,"%.2e [%s]" % (scale, unit_u),\
-                                  labelpos="E", coordinates="axes", color="w", labelcolor="k")
+                                  labelpos="E", coordinates="axes", color="k", labelcolor="k")
 
         if stream:
             if scmap:
