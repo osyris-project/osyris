@@ -44,6 +44,9 @@ class RamsesData:
         if status == 0:
             return
         
+        # Re-center the mesh around chosen center
+        self.re_center()
+        
         # We now use the 'new_field' function to create commonly used variables
         # Note that this function is protected against variables that do not exist.
         # If you have a purely hydro simulation with no B field, the fields below will
@@ -65,9 +68,9 @@ class RamsesData:
         self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
-
-        # Re-center the mesh around chosen center
-        self.re_center()
+        
+        # Radius
+        self.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit="cm",label="Radius")
         
         # Print exit message
         print(self.info["infile"]+" successfully loaded")
@@ -100,22 +103,41 @@ class RamsesData:
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
         
-        # Define a center for reading in the data. If it is set to "auto", then it is
-        # first set to [0.5,0.5,0.5] for the output reader.
-        try:
-            center += 0
-            xc,yc,zc = center[0:3]
-        except TypeError:
-            xc = yc = zc = 0.5
+        # Read info file and create info dictionary
+        infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
+        with open(infofile) as f:
+            content = f.readlines()
+        f.close()
+        if not update:
+            self.info = dict()
+        for line in content:
+            sp = line.split("=")
+            if len(sp) > 1:
+                try:
+                    self.info[sp[0].strip()] = eval(sp[1].strip())
+                except NameError:
+                    self.info[sp[0].strip()] = sp[1].strip()
+        # Add additional information
+        self.info["center" ] = center
+        self.info["scale"  ] = scale
+        self.info["infile" ] = infile
+        self.info["path"   ] = path
+        self.info["boxsize"] = self.info["boxlen"]*self.info["unit_l"]
+        self.info["time"   ] = self.info["time"]*self.info["unit_t"]
         
+        # Load sink particles if any
+        self.read_sinks()
+        
+        # Find the center
+        xc,yc,zc = self.find_center(dx,dy,dz)
+                
         print(divider)
         
         # This calls the Fortran data reader and returns the values into the data1
         # array. It tries to read a hydro_file_descriptor.txt to get a list of
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
-        [data1,names,nn,ncpu,ndim,levelmin,levelmax,nstep,boxsize,time,ud,ul,ut,fail] = \
-                           rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,constants[scale])
+        [data1,names,nn,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,constants[scale],False)
         
         # Clean exit if the file was not found
         if fail:
@@ -124,24 +146,8 @@ class RamsesData:
         
         print("Generating data structure... please wait")
         
-        # Create a small information dictionary
-        if not update:
-            self.info = dict()
-        self.info["ncells"  ] = nn
-        self.info["ncpu"    ] = ncpu
-        self.info["ndim"    ] = ndim
-        self.info["levelmin"] = levelmin
-        self.info["levelmax"] = levelmax
-        self.info["nstep"   ] = nstep
-        self.info["boxsize" ] = boxsize
-        self.info["time"    ] = time*ut
-        self.info["ud"      ] = ud
-        self.info["ul"      ] = ul
-        self.info["ut"      ] = ut
-        self.info["center"  ] = center
-        self.info["scale"   ] = scale
-        self.info["infile"  ] = infile
-        self.info["path"    ] = path
+        # Store the number of cells
+        self.info["ncells"] = nn
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
@@ -163,16 +169,13 @@ class RamsesData:
             theKey = list_vars[i]
             if not update:
                 self.data[theKey] = dict()
-            [norm,uu] = self.get_units(theKey,ud,ul,ut,self.info["scale"])
+            [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             self.data[theKey]["values"   ] = data1[:nn,i]*norm
             self.data[theKey]["unit"     ] = uu
             self.data[theKey]["label"    ] = theKey
             self.data[theKey]["operation"] = ""
             self.data[theKey]["depth"    ] = 0
 
-        # Load sink particles if any
-        self.read_sinks(infile)
-        
         return 1
     
     #=======================================================================================
@@ -199,6 +202,59 @@ class RamsesData:
                   str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+\
                   str(np.amax(self.data[key]["values"])).ljust(maxlen4))
         return
+    
+    #=======================================================================================
+    # The find_center function finds the center in the mesh before loading the full data.
+    #=======================================================================================
+    def find_center(self,dx,dy,dz):
+        
+        lc = False
+        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
+            lc = len(self.info["center"])
+        except TypeError: # No center defined: set to (0.5,0.5,0.5)
+            xc = yc = zc = 0.5
+        if lc:
+            try: # check if center contains numbers
+                self.info["center"][0] += 0
+                if lc == 3:
+                    xc = self.info["center"][0]
+                    yc = self.info["center"][1]
+                    zc = self.info["center"][2]
+                else:
+                    print("Bad center format: must have 3 numbers as input.")
+                    return
+            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+                if self.info["center"].startswith("sink"):
+                    xc = self.sinks[self.info["center"]]["x"]/self.info["boxlen"]/self.info["unit_l"]
+                    yc = self.sinks[self.info["center"]]["y"]/self.info["boxlen"]/self.info["unit_l"]
+                    zc = self.sinks[self.info["center"]]["z"]/self.info["boxlen"]/self.info["unit_l"]
+                else:
+                    xc = yc = zc = 0.5
+                    if dx+dy+dz > 0.0:
+                        active_lmax,failed = rd.quick_amr_scan(self.info["infile"])
+                        coarse_lmax = int(0.3*(active_lmax - self.info["levelmin"]) + self.info["levelmin"])
+                        [data1,names,nn,fail] = rd.ramses_data(self.info["infile"],coarse_lmax,xc,yc,zc,0.0,0.0,0.0,constants[self.info["scale"]],True)
+                        temp = dict()
+                        list_vars = names.decode().split()
+                        for i in range(len(list_vars)):
+                            theKey = list_vars[i]
+                            temp[theKey] = data1[:nn,i]
+                        if self.info["center"].startswith("max"):
+                            cvar=self.info["center"].split(":")[1]
+                            maxloc = np.argmax(temp[cvar])
+                            xc = temp["x"][maxloc]/self.info["boxlen"]
+                            yc = temp["y"][maxloc]/self.info["boxlen"]
+                            zc = temp["z"][maxloc]/self.info["boxlen"]
+                        elif self.info["center"].startswith("min"):
+                            cvar=self.info["center"].split(":")[1]
+                            minloc = np.argmin(temp[cvar])
+                            xc = temp["x"][minloc]/self.info["boxlen"]
+                            yc = temp["y"][minloc]/self.info["boxlen"]
+                            zc = temp["z"][minloc]/self.info["boxlen"]
+                        else:
+                            print("Bad center value:"+str(self.info["center"]))
+                            return
+        return xc,yc,zc
     
     #=======================================================================================
     # The re_center function shifts the coordinates axes around a center. If center="auto"
@@ -267,10 +323,9 @@ class RamsesData:
     #=======================================================================================
     # This function reads the sink particle data if present.
     #=======================================================================================
-    def read_sinks(self,infile):
+    def read_sinks(self):
         
-        sinkfile = infile+"/sink_"+infile.split("_")[-1]+".csv"
-        infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
+        sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
         try:
             sinklist = np.loadtxt(sinkfile,delimiter=",")
         except IOError:
@@ -285,11 +340,7 @@ class RamsesData:
                 sinklist = [sinklist[:],sinklist[:]]
             
             self.info["nsinks"] = int(sinklist[-1][0])
-            f = open(infofile).read()
-            pos1 = f.find("ir_cloud")
-            pos2 = f.find("\n",pos1)
-            dx_sink = int(f[pos1:pos2].split("=")[1])
-            r_sink = dx_sink/(2.0**self.info["levelmax"])
+            r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
             
             self.sinks = dict()
             for i in range(self.info["nsinks"]):
@@ -297,9 +348,9 @@ class RamsesData:
                 self.sinks[key] = dict()
                 self.sinks[key]["mass"    ] = sinklist[i][ 1]
                 self.sinks[key]["dmf"     ] = sinklist[i][ 2]
-                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["ul"]
-                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["ul"]
-                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["ul"]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["unit_l"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["unit_l"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["unit_l"]
                 self.sinks[key]["vx"      ] = sinklist[i][ 6]
                 self.sinks[key]["vy"      ] = sinklist[i][ 7]
                 self.sinks[key]["vz"      ] = sinklist[i][ 8]
@@ -314,7 +365,7 @@ class RamsesData:
                 self.sinks[key]["Teff"    ] = sinklist[i][17]
                 self.sinks[key]["radius"  ] = r_sink
             
-            print("Read %i sink particles" % self.info["nsinks"])
+            #print("Read %i sink particles" % self.info["nsinks"])
             
         return
             
@@ -476,9 +527,9 @@ class RamsesData:
             return [1.0,""]
     
     #=======================================================================================
-    # The function get_values returns the values of the selected variable
+    # The function get returns the values of the selected variable
     #=======================================================================================
-    def get_values(self,var):
+    def get(self,var):
         return self.data[var]["values"]
         
     #=======================================================================================

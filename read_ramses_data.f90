@@ -1,9 +1,8 @@
 !=============================================================================
 ! Modified version of AMR2CELL.f90 from the RAMSES source
 !=============================================================================
-subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,&
-                     & data_array,data_names,ncells,ncpu,ndim,levelmin,levelmax,nstep,&
-                     & boxsize,t,ud,ul,ut,failed)
+subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,quiet,&
+                     & data_array,data_names,ncells,failed)
 
   implicit none
   
@@ -15,14 +14,16 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   character(LEN=*)              , intent(in ) :: infile
   integer                       , intent(in ) :: lmax2
   real*8                        , intent(in ) :: xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale
+  logical                       , intent(in ) :: quiet
   
-  integer                       , intent(out) :: ncells,ncpu,ndim,levelmin,levelmax,nstep
-  real*8                        , intent(out) :: boxsize,t,ud,ul,ut
+  integer                       , intent(out) :: ncells
+!   real*8                        , intent(out) :: boxsize,
   real*8,dimension(nmax,nvarmax), intent(out) :: data_array
   character(len=500)            , intent(out) :: data_names
   logical                       , intent(out) :: failed
   
   ! Variables
+  integer :: ncpu,ndim,levelmin,levelmax,nstep
   integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
   integer :: nx,ny,nz,ilevel,n,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
@@ -30,7 +31,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
-  real*8 :: xmin,xmax,ymin,ymax,zmin,zmax
+  real*8 :: xmin,xmax,ymin,ymax,zmin,zmax,t,ud,ul,ut
   real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
@@ -78,14 +79,14 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   nomfich=TRIM(repository)//'/hydro_'//TRIM(nchar)//'.out00001'
   inquire(file=nomfich, exist=ok) ! verify input file 
   if ( .not. ok ) then
-     write(*,'(a)') TRIM(nomfich)//' not found.'
+     if(.not. quiet) write(*,'(a)') TRIM(nomfich)//' not found.'
      failed = .true.
      return
   endif
   nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out00001'
   inquire(file=nomfich, exist=ok) ! verify input file 
   if ( .not. ok ) then
-     write(*,'(a)') TRIM(nomfich)//' not found.'
+     if(.not. quiet) write(*,'(a)') TRIM(nomfich)//' not found.'
      failed = .true.
      return
   endif
@@ -223,13 +224,15 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   istep = 10
   iprog = 1
   ! Loop over processor files
-  write(*,'(a,i5,a)')'Processing ',ncpu_read,' files in '//trim(repository)
+  if(.not. quiet) write(*,'(a,i5,a)')'Processing ',ncpu_read,' files in '//trim(repository)
   do k=1,ncpu_read
   
-     percentage = nint(real(k)*100.0/real(ncpu_read))
-     if(percentage .ge. iprog*istep)then
-        write(*,'(i3,a)') percentage,'%'
-        iprog = iprog + 1
+     if(.not. quiet)then
+         percentage = nint(real(k)*100.0/real(ncpu_read))
+         if(percentage .ge. iprog*istep)then
+            write(*,'(i3,a)') percentage,'%'
+            iprog = iprog + 1
+         endif
      endif
   
      icpu=cpu_list(k)
@@ -418,10 +421,177 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   ! End loop over cpus
   
   ncells = icell
-  write(*,'(a,i9,a)') 'Read ',ncells,' cells'
-  
-  boxsize = boxlen*ul
-  
+  if(.not. quiet) write(*,'(a,i9,a)') 'Read ',ncells,' cells'
+    
   return
   
 end subroutine ramses_data
+
+!=============================================================================
+! Quick scanning of the amr structure to find the highest level with at least
+! 1 grid.
+!=============================================================================
+subroutine quick_amr_scan(infile,active_lmax,failed)
+
+  implicit none
+  
+  ! Subroutine arguments
+  character(LEN=*), intent(in ) :: infile
+  integer         , intent(out) :: active_lmax
+  logical         , intent(out) :: failed
+  
+  ! Variables
+  integer :: ncpu,ndim,levelmin,levelmax
+  integer :: i,j,k,n,twotondim,nboundary
+  integer :: nx,ny,nz,ilevel,nlevelmax,lmax,ind,ipos,ngrida
+  integer :: ngridmax,icpu,ncpu_read
+  integer, dimension(:  ), allocatable :: cpu_list
+  integer, dimension(:,:), allocatable :: ngridfile,ngridlevel,ngridbound
+  
+  real*8 :: boxlen
+  
+  character(LEN=5  ) :: nchar,ncharcpu
+  character(LEN=50 ) :: string
+  character(LEN=128) :: nomfich,repository
+  
+  logical :: ok
+  
+  !=============================================================================
+
+  failed = .false.
+  lmax = 0
+  repository = trim(infile)
+
+  !-----------------------------------------------
+  ! Reading RAMSES data
+  !-----------------------------------------------
+  ipos=INDEX(repository,'output_')
+  nchar=repository(ipos+7:ipos+13)
+  nomfich=TRIM(repository)//'/hydro_'//TRIM(nchar)//'.out00001'
+  inquire(file=nomfich, exist=ok) ! verify input file 
+  if ( .not. ok ) then
+     write(*,'(a)') TRIM(nomfich)//' not found.'
+     failed = .true.
+     return
+  endif
+  nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out00001'
+  inquire(file=nomfich, exist=ok) ! verify input file 
+  if ( .not. ok ) then
+     write(*,'(a)') TRIM(nomfich)//' not found.'
+     failed = .true.
+     return
+  endif
+
+  nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out00001'
+  open(unit=10,file=nomfich,status='old',form='unformatted')
+  read (10) ncpu
+  read (10) ndim
+  read (10) nx,ny,nz
+  read (10) nlevelmax
+  read (10) ngridmax
+  read (10) nboundary
+  read (10) 
+  read (10) boxlen
+  close(10)
+  twotondim=2**ndim
+  
+  allocate(ngridfile(1:ncpu+nboundary,1:nlevelmax))
+  allocate(ngridlevel(1:ncpu,1:nlevelmax))
+  if(nboundary>0)allocate(ngridbound(1:nboundary,1:nlevelmax))
+  
+  allocate(cpu_list(1:ncpu))
+    
+  !-----------------------
+  ! Map parameters
+  !-----------------------
+  if(lmax==0)then
+     lmax=nlevelmax
+  endif
+  ncpu_read=ncpu
+  do j=1,ncpu
+     cpu_list(j)=j
+  end do
+
+  do k=1,ncpu_read
+  
+     icpu=cpu_list(k)
+     write(ncharcpu,'(i5.5)') icpu
+
+     ! Open AMR file and skip header
+     nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out'//TRIM(ncharcpu)
+     open(unit=10,file=nomfich,status='old',form='unformatted')
+!      write(*,*)'Processing file '//TRIM(nomfich)
+     do i=1,21
+        read(10)
+     end do
+     ! Read grid numbers
+     read(10)ngridlevel
+     ngridfile(1:ncpu,1:nlevelmax)=ngridlevel
+     read(10)
+     if(nboundary>0)then
+        do i=1,2
+           read(10)
+        end do
+        read(10)ngridbound
+        ngridfile(ncpu+1:ncpu+nboundary,1:nlevelmax)=ngridbound
+     endif
+     read(10)
+     read(10)
+     read(10)
+     read(10)
+     read(10)
+     read(10)
+
+     ! Loop over levels
+     do ilevel=1,lmax
+
+        ! Loop over domains
+        do j=1,nboundary+ncpu
+
+           ! Read AMR data
+           if(ngridfile(j,ilevel)>0)then
+              read(10) ! Skip grid index
+              read(10) ! Skip next index
+              read(10) ! Skip prev index
+              ! Read grid center
+              do n=1,ndim
+                 read(10)
+              end do
+              read(10) ! Skip father index
+              do ind=1,2*ndim
+                 read(10) ! Skip nbor index
+              end do
+              ! Read son index
+              do ind=1,twotondim
+                 read(10)
+              end do
+              ! Skip cpu map
+              do ind=1,twotondim
+                 read(10)
+              end do
+              ! Skip refinement map
+              do ind=1,twotondim
+                 read(10)
+              end do
+           endif
+           
+        end do
+
+     end do
+     ! End loop over levels
+
+     close(10)
+
+  end do
+  ! End loop over cpus
+  
+  do i = 1,nlevelmax
+     ngrida = maxval(ngridfile(:,i))
+     if (ngrida >0)then
+        active_lmax = i
+     endif
+  enddo
+  
+  return
+
+end subroutine quick_amr_scan
