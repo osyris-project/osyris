@@ -2,7 +2,6 @@ import numpy as np
 import glob
 import read_ramses_data as rd
 import matplotlib.pyplot as plt
-import matplotlib
 
 #=======================================================================================
 # Common variables
