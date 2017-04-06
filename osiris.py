@@ -2,15 +2,17 @@ import numpy as np
 import glob
 import read_ramses_data as rd
 import matplotlib.pyplot as plt
+import matplotlib
 
 #=======================================================================================
 # Common variables
 #=======================================================================================
-constants = {"cm" : 1.0         ,\
-             "au" : 1.495980e+13,\
-             "pc" : 3.085678e+18,\
-             "yr" : 365.25*86400.0,\
-             "kyr": 365.25*86400.0*1000.0}
+constants = {"cm"  : 1.0         ,\
+             "au"  : 1.495980e+13,\
+             "pc"  : 3.085678e+18,\
+             "yr"  : 365.25*86400.0,\
+             "kyr" : 365.25*86400.0*1000.0,\
+             "msun": 1.9889e33}
 
 divider = "============================================"
 
@@ -64,13 +66,16 @@ class RamsesData:
         self.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x")
         self.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
         
+        # Mass and radius
+        self.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit="cm",label="Radius")
+        self.new_field(name="mass",operation="density*((dx*"+str(constants[scale])+")**3)/"+str(constants["msun"]),unit="Msun",label="Mass",verbose=True)
+        
         # Commonly used log quantities
         self.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
         self.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
-        
-        # Radius
-        self.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit="cm",label="Radius")
+        self.new_field(name="log_r",operation="np.log10(r)",unit="cm",label="log(Radius)")
+        self.new_field(name="log_m",operation="np.log10(mass)",unit="g",label="log(Mass)")
         
         # Print exit message
         print(self.info["infile"]+" successfully loaded")
@@ -383,6 +388,7 @@ class RamsesData:
         except NameError:
             if verbose:
                 print("Error parsing operation when trying to create variable: "+name)
+                print("The attempted operation was: "+op_parsed)
             return
         self.data[name] = dict()
         self.data[name]["values"   ] = new_data
@@ -551,9 +557,10 @@ class RamsesData:
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,fname=None,logz=True,axes=None,\
+    def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
-                       ymax=None,nc=20,new_window=False,evol=False,update=None):
+                       ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
+                       scatter=False,marker=".",iskip=1,color="b",summed=False):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -571,6 +578,9 @@ class RamsesData:
         datay  = self.data[var_y]["values"]
         xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
+        if var_z:
+            dataz  = self.data[var_z]["values"]
+            zlabel = self.data[var_z]["label"]
         
         # Define plotting range
         autoxmin = False
@@ -610,39 +620,47 @@ class RamsesData:
         if autoymax:
             ymax = ymax + 0.05*dy
         
-        # Construct some edge specifiers for the histogram2d function call
-        xe = np.linspace(xmin,xmax,nx)
-        ye = np.linspace(ymin,ymax,ny)
-
-        # Call the numpy histogram2d function
-        z, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
-
-        # Determine if dataz is present
-        contourz = True
-        try:
-            dataz = self.data[var_z]["values"]
-        except KeyError:
-            contourz = False
-
-        # If dataz is present, compute contour using dataz as weights. One then divides
-        # by the data count obtained from the previous call to histogram2d to get the
-        # average values.
-        if contourz:
-            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
-            z2 = z1/z
-            zmin = np.amin(dataz)
-            zmax = np.amax(dataz)
-
-        # In the contour plots, x and y are the centers of the cells, instead of the edges.
-        x = np.zeros([nx-1])
-        y = np.zeros([ny-1])
-        for i in range(nx-1):
-            x[i] = 0.5*(xe[i]+xe[i+1])
-        for j in range(ny-1):
-            y[j] = 0.5*(ye[j]+ye[j+1])
-
-        if logz:
-            z = np.log10(z)
+        if (outline or (not scatter)):
+            # Construct some edge specifiers for the histogram2d function call
+            xe = np.linspace(xmin,xmax,nx)
+            ye = np.linspace(ymin,ymax,ny)
+            # Call the numpy histogram2d function
+            z0, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
+            # In the contour plots, x and y are the centers of the cells, instead of the edges.
+            x = np.zeros([nx-1])
+            y = np.zeros([ny-1])
+            for i in range(nx-1):
+                x[i] = 0.5*(xe[i]+xe[i+1])
+            for j in range(ny-1):
+                y[j] = 0.5*(ye[j]+ye[j+1])
+        
+        if scatter:
+            xs = datax[::iskip]
+            ys = datay[::iskip]
+            if var_z:
+                zs = dataz[::iskip]
+            else:
+                zs = color
+        else:
+        
+            if var_z:
+                z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
+                if summed:
+                    z = np.ma.masked_where(z0 < 1.0, z1)
+                else:
+                    z = np.ma.masked_where(z0 < 1.0, z1/z0)
+                if logz:
+                    z = np.log10(z)
+                    zlabel = "log("+zlabel+")"
+                zlabel += " ["+self.data[var_z]["unit"]+"]"
+            else:
+                z = np.ma.masked_where(z0 < 1.0, np.log10(z0))
+                zlabel = "log(Number of cells)"
+                
+            if var_c:
+                datac = self.data[var_c]["values"]
+                z2, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=datac)
+                c = np.ma.masked_where(z0 < 1.0, z2/z0)
         
         # Begin plotting -------------------------------------
         if axes:
@@ -656,14 +674,28 @@ class RamsesData:
             plt.subplot(111)
             theAxes = plt.gca()
         
-        # First plot the filled colour contours
-        cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
-        # If dataz is specified, overlay black contours
-        if contourz:
-            over = theAxes.contour(x,y,z2,levels=np.arange(zmin,zmax+1),colors="k")
-            theAxes.clabel(over,inline=1,fmt="%i")
-            leg = [over.collections[0]]
-            theAxes.legend(leg,[self.data[var_z]["label"]],loc=2)
+        if scatter:
+            cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor='None')
+        else:
+            # First plot the filled colour contours
+            cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
+        
+            # If var_c is specified, overlay black contours
+            if var_c:
+                over = theAxes.contour(x,y,c,colors="k")
+                theAxes.clabel(over,inline=1)
+                leg = [over.collections[0]]
+                theAxes.legend(leg,[self.data[var_c]["label"]],loc=2)
+        
+        if outline:
+            outl = theAxes.contour(x,y,z0,levels=[1.0],colors="grey")
+        
+        if (var_z or (not scatter)):
+            cbar = plt.colorbar(cont,ax=theAxes)
+            cbar.ax.set_ylabel(zlabel)
+            cbar.ax.yaxis.set_label_coords(-1.2,0.5)
+        
+        # Plot evolution (this is quite specific to star formation)
         if evol:
             f = open(evol,"a")
             imax = np.argmax(datax)
@@ -675,6 +707,8 @@ class RamsesData:
             
         theAxes.set_xlabel(xlabel)
         theAxes.set_ylabel(ylabel)
+        theAxes.set_xlim([xmin,xmax])
+        theAxes.set_ylim([ymin,ymax])
         if fname:
             plt.savefig(fname,bbox_inches="tight")
         elif axes:
