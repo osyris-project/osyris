@@ -556,22 +556,23 @@ class RamsesData:
             return
         for line in content:
             if len(line) > 1: # protect against empty lines
-                sp = line.split(":")
-                theName = ""
-                theOperation = ""
-                theUnit = ""
-                theLabel = ""
-                for field in sp:
-                    sf = field.split("=")
-                    if sf[0].strip() == "name":
-                        theName = sf[1].strip().replace("\"","")
-                    elif sf[0].strip() == "operation":
-                        theOperation = sf[1].strip().replace("\"","")
-                    elif sf[0].strip() == "unit":
-                        theUnit = sf[1].strip().replace("\"","")
-                    elif sf[0].strip() == "label":
-                        theLabel = sf[1].strip().replace("\"","")
-                self.new_field(name=theName,operation=theOperation,unit=theUnit,label=theLabel,verbose=True)
+                if (line.count(":") > 2) and (line.count("=") == 4): # protect against comments in file
+                    sp = line.split(":")
+                    theName = ""
+                    theOperation = ""
+                    theUnit = ""
+                    theLabel = ""
+                    for field in sp:
+                        sf = field.split("=")
+                        if sf[0].strip() == "name":
+                            theName = sf[1].strip().replace("\"","")
+                        elif sf[0].strip() == "operation":
+                            theOperation = sf[1].strip().replace("\"","")
+                        elif sf[0].strip() == "unit":
+                            theUnit = sf[1].strip().replace("\"","")
+                        elif sf[0].strip() == "label":
+                            theLabel = sf[1].strip().replace("\"","")
+                    self.new_field(name=theName,operation=theOperation,unit=theUnit,label=theLabel,verbose=True)
         return
         
     #=======================================================================================
