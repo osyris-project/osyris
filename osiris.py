@@ -41,7 +41,7 @@ class RamsesData:
     #           and "pc"
     #===================================================================================
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",\
-                 verbose=False,path=""):
+                 verbose=False,path="",varfile="custom_variables.txt"):
         
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
@@ -79,6 +79,9 @@ class RamsesData:
         self.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
         self.new_field(name="log_r",operation="np.log10(r)",unit="cm",label="log(Radius)")
         self.new_field(name="log_m",operation="np.log10(mass)",unit="g",label="log(Mass)")
+        
+        # Read in custom variables if any
+        self.read_custom_variables(varfile)
         
         # Print exit message
         print(self.info["infile"]+" successfully loaded")
@@ -540,6 +543,36 @@ class RamsesData:
     #=======================================================================================
     def get(self,var):
         return self.data[var]["values"]
+
+    #=======================================================================================
+    # This function adds fields to the data for user defined variables
+    #=======================================================================================
+    def read_custom_variables(self,infile):
+        try:
+            with open(infile) as f:
+                content = f.readlines()
+            f.close()
+        except IOError:
+            return
+        for line in content:
+            if len(line) > 1: # protect against empty lines
+                sp = line.split(":")
+                theName = ""
+                theOperation = ""
+                theUnit = ""
+                theLabel = ""
+                for field in sp:
+                    sf = field.split("=")
+                    if sf[0].strip() == "name":
+                        theName = sf[1].strip().replace("\"","")
+                    elif sf[0].strip() == "operation":
+                        theOperation = sf[1].strip().replace("\"","")
+                    elif sf[0].strip() == "unit":
+                        theUnit = sf[1].strip().replace("\"","")
+                    elif sf[0].strip() == "label":
+                        theLabel = sf[1].strip().replace("\"","")
+                self.new_field(name=theName,operation=theOperation,unit=theUnit,label=theLabel,verbose=True)
+        return
         
     #=======================================================================================
     #=======================================================================================
