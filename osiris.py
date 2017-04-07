@@ -234,30 +234,30 @@ class RamsesData:
                     zc = self.sinks[self.info["center"]]["z"]/self.info["boxlen"]/self.info["unit_l"]
                 else:
                     xc = yc = zc = 0.5
-                    if dx+dy+dz > 0.0:
-                        active_lmax,failed = rd.quick_amr_scan(self.info["infile"])
-                        coarse_lmax = int(0.3*(active_lmax - self.info["levelmin"]) + self.info["levelmin"])
-                        [data1,names,nn,fail] = rd.ramses_data(self.info["infile"],coarse_lmax,xc,yc,zc,0.0,0.0,0.0,constants[self.info["scale"]],True)
-                        temp = dict()
-                        list_vars = names.decode().split()
-                        for i in range(len(list_vars)):
-                            theKey = list_vars[i]
-                            temp[theKey] = data1[:nn,i]
-                        if self.info["center"].startswith("max"):
-                            cvar=self.info["center"].split(":")[1]
-                            maxloc = np.argmax(temp[cvar])
-                            xc = temp["x"][maxloc]/self.info["boxlen"]
-                            yc = temp["y"][maxloc]/self.info["boxlen"]
-                            zc = temp["z"][maxloc]/self.info["boxlen"]
-                        elif self.info["center"].startswith("min"):
-                            cvar=self.info["center"].split(":")[1]
-                            minloc = np.argmin(temp[cvar])
-                            xc = temp["x"][minloc]/self.info["boxlen"]
-                            yc = temp["y"][minloc]/self.info["boxlen"]
-                            zc = temp["z"][minloc]/self.info["boxlen"]
-                        else:
-                            print("Bad center value:"+str(self.info["center"]))
-                            return
+                    #if dx+dy+dz > 0.0:
+                        #active_lmax,failed = rd.quick_amr_scan(self.info["infile"])
+                        #coarse_lmax = int(0.3*(active_lmax - self.info["levelmin"]) + self.info["levelmin"])
+                        #[data1,names,nn,fail] = rd.ramses_data(self.info["infile"],coarse_lmax,xc,yc,zc,0.0,0.0,0.0,constants[self.info["scale"]],True)
+                        #temp = dict()
+                        #list_vars = names.decode().split()
+                        #for i in range(len(list_vars)):
+                            #theKey = list_vars[i]
+                            #temp[theKey] = data1[:nn,i]
+                        #if self.info["center"].startswith("max"):
+                            #cvar=self.info["center"].split(":")[1]
+                            #maxloc = np.argmax(temp[cvar])
+                            #xc = temp["x"][maxloc]/self.info["boxlen"]
+                            #yc = temp["y"][maxloc]/self.info["boxlen"]
+                            #zc = temp["z"][maxloc]/self.info["boxlen"]
+                        #elif self.info["center"].startswith("min"):
+                            #cvar=self.info["center"].split(":")[1]
+                            #minloc = np.argmin(temp[cvar])
+                            #xc = temp["x"][minloc]/self.info["boxlen"]
+                            #yc = temp["y"][minloc]/self.info["boxlen"]
+                            #zc = temp["z"][minloc]/self.info["boxlen"]
+                        #else:
+                            #print("Bad center value:"+str(self.info["center"]))
+                            #return
         return xc,yc,zc
     
     #=======================================================================================
@@ -559,7 +559,7 @@ class RamsesData:
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
-                       scatter=False,marker=".",iskip=1,color="b",summed=False):
+                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -689,10 +689,10 @@ class RamsesData:
         if outline:
             outl = theAxes.contour(x,y,z0,levels=[1.0],colors="grey")
         
-        if (var_z or (not scatter)):
-            cbar = plt.colorbar(cont,ax=theAxes)
-            cbar.ax.set_ylabel(zlabel)
-            cbar.ax.yaxis.set_label_coords(-1.2,0.5)
+        if ((var_z or (not scatter)) and (cbar)):
+            cb = plt.colorbar(cont,ax=theAxes)
+            cb.ax.set_ylabel(zlabel)
+            cb.ax.yaxis.set_label_coords(-1.2,0.5)
         
         # Plot evolution (this is quite specific to star formation)
         if evol:
@@ -741,7 +741,7 @@ class RamsesData:
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
-                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08]):
+                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08],cbar=True,cbax=None):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -893,9 +893,10 @@ class RamsesData:
             theAxes = plt.gca()
         
         cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
-        cbar = plt.colorbar(cont,ax=theAxes)
-        cbar.ax.set_ylabel(zlab)
-        cbar.ax.yaxis.set_label_coords(-1.2,0.5)
+        if cbar:
+           cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
+           cb.ax.set_ylabel(zlab)
+           cb.ax.yaxis.set_label_coords(-1.2,0.5)
         theAxes.set_xlabel(xlab)
         theAxes.set_ylabel(ylab)
         
