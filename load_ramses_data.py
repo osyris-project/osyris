@@ -1,0 +1,503 @@
+import numpy as np
+import glob
+import plot_osiris
+import read_ramses_data as rd
+import config_osiris as conf
+
+divider = "============================================"
+
+#=======================================================================================
+# This is the class which will hold the data that you read from the Ramses output
+# It calls "rd.ramses_data" which is a fortran file reader.
+# It then stores the data in a dictionary named "data"
+#=======================================================================================
+class LoadRamsesData(plot_osiris.OsirisData):
+ 
+    #===================================================================================
+    # The constructor reads in the data and fills the data structure which is a python
+    # dictionary. The arguments are:
+    # - nout  : the number of the output. It can be -1 for the last output
+    # - lmax  : maximum AMR level to be read
+    # - center: used to re-centre the mesh coordinates around a given center. Possible
+    #           values are and array of 3 numbers between 0 and 1, e.g. [0.51,0.46,0.33]
+    #           or you can use center="auto" to automatically find the densest cell
+    # - dx    : size of the domain to be read in the x dimension, in units of scale
+    # - dy    : size of the domain to be read in the y dimension, in units of scale
+    # - dz    : size of the domain to be read in the z dimension, in units of scale
+    # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
+    #           and "pc"
+    #===================================================================================
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path=""):
+                
+        # Load the Ramses data using the loader function
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
+        
+        if status == 0:
+            return
+        
+        # Re-center the mesh around chosen center
+        self.re_center()
+        
+        # Read in custom variables if any from the configuration file
+        conf.additional_variables(self)
+        
+        # Print exit message
+        print(self.info["infile"]+" successfully loaded")
+        if verbose:
+            self.print_info()
+        print(divider)
+    
+    #=======================================================================================
+    # Generate the file name
+    #=======================================================================================
+    def generate_fname(self,nout,path=""):
+        
+        if len(path) > 0:
+            if path[-1] != "/":
+                path=path+"/"
+        
+        if nout == -1:
+            filelist = sorted(glob.glob(path+"output*"))
+            infile = filelist[-1]
+        else:
+            infile = path+"output_"+str(nout).zfill(5)
+            
+        return infile
+    
+    #=======================================================================================
+    # Load the data from fortran routine
+    #=======================================================================================
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False):
+        
+        # Generate filename from output number
+        infile = self.generate_fname(nout,path)
+        
+        # Read info file and create info dictionary
+        infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
+        with open(infofile) as f:
+            content = f.readlines()
+        f.close()
+        if not update:
+            self.info = dict()
+        for line in content:
+            sp = line.split("=")
+            if len(sp) > 1:
+                try:
+                    self.info[sp[0].strip()] = eval(sp[1].strip())
+                except NameError:
+                    self.info[sp[0].strip()] = sp[1].strip()
+        # Add additional information
+        self.info["center" ] = center
+        self.info["scale"  ] = scale
+        self.info["infile" ] = infile
+        self.info["path"   ] = path
+        self.info["boxsize"] = self.info["boxlen"]*self.info["unit_l"]
+        self.info["time"   ] = self.info["time"]*self.info["unit_t"]
+        
+        # Load sink particles if any
+        self.read_sinks()
+        
+        # Find the center
+        xc,yc,zc = self.find_center(dx,dy,dz)
+                
+        print(divider)
+        
+        # This calls the Fortran data reader and returns the values into the data1
+        # array. It tries to read a hydro_file_descriptor.txt to get a list of
+        # variables. If that file is not found, it makes an educated guess for the file
+        # contents.
+        [data1,names,nn,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
+        
+        # Clean exit if the file was not found
+        if fail:
+            print(divider)
+            return 0
+        
+        print("Generating data structure... please wait")
+        
+        # Store the number of cells
+        self.info["ncells"] = nn
+        
+        # This is the master data dictionary. For each entry, the dict has 5 fields.
+        # It loops through the list of variables that it got from the file loader.
+        # For example, for the density:
+        # - data["density"]["values"   ]: holds the values for the density, which have
+        #                                 been normalized to cgs using 'ud'
+        # - data["density"]["unit"     ]: a string containing the units
+        # - data["density"]["label"    ]: a string containing the variable name
+        # - data["density"]["operation"]: an operation, if the variable has been
+        #                                 derived from other variables. This is empty
+        #                                 if it is a core variable.
+        # - data["density"]["depth"    ]: a depth which tells you on how many layers
+        #                                 of derived variables the current variables
+        #                                 depends on.
+        if not update:
+            self.data = dict()
+        list_vars = names.decode().split()
+        for i in range(len(list_vars)):
+            theKey = list_vars[i]
+            if not update:
+                self.data[theKey] = dict()
+            [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+            self.data[theKey]["values"   ] = data1[:nn,i]*norm
+            self.data[theKey]["unit"     ] = uu
+            self.data[theKey]["label"    ] = theKey
+            self.data[theKey]["operation"] = ""
+            self.data[theKey]["depth"    ] = 0
+
+        return 1
+    
+    #=======================================================================================
+    # Print information about the data that was loaded.
+    #=======================================================================================
+    def print_info(self):
+        print("--------------------------------------------")
+        for key in sorted(self.info.keys()):
+            print(key+": "+str(self.info[key]))
+        print("--------------------------------------------")
+        maxlen1 = 0
+        maxlen2 = 0
+        maxlen3 = 0
+        maxlen4 = 0
+        for key in sorted(self.data.keys()):
+            maxlen1 = max(maxlen1,len(key))
+            maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
+            maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
+            maxlen4 = max(maxlen4,len(str(np.amax(self.data[key]["values"]))))
+        print("The variables are:")
+        print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
+        for key in sorted(self.data.keys()):
+            print(key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
+                  str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+\
+                  str(np.amax(self.data[key]["values"])).ljust(maxlen4))
+        return
+    
+    #=======================================================================================
+    # The find_center function finds the center in the mesh before loading the full data.
+    #=======================================================================================
+    def find_center(self,dx,dy,dz):
+        
+        lc = False
+        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
+            lc = len(self.info["center"])
+        except TypeError: # No center defined: set to (0.5,0.5,0.5)
+            xc = yc = zc = 0.5
+        if lc:
+            try: # check if center contains numbers
+                self.info["center"][0] += 0
+                if lc == 3:
+                    xc = self.info["center"][0]
+                    yc = self.info["center"][1]
+                    zc = self.info["center"][2]
+                else:
+                    print("Bad center format: must have 3 numbers as input.")
+                    return
+            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+                if self.info["center"].startswith("sink"):
+                    xc = self.sinks[self.info["center"]]["x"]/self.info["boxlen"]/self.info["unit_l"]
+                    yc = self.sinks[self.info["center"]]["y"]/self.info["boxlen"]/self.info["unit_l"]
+                    zc = self.sinks[self.info["center"]]["z"]/self.info["boxlen"]/self.info["unit_l"]
+                else:
+                    xc = yc = zc = 0.5
+                    #if dx+dy+dz > 0.0:
+                        #active_lmax,failed = rd.quick_amr_scan(self.info["infile"])
+                        #coarse_lmax = int(0.3*(active_lmax - self.info["levelmin"]) + self.info["levelmin"])
+                        #[data1,names,nn,fail] = rd.ramses_data(self.info["infile"],coarse_lmax,xc,yc,zc,0.0,0.0,0.0,conf.constants[self.info["scale"]],True)
+                        #temp = dict()
+                        #list_vars = names.decode().split()
+                        #for i in range(len(list_vars)):
+                            #theKey = list_vars[i]
+                            #temp[theKey] = data1[:nn,i]
+                        #if self.info["center"].startswith("max"):
+                            #cvar=self.info["center"].split(":")[1]
+                            #maxloc = np.argmax(temp[cvar])
+                            #xc = temp["x"][maxloc]/self.info["boxlen"]
+                            #yc = temp["y"][maxloc]/self.info["boxlen"]
+                            #zc = temp["z"][maxloc]/self.info["boxlen"]
+                        #elif self.info["center"].startswith("min"):
+                            #cvar=self.info["center"].split(":")[1]
+                            #minloc = np.argmin(temp[cvar])
+                            #xc = temp["x"][minloc]/self.info["boxlen"]
+                            #yc = temp["y"][minloc]/self.info["boxlen"]
+                            #zc = temp["z"][minloc]/self.info["boxlen"]
+                        #else:
+                            #print("Bad center value:"+str(self.info["center"]))
+                            #return
+        return xc,yc,zc
+    
+    #=======================================================================================
+    # The re_center function shifts the coordinates axes around a center. If center="auto"
+    # then the function find the cell with the highest density.
+    #=======================================================================================
+    def re_center(self):
+
+        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
+            lc = len(self.info["center"])
+            try: # check if center contains numbers
+                self.info["center"][0] += 0
+                if lc == 3:
+                    xc = self.info["center"][0]*self.info["boxsize"]
+                    yc = self.info["center"][1]*self.info["boxsize"]
+                    zc = self.info["center"][2]*self.info["boxsize"]
+                else:
+                    print("Bad center format: must have 3 numbers as input.")
+                    return
+            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+                if self.info["center"].startswith("sink"):
+                    xc = self.sinks[self.info["center"]]["x"]
+                    yc = self.sinks[self.info["center"]]["y"]
+                    zc = self.sinks[self.info["center"]]["z"]
+                elif self.info["center"].startswith("max"):
+                    cvar=self.info["center"].split(":")[1]
+                    maxloc = np.argmax(self.data[cvar]["values"])
+                    xc = self.data["x"]["values"][maxloc]
+                    yc = self.data["y"]["values"][maxloc]
+                    zc = self.data["z"]["values"][maxloc]
+                elif self.info["center"].startswith("min"):
+                    cvar=self.info["center"].split(":")[1]
+                    minloc = np.argmin(self.data[cvar]["values"])
+                    xc = self.data["x"]["values"][minloc]
+                    yc = self.data["y"]["values"][minloc]
+                    zc = self.data["z"]["values"][minloc]
+                else:
+                    print("Bad center value:"+str(self.info["center"]))
+                    return
+                
+        except TypeError: # No center defined: set to (0.5,0.5,0.5)
+            xc = yc = zc = 0.5*self.info["boxsize"]
+            
+        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/conf.constants[self.info["scale"]]
+        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]
+        if self.info["ndim"] > 2:
+            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/conf.constants[self.info["scale"]]
+        self.info["xc"] = xc/conf.constants[self.info["scale"]]
+        self.info["yc"] = yc/conf.constants[self.info["scale"]]
+        self.info["zc"] = zc/conf.constants[self.info["scale"]]
+        
+        # Re-scale the cell and box sizes
+        self.data["dx"]["values"] = self.data["dx"]["values"]/conf.constants[self.info["scale"]]
+        self.info["boxsize"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
+        
+        # Re-center sinks
+        if self.info["nsinks"] > 0:
+            for i in range(self.info["nsinks"]):
+                key = "sink"+str(i+1)
+                self.sinks[key]["x"     ] = self.sinks[key]["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
+                self.sinks[key]["y"     ] = self.sinks[key]["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
+                self.sinks[key]["z"     ] = self.sinks[key]["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
+                self.sinks[key]["radius"] = self.sinks[key]["radius"]*self.info["boxsize"]
+        
+        return
+        
+    #=======================================================================================
+    # This function reads the sink particle data if present.
+    #=======================================================================================
+    def read_sinks(self):
+        
+        sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
+        try:
+            sinklist = np.loadtxt(sinkfile,delimiter=",")
+        except IOError:
+            self.info["nsinks"] = 0
+            return
+        
+        if np.shape(sinklist)[0] == 0:
+            self.info["nsinks"] = 0
+        else:
+            list_shape = np.shape(np.shape(sinklist))[0]
+            if list_shape == 1:
+                sinklist = [sinklist[:],sinklist[:]]
+            
+            self.info["nsinks"] = int(sinklist[-1][0])
+            r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
+            
+            self.sinks = dict()
+            for i in range(self.info["nsinks"]):
+                key = "sink"+str(i+1)
+                self.sinks[key] = dict()
+                self.sinks[key]["mass"    ] = sinklist[i][ 1]
+                self.sinks[key]["dmf"     ] = sinklist[i][ 2]
+                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["unit_l"]
+                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["unit_l"]
+                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["unit_l"]
+                self.sinks[key]["vx"      ] = sinklist[i][ 6]
+                self.sinks[key]["vy"      ] = sinklist[i][ 7]
+                self.sinks[key]["vz"      ] = sinklist[i][ 8]
+                self.sinks[key]["period"  ] = sinklist[i][ 9]
+                self.sinks[key]["lx"      ] = sinklist[i][10]
+                self.sinks[key]["ly"      ] = sinklist[i][11]
+                self.sinks[key]["lz"      ] = sinklist[i][12]
+                self.sinks[key]["acc_rate"] = sinklist[i][13]
+                self.sinks[key]["acc_lum" ] = sinklist[i][14]
+                self.sinks[key]["age"     ] = sinklist[i][15]
+                self.sinks[key]["int_lum" ] = sinklist[i][16]
+                self.sinks[key]["Teff"    ] = sinklist[i][17]
+                self.sinks[key]["radius"  ] = r_sink
+            
+            #print("Read %i sink particles" % self.info["nsinks"])
+            
+        return
+            
+    #=======================================================================================
+    # The new field function is used to create a new data field. Say you want to take the
+    # log of the density. You create a new field by calling:
+    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+    # The operation string is then evaluated using the 'eval' function.
+    #=======================================================================================
+    def new_field(self,name,operation,unit="",label="",verbose=False):
+        
+        [op_parsed,depth] = self.parse_operation(operation)
+        try:
+            new_data = eval(op_parsed)
+        except NameError:
+            if verbose:
+                print("Error parsing operation when trying to create variable: "+name)
+                print("The attempted operation was: "+op_parsed)
+            return
+        self.data[name] = dict()
+        self.data[name]["values"   ] = new_data
+        self.data[name]["unit"     ] = unit
+        self.data[name]["label"    ] = label
+        self.data[name]["operation"] = op_parsed
+        self.data[name]["depth"    ] = depth+1
+        
+        return
+    
+    #=======================================================================================
+    # The operation parser converts an operation string into an expression which contains
+    # variables from the data dictionary. If a name from the variable list, e.g. "density",
+    # is found in the operation, it is replaced by self.data["density"]["values"] so that it
+    # can be properly evaluated by the 'eval' function in the 'new_field' function.
+    #=======================================================================================
+    def parse_operation(self,operation):
+        
+        max_depth = 0
+        # Add space before and after to make it easier when searching for characters before
+        # and after
+        expression = " "+operation+" "
+        # Sort the list of variable keys in the order of the longest to the shortest.
+        # This guards against replacing 'B' inside 'logB' for example.
+        key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        # For replacing, we need to create a list of hash keys to replace on instance at a
+        # time
+        hashkeys  = dict()
+        hashcount = 0
+        for key in key_list:
+            # Search for all instances in string
+            loop = True
+            loc = 0
+            while loop:
+                loc = expression.find(key,loc)
+                if loc == -1:
+                    loop = False
+                else:
+                    # Check character before and after. If they are either a letter or a '_'
+                    # then the instance is actually part of another variable or function
+                    # name.
+                    char_before = expression[loc-1]
+                    char_after  = expression[loc+len(key)]
+                    bad_before = (char_before.isalpha() or (char_before == "_"))
+                    bad_after = (char_after.isalpha() or (char_after == "_"))
+                    hashcount += 1
+                    if (not bad_before) and (not bad_after):
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
+                        # Store the data key in the hash table
+                        hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
+                        expression = expression.replace(key,theHash,1)
+                        max_depth = max(max_depth,self.data[key]["depth"])
+                    else:
+                        # Replace anyway to prevent from replacing "x" in "max("
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
+                        hashkeys[theHash] = key
+                        expression = expression.replace(key,theHash,1)
+                    loc += 1
+        # Now go through all the hashes in the table and build the final expression
+        for theHash in hashkeys.keys():
+            expression = expression.replace(theHash,hashkeys[theHash])
+    
+        return [expression,max_depth]
+    
+    #=======================================================================================
+    # The update_values function reads in a new ramses output and updates the fields in an
+    # existing data structure. It also updates all the derived variables at the same time.
+    #=======================================================================================
+    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path="",verbose=False):
+        
+        # Check if a new center is requested. If not, use same center as before
+        try:
+            dummy = len(center)
+        except TypeError:
+            center = self.info["center"]
+        
+        # Check if new scale is requested. If not, use same scale as before
+        if len(scale) == 0:
+            scale = self.info["scale"]
+        
+        # Check if new path is requested. If not, use same path as before
+        if len(path) == 0:
+            path = self.info["path"]
+        
+        # Load the Ramses data using the loader function
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,update=True)
+        
+        if status == 0:
+            return
+        
+        # Now go through the fields and update the values of fields that have an operation
+        # attached to them. IMPORTANT!: this needs to be done in the right order: use the
+        # depth key to determine which variables depend on others
+        key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
+        for key in key_list:
+            if len(self.data[key]["operation"]) > 0:
+                print("Re-computing "+key)
+                self.data[key]["values"] = eval(self.data[key]["operation"])
+        
+        # Re-center the mesh around chosen center
+        self.re_center()
+        
+        print("Data successfully updated with values from "+self.info["infile"])
+        if verbose:
+            self.print_info()
+        print(divider)
+        
+        return
+        
+    #=======================================================================================
+    # The function get_units returns the appropriate scaling for a variable which was read
+    # in code units by the data loader. It tries to identify if we are dealing with a
+    # density or a pressure and returns the appropriate combination of ud, ul and ut. It
+    # also returns the unit as a string for plotting on the axes.
+    #=======================================================================================
+    def get_units(self,string,ud,ul,ut,scale="cm"):
+        if string == "density":
+            return [ud,"g/cm3"]
+        elif string.startswith("velocity"):
+            return [ul/ut,"cm/s"]
+        elif string.startswith("momentum"):
+            return [ud*ul/ut,"g/cm2/s"]
+        elif string.startswith("B_"):
+            return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
+        elif string == "thermal_pressure":
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string == "total_energy":
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string.startswith("radiative_energy"):
+            return [ud*((ul/ut)**2),"erg/cm3"]
+        elif string == "x":
+            return [ul,scale]
+        elif string == "y":
+            return [ul,scale]
+        elif string == "z":
+            return [ul,scale]
+        elif string == "dx":
+            return [ul,scale]
+        elif string == "temperature":
+            return [1.0,"K"]
+        else:
+            return [1.0,""]
+    
+    #=======================================================================================
+    # The function get returns the values of the selected variable
+    #=======================================================================================
+    def get(self,var):
+        return self.data[var]["values"]
