@@ -26,8 +26,8 @@ it probably means that you are missing the `python-dev` libraries. **Note:** if 
 ```
 #!python
 import osiris as pp
-mydata = pp.RamsesData(71)
-mydata.plot_histogram("log_rho","log_B")
+mydata = pp.RamsesData(71,scale="au")
+mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100)
 ```
 
 ### Demo ###
