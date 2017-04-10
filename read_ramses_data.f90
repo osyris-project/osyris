@@ -1,30 +1,24 @@
 !=============================================================================
 ! Modified version of AMR2CELL.f90 from the RAMSES source
 !=============================================================================
-subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,quiet,&
-                     & data_array,data_names,ncells,failed)
-
+subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale,quiet,&
+                     & data_array,ncells,failed)
+        
   implicit none
   
-  ! Array dimensions
-  integer, parameter :: nmax=3000000
-  integer, parameter :: nvarmax=22
-
   ! Subroutine arguments
-  character(LEN=*)              , intent(in ) :: infile
-  integer                       , intent(in ) :: lmax2
+  character(LEN=*)              , intent(in ) :: infile,var_read
+  integer                       , intent(in ) :: nmax,nvarmax,lmax2
   real*8                        , intent(in ) :: xcenter,ycenter,zcenter,deltax,deltay,deltaz,lscale
   logical                       , intent(in ) :: quiet
   
   integer                       , intent(out) :: ncells
-!   real*8                        , intent(out) :: boxsize,
   real*8,dimension(nmax,nvarmax), intent(out) :: data_array
-  character(len=500)            , intent(out) :: data_names
   logical                       , intent(out) :: failed
   
   ! Variables
   integer :: ncpu,ndim,levelmin,levelmax,nstep
-  integer :: i,j,k,twotondim,ivar,nboundary,ngrid_current,nvar_tot
+  integer :: i,j,k,l,twotondim,ivar,jvar,nboundary,ngrid_current
   integer :: nx,ny,nz,ilevel,n,icell,ngrp,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,imin,imax,jmin,jmax,kmin,kmax,nvarh
   integer :: nx_full,ny_full,nz_full,ix,iy,iz,istep,iprog,percentage
@@ -32,7 +26,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
   
   real*8 :: xmin,xmax,ymin,ymax,zmin,zmax,t,ud,ul,ut
-  real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,gamma,mu,boxlen
+  real*8 :: xxmin,xxmax,yymin,yymax,zzmin,zzmax,dx,dx2,boxlen
   real*8, dimension(:,:    ), allocatable :: x,xg
   real*8, dimension(:,:,:  ), allocatable :: var
   real*8, dimension(1:8,1:3)              :: xc
@@ -43,7 +37,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   character(LEN=128) :: nomfich,repository
   
   logical                            :: ok,ok_cell
-  logical, dimension(:), allocatable :: ref
+  logical, dimension(:), allocatable :: ref,ok_read
   
   type level
      integer :: ilevel
@@ -57,9 +51,9 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   end type level
 
   type(level),dimension(1:100) :: grid
-
+  
   !=============================================================================
-
+  
   failed = .false.
   lmax = lmax2
   repository = trim(infile)
@@ -132,45 +126,26 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   read (10,'(13x,E23.15)') ut
   close(10)
   
-  ! Open hydro file descriptor ------------------------
-  nomfich = trim(repository)//'/hydro_file_descriptor.txt'
-  inquire(file=trim(nomfich),exist=ok)
-  if(ok)then
-      open(unit=11,file=trim(nomfich),form='formatted',status='old')
-      read(11,'(13x,I11)') nvarh
-      do i = 1,nvarh
-         read(11,'(14x,a)') string
-         data_names = trim(data_names)//' '//string
-      enddo
-      close(11)
-  else
-      ! Attempt to make a guess on output structure for old runs
-      nvarh=17
-      data_names = 'density velocity_x velocity_y velocity_z '//&
-                 &'B_left_x B_left_y B_left_z B_right_x B_right_y B_right_z '//&
-                 &'thermal_pressure radiative_energy_1 passive_scalar_1 '//&
-                 &'passive_scalar_2 passive_scalar_3 passive_scalar_4 temperature'
-  endif
-  ! The total number of variables returned to python will
-  ! be nvarh + 5: 3 coordinates, dx and ilevel
-  nvar_tot = nvarh+5
-  if(nvar_tot > nvarmax)then
-     write(*,'(a)') 'Not enough space for variables, increase nvarmax'
-     failed = .true.
-     return
-  endif
-  data_names = trim(data_names)//' '//"level"
-  data_names = trim(data_names)//' '//"x"
-  data_names = trim(data_names)//' '//"y"
-  data_names = trim(data_names)//' '//"z"
-  data_names = trim(data_names)//' '//"dx"
-  ! ---------------------------------------------------
-  
+  ! Open HYDRO file and read number of variables
+  nomfich=TRIM(repository)//'/hydro_'//TRIM(nchar)//'.out00001'
+  open(unit=11,file=nomfich,status='old',form='unformatted')
+  read (11)
+  read (11) nvarh
+  close(11)
+     
+  ! Set which variables are to be read
+  allocate(ok_read(1:nvarh+5))
+  do i = 1,nvarh+5
+     l = 2*(i-1) + 1
+     read(var_read(l:l),'(i1)') j
+     ok_read(i) = (j == 1)
+  enddo
+    
   allocate(cpu_list(1:ncpu))
   
   if(deltax > 0.0d0)then
-      xmin = xcenter - 0.5d0*deltax*lscale/(boxlen*ul)
-      xmax = xcenter + 0.5d0*deltax*lscale/(boxlen*ul)
+     xmin = xcenter - 0.5d0*deltax*lscale/(boxlen*ul)
+     xmax = xcenter + 0.5d0*deltax*lscale/(boxlen*ul)
   endif
   if(deltay > 0.0d0)then
      ymin = ycenter - 0.5d0*deltay*lscale/(boxlen*ul)
@@ -187,7 +162,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   if(lmax==0)then
      lmax=nlevelmax
   endif
-!   write(*,*)'time=',t
   xxmin=xmin ; xxmax=xmax
   yymin=ymin ; yymax=ymax
   zzmin=zmin ; zzmax=zmax
@@ -241,7 +215,6 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
      ! Open AMR file and skip header
      nomfich=TRIM(repository)//'/amr_'//TRIM(nchar)//'.out'//TRIM(ncharcpu)
      open(unit=10,file=nomfich,status='old',form='unformatted')
-!      write(*,*)'Processing file '//TRIM(nomfich)
      do i=1,21
         read(10)
      end do
@@ -267,12 +240,12 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
      nomfich=TRIM(repository)//'/hydro_'//TRIM(nchar)//'.out'//TRIM(ncharcpu)
      open(unit=11,file=nomfich,status='old',form='unformatted')
      read(11)
-     read(11) nvarh
      read(11)
      read(11)
      read(11)
-     read(11) gamma
-
+     read(11)
+     read(11)
+     
      ! Loop over levels
      do ilevel=1,lmax
 
@@ -294,7 +267,7 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
         if(ngrida>0)then
            allocate(xg (1:ngrida,1:3))
            allocate(son(1:ngrida,1:twotondim))
-           allocate(var(1:ngrida,1:twotondim,1:nvar_tot))
+           allocate(var(1:ngrida,1:twotondim,1:nvarh+5))
            allocate(x  (1:ngrida,1:3))
            allocate(ref(1:ngrida))
            x  = 0.0d0
@@ -397,9 +370,13 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
                     var(i,ind,nvarh+3) = x(i,2)*boxlen
                     var(i,ind,nvarh+4) = x(i,3)*boxlen
                     var(i,ind,nvarh+5) = dx*boxlen
-                 
-                    do ivar = 1,nvar_tot                    
-                       data_array(icell,ivar) = var(i,ind,ivar)
+                    
+                    jvar = 0
+                    do ivar = 1,nvarh+5
+                       if(ok_read(ivar))then
+                          jvar = jvar + 1
+                          data_array(icell,jvar) = var(i,ind,ivar)
+                       endif
                     enddo
                                         
                  end if
@@ -422,7 +399,8 @@ subroutine ramses_data(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,deltaz
   
   ncells = icell
   if(.not. quiet) write(*,'(a,i9,a)') 'Read ',ncells,' cells'
-    
+  deallocate(ok_read)
+
   return
   
 end subroutine ramses_data

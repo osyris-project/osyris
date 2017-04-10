@@ -27,10 +27,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path=""):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[],nmaxcells=3000000):
                 
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables,nmaxcells=nmaxcells)
         
         if status == 0:
             return
@@ -67,7 +67,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #=======================================================================================
     # Load the data from fortran routine
     #=======================================================================================
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False):
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,variables=[],nmaxcells=3000000):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -94,6 +94,44 @@ class LoadRamsesData(plot_osiris.OsirisData):
         self.info["boxsize"] = self.info["boxlen"]*self.info["unit_l"]
         self.info["time"   ] = self.info["time"]*self.info["unit_t"]
         
+        # Read the number of variables from the hydro_file_descriptor.txt
+        # and select the ones to be read if specified by user
+        hydrofile = infile+"/hydro_file_descriptor.txt"
+        try:
+            with open(hydrofile) as f:
+                content = f.readlines()
+            f.close()
+        except IOError:
+            # If hydro_file_descriptor.txt does not exist, mimic the
+            # content by using the default names from the config file
+            content = ["nvar = 17"]
+            ivar = 0
+            for var in conf.default_values["var_names"]:
+                ivar = ivar + 1
+                content.append("variable #"+str(ivar)+" : "+var)
+        # Read the total number of hydro variables
+        for line in content:
+            sp = line.split("=")
+            if len(sp) > 1:
+                if sp[0].strip() == "nvar":
+                    self.info["nvar"] = int(sp[1].strip())
+                    break
+        # Now go through all the variables and check if they are to be read or skipped
+        var_read = ""
+        list_vars = []
+        for line in content:
+            sp = line.split(":")
+            if len(sp) > 1:
+                if (len(variables) == 0) or (variables.count(sp[1].strip()) > 0):
+                    var_read += "1 "
+                    list_vars.append(sp[1].strip())
+                else:
+                    var_read += "0 "
+        # Make sure we always read the coordinates
+        var_read += "1 1 1 1 1 "
+        list_vars.extend(("level","x","y","z","dx"))
+        nvar_read = len(list_vars)
+        
         # Load sink particles if any
         self.read_sinks()
         
@@ -106,7 +144,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # array. It tries to read a hydro_file_descriptor.txt to get a list of
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
-        [data1,names,nn,fail] = rd.ramses_data(infile,lmax,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
+        [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
         
         # Clean exit if the file was not found
         if fail:
@@ -120,30 +158,15 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
-        # For example, for the density:
-        # - data["density"]["values"   ]: holds the values for the density, which have
-        #                                 been normalized to cgs using 'ud'
-        # - data["density"]["unit"     ]: a string containing the units
-        # - data["density"]["label"    ]: a string containing the variable name
-        # - data["density"]["operation"]: an operation, if the variable has been
-        #                                 derived from other variables. This is empty
-        #                                 if it is a core variable.
-        # - data["density"]["depth"    ]: a depth which tells you on how many layers
-        #                                 of derived variables the current variables
-        #                                 depends on.
         if not update:
             self.data = dict()
-        list_vars = names.decode().split()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
             if not update:
                 self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-            self.data[theKey]["values"   ] = data1[:nn,i]*norm
-            self.data[theKey]["unit"     ] = uu
-            self.data[theKey]["label"    ] = theKey
-            self.data[theKey]["operation"] = ""
-            self.data[theKey]["depth"    ] = 0
+            # Use the 'new_field' function to create data field
+            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=data1[:nn,i]*norm)
 
         return 1
     
@@ -344,16 +367,21 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation,unit="",label="",verbose=False):
+    def new_field(self,name,operation="",unit="",label="",verbose=False,values=[]):
         
-        [op_parsed,depth] = self.parse_operation(operation)
-        try:
-            new_data = eval(op_parsed)
-        except NameError:
-            if verbose:
-                print("Error parsing operation when trying to create variable: "+name)
-                print("The attempted operation was: "+op_parsed)
-            return
+        if (len(operation) == 0) and (len(values) > 0):
+            new_data = values
+            op_parsed = operation
+            depth = -1
+        else:
+            [op_parsed,depth] = self.parse_operation(operation)
+            try:
+                new_data = eval(op_parsed)
+            except NameError:
+                if verbose:
+                    print("Error parsing operation when trying to create variable: "+name)
+                    print("The attempted operation was: "+op_parsed)
+                return
         self.data[name] = dict()
         self.data[name]["values"   ] = new_data
         self.data[name]["unit"     ] = unit
