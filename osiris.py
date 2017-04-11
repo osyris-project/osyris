@@ -14,8 +14,8 @@ class RamsesData(load_ramses_data.LoadRamsesData):
                  nmaxcells=conf.default_values["nmaxcells"]):
         
         load_ramses_data.LoadRamsesData.__init__(self,nout=nout,lmax=lmax,center=center,\
-                     dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables,\
-                     nmaxcells=nmaxcells)
+                     dx=dx,dy=dy,dz=dz,scale=scale,verbose=verbose,path=path,\
+                     variables=variables,nmaxcells=nmaxcells)
         
         return
 

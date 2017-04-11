@@ -48,14 +48,14 @@ def additional_variables(holder):
     holder.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B")
     
     # Mass and radius
-    holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit="cm",label="Radius")
+    holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=holder.info["scale"],label="Radius")
     holder.new_field(name="mass",operation="density*((dx*constants[\""+holder.info["scale"]+"\"])**3)/constants[\"msun\"]",unit="Msun",label="Mass")
     
     # Commonly used log quantities
     holder.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)")
     holder.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)")
-    holder.new_field(name="log_r",operation="np.log10(r)",unit="cm",label="log(Radius)")
+    holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)")
     holder.new_field(name="log_m",operation="np.log10(mass)",unit="g",label="log(Mass)")
     
     #========================== ADD YOUR VARIABLES HERE ============================

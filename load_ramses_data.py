@@ -104,7 +104,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         except IOError:
             # If hydro_file_descriptor.txt does not exist, mimic the
             # content by using the default names from the config file
-            content = ["nvar = 17"]
+            content = ["nvar = "+str(len(conf.default_values["var_names"]))]
             ivar = 0
             for var in conf.default_values["var_names"]:
                 ivar = ivar + 1
