@@ -204,7 +204,7 @@ subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcente
      if(.not. quiet)then
          percentage = nint(real(k)*100.0/real(ncpu_read))
          if(percentage .ge. iprog*istep)then
-            write(*,'(i3,a)') percentage,'%'
+            write(*,'(i3,a,i9,a)') percentage,'% : read',icell,' cells'
             iprog = iprog + 1
          endif
      endif
@@ -360,7 +360,7 @@ subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcente
                     icell = icell + 1
                     
                     if(icell > nmax)then
-                       write(*,'(a)') 'Not enough memory space, increase nmax or decrease lmax.'
+                       write(*,'(a)') 'Not enough memory space, increase nmaxcells or decrease lmax.'
                        failed = .true.
                        return
                     endif
@@ -398,7 +398,7 @@ subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcente
   ! End loop over cpus
   
   ncells = icell
-  if(.not. quiet) write(*,'(a,i9,a)') 'Read ',ncells,' cells'
+  if(.not. quiet) write(*,'(a,i10,a)') 'Total number of cells loaded: ',ncells
   deallocate(ok_read)
 
   return

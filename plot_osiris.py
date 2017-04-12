@@ -32,7 +32,7 @@ class OsirisData:
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
-                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True):
+                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,clear=True):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -142,7 +142,8 @@ class OsirisData:
             plt.subplot(111)
             theAxes = plt.gca()
         else:
-            plt.clf()
+            if clear:
+                plt.clf()
             plt.subplot(111)
             theAxes = plt.gca()
         
@@ -179,8 +180,12 @@ class OsirisData:
             
         theAxes.set_xlabel(xlabel)
         theAxes.set_ylabel(ylabel)
-        theAxes.set_xlim([xmin,xmax])
-        theAxes.set_ylim([ymin,ymax])
+        if clear:
+            theAxes.set_xlim([xmin,xmax])
+            theAxes.set_ylim([ymin,ymax])
+        else:
+            theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+            theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
         if fname:
             plt.savefig(fname,bbox_inches="tight")
         elif axes:
@@ -214,7 +219,7 @@ class OsirisData:
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
-                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08],cbar=True,cbax=None):
+                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -361,7 +366,8 @@ class OsirisData:
             plt.subplot(111)
             theAxes = plt.gca()
         else:
-            plt.clf()
+            if clear:
+                plt.clf()
             plt.subplot(111)
             theAxes = plt.gca()
         
