@@ -87,16 +87,19 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 except NameError:
                     self.info[sp[0].strip()] = sp[1].strip()
         # Add additional information
-        self.info["center" ] = center
-        self.info["scale"  ] = scale
-        self.info["infile" ] = infile
-        self.info["path"   ] = path
-        self.info["boxsize"] = self.info["boxlen"]*self.info["unit_l"]
-        self.info["time"   ] = self.info["time"]*self.info["unit_t"]
-        self.info["dx_load"] = dx
-        self.info["dy_load"] = dy
-        self.info["dz_load"] = dz
-        self.info["lmax"   ] = lmax
+        self.info["center"   ] = center
+        self.info["scale"    ] = scale
+        self.info["infile"   ] = infile
+        self.info["path"     ] = path
+        self.info["boxsize"  ] = self.info["boxlen"]*self.info["unit_l"]
+        self.info["time"     ] = self.info["time"]*self.info["unit_t"]
+        self.info["dx_load"  ] = dx
+        self.info["dy_load"  ] = dy
+        self.info["dz_load"  ] = dz
+        self.info["lmax"     ] = lmax
+        self.info["variables"] = variables
+        self.info["nmaxcells"] = nmaxcells
+        self.info["nout"     ] = nout
         
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
@@ -453,7 +456,16 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    def update_values(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",path="",verbose=False):
+    def update_values(self,nout="none",lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
+                      path="",variables=[],nmaxcells=0,verbose=False):
+        
+        # Check if new output number is requested. If not, use same nout as before
+        if nout == "none":
+            nout = self.info["nout"]
+        
+        # Check if new lmax is requested. If not, use same lmax as before
+        if lmax == 0:
+            lmax = self.info["lmax"]
         
         # Check if a new center is requested. If not, use same center as before
         try:
@@ -469,7 +481,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         if len(path) == 0:
             path = self.info["path"]
         
-        # Check if new dx,dy,dz are requested. If not, use same path as before
+        # Check if new dx,dy,dz are requested. If not, use same as before
         if dx == 0.0:
             dx = self.info["dx_load"]
         if dy == 0.0:
@@ -477,12 +489,16 @@ class LoadRamsesData(plot_osiris.OsirisData):
         if dz == 0.0:
             dz = self.info["dz_load"]
         
-        # Check if new lmax is requested. If not, use same path as before
-        if lmax == 0:
-            lmax = self.info["lmax"]
+        # Check if new list of variables is requested. If not, use same list as before
+        if len(variables) == 0:
+            variables = self.info["variables"]
+        
+        if nmaxcells == 0:
+            nmaxcells = self.info["nmaxcells"]
         
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,update=True)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
+                                  path=path,variables=variables,nmaxcells=nmaxcells,update=True)
         
         if status == 0:
             return
