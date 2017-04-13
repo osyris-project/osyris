@@ -402,7 +402,7 @@ class OsirisData:
             #theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2e [%s]" % (vscale, unit_u),\
                                   #labelpos="E", coordinates="axes", color="k", labelcolor="k")
             theAxes.quiverkey(vect,qkey_pos[0],qkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
-                                  labelpos="E", coordinates="axes", color="k", labelcolor="k")
+                                  labelpos="E", coordinates="axes", color="k", labelcolor="k",zorder=100)
 
         if stream:
             if scmap:

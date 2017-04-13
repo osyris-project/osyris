@@ -93,6 +93,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
         self.info["path"   ] = path
         self.info["boxsize"] = self.info["boxlen"]*self.info["unit_l"]
         self.info["time"   ] = self.info["time"]*self.info["unit_t"]
+        self.info["dx_load"] = dx
+        self.info["dy_load"] = dy
+        self.info["dz_load"] = dz
+        self.info["lmax"   ] = lmax
         
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
@@ -464,6 +468,18 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # Check if new path is requested. If not, use same path as before
         if len(path) == 0:
             path = self.info["path"]
+        
+        # Check if new dx,dy,dz are requested. If not, use same path as before
+        if dx == 0.0:
+            dx = self.info["dx_load"]
+        if dy == 0.0:
+            dy = self.info["dy_load"]
+        if dz == 0.0:
+            dz = self.info["dz_load"]
+        
+        # Check if new lmax is requested. If not, use same path as before
+        if lmax == 0:
+            lmax = self.info["lmax"]
         
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,update=True)
