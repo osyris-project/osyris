@@ -27,10 +27,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[],nmaxcells=0):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[]):
                 
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables,nmaxcells=nmaxcells)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables)
         
         if status == 0:
             return
@@ -67,7 +67,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #=======================================================================================
     # Load the data from fortran routine
     #=======================================================================================
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,variables=[],nmaxcells=0):
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
+                    update=False,variables=[]):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -153,26 +154,24 @@ class LoadRamsesData(plot_osiris.OsirisData):
         print(divider)
         
         # This calls the Fortran data reader and returns the values into the data1
-        # array. It tries to read a hydro_file_descriptor.txt to get a list of
+        # array. First a quick scan is made to count how much memory is needed.
+        # It then tries to read a hydro_file_descriptor.txt to get a list of
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
-        if nmaxcells == 0:
-            [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile)
-            if fail:
-                return 0
+        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile)
+        if fail: # Clean exit if the file was not found
+            print(divider)
+            return 0
         
         [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
-        
-        # Clean exit if the file was not found
-        if fail:
+        if fail: # Clean exit if the file was not found
             print(divider)
             return 0
         
         print("Generating data structure... please wait")
         
         # Store the number of cells
-        self.info["ncells"   ] = nn
-        self.info["nmaxcells"] = nmaxcells
+        self.info["ncells"] = nn
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
@@ -468,7 +467,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
     def update_values(self,nout="none",lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
-                      path="",variables=[],nmaxcells=0,verbose=False):
+                      path="",variables=[],verbose=False):
         
         # Check if new output number is requested. If not, use same nout as before
         if nout == "none":
@@ -503,13 +502,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # Check if new list of variables is requested. If not, use same list as before
         if len(variables) == 0:
             variables = self.info["variables"]
-        
-        if nmaxcells == 0:
-            nmaxcells = self.info["nmaxcells"]
-        
+                
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
-                                  path=path,variables=variables,nmaxcells=nmaxcells,update=True)
+                                  path=path,variables=variables,update=True)
         
         if status == 0:
             return
