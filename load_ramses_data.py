@@ -162,6 +162,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         if fail: # Clean exit if the file was not found
             print(divider)
             return 0
+        print nmaxcells
         [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
         if fail: # Clean exit if the file was not found
             print(divider)

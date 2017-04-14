@@ -436,7 +436,7 @@ subroutine quick_amr_scan(infile,lmax2,active_lmax,nmaxcells,failed)
   !=============================================================================
 
   failed = .false.
-  lmax = 0
+  lmax = lmax2
   repository = trim(infile)
 
   !-----------------------------------------------
