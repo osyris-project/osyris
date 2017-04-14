@@ -522,7 +522,7 @@ subroutine quick_amr_scan(infile,lmax2,active_lmax,nmaxcells,failed)
      do ilevel=1,lmax
 
         ngrida = ngridfile(icpu,ilevel)
-        if(ilevel <= lmax2)then
+        if(ilevel <= lmax)then
            nmaxcells = nmaxcells + ngrida*twotondim
         endif
         if(ngrida > 0)then
