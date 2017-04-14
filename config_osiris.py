@@ -12,23 +12,25 @@ default_values = {
     "verbose"   : False,
     "path"      : "",
     "variables" : [],
-    "nmaxcells" : 3000000,
+    "nmaxcells" : 0,
     "var_names" : ["density","velocity_x","velocity_y","velocity_z","B_left_x",\
                    "B_left_y","B_left_z","B_right_x","B_right_y","B_right_z",\
                    "thermal_pressure","radiative_energy_1","passive_scalar_1",\
                    "passive_scalar_2","passive_scalar_3","passive_scalar_4",\
                    "temperature"]
-    }
+}
 
 #=======================================================================================
 # Common variables
 #=======================================================================================
-constants = {"cm"  : 1.0         ,\
-             "au"  : 1.495980e+13,\
-             "pc"  : 3.085678e+18,\
-             "yr"  : 365.25*86400.0,\
-             "kyr" : 365.25*86400.0*1000.0,\
-             "msun": 1.9889e33}
+constants = {
+    "cm"  : 1.0,
+    "au"  : 1.495980e+13,
+    "pc"  : 3.085678e+18,
+    "yr"  : 365.25*86400.0,
+    "kyr" : 365.25*86400.0*1000.0,
+    "msun": 1.9889e33
+}
 
 #===================================================================================
 # Here are some additional variables that are to be computed every time data is

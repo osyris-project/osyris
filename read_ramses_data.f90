@@ -263,6 +263,7 @@ subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcente
 
         ! Allocate work arrays
         ngrida=ngridfile(icpu,ilevel)
+!         write(*,*) ngrida
         grid(ilevel)%ngrid=ngrida
         if(ngrida>0)then
            allocate(xg (1:ngrida,1:3))
@@ -396,7 +397,6 @@ subroutine ramses_data(infile,nmax,nvarmax,lmax2,var_read,xcenter,ycenter,zcente
 
   end do
   ! End loop over cpus
-  
   ncells = icell
   if(.not. quiet) write(*,'(a,i10,a)') 'Total number of cells loaded: ',ncells
   deallocate(ok_read)
@@ -409,13 +409,13 @@ end subroutine ramses_data
 ! Quick scanning of the amr structure to find the highest level with at least
 ! 1 grid.
 !=============================================================================
-subroutine quick_amr_scan(infile,active_lmax,failed)
+subroutine quick_amr_scan(infile,active_lmax,nmaxcells,failed)
 
   implicit none
   
   ! Subroutine arguments
   character(LEN=*), intent(in ) :: infile
-  integer         , intent(out) :: active_lmax
+  integer         , intent(out) :: active_lmax,nmaxcells
   logical         , intent(out) :: failed
   
   ! Variables
@@ -425,8 +425,6 @@ subroutine quick_amr_scan(infile,active_lmax,failed)
   integer :: ngridmax,icpu,ncpu_read
   integer, dimension(:  ), allocatable :: cpu_list
   integer, dimension(:,:), allocatable :: ngridfile,ngridlevel,ngridbound
-  
-  real*8 :: boxlen
   
   character(LEN=5  ) :: nchar,ncharcpu
   character(LEN=50 ) :: string
@@ -468,11 +466,8 @@ subroutine quick_amr_scan(infile,active_lmax,failed)
   read (10) nlevelmax
   read (10) ngridmax
   read (10) nboundary
-  read (10) 
-  read (10) boxlen
   close(10)
   twotondim=2**ndim
-  
   allocate(ngridfile(1:ncpu+nboundary,1:nlevelmax))
   allocate(ngridlevel(1:ncpu,1:nlevelmax))
   if(nboundary>0)allocate(ngridbound(1:nboundary,1:nlevelmax))
@@ -489,6 +484,8 @@ subroutine quick_amr_scan(infile,active_lmax,failed)
   do j=1,ncpu
      cpu_list(j)=j
   end do
+  
+  nmaxcells = 0
 
   do k=1,ncpu_read
   
@@ -523,6 +520,13 @@ subroutine quick_amr_scan(infile,active_lmax,failed)
      ! Loop over levels
      do ilevel=1,lmax
 
+        ngrida = ngridfile(icpu,ilevel)
+        nmaxcells = nmaxcells + ngrida*twotondim
+        
+        if (ngrida > 0)then
+           active_lmax = i
+        endif
+     
         ! Loop over domains
         do j=1,nboundary+ncpu
 
@@ -562,13 +566,6 @@ subroutine quick_amr_scan(infile,active_lmax,failed)
 
   end do
   ! End loop over cpus
-  
-  do i = 1,nlevelmax
-     ngrida = maxval(ngridfile(:,i))
-     if (ngrida >0)then
-        active_lmax = i
-     endif
-  enddo
   
   return
 

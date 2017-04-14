@@ -27,7 +27,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[],nmaxcells=3000000):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[],nmaxcells=0):
                 
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables,nmaxcells=nmaxcells)
@@ -67,16 +67,22 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #=======================================================================================
     # Load the data from fortran routine
     #=======================================================================================
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,variables=[],nmaxcells=3000000):
+    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",update=False,variables=[],nmaxcells=0):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
         
         # Read info file and create info dictionary
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
-        with open(infofile) as f:
-            content = f.readlines()
-        f.close()
+        try:
+            with open(infofile) as f:
+                content = f.readlines()
+            f.close()
+        except IOError:
+            # Clean exit if the file was not found
+            print("Info file not found: "+infofile)
+            return 0
+        
         if not update:
             self.info = dict()
         for line in content:
@@ -98,7 +104,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         self.info["dz_load"  ] = dz
         self.info["lmax"     ] = lmax
         self.info["variables"] = variables
-        self.info["nmaxcells"] = nmaxcells
         self.info["nout"     ] = nout
         
         # Read the number of variables from the hydro_file_descriptor.txt
@@ -151,6 +156,11 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # array. It tries to read a hydro_file_descriptor.txt to get a list of
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
+        if nmaxcells == 0:
+            [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile)
+            if fail:
+                return 0
+        
         [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
         
         # Clean exit if the file was not found
@@ -161,7 +171,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
         print("Generating data structure... please wait")
         
         # Store the number of cells
-        self.info["ncells"] = nn
+        self.info["ncells"   ] = nn
+        self.info["nmaxcells"] = nmaxcells
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
