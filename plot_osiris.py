@@ -219,7 +219,8 @@ class OsirisData:
                    dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
-                   vcolor="w",scolor="w",qkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True):
+                   vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
+                   vkey=True):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -399,9 +400,8 @@ class OsirisData:
 
             # Plot the scale of the vectors under the axes
             unit_u = self.data[vec+"_"+dir_x]["unit"]
-            #theAxes.quiverkey(vect, 0.70, -0.08, vscale,"%.2e [%s]" % (vscale, unit_u),\
-                                  #labelpos="E", coordinates="axes", color="k", labelcolor="k")
-            theAxes.quiverkey(vect,qkey_pos[0],qkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
+            if vkey:
+                theAxes.quiverkey(vect,vkey_pos[0],vkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
                                   labelpos="E", coordinates="axes", color="k", labelcolor="k",zorder=100)
 
         if stream:

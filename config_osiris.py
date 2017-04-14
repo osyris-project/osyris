@@ -49,7 +49,7 @@ def additional_variables(holder):
     
     # Mass and radius
     holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=holder.info["scale"],label="Radius")
-    holder.new_field(name="mass",operation="density*((dx*constants[\""+holder.info["scale"]+"\"])**3)/constants[\"msun\"]",unit="Msun",label="Mass")
+    holder.new_field(name="mass",operation="density*((dx*"+str(constants[holder.info["scale"]])+")**3)/"+str(constants["msun"]),unit="Msun",label="Mass",verbose=True)
     
     # Commonly used log quantities
     holder.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
