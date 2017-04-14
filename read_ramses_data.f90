@@ -409,12 +409,13 @@ end subroutine ramses_data
 ! Quick scanning of the amr structure to find the highest level with at least
 ! 1 grid.
 !=============================================================================
-subroutine quick_amr_scan(infile,active_lmax,nmaxcells,failed)
+subroutine quick_amr_scan(infile,lmax2,active_lmax,nmaxcells,failed)
 
   implicit none
   
   ! Subroutine arguments
   character(LEN=*), intent(in ) :: infile
+  integer         , intent(in ) :: lmax2
   integer         , intent(out) :: active_lmax,nmaxcells
   logical         , intent(out) :: failed
   
@@ -521,9 +522,10 @@ subroutine quick_amr_scan(infile,active_lmax,nmaxcells,failed)
      do ilevel=1,lmax
 
         ngrida = ngridfile(icpu,ilevel)
-        nmaxcells = nmaxcells + ngrida*twotondim
-        
-        if (ngrida > 0)then
+        if(ilevel <= lmax2)then
+           nmaxcells = nmaxcells + ngrida*twotondim
+        endif
+        if(ngrida > 0)then
            active_lmax = i
         endif
      

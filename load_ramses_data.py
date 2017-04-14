@@ -158,11 +158,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # It then tries to read a hydro_file_descriptor.txt to get a list of
         # variables. If that file is not found, it makes an educated guess for the file
         # contents.
-        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile)
+        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax)
         if fail: # Clean exit if the file was not found
             print(divider)
             return 0
-        
         [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
         if fail: # Clean exit if the file was not found
             print(divider)
