@@ -32,7 +32,8 @@ class OsirisData:
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
-                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,clear=True):
+                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
+                       clear=True,plot=True):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -135,63 +136,64 @@ class OsirisData:
                 c = np.ma.masked_where(z0 < 1.0, z2/z0)
         
         # Begin plotting -------------------------------------
-        if axes:
-            theAxes = axes
-        elif new_window:
-            plt.figure()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        else:
-            if clear:
-                plt.clf()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        
-        if scatter:
-            cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor='None',cmap=cmap)
-        else:
-            # First plot the filled colour contours
-            cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
-        
-            # If var_c is specified, overlay black contours
-            if var_c:
-                over = theAxes.contour(x,y,c,colors="k")
-                theAxes.clabel(over,inline=1)
-                leg = [over.collections[0]]
-                theAxes.legend(leg,[self.data[var_c]["label"]],loc=2)
-        
-        if outline:
-            outl = theAxes.contour(x,y,z0,levels=[1.0],colors="grey")
-        
-        if ((var_z or (not scatter)) and (cbar)):
-            cb = plt.colorbar(cont,ax=theAxes)
-            cb.ax.set_ylabel(zlabel)
-            cb.ax.yaxis.set_label_coords(-1.2,0.5)
-        
-        # Plot evolution (this is quite specific to star formation)
-        if evol:
-            f = open(evol,"a")
-            imax = np.argmax(datax)
-            f.write("%.14e  %.14e  %.14e\n" % (self.info["time"],datax[imax],datay[imax]))
-            f.close()
-            datat = np.loadtxt(evol)
-            if np.shape(np.shape(datat))[0] > 1:
-                theAxes.plot(datat[:,1],datat[:,2],color="k",lw=3)
+        if plot:
+            if axes:
+                theAxes = axes
+            elif new_window:
+                plt.figure()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            else:
+                if clear:
+                    plt.clf()
+                plt.subplot(111)
+                theAxes = plt.gca()
             
-        theAxes.set_xlabel(xlabel)
-        theAxes.set_ylabel(ylabel)
-        if clear:
-            theAxes.set_xlim([xmin,xmax])
-            theAxes.set_ylim([ymin,ymax])
-        else:
-            theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-            theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-        if fname:
-            plt.savefig(fname,bbox_inches="tight")
-        elif axes:
-            pass
-        else:
-            plt.show(block=False)
+            if scatter:
+                cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor='None',cmap=cmap)
+            else:
+                # First plot the filled colour contours
+                cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
+            
+                # If var_c is specified, overlay black contours
+                if var_c:
+                    over = theAxes.contour(x,y,c,colors="k")
+                    theAxes.clabel(over,inline=1)
+                    leg = [over.collections[0]]
+                    theAxes.legend(leg,[self.data[var_c]["label"]],loc=2)
+            
+            if outline:
+                outl = theAxes.contour(x,y,z0,levels=[1.0],colors="grey")
+            
+            if ((var_z or (not scatter)) and (cbar)):
+                cb = plt.colorbar(cont,ax=theAxes)
+                cb.ax.set_ylabel(zlabel)
+                cb.ax.yaxis.set_label_coords(-1.2,0.5)
+            
+            # Plot evolution (this is quite specific to star formation)
+            if evol:
+                f = open(evol,"a")
+                imax = np.argmax(datax)
+                f.write("%.14e  %.14e  %.14e\n" % (self.info["time"],datax[imax],datay[imax]))
+                f.close()
+                datat = np.loadtxt(evol)
+                if np.shape(np.shape(datat))[0] > 1:
+                    theAxes.plot(datat[:,1],datat[:,2],color="k",lw=3)
+                
+            theAxes.set_xlabel(xlabel)
+            theAxes.set_ylabel(ylabel)
+            if clear:
+                theAxes.set_xlim([xmin,xmax])
+                theAxes.set_ylim([ymin,ymax])
+            else:
+                theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+                theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+            if fname:
+                plt.savefig(fname,bbox_inches="tight")
+            elif axes:
+                pass
+            else:
+                plt.show(block=False)
 
         if copy:
             return x,y,z
@@ -220,7 +222,7 @@ class OsirisData:
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True):
+                   vkey=True,plot=True):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -360,85 +362,86 @@ class OsirisData:
             clevels = None
         
         # Begin plotting -------------------------------------
-        if axes:
-            theAxes = axes
-        elif new_window:
-            plt.figure()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        else:
-            if clear:
-                plt.clf()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        
-        cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
-        if cbar:
-           cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
-           cb.ax.set_ylabel(zlab)
-           cb.ax.yaxis.set_label_coords(-1.2,0.5)
-        theAxes.set_xlabel(xlab)
-        theAxes.set_ylabel(ylab)
-        
-        if vec:
-            try:
-                vskip += 0
-            except TypeError:
-                vskip = int(0.071*resolution)
-            
-            try:
-                vscale += 0
-            except TypeError:
-                vscale = np.amax(w1[::vskip,::vskip])
-            
-            if vcmap:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=vsize*vscale)
+        if plot:
+            if axes:
+                theAxes = axes
+            elif new_window:
+                plt.figure()
+                plt.subplot(111)
+                theAxes = plt.gca()
             else:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      color=vcolor,pivot="mid",scale=vsize*vscale)
+                if clear:
+                    plt.clf()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            
+            cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
+            if cbar:
+               cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
+               cb.ax.set_ylabel(zlab)
+               cb.ax.yaxis.set_label_coords(-1.2,0.5)
+            theAxes.set_xlabel(xlab)
+            theAxes.set_ylabel(ylab)
+            
+            if vec:
+                try:
+                    vskip += 0
+                except TypeError:
+                    vskip = int(0.071*resolution)
+                
+                try:
+                    vscale += 0
+                except TypeError:
+                    vscale = np.amax(w1[::vskip,::vskip])
+                
+                if vcmap:
+                    vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                          w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=vsize*vscale)
+                else:
+                    vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                          color=vcolor,pivot="mid",scale=vsize*vscale)
 
-            # Plot the scale of the vectors under the axes
-            unit_u = self.data[vec+"_"+dir_x]["unit"]
-            if vkey:
-                theAxes.quiverkey(vect,vkey_pos[0],vkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
-                                  labelpos="E", coordinates="axes", color="k", labelcolor="k",zorder=100)
+                # Plot the scale of the vectors under the axes
+                unit_u = self.data[vec+"_"+dir_x]["unit"]
+                if vkey:
+                    theAxes.quiverkey(vect,vkey_pos[0],vkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
+                                      labelpos="E", coordinates="axes", color="k", labelcolor="k",zorder=100)
 
-        if stream:
-            if scmap:
-                if scmap.startswith("log"):
-                    w2 = np.log10(w2)
-                    scmap = scmap.split(",")[1]
-                strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
+            if stream:
+                if scmap:
+                    if scmap.startswith("log"):
+                        w2 = np.log10(w2)
+                        scmap = scmap.split(",")[1]
+                    strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
+                else:
+                    strm = theAxes.streamplot(x,y,u2,v2,color=scolor)
+            
+            if self.info["nsinks"] > 0 and sinks:
+                sinkMasstot=0.0
+                for key in self.sinks.keys():
+                    crad = max(self.sinks[key]["radius"],dx*0.01)
+                    circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
+                    circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
+                    circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
+                    theAxes.add_patch(circle1)
+                    theAxes.add_patch(circle2)
+                    theAxes.add_patch(circle3)
+                    sinkMasstot+=self.sinks[key]["mass"]
+                theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
+
+            try:
+                title += ""
+                theAxes.set_title(title)
+            except TypeError:
+                theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/conf.constants["kyr"]))
+            theAxes.set_aspect("equal")
+
+            if fname:
+                plt.savefig(fname,bbox_inches="tight")
+            elif axes:
+                pass
             else:
-                strm = theAxes.streamplot(x,y,u2,v2,color=scolor)
-        
-        if self.info["nsinks"] > 0 and sinks:
-            sinkMasstot=0.0
-            for key in self.sinks.keys():
-                crad = max(self.sinks[key]["radius"],dx*0.01)
-                circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
-                circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
-                circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
-                theAxes.add_patch(circle1)
-                theAxes.add_patch(circle2)
-                theAxes.add_patch(circle3)
-                sinkMasstot+=self.sinks[key]["mass"]
-            theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
-
-        try:
-            title += ""
-            theAxes.set_title(title)
-        except TypeError:
-            theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/conf.constants["kyr"]))
-        theAxes.set_aspect("equal")
-
-        if fname:
-            plt.savefig(fname,bbox_inches="tight")
-        elif axes:
-            pass
-        else:
-            plt.show(block=False)
+                plt.show(block=False)
         
         if copy:
             if vec and stream:
