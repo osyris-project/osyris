@@ -298,6 +298,13 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     xc = self.data["x"]["values"][minloc]
                     yc = self.data["y"]["values"][minloc]
                     zc = self.data["z"]["values"][minloc]
+                elif self.info["center"].startswith("av"):
+                    cvar=self.info["center"].split(":")[1]
+                    [op_parsed,depth] = self.parse_operation(cvar)
+                    select = eval("np.where("+op_parsed+")")
+                    xc = np.average(self.data["x"]["values"][select])
+                    yc = np.average(self.data["y"]["values"][select])
+                    zc = np.average(self.data["z"]["values"][select])
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
