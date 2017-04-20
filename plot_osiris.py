@@ -218,11 +218,11 @@ class OsirisData:
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=1.0,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
+                   dx=None,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True,plot=True):
+                   vkey=True,plot=True,center=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -244,7 +244,12 @@ class OsirisData:
         else:
             print("Bad direction for slice")
             return
-                
+        
+        # Set dx to whole box if not specified
+        try:
+            dx += 0
+        except TypeError:
+            dx = np.amax(self.data[dir_x]["values"]) - np.amin(self.data[dir_x]["values"])
         # Make it possible to call with only one size in the arguments
         if dy == 0.0:
             dy = dx
