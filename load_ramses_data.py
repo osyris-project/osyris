@@ -107,6 +107,9 @@ class LoadRamsesData(plot_osiris.OsirisData):
         self.info["variables"] = variables
         self.info["nout"     ] = nout
         
+        print(divider)
+        print("Computing memory requirements")
+        
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         hydrofile = infile+"/hydro_file_descriptor.txt"
@@ -151,8 +154,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # Find the center
         xc,yc,zc = self.find_center(dx,dy,dz)
                 
-        print(divider)
-        
         # This calls the Fortran data reader and returns the values into the data1
         # array. First a quick scan is made to count how much memory is needed.
         # It then tries to read a hydro_file_descriptor.txt to get a list of
