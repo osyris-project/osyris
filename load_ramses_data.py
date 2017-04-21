@@ -153,17 +153,18 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # Find the center
         xc,yc,zc = self.find_center(dx,dy,dz)
-                
-        # This calls the Fortran data reader and returns the values into the data1
-        # array. First a quick scan is made to count how much memory is needed.
-        # It then tries to read a hydro_file_descriptor.txt to get a list of
-        # variables. If that file is not found, it makes an educated guess for the file
-        # contents.
-        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax)
+        
+        # This calls the Fortran data reader and returns the values into the data1 array.
+        # First a quick scan is made to count how much memory is needed.
+        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax,xc,yc,zc,dx,dy,dz,\
+                          conf.constants[scale],self.info["unit_d"],self.info["unit_l"],self.info["unit_t"])
         if fail: # Clean exit if the file was not found
             print(divider)
             return 0
-        [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,conf.constants[scale],False)
+        
+        # It then reads in the full hydro data, selecting only the necessary cells.
+        [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,\
+                          conf.constants[scale],self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],False)
         if fail: # Clean exit if the file was not found
             print(divider)
             return 0
