@@ -35,8 +35,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
         if status == 0:
             return
         
-        # Re-center the mesh around chosen center
-        self.re_center()
+        ## Re-center the mesh around chosen center
+        #self.re_center()
         
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
@@ -185,6 +185,9 @@ class LoadRamsesData(plot_osiris.OsirisData):
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Use the 'new_field' function to create data field
             self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=data1[:nn,i]*norm)
+        
+        # Re-center the mesh around chosen center
+        self.re_center()
 
         return 1
     
@@ -527,8 +530,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 print("Re-computing "+key)
                 self.data[key]["values"] = eval(self.data[key]["operation"])
         
-        # Re-center the mesh around chosen center
-        self.re_center()
+        ## Re-center the mesh around chosen center
+        #self.re_center()
         
         print("Data successfully updated with values from "+self.info["infile"])
         if verbose:
