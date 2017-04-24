@@ -3,10 +3,6 @@ import config_osiris as conf
 import matplotlib.pyplot as plt
 
 #=======================================================================================
-np.seterr(divide="ignore",invalid="ignore") # Ignore divide by zero warnings
-#=======================================================================================
-
-#=======================================================================================
 # This is a dummy class which gives access to the plotting functions to the other
 # classes through inheritance.
 #=======================================================================================

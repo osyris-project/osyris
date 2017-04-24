@@ -27,10 +27,12 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,path="",variables=[]):
+    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,\
+                 nmaxcells=0,path="",variables=[]):
                 
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,path=path,variables=variables)
+        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
+                 nmaxcells=nmaxcells,path=path,variables=variables)
         
         if status == 0:
             return
@@ -68,7 +70,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # Load the data from fortran routine
     #=======================================================================================
     def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
-                    update=False,variables=[]):
+                    nmaxcells=0,update=False,variables=[]):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -108,7 +110,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         self.info["nout"     ] = nout
         
         print(divider)
-        print("Computing memory requirements")
         
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
@@ -156,11 +157,13 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # This calls the Fortran data reader and returns the values into the data1 array.
         # First a quick scan is made to count how much memory is needed.
-        [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax,xc,yc,zc,dx,dy,dz,\
+        if nmaxcells == 0:
+            print("Computing memory requirements")
+            [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax,xc,yc,zc,dx,dy,dz,\
                           conf.constants[scale],self.info["unit_d"],self.info["unit_l"],self.info["unit_t"])
-        if fail: # Clean exit if the file was not found
-            print(divider)
-            return 0
+            if fail: # Clean exit if the file was not found
+                print(divider)
+                return 0
         
         # It then reads in the full hydro data, selecting only the necessary cells.
         [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,\
