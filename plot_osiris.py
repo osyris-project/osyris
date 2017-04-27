@@ -33,7 +33,7 @@ class OsirisData:
                        cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
                        scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
-                       clear=True,plot=True):
+                       clear=True,plot=True,block=False):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -193,7 +193,7 @@ class OsirisData:
             elif axes:
                 pass
             else:
-                plt.show(block=False)
+                plt.show(block=block)
 
         if copy:
             return x,y,z
@@ -222,7 +222,7 @@ class OsirisData:
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True,plot=True,center=False):
+                   vkey=True,plot=True,center=False,block=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -446,7 +446,7 @@ class OsirisData:
             elif axes:
                 pass
             else:
-                plt.show(block=False)
+                plt.show(block=block)
         
         if copy:
             if vec and stream:
