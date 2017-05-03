@@ -319,16 +319,15 @@ class OsirisData:
                         z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)
         
         # Compute z averages
-        zb[np.where(zb == 0.0)] = 1.0
-        z = za/zb
+        z = np.ma.masked_where(zb < 1.0, za/zb)
         if vec:
-            u1 = u1/zb
-            v1 = v1/zb
-            w1 = z1/zb
+            u1 = np.ma.masked_where(zb < 1.0, u1/zb)
+            v1 = np.ma.masked_where(zb < 1.0, v1/zb)
+            w1 = np.ma.masked_where(zb < 1.0, z1/zb)
         if stream:
-            u2 = u2/zb
-            v2 = v2/zb
-            w2 = z2/zb
+            u2 = np.ma.masked_where(zb < 1.0, u2/zb)
+            v2 = np.ma.masked_where(zb < 1.0, v2/zb)
+            w2 = np.ma.masked_where(zb < 1.0, z2/zb)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
