@@ -366,23 +366,23 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
   integer :: nx,ny,nz,ilevel,nlevelmax,lmax,ind,ipos,ngrida
   integer :: ngridmax,icpu,ncpu_read,ix,iy,iz
   integer, dimension(:  ), allocatable :: cpu_list
-  integer, dimension(:,:), allocatable :: son,ngridfile,ngridlevel,ngridbound
+  integer, dimension(:,:), allocatable :: ngridfile,ngridlevel,ngridbound
   
-  real*8 :: xmin,xmax,ymin,ymax,zmin,zmax,boxlen,dx,dx2
-  real*8, dimension(:,:    ), allocatable :: x,xg
-  real*8, dimension(1:8,1:3)              :: xc
-  real*8, dimension(    1:3)              :: xbound
+  real*8 :: boxlen,dx,dx2,xmin,xmax,ymin,ymax,zmin,zmax
+  real*8 :: x1,x2,y1,y2,z1,z2
+  real*8, dimension(:,:), allocatable :: xg
+  real*8, dimension(1:3)              :: xbound
   
   character(LEN=5  ) :: nchar,ncharcpu
   character(LEN=50 ) :: string
   character(LEN=128) :: nomfich,repository
   
   logical :: ok,ok_cell
-  logical, dimension(:), allocatable :: ref
   
   !=============================================================================
 
   failed = .false.
+  nmaxcells = 0
   lmax = lmax2
   repository = trim(infile)
   xmin=0.0d0
@@ -392,7 +392,7 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
   zmin=0.0d0
   zmax=1.0d0
   xbound=(/0.0d0,0.0d0,0.0d0/)
-
+  
   !-----------------------------------------------
   ! Reading RAMSES data
   !-----------------------------------------------
@@ -423,7 +423,7 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
   allocate(ngridfile(1:ncpu+nboundary,1:nlevelmax))
   allocate(ngridlevel(1:ncpu,1:nlevelmax))
   if(nboundary>0)allocate(ngridbound(1:nboundary,1:nlevelmax))
-  allocate(cpu_list(1:ncpu))
+  allocate(cpu_list(1:ncpu),xg(1:ngridmax,1:3))
   
   !-----------------------
   ! Map parameters
@@ -449,8 +449,6 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
      zmax = zcenter + 0.5d0*deltaz*lscale/(boxlen*ul)
   endif
   
-  nmaxcells = 0
-
   do k=1,ncpu_read
   
      icpu=cpu_list(k)
@@ -483,28 +481,7 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
      ! Loop over levels
      do ilevel=1,lmax
      
-        ! Geometry
-        dx=0.5d0**ilevel
-        dx2=0.5d0*dx
-        do ind=1,twotondim
-           iz=(ind-1)/4
-           iy=(ind-1-4*iz)/2
-           ix=(ind-1-2*iy-4*iz)
-           xc(ind,1)=(dble(ix)-0.5d0)*dx
-           xc(ind,2)=(dble(iy)-0.5d0)*dx
-           xc(ind,3)=(dble(iz)-0.5d0)*dx
-        end do
-
-!       Allocate work arrays
         ngrida=ngridfile(icpu,ilevel)
-        if(ngrida>0)then
-           allocate(xg (1:ngrida,1:3))
-           allocate(son(1:ngrida,1:twotondim))
-           allocate(x  (1:ngrida,1:3))
-           allocate(ref(1:ngrida))
-           x  = 0.0d0
-           xg = 0.0d0
-        endif
 
         ! Loop over domains
         do j=1,nboundary+ncpu
@@ -517,7 +494,7 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
               ! Read grid center
               do n=1,ndim
                  if(j.eq.icpu)then
-                    read(10)xg(:,n)
+                    read(10)xg(1:ngrida,n)
                  else
                     read(10)
                  endif
@@ -526,13 +503,9 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
               do ind=1,2*ndim
                  read(10) ! Skip nbor index
               end do
-              ! Read son index
+              ! Skip son index
               do ind=1,twotondim
-                 if(j.eq.icpu)then
-                    read(10)son(:,ind)
-                 else
-                    read(10)
-                 end if
+                 read(10)
               end do
               ! Skip cpu map
               do ind=1,twotondim
@@ -550,36 +523,25 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
         if(ngrida>0)then
         
            active_lmax = ilevel
-
-           ! Loop over cells
-           do ind=1,twotondim
-
-              ! Compute cell center
-              do i=1,ngrida
-                 do n = 1,ndim
-                    x(i,n)=(xg(i,n)+xc(ind,n)-xbound(n))
-                 enddo
-              end do
-              ! Check if cell is refined
-              do i=1,ngrida
-                 ref(i)=son(i,ind)>0.and.ilevel<lmax
-              end do
-              ! Store data cube
-              do i=1,ngrida
-                ok_cell= .not.ref(i).and. &
-                     & (x(i,1)+dx2)>=xmin.and.&
-                     & (x(i,2)+dx2)>=ymin.and.&
-                     & (x(i,3)+dx2)>=zmin.and.&
-                     & (x(i,1)-dx2)<=xmax.and.&
-                     & (x(i,2)-dx2)<=ymax.and.&
-                     & (x(i,3)-dx2)<=zmax
-
-                 if(ok_cell) nmaxcells = nmaxcells + 1
-                 
-              enddo
-           enddo
            
-           deallocate(xg,son,ref,x)
+           x1 = minval(xg(1:ngrida,1))-xbound(1)
+           y1 = minval(xg(1:ngrida,2))-xbound(2)
+           z1 = minval(xg(1:ngrida,3))-xbound(3)
+           x2 = maxval(xg(1:ngrida,1)+2.0d0*dx)-xbound(1)
+           y2 = maxval(xg(1:ngrida,2)+2.0d0*dx)-xbound(2)
+           z2 = maxval(xg(1:ngrida,3)+2.0d0*dx)-xbound(3)
+           
+           ok_cell = .true.
+           if( (x1 .gt. xmax) .or.&
+             & (x2 .lt. xmin) .or.&
+             & (y1 .gt. ymax) .or.&
+             & (y2 .lt. ymin) .or.&
+             & (z1 .gt. zmax) .or.&
+             & (z2 .lt. zmin) )then
+              ok_cell = .false.
+           endif
+           
+           if(ok_cell) nmaxcells = nmaxcells + ngrida*twotondim
            
         endif
 
@@ -590,7 +552,7 @@ subroutine quick_amr_scan(infile,lmax2,xcenter,ycenter,zcenter,deltax,deltay,del
 
   end do
   ! End loop over cpus
-  
+
   return
 
 end subroutine quick_amr_scan

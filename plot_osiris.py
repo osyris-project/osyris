@@ -455,3 +455,117 @@ class OsirisData:
                 return x,y,z
         else:
             return
+        
+    #=======================================================================================
+    # Plot a 1D profile through the data cube.
+    #=======================================================================================
+    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,axes=None,\
+                     cmap=None,copy=False,xmin=None,xmax=None,ymin=None,\
+                     ymax=None,new_window=False,update=None,\
+                     marker=None,iskip=1,color="b",cbar=True,\
+                     clear=True,plot=True):
+        
+        # Possibility of updating the data from inside the plotting routines
+        try:
+            update += 0
+            self.update_values(nout=update)
+        except TypeError:
+            pass
+                
+        # Get the data values and units
+        datax  = self.data[direction]["values"]
+        datay  = self.data[var]["values"]
+        xlabel = self.data[direction]["label"]+" ["+self.data[direction]["unit"]+"]"
+        ylabel = self.data[var]["label"]+" ["+self.data[var]["unit"]+"]"
+        #if var_z:
+            #dataz  = self.data[var_z]["values"]
+            #zlabel = self.data[var_z]["label"]
+        
+        # Define plotting range
+        autoxmin = False
+        autoxmax = False
+        autoymin = False
+        autoymax = False
+        
+        try:
+            xmin += 0
+        except TypeError:
+            xmin = np.amin(datax)
+            autoxmin = True
+        try:
+            xmax += 0
+        except TypeError:
+            xmax = np.amax(datax)
+            autoxmax = True
+        try:
+            ymin += 0
+        except TypeError:
+            ymin = np.amin(datay)
+            autoymin = True
+        try:
+            ymax += 0
+        except TypeError:
+            ymax = np.amax(datay)
+            autoymax = True
+        
+        # Select only the cells in contact with the profile line
+        dirs = "xyz".replace(direction,"")
+        cube = np.where(np.logical_and(datax-0.5*self.data["dx"]["values"] <= xmax,\
+                        np.logical_and(datax+0.5*self.data["dx"]["values"] >= xmin,\
+                        np.logical_and(abs(self.data[dirs[0]]["values"]-eval(dirs[0])) <= 0.51*self.data["dx"]["values"],\
+                                       abs(self.data[dirs[1]]["values"]-eval(dirs[1])) <= 0.51*self.data["dx"]["values"]))))
+        order = datax[cube].argsort()
+        x = datax[cube][order]
+        y = datay[cube][order]
+        if var_z:
+            z  = self.data[var_z]["values"][cube][order]
+            zlabel = self.data[var_z]["label"]
+        
+        dx = xmax-xmin
+        dy = ymax-ymin
+        if autoxmin:
+            xmin = xmin - 0.05*dx
+        if autoxmax:
+            xmax = xmax + 0.05*dx
+        if autoymin:
+            ymin = ymin - 0.05*dy
+        if autoymax:
+            ymax = ymax + 0.05*dy
+        
+        # Begin plotting -------------------------------------
+        if plot:
+            if axes:
+                theAxes = axes
+            elif new_window:
+                plt.figure()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            else:
+                if clear:
+                    plt.clf()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            
+            theAxes.plot(x,y,marker=marker)
+                            
+            theAxes.set_xlabel(xlabel)
+            theAxes.set_ylabel(ylabel)
+            if clear:
+                theAxes.set_xlim([xmin,xmax])
+                theAxes.set_ylim([ymin,ymax])
+            else:
+                theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+                theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+            if fname:
+                plt.savefig(fname,bbox_inches="tight")
+            elif axes:
+                pass
+            else:
+                plt.show(block=False)
+
+        if copy:
+            return x,y,z
+        else:
+            return
+
+
