@@ -187,7 +187,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=data1[:nn,i]*norm)
+            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=data1[:nn,i]*norm,verbose=False)
         
         # Re-center the mesh around chosen center
         self.re_center()
@@ -398,7 +398,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=False,values=[]):
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[]):
         
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
