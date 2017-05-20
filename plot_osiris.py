@@ -290,7 +290,7 @@ class OsirisData:
         celldx = self.data["dx"]["values"][cube]
         
         # Project coordinates onto the plane by taking dot product with axes vectors
-        coords = np.transpose([self.data["x"]["values"][cube],self.data["y"]["values"][cube],self.data["z"]["values"][cube]])
+        coords = np.transpose([self.data["x"]["values"][cube]-origin[0],self.data["y"]["values"][cube]-origin[1],self.data["z"]["values"][cube]-origin[2]])
         datax = np.inner(coords,dir2)
         datay = np.inner(coords,dir3)
         # Now project vectors and streamlines using the same method
