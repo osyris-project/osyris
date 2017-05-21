@@ -214,11 +214,12 @@ class OsirisData:
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=None,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
+                   dx=None,dy=0.0,dz=0.0,cmap=None,axes=None,resolution=128,copy=False,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True,plot=True,center=False,block=False,origin=[0,0,0]):
+                   vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
+                   summed=False,vsum=False,ssum=False,logz=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -240,12 +241,13 @@ class OsirisData:
             dir_x = "y"
             dir_y = "z"
             dir1 = [1,0,0]
-        else:
+        elif len(direction) == 3:
             dir_x = "x"
             dir_y = "y"
             dir1 = direction
-            #print("Bad direction for slice")
-            #return
+        else:
+            print("Bad direction for slice")
+            return
         
         # Set dx to whole box if not specified
         try:
@@ -271,7 +273,7 @@ class OsirisData:
              / np.sqrt(a**2 + b**2 + c**2)
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-        cube = np.where(abs(dist) <= sqrt3*0.5*self.data["dx"]["values"])
+        cube = np.where(abs(dist) <= sqrt3*0.5*self.data["dx"]["values"]+0.5*dz)
         
         # Choose 2 vectors normal to the direction n and normal to each other
         if a == b == 0:
@@ -353,15 +355,30 @@ class OsirisData:
                         z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)
         
         # Compute z averages
-        z = np.ma.masked_where(zb < 1.0, za/zb)
+        if summed:
+            z = np.ma.masked_where(zb < 1.0, za)
+        else:
+            z = np.ma.masked_where(zb < 1.0, za/zb)
+        if logz:
+            z = np.log10(z)
         if vec:
-            u1 = np.ma.masked_where(zb < 1.0, u1/zb)
-            v1 = np.ma.masked_where(zb < 1.0, v1/zb)
-            w1 = np.ma.masked_where(zb < 1.0, z1/zb)
+            if vsum:
+                u1 = np.ma.masked_where(zb < 1.0, u1)
+                v1 = np.ma.masked_where(zb < 1.0, v1)
+                w1 = np.ma.masked_where(zb < 1.0, z1)
+            else:
+                u1 = np.ma.masked_where(zb < 1.0, u1/zb)
+                v1 = np.ma.masked_where(zb < 1.0, v1/zb)
+                w1 = np.ma.masked_where(zb < 1.0, z1/zb)
         if stream:
-            u2 = np.ma.masked_where(zb < 1.0, u2/zb)
-            v2 = np.ma.masked_where(zb < 1.0, v2/zb)
-            w2 = np.ma.masked_where(zb < 1.0, z2/zb)
+            if ssum:
+                u2 = np.ma.masked_where(zb < 1.0, u2)
+                v2 = np.ma.masked_where(zb < 1.0, v2)
+                w2 = np.ma.masked_where(zb < 1.0, z2)
+            else:
+                u2 = np.ma.masked_where(zb < 1.0, u2/zb)
+                v2 = np.ma.masked_where(zb < 1.0, v2/zb)
+                w2 = np.ma.masked_where(zb < 1.0, z2/zb)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
