@@ -218,7 +218,7 @@ class OsirisData:
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True,plot=True,center=False,block=False):
+                   vkey=True,plot=True,center=False,block=False,origin=[0,0,0]):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -231,15 +231,21 @@ class OsirisData:
         if direction == "z":
             dir_x = "x"
             dir_y = "y"
+            dir1 = [0,0,1]
         elif direction == "y":
             dir_x = "x"
             dir_y = "z"
+            dir1 = [0,1,0]
         elif direction == "x":
             dir_x = "y"
             dir_y = "z"
+            dir1 = [1,0,0]
         else:
-            print("Bad direction for slice")
-            return
+            dir_x = "x"
+            dir_y = "y"
+            dir1 = direction
+            #print("Bad direction for slice")
+            #return
         
         # Set dx to whole box if not specified
         try:
@@ -249,25 +255,53 @@ class OsirisData:
         # Make it possible to call with only one size in the arguments
         if dy == 0.0:
             dy = dx
-
-        # Select only the cells in contact with the slice
-        cube = np.where(np.logical_and(self.data[dir_x]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dx,\
-                        np.logical_and(self.data[dir_x]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dx,\
-                        np.logical_and(self.data[dir_y]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dy,\
-                        np.logical_and(self.data[dir_y]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dy,\
-                               abs(self.data[direction]["values"]) <= 0.51*self.data["dx"]["values"])))))
         
-        datax = self.data[dir_x]["values"][cube]
-        datay = self.data[dir_y]["values"][cube]
-        dataz = self.data[var  ]["values"][cube]
-        if vec:
-            datau1 = self.data[vec+"_"+dir_x]["values"][cube]
-            datav1 = self.data[vec+"_"+dir_y]["values"][cube]
-        if stream:
-            datau2 = self.data[stream+"_"+dir_x]["values"][cube]
-            datav2 = self.data[stream+"_"+dir_y]["values"][cube]
+        norm1 = np.linalg.norm(dir1)
+        dir1 = dir1/norm1
+        
+        # Define equation of a plane
+        a = dir1[0]
+        b = dir1[1]
+        c = dir1[2]
+        d = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+        
+        sqrt3 = np.sqrt(3.0)
+        
+        dist = (a*self.data["x"]["values"]+b*self.data["y"]["values"]+c*self.data["z"]["values"]+d) \
+             / np.sqrt(a**2 + b**2 + c**2)
+
+        # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
+        cube = np.where(abs(dist) <= sqrt3*0.5*self.data["dx"]["values"])
+        
+        # Choose 2 vectors normal to the direction n and normal to each other
+        if a == b == 0:
+            dir2 = [-c,0,a]
+        else:
+            dir2 = [-b,a,0]
+        dir3 = np.cross(dir1,dir2)
+        
+        norm2 = np.linalg.norm(dir2)
+        norm3 = np.linalg.norm(dir3)
+        dir2 = dir2 / norm2
+        dir3 = dir3 / norm3
+                
+        dataz = self.data[var]["values"][cube]
+        ncells = np.shape(dataz)[0]
         celldx = self.data["dx"]["values"][cube]
-        ncells = np.shape(datax)[0]
+        
+        # Project coordinates onto the plane by taking dot product with axes vectors
+        coords = np.transpose([self.data["x"]["values"][cube]-origin[0],self.data["y"]["values"][cube]-origin[1],self.data["z"]["values"][cube]-origin[2]])
+        datax = np.inner(coords,dir2)
+        datay = np.inner(coords,dir3)
+        # Now project vectors and streamlines using the same method
+        if vec:
+            vectors = np.transpose([self.data[vec+"_x"]["values"][cube],self.data[vec+"_y"]["values"][cube],self.data[vec+"_z"]["values"][cube]])
+            datau1 = np.inner(vectors,dir2)
+            datav1 = np.inner(vectors,dir3)
+        if stream:
+            streams = np.transpose([self.data[stream+"_x"]["values"][cube],self.data[stream+"_y"]["values"][cube],self.data[stream+"_z"]["values"][cube]])
+            datau2 = np.inner(streams,dir2)
+            datav2 = np.inner(streams,dir3)
         
         # Define slice extent and resolution
         xmin = -0.5*dx
@@ -293,10 +327,10 @@ class OsirisData:
         
         # Loop through all data cells and find extent covered by the current cell size
         for n in range(ncells):
-            x1 = datax[n]-0.5*celldx[n]
-            x2 = datax[n]+0.5*celldx[n]
-            y1 = datay[n]-0.5*celldx[n]
-            y2 = datay[n]+0.5*celldx[n]
+            x1 = datax[n]-0.5*celldx[n]*sqrt3
+            x2 = datax[n]+0.5*celldx[n]*sqrt3
+            y1 = datay[n]-0.5*celldx[n]*sqrt3
+            y2 = datay[n]+0.5*celldx[n]*sqrt3
             
             # Find the indices of the slice pixels which are covered by the current cell
             ix1 = max(int((x1-xmin)/dpx),0)
@@ -566,4 +600,5 @@ class OsirisData:
             return x,y,z
         else:
             return
+
 
