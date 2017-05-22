@@ -307,27 +307,27 @@ class OsirisData:
             # Fill in the slice pixels with data
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
-                    za[j,i] = za[j,i] + dataz[n]
-                    zb[j,i] = zb[j,i] + 1.0
+                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                    zb[j,i] = zb[j,i] + celldx[n]
                     if vec:
-                        u1[j,i] = u1[j,i] + datau1[n]
-                        v1[j,i] = v1[j,i] + datav1[n]
-                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)
+                        u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
+                        v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
+                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
                     if stream:
-                        u2[j,i] = u2[j,i] + datau2[n]
-                        v2[j,i] = v2[j,i] + datav2[n]
-                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)
+                        u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
+                        v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
+                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
         
         # Compute z averages
-        z = np.ma.masked_where(zb < 1.0, za/zb)
+        z = np.ma.masked_where(zb == 0.0, za/zb)
         if vec:
-            u1 = np.ma.masked_where(zb < 1.0, u1/zb)
-            v1 = np.ma.masked_where(zb < 1.0, v1/zb)
-            w1 = np.ma.masked_where(zb < 1.0, z1/zb)
+            u1 = np.ma.masked_where(zb == 0.0, u1/zb)
+            v1 = np.ma.masked_where(zb == 0.0, v1/zb)
+            w1 = np.ma.masked_where(zb == 0.0, z1/zb)
         if stream:
-            u2 = np.ma.masked_where(zb < 1.0, u2/zb)
-            v2 = np.ma.masked_where(zb < 1.0, v2/zb)
-            w2 = np.ma.masked_where(zb < 1.0, z2/zb)
+            u2 = np.ma.masked_where(zb == 0.0, u2/zb)
+            v2 = np.ma.masked_where(zb == 0.0, v2/zb)
+            w2 = np.ma.masked_where(zb == 0.0, z2/zb)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
