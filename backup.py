@@ -1,4 +1,5 @@
 import numpy as np
+import osiris_common
 import config_osiris as conf
 import matplotlib.pyplot as plt
 
@@ -6,7 +7,7 @@ import matplotlib.pyplot as plt
 # This is a dummy class which gives access to the plotting functions to the other
 # classes through inheritance.
 #=======================================================================================
-class OsirisData:
+class OsirisData(osiris_common.OsirisCommon):
      
     def __init__(self):
                 

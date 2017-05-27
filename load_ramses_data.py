@@ -1,7 +1,7 @@
 import numpy as np
+import struct
 import glob
 import plot_osiris
-import read_ramses_data as rd
 import config_osiris as conf
 
 divider = "============================================"
@@ -28,11 +28,11 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #           and "pc"
     #===================================================================================
     def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,\
-                 nmaxcells=0,path="",variables=[]):
+                 path="",variables=[]):
                 
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
-                 nmaxcells=nmaxcells,path=path,variables=variables)
+                 path=path,variables=variables)
         
         if status == 0:
             return
@@ -52,7 +52,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #=======================================================================================
     # Generate the file name
     #=======================================================================================
-    def generate_fname(self,nout,path=""):
+    def generate_fname(self,nout,path="",ftype="",cpuid=1):
         
         if len(path) > 0:
             if path[-1] != "/":
@@ -60,9 +60,13 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         if nout == -1:
             filelist = sorted(glob.glob(path+"output*"))
-            infile = filelist[-1]
+            number = filelist[-1].split("_")[-1]
         else:
-            infile = path+"output_"+str(nout).zfill(5)
+            number = str(nout).zfill(5)
+
+        infile = path+"output_"+number
+        if len(ftype) > 0:
+            infile = infile+"/"+ftype+"_"+number+".out"+str(cpuid).zfill(5)
             
         return infile
     
@@ -70,7 +74,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # Load the data from fortran routine
     #=======================================================================================
     def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
-                    nmaxcells=0,update=False,variables=[]):
+                    update=False,variables=[]):
         
         # Generate filename from output number
         infile = self.generate_fname(nout,path)
@@ -134,18 +138,22 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     self.info["nvar"] = int(sp[1].strip())
                     break
         # Now go through all the variables and check if they are to be read or skipped
-        var_read = ""
+        var_read = np.ones([self.info["nvar"]+5],dtype=np.bool)
         list_vars = []
+        ivar = 0
         for line in content:
             sp = line.split(":")
             if len(sp) > 1:
                 if (len(variables) == 0) or (variables.count(sp[1].strip()) > 0):
-                    var_read += "1 "
+                    #var_read += "1 "
+                    var_read[ivar] = True
                     list_vars.append(sp[1].strip())
                 else:
-                    var_read += "0 "
+                    var_read[ivar] = False
+                ivar += 1
+                
         # Make sure we always read the coordinates
-        var_read += "1 1 1 1 1 "
+        #var_read += "1 1 1 1 1 "
         list_vars.extend(("level","x","y","z","dx"))
         nvar_read = len(list_vars)
         
@@ -155,27 +163,264 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # Find the center
         xc,yc,zc = self.find_center(dx,dy,dz)
         
-        # This calls the Fortran data reader and returns the values into the data1 array.
-        # First a quick scan is made to count how much memory is needed.
-        if nmaxcells == 0:
-            print("Computing memory requirements")
-            [active_lmax,nmaxcells,fail] = rd.quick_amr_scan(infile,lmax,xc,yc,zc,dx,dy,dz,\
-                          conf.constants[scale],self.info["unit_d"],self.info["unit_l"],self.info["unit_t"])
-            if fail: # Clean exit if the file was not found
-                print(divider)
-                return 0
+        # Now read the amr and hydro files =============================================
+        # We have to open the files in binary format, and count all the bytes in the ===
+        # file structure to extract just the data we need. =============================
+        # See output_amr.f90 and output_hydro.f90 in the RAMSES source. ================
+        #print type(self.info["ncpu"])
+        print("Processing %i files in " % (self.info["ncpu"]) + infile)
         
-        # It then reads in the full hydro data, selecting only the necessary cells.
-        [data1,nn,fail] = rd.ramses_data(infile,nmaxcells,nvar_read,lmax,var_read,xc,yc,zc,dx,dy,dz,\
-                          conf.constants[scale],self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],False)
-        if fail: # Clean exit if the file was not found
-            print(divider)
-            return 0
+        # Define the size of the region to be read
+        lconvert = conf.constants[scale]/(self.info["boxlen"]*self.info["unit_l"])
+        if dx > 0.0:
+            xmin = xc - 0.5*dx*lconvert
+            xmax = xc + 0.5*dx*lconvert
+        else:
+            xmin = 0.0
+            xmax = 1.0
+        if dy > 0.0:
+            ymin = yc - 0.5*dy*lconvert
+            ymax = yc + 0.5*dy*lconvert
+        else:
+            ymin = 0.0
+            ymax = 1.0
+        if dz > 0.0:
+            zmin = zc - 0.5*dz*lconvert
+            zmax = zc + 0.5*dz*lconvert
+        else:
+            zmin = 0.0
+            zmax = 1.0
         
+        if lmax==0:
+           lmax = self.info["levelmax"]
+        
+        xcent = np.zeros([8,3],dtype=np.float64)
+        
+        # We will store the cells in a dictionary which we build as we go along.
+        # The final concatenation into a single array will be done once at the end.
+        data_pieces = dict()
+        npieces = 0
+        
+        iprog = 1
+        istep = 10
+        ncells_tot = 0
+        
+        # Loop over the cpus and read the AMR and HYDRO files in binary format
+        for k in range(self.info["ncpu"]):
+            
+            # Print progress
+            percentage = int(float(k)*100.0/float(self.info["ncpu"]))
+            if percentage >= iprog*istep:
+                print("%3i%% : read %10i cells" % (percentage,ncells_tot))
+                iprog += 1
+            
+            # Read binary AMR file
+            amr_fname = self.generate_fname(nout,path,ftype="amr",cpuid=k+1)
+            with open(amr_fname, mode='rb') as amr_file: # b is important -> binary
+                amrContent = amr_file.read()
+            amr_file.close()
+            
+            # Read binary HYDRO file
+            hydro_fname = self.generate_fname(nout,path,ftype="hydro",cpuid=k+1)
+            with open(hydro_fname, mode='rb') as hydro_file: # b is important -> binary
+                hydroContent = hydro_file.read()
+            hydro_file.close()
+            
+            # Need to extract info from the file header on the first loop
+            if k == 0:
+            
+                # nx,ny,nz
+                ninteg = 2
+                nfloat = 0
+                nlines = 2
+                nstrin = 0
+                nquadr = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                [nx,ny,nz] = struct.unpack("3i", amrContent[offset:offset+12])
+                ncoarse = nx*ny*nz
+                
+                # nboundary
+                ninteg = 7
+                nfloat = 0
+                nlines = 5
+                nstrin = 0
+                nquadr = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                nboundary = struct.unpack("i", amrContent[offset:offset+4])[0]
+                
+                twotondim = 2**self.info["ndim"]
+                xbound = [float(nx/2),float(ny/2),float(nz/2)]
+                
+                # noutput
+                ninteg = 9
+                nfloat = 1
+                nlines = 8
+                nstrin = 0
+                nquadr = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                noutput = struct.unpack("i", amrContent[offset:offset+4])[0]
+            
+            # Read the number of grids
+            ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
+            nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
+            nlines = 21
+            nstrin = 0
+            nquadr = 0
+            offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+            ngridlevel = np.asarray(struct.unpack("%ii"%(self.info["ncpu"]*self.info["levelmax"]), amrContent[offset:offset+4*self.info["ncpu"]*self.info["levelmax"]])).reshape(self.info["levelmax"],self.info["ncpu"]).T
+            
+            # Read boundary grids if any
+            if nboundary > 0:
+                ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(2*nboundary*self.info["levelmax"])
+                nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
+                nlines = 25
+                nstrin = 0
+                nquadr = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                ngridbound = np.asarray(struct.unpack("%ii"%(nboundary*self.info["levelmax"]), amrContent[offset:offset+4*nboundary*self.info["levelmax"]])).reshape(self.info["levelmax"],nboundary).T
+    
+            # Determine bound key precision
+            ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5
+            nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
+            nlines = 21+2+3*min(1,nboundary)+1+1
+            nstrin = 128
+            nquadr = 0
+            offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16
+            key_size = struct.unpack("i", amrContent[offset:offset+4])[0]
+            
+            # Offset for AMR
+            ninteg1 = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5+3*ncoarse
+            nfloat1 = 18+(2*noutput)+(2*self.info["levelmax"])
+            nlines1 = 21+2+3*min(1,nboundary)+1+1+1+3
+            nstrin1 = 128 + key_size
+            
+            # Offset for HYDRO
+            ninteg2 = 5
+            nfloat2 = 1
+            nlines2 = 6
+            nstrin2 = 0
+                
+            # Loop over levels
+            for ilevel in range(lmax):
+                
+                # Geometry
+                dxcell=0.5**(ilevel+1)
+                dx2=0.5*dxcell
+                for ind in range(twotondim):
+                    iz=(ind)/4
+                    iy=(ind-4*iz)/2
+                    ix=(ind-2*iy-4*iz)
+                    xcent[ind,0]=(float(ix)-0.5)*dxcell
+                    xcent[ind,1]=(float(iy)-0.5)*dxcell
+                    xcent[ind,2]=(float(iz)-0.5)*dxcell
+                
+                # Cumulative offsets in AMR file
+                ninteg = ninteg1
+                nfloat = nfloat1
+                nlines = nlines1
+                nstrin = nstrin1
+                
+                # Cumulative offsets in HYDRO file
+                ninteg_hydro = ninteg2
+                nfloat_hydro = nfloat2
+                nlines_hydro = nlines2
+                nstrin_hydro = nstrin2
+                                
+                # Loop over domains
+                for j in range(nboundary+self.info["ncpu"]):
+                    
+                    ncache = ngridlevel[j,ilevel]
+                    
+                    # Skip two lines of integers
+                    nlines_hydro += 2
+                    ninteg_hydro += 2
+                    
+                    if ncache > 0:
+                    
+                        if j == k:
+                            # xg: grid coordinates
+                            ninteg0 = ninteg + ncache*3
+                            nfloat0 = nfloat
+                            nlines0 = nlines + 3
+                            nstrin0 = nstrin
+                            xg = np.zeros([ncache,3],dtype=np.float64)
+                            for n in range(self.info["ndim"]):
+                                offset = 4*ninteg0 + 8*(nlines0+nfloat0+n*(ncache+1)) + nstrin0 + 4
+                                xg[:,n] = struct.unpack("%id"%(ncache), amrContent[offset:offset+8*ncache])
+                                
+                            # son indices
+                            ninteg0 = ninteg + ncache*(4+2*self.info["ndim"])
+                            nfloat0 = nfloat + ncache*self.info["ndim"]
+                            nlines0 = nlines + 4 + 3*self.info["ndim"]
+                            nstrin0 = nstrin
+                            son = np.zeros([ncache,twotondim],dtype=np.int32)
+                            var = np.zeros([ncache,twotondim,nvar_read],dtype=np.float64)
+                            xyz = np.zeros([ncache,twotondim,self.info["ndim"]],dtype=np.float64)
+                            ref = np.zeros([ncache,twotondim],dtype=np.bool)
+                            for ind in range(twotondim):
+                                offset = 4*(ninteg0+ind*ncache) + 8*(nlines0+nfloat0+ind) + nstrin0 + 4
+                                son[:,ind] = struct.unpack("%ii"%(ncache), amrContent[offset:offset+4*ncache])
+                                # var: hydro variables
+                                jvar = 0
+                                for ivar in range(self.info["nvar"]):
+                                    if var_read[ivar]:
+                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar"]+ivar)*(ncache+1)) + nstrin_hydro + 4
+                                        var[:,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
+                                        jvar += 1
+                                var[:,ind,-5] = float(ilevel+1)
+                                for n in range(self.info["ndim"]):
+                                    xyz[:,ind,n] = xg[:,n] + xcent[ind,n]-xbound[n]
+                                    var[:,ind,-4+n] = xyz[:,ind,n]*self.info["boxlen"]
+                                var[:,ind,-1] = dxcell*self.info["boxlen"]
+                                # ref: True if the cell is unrefined
+                                ref[:,ind] = np.logical_not(np.logical_and(son[:,ind] > 0,ilevel < lmax))
+                            
+                            # Select only the unrefined cells that are in the region of interest
+                            cube = np.where(np.logical_and(ref, \
+                                            np.logical_and((xyz[:,:,0]+dx2)>=xmin, \
+                                            np.logical_and((xyz[:,:,1]+dx2)>=ymin, \
+                                            np.logical_and((xyz[:,:,2]+dx2)>=zmin, \
+                                            np.logical_and((xyz[:,:,0]-dx2)<=xmax, \
+                                            np.logical_and((xyz[:,:,1]-dx2)<=ymax, \
+                                                           (xyz[:,:,2]-dx2)<=zmax)))))))
+                            
+                            cells = var[cube]
+                            ncells = np.shape(cells)[0]
+                            if ncells > 0:
+                                ncells_tot += ncells
+                                npieces += 1
+                                # Add the cells in the master dictionary
+                                data_pieces["piece"+str(npieces)] = cells
+                                
+                                
+                        # Now increment the offsets while looping through the domains
+                        ninteg += ncache*(4+3*twotondim+2*self.info["ndim"])
+                        nfloat += ncache*self.info["ndim"]
+                        nlines += 4 + 3*twotondim + 3*self.info["ndim"]
+                        
+                        nfloat_hydro += ncache*twotondim*self.info["nvar"]
+                        nlines_hydro += twotondim*self.info["nvar"]
+                
+                # Now increment the offsets while looping through the levels
+                ninteg1 = ninteg
+                nfloat1 = nfloat
+                nlines1 = nlines
+                nstrin1 = nstrin
+                
+                ninteg2 = ninteg_hydro
+                nfloat2 = nfloat_hydro
+                nlines2 = nlines_hydro
+                nstrin2 = nstrin_hydro
+        
+        # Merge all the data pieces into the master data array
+        master_data_array = np.concatenate(data_pieces.values(), axis=0)
+        
+        print("Total number of cells loaded: %i" % ncells_tot)
+        print("Memory used: %.2f Mb" % (master_data_array.nbytes/1.0e6))
         print("Generating data structure... please wait")
         
         # Store the number of cells
-        self.info["ncells"] = nn
+        self.info["ncells"] = ncells_tot
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
@@ -187,13 +432,13 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=data1[:nn,i]*norm,verbose=False)
+            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=master_data_array[:,i]*norm,verbose=False)
         
         # Re-center the mesh around chosen center
         self.re_center()
 
         return 1
-    
+        
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
@@ -393,90 +638,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         return
             
     #=======================================================================================
-    # The new field function is used to create a new data field. Say you want to take the
-    # log of the density. You create a new field by calling:
-    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
-    # The operation string is then evaluated using the 'eval' function.
-    #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[]):
-        
-        if (len(operation) == 0) and (len(values) > 0):
-            new_data = values
-            op_parsed = operation
-            depth = -1
-        else:
-            [op_parsed,depth] = self.parse_operation(operation)
-            try:
-                new_data = eval(op_parsed)
-            except NameError:
-                if verbose:
-                    print("Error parsing operation when trying to create variable: "+name)
-                    print("The attempted operation was: "+op_parsed)
-                return
-        self.data[name] = dict()
-        self.data[name]["values"   ] = new_data
-        self.data[name]["unit"     ] = unit
-        self.data[name]["label"    ] = label
-        self.data[name]["operation"] = op_parsed
-        self.data[name]["depth"    ] = depth+1
-        
-        return
-    
-    #=======================================================================================
-    # The operation parser converts an operation string into an expression which contains
-    # variables from the data dictionary. If a name from the variable list, e.g. "density",
-    # is found in the operation, it is replaced by self.data["density"]["values"] so that it
-    # can be properly evaluated by the 'eval' function in the 'new_field' function.
-    #=======================================================================================
-    def parse_operation(self,operation):
-        
-        max_depth = 0
-        # Add space before and after to make it easier when searching for characters before
-        # and after
-        expression = " "+operation+" "
-        # Sort the list of variable keys in the order of the longest to the shortest.
-        # This guards against replacing 'B' inside 'logB' for example.
-        key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
-        # For replacing, we need to create a list of hash keys to replace on instance at a
-        # time
-        hashkeys  = dict()
-        hashcount = 0
-        for key in key_list:
-            # Search for all instances in string
-            loop = True
-            loc = 0
-            while loop:
-                loc = expression.find(key,loc)
-                if loc == -1:
-                    loop = False
-                else:
-                    # Check character before and after. If they are either a letter or a '_'
-                    # then the instance is actually part of another variable or function
-                    # name.
-                    char_before = expression[loc-1]
-                    char_after  = expression[loc+len(key)]
-                    bad_before = (char_before.isalpha() or (char_before == "_"))
-                    bad_after = (char_after.isalpha() or (char_after == "_"))
-                    hashcount += 1
-                    if (not bad_before) and (not bad_after):
-                        theHash = "#"+str(hashcount).zfill(5)+"#"
-                        # Store the data key in the hash table
-                        hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
-                        expression = expression.replace(key,theHash,1)
-                        max_depth = max(max_depth,self.data[key]["depth"])
-                    else:
-                        # Replace anyway to prevent from replacing "x" in "max("
-                        theHash = "#"+str(hashcount).zfill(5)+"#"
-                        hashkeys[theHash] = key
-                        expression = expression.replace(key,theHash,1)
-                    loc += 1
-        # Now go through all the hashes in the table and build the final expression
-        for theHash in hashkeys.keys():
-            expression = expression.replace(theHash,hashkeys[theHash])
-    
-        return [expression,max_depth]
-    
-    #=======================================================================================
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
@@ -576,9 +737,3 @@ class LoadRamsesData(plot_osiris.OsirisData):
             return [1.0,"K"]
         else:
             return [1.0,""]
-    
-    #=======================================================================================
-    # The function get returns the values of the selected variable
-    #=======================================================================================
-    def get(self,var):
-        return self.data[var]["values"]

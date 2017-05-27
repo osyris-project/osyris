@@ -11,7 +11,6 @@ default_values = {
     "scale"     : "au" ,
     "verbose"   : False,
     "path"      : ""   ,
-    "nmaxcells" : 0    ,
     "variables" : []   ,
     "var_names" : ["density","velocity_x","velocity_y","velocity_z","B_left_x",\
                    "B_left_y","B_left_z","B_right_x","B_right_y","B_right_z",\
