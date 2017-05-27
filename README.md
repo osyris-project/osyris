@@ -5,21 +5,7 @@ This is a small collection of python plotting scripts for RAMSES data. It is not
 
 ### Installation ###
 
-You will need matplotlib and f2py installed on your system.
-Before plotting, you must first run 'f2py' on the fortran subroutine which reads in the RAMSES data:
-
-```
-#!bash
-
-f2py -c read_ramses_data.f90 -m read_ramses_data
-```
-If you are getting an error message like 
-```
-#!bash
-
-fatal error: Python.h: No such file or directory
-```
-it probably means that you are missing the `python-dev` libraries. **Note:** if you are using python3, it could be that you need `f2py3` instead of `f2py` and `python3-dev`.
+You will need matplotlib installed on your system. Clone the Osiris repository and append its location to your PYTHONPATH.
 
 ### From within ipython ###
 
