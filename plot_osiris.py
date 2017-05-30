@@ -27,7 +27,7 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
-                       cmap=None,resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
+                       cmap="rainbow",resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
                        scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
                        clear=True,plot=True,block=False):
@@ -215,8 +215,8 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=None,dy=0.0,cmap=None,axes=None,resolution=128,copy=False,vskip=None,\
-                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
+                   dx=None,dy=0.0,cmap="rainbow",axes=None,resolution=128,copy=False,nc=20,\
+                   vskip=None,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
                    vkey=True,plot=True,center=False,block=False):
@@ -422,7 +422,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[self.sinks.keys()[0]]["radius"])
                 thickness = 0.5*np.average(celldx[subset])
                 for key in self.sinks.keys():
-                    if abs(self.sinks[key][dir_x]) <= thickness:
+                    if abs(self.sinks[key][direction]) <= thickness:
                         crad = max(self.sinks[key]["radius"],dx*0.01)
                         circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
                         circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")

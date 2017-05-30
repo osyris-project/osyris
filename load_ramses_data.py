@@ -523,7 +523,32 @@ class LoadRamsesData(plot_osiris.OsirisData):
     # The re_center function shifts the coordinates axes around a center. If center="auto"
     # then the function find the cell with the highest density.
     #=======================================================================================
-    def re_center(self):
+    def re_center(self,newcenter=None):
+        
+        try: # check if newcenter is defined
+            lc = len(newcenter)
+            self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
+            self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
+            if self.info["ndim"] > 2:
+                self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
+            
+            # Re-scale the cell and box sizes
+            self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
+            self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
+            
+            # Re-center sinks
+            if self.info["nsinks"] > 0:
+                for key in self.sinks.keys():
+                    self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                    self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                    self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                    self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
+            
+            self.info["center"] = newcenter
+        
+        except TypeError:
+            pass
+        
 
         try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
             lc = len(self.info["center"])
@@ -607,7 +632,9 @@ class LoadRamsesData(plot_osiris.OsirisData):
             list_shape = np.shape(np.shape(sinklist))[0]
             if list_shape == 1:
                 sinklist = [sinklist[:],sinklist[:]]
-            self.info["nsinks"] = np.shape(sinklist)[0]
+                self.info["nsinks"] = 1
+            else:
+                self.info["nsinks"] = np.shape(sinklist)[0]
             try:
                 r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
             except KeyError:
