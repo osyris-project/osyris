@@ -417,6 +417,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         print("Total number of cells loaded: %i" % ncells_tot)
         print("Memory used: %.2f Mb" % (master_data_array.nbytes/1.0e6))
+        if self.info["nsinks"] > 0:
+            print("Read %i sink particles" % self.info["nsinks"])
         print("Generating data structure... please wait")
         
         # Store the number of cells
@@ -579,8 +581,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # Re-center sinks
         if self.info["nsinks"] > 0:
-            for i in range(self.info["nsinks"]):
-                key = "sink"+str(i+1)
+            for key in self.sinks.keys():
                 self.sinks[key]["x"     ] = self.sinks[key]["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
                 self.sinks[key]["y"     ] = self.sinks[key]["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
                 self.sinks[key]["z"     ] = self.sinks[key]["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
@@ -606,31 +607,26 @@ class LoadRamsesData(plot_osiris.OsirisData):
             list_shape = np.shape(np.shape(sinklist))[0]
             if list_shape == 1:
                 sinklist = [sinklist[:],sinklist[:]]
-            
-            self.info["nsinks"] = int(sinklist[-1][0])
-            r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
+            self.info["nsinks"] = np.shape(sinklist)[0]
+            try:
+                r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
+            except KeyError:
+                try:
+                    r_sink = self.info["ncell_racc"]/(2.0**self.info["levelmax"])
+                except KeyError:
+                    r_sink = 4.0/(2.0**self.info["levelmax"])
             
             self.sinks = dict()
             for i in range(self.info["nsinks"]):
-                key = "sink"+str(i+1)
+                key = "sink"+str(int(sinklist[i][0]))
                 self.sinks[key] = dict()
-                self.sinks[key]["mass"    ] = sinklist[i][ 1]
-                self.sinks[key]["dmf"     ] = sinklist[i][ 2]
-                self.sinks[key]["x"       ] = sinklist[i][ 3]*self.info["unit_l"]
-                self.sinks[key]["y"       ] = sinklist[i][ 4]*self.info["unit_l"]
-                self.sinks[key]["z"       ] = sinklist[i][ 5]*self.info["unit_l"]
-                self.sinks[key]["vx"      ] = sinklist[i][ 6]
-                self.sinks[key]["vy"      ] = sinklist[i][ 7]
-                self.sinks[key]["vz"      ] = sinklist[i][ 8]
-                self.sinks[key]["period"  ] = sinklist[i][ 9]
-                self.sinks[key]["lx"      ] = sinklist[i][10]
-                self.sinks[key]["ly"      ] = sinklist[i][11]
-                self.sinks[key]["lz"      ] = sinklist[i][12]
-                self.sinks[key]["acc_rate"] = sinklist[i][13]
-                self.sinks[key]["acc_lum" ] = sinklist[i][14]
-                self.sinks[key]["age"     ] = sinklist[i][15]
-                self.sinks[key]["int_lum" ] = sinklist[i][16]
-                self.sinks[key]["Teff"    ] = sinklist[i][17]
+                j = 1
+                for entry in conf.default_values["sink_format"]:
+                    self.sinks[key][entry] = sinklist[i][j]
+                    j += 1
+                self.sinks[key]["x"] *= self.info["unit_l"]
+                self.sinks[key]["y"] *= self.info["unit_l"]
+                self.sinks[key]["z"] *= self.info["unit_l"]
                 self.sinks[key]["radius"  ] = r_sink
             
             #print("Read %i sink particles" % self.info["nsinks"])

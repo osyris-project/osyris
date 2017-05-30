@@ -230,7 +230,31 @@ class OsirisData(osiris_common.OsirisCommon):
             pass
         
         # Define x,y directions depending on the input direction
-        if direction == "z":
+        if direction.startswith("auto"):
+            view = direction.split(":")[1]
+            dir_x = "x"
+            dir_y = "y"
+            # Compute angular momentum vector
+            sphere = np.where(self.data["r"]["values"] < 0.3*dx)
+            A_x = np.sum((self.data["y"]["values"][sphere] * self.data["velocity_z"]["values"][sphere] - \
+                          self.data["z"]["values"][sphere] * self.data["velocity_y"]["values"][sphere])* \
+                          self.data["mass"]["values"][sphere])
+            A_y = np.sum((self.data["z"]["values"][sphere] * self.data["velocity_x"]["values"][sphere] - \
+                          self.data["x"]["values"][sphere] * self.data["velocity_z"]["values"][sphere])* \
+                          self.data["mass"]["values"][sphere])
+            A_z = np.sum((self.data["x"]["values"][sphere] * self.data["velocity_y"]["values"][sphere] - \
+                          self.data["y"]["values"][sphere] * self.data["velocity_x"]["values"][sphere])* \
+                          self.data["mass"]["values"][sphere])
+            if view == "top":
+                dir1 = [A_x,A_y,A_z]
+            elif view == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                if A_x == A_y == 0.0:
+                    dir1 = [-A_z,0,A_x]
+                else:
+                    dir1 = [-A_y,A_x,0]
+        
+        elif direction == "z":
             dir_x = "x"
             dir_y = "y"
             dir1 = [0,0,1]
@@ -263,24 +287,24 @@ class OsirisData(osiris_common.OsirisCommon):
         dir1 = dir1/norm1
         
         # Define equation of a plane
-        a = dir1[0]
-        b = dir1[1]
-        c = dir1[2]
-        d = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+        a_plane = dir1[0]
+        b_plane = dir1[1]
+        c_plane = dir1[2]
+        d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
         
         sqrt3 = np.sqrt(3.0)
         
-        dist = (a*self.data["x"]["values"]+b*self.data["y"]["values"]+c*self.data["z"]["values"]+d) \
-             / np.sqrt(a**2 + b**2 + c**2)
+        dist = (a_plane*self.data["x"]["values"]+b_plane*self.data["y"]["values"]+c_plane*self.data["z"]["values"]+d_plane) \
+             / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
         cube = np.where(abs(dist) <= sqrt3*0.5*self.data["dx"]["values"]+0.5*dz)
         
         # Choose 2 vectors normal to the direction n and normal to each other
-        if a == b == 0:
-            dir2 = [-c,0,a]
+        if a_plane == b_plane == 0:
+            dir2 = [-c_plane,0,a_plane]
         else:
-            dir2 = [-b,a,0]
+            dir2 = [-b_plane,a_plane,0]
         dir3 = np.cross(dir1,dir2)
         
         norm2 = np.linalg.norm(dir2)
@@ -470,15 +494,24 @@ class OsirisData(osiris_common.OsirisCommon):
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
+                div = np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
                 for key in self.sinks.keys():
-                    crad = max(self.sinks[key]["radius"],dx*0.01)
-                    circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
-                    circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
-                    circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
-                    theAxes.add_patch(circle1)
-                    theAxes.add_patch(circle2)
-                    theAxes.add_patch(circle3)
-                    sinkMasstot+=self.sinks[key]["mass"]
+                    if dz == 0.0:
+                        subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[key]["radius"])
+                        thickness = 0.5*np.average(celldx[subset])
+                    else:
+                        thickness = 0.5*dz
+                
+                    dist = (a_plane*self.sinks[key]["x"]+b_plane*self.sinks[key]["y"]+c_plane*self.sinks[key]["z"]+d_plane) / div
+                    if abs(dist) <= thickness:
+                        crad = max(self.sinks[key]["radius"],dx*0.01)
+                        circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
+                        circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
+                        circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
+                        theAxes.add_patch(circle1)
+                        theAxes.add_patch(circle2)
+                        theAxes.add_patch(circle3)
+                        sinkMasstot+=self.sinks[key]["mass"]
                 theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
 
             try:

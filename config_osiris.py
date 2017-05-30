@@ -2,21 +2,23 @@
 # Define default values so that you don't have to specify them every time.
 #===================================================================================
 default_values = {
-    "nout"      : 1    ,
-    "lmax"      : 0    ,
-    "center"    : None ,
-    "dx"        : 0.0  ,
-    "dy"        : 0.0  ,
-    "dz"        : 0.0  ,
-    "scale"     : "au" ,
-    "verbose"   : False,
-    "path"      : ""   ,
-    "variables" : []   ,
-    "var_names" : ["density","velocity_x","velocity_y","velocity_z","B_left_x",\
-                   "B_left_y","B_left_z","B_right_x","B_right_y","B_right_z",\
-                   "thermal_pressure","radiative_energy_1","passive_scalar_1",\
-                   "passive_scalar_2","passive_scalar_3","passive_scalar_4",\
-                   "temperature"]
+    "nout"        : 1    ,
+    "lmax"        : 0    ,
+    "center"      : None ,
+    "dx"          : 0.0  ,
+    "dy"          : 0.0  ,
+    "dz"          : 0.0  ,
+    "scale"       : "au" ,
+    "verbose"     : False,
+    "path"        : ""   ,
+    "variables"   : []   ,
+    "var_names"   : ["density","velocity_x","velocity_y","velocity_z","B_left_x",\
+                     "B_left_y","B_left_z","B_right_x","B_right_y","B_right_z",\
+                     "thermal_pressure","radiative_energy_1","passive_scalar_1",\
+                     "passive_scalar_2","passive_scalar_3","passive_scalar_4",\
+                     "temperature"],
+    "sink_format" : ["mass","dmf","x","y","z","vx","vy","vz","period","lx","ly",\
+                     "lz","acc_rate","acc_lum","age","int_lum","Teff"]
 }
 
 #=======================================================================================

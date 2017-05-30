@@ -419,15 +419,18 @@ class OsirisData(osiris_common.OsirisCommon):
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
+                subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[key]["radius"])
+                thickness = 0.5*np.average(celldx[subset])
                 for key in self.sinks.keys():
-                    crad = max(self.sinks[key]["radius"],dx*0.01)
-                    circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
-                    circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
-                    circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
-                    theAxes.add_patch(circle1)
-                    theAxes.add_patch(circle2)
-                    theAxes.add_patch(circle3)
-                    sinkMasstot+=self.sinks[key]["mass"]
+                    if abs(self.sinks[key][dir_x]) <= thickness:
+                        crad = max(self.sinks[key]["radius"],dx*0.01)
+                        circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
+                        circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
+                        circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
+                        theAxes.add_patch(circle1)
+                        theAxes.add_patch(circle2)
+                        theAxes.add_patch(circle3)
+                        sinkMasstot+=self.sinks[key]["mass"]
                 theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
 
             try:
