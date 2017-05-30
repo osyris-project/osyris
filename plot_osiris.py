@@ -419,7 +419,7 @@ class OsirisData(osiris_common.OsirisCommon):
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
-                subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[key]["radius"])
+                subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[self.sinks.keys()[0]]["radius"])
                 thickness = 0.5*np.average(celldx[subset])
                 for key in self.sinks.keys():
                     if abs(self.sinks[key][dir_x]) <= thickness:

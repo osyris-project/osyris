@@ -494,14 +494,13 @@ class OsirisData(osiris_common.OsirisCommon):
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
+                if dz == 0.0:
+                    subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[self.sinks.keys()[0]]["radius"])
+                    thickness = 0.5*np.average(celldx[subset])
+                else:
+                    thickness = 0.5*dz
                 div = np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
                 for key in self.sinks.keys():
-                    if dz == 0.0:
-                        subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[key]["radius"])
-                        thickness = 0.5*np.average(celldx[subset])
-                    else:
-                        thickness = 0.5*dz
-                
                     dist = (a_plane*self.sinks[key]["x"]+b_plane*self.sinks[key]["y"]+c_plane*self.sinks[key]["z"]+d_plane) / div
                     if abs(dist) <= thickness:
                         crad = max(self.sinks[key]["radius"],dx*0.01)
