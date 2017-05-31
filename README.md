@@ -18,6 +18,7 @@ mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100)
 
 ### Demo ###
 
+You can download the sample data [here](http://www.nbi.dk/~nvaytet/osiris/ramses_sample_data.tar.gz).
 
 ```
 #!python
