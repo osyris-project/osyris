@@ -1,3 +1,6 @@
+from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.pyplot as plt
+
 #===================================================================================
 # Define default values so that you don't have to specify them every time.
 #===================================================================================
@@ -32,6 +35,14 @@ constants = {
     "kyr" : 365.25*86400.0*1000.0,
     "msun": 1.9889e33
 }
+
+#=======================================================================================
+# Custom colormaps
+#=======================================================================================
+cmap1 = LinearSegmentedColormap.from_list("osiris" , ["#2b3c4e","#249593","#db6a6c","#ffffff"],N=20)
+cmap2 = LinearSegmentedColormap.from_list("osiris2", ["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"])
+plt.register_cmap(cmap=cmap1)
+plt.register_cmap(cmap=cmap2)
 
 #===================================================================================
 # Here are some additional variables that are to be computed every time data is

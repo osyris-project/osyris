@@ -27,7 +27,7 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
-                       cmap="rainbow",resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
+                       cmap="osiris",resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
                        ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
                        scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
                        clear=True,plot=True,block=False):
@@ -165,7 +165,7 @@ class OsirisData(osiris_common.OsirisCommon):
             if ((var_z or (not scatter)) and (cbar)):
                 cb = plt.colorbar(cont,ax=theAxes)
                 cb.ax.set_ylabel(zlabel)
-                cb.ax.yaxis.set_label_coords(-1.2,0.5)
+                cb.ax.yaxis.set_label_coords(-1.1,0.5)
             
             # Plot evolution (this is quite specific to star formation)
             if evol:
@@ -215,12 +215,12 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=None,dy=0.0,dz=0.0,cmap="rainbow",axes=None,resolution=128,copy=False,\
+                   dx=None,dy=0.0,dz=0.0,cmap="osiris",axes=None,resolution=128,copy=False,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
                    vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
-                   summed=False,vsum=False,ssum=False,logz=False):
+                   summed=False,vsum=False,ssum=False,logz=False,image=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -451,11 +451,14 @@ class OsirisData(osiris_common.OsirisCommon):
                 plt.subplot(111)
                 theAxes = plt.gca()
             
-            cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
+            if image:
+                cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],cmap=cmap,vmin=zmin,vmax=zmax,interpolation="none",origin="lower")
+            else:
+                cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
             if cbar:
                cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
                cb.ax.set_ylabel(zlab)
-               cb.ax.yaxis.set_label_coords(-1.2,0.5)
+               cb.ax.yaxis.set_label_coords(-1.1,0.5)
             theAxes.set_xlabel(xlab)
             theAxes.set_ylabel(ylab)
             
@@ -495,7 +498,7 @@ class OsirisData(osiris_common.OsirisCommon):
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
                 if dz == 0.0:
-                    subset = np.where(self.data["r"]["values"][cube] < 10.0*self.sinks[self.sinks.keys()[0]]["radius"])
+                    subset = np.where(self.data["r"]["values"][cube] < dx*0.01)
                     thickness = 0.5*np.average(celldx[subset])
                 else:
                     thickness = 0.5*dz
@@ -543,7 +546,7 @@ class OsirisData(osiris_common.OsirisCommon):
     # Plot a 1D profile through the data cube.
     #=======================================================================================
     def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,axes=None,\
-                     cmap=None,copy=False,xmin=None,xmax=None,ymin=None,\
+                     cmap="osiris",copy=False,xmin=None,xmax=None,ymin=None,\
                      ymax=None,new_window=False,update=None,\
                      marker=None,iskip=1,color="b",cbar=True,\
                      clear=True,plot=True):
