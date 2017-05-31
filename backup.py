@@ -244,11 +244,19 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Define x,y directions depending on the input direction
         if direction.startswith("auto"):
-            view = direction.split(":")[1]
+            params = direction.split(":")
+            if len(params) == 1:
+                view = "top"
+            else:
+                view = params[1]
+            if len(params) < 3:
+                sphere_rad = 0.5*((np.amax(self.get("x"))-np.amin(self.get("x"))) if dx == 0.0 else dx)
+            else:
+                sphere_rad = float(params[2])
             dir_x = "x"
             dir_y = "y"
             # Compute angular momentum vector
-            sphere = np.where(self.get("r") < 0.5*((np.amax(self.get("x"))-np.amin(self.get("x"))) if dx == 0.0 else dx))
+            sphere = np.where(self.get("r") < sphere_rad)
             pos    = np.vstack((self.get("x")[sphere],self.get("y")[sphere],self.get("z")[sphere])*self.get("mass")[sphere]).T
             vel    = np.vstack((self.get("velocity_x")[sphere],self.get("velocity_y")[sphere],self.get("velocity_z")[sphere])).T
             AngMom = np.sum(np.cross(pos,vel),axis=0)

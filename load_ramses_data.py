@@ -44,6 +44,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         conf.additional_variables(self)
         
         # Print exit message
+        print("Memory used: %.2f Mb" % (len(self.data)*self.info["ncells"]*8.0/1.0e6))
         print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
@@ -415,7 +416,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         master_data_array = np.concatenate(data_pieces.values(), axis=0)
         
         print("Total number of cells loaded: %i" % ncells_tot)
-        print("Memory used: %.2f Mb" % (master_data_array.nbytes/1.0e6))
         if self.info["nsinks"] > 0:
             print("Read %i sink particles" % self.info["nsinks"])
         print("Generating data structure... please wait")
