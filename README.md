@@ -1,4 +1,5 @@
-![demo.png](https://bitbucket.org/repo/jq5boX/images/1336351696-demo.png)
+![demo.png](https://bitbucket.org/repo/jq5boX/images/2936418214-demo.png)
+
 # Osiris #
 
 A small collection of python plotting scripts for RAMSES data. It is not meant to replace large projects such as Pymses, it's purpose is more to plot small 'quick and dirty' diagnostics while a simulation is running.
