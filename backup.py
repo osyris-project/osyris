@@ -44,12 +44,12 @@ class OsirisData(osiris_common.OsirisCommon):
         ny = resolution+1
         
         # Get the data values and units
-        datax  = self.data[var_x]["values"]
-        datay  = self.data[var_y]["values"]
+        datax  = self.get(var_x)
+        datay  = self.get(var_y)
         xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
         if var_z:
-            dataz  = self.data[var_z]["values"]
+            dataz  = self.get(var_z)
             zlabel = self.data[var_z]["label"]
         
         # Define plotting range
@@ -128,7 +128,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 zlabel = "log(Number of cells)"
                 
             if var_c:
-                datac = self.data[var_c]["values"]
+                datac = self.get(var_c)
                 z2, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=datac)
                 c = np.ma.masked_where(z0 < 1.0, z2/z0)
         
@@ -215,7 +215,7 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=None,dy=0.0,dz=0.0,cmap="osiris",axes=None,resolution=128,copy=False,\
+                   dx=0.0,dy=0.0,dz=0.0,cmap="osiris",axes=None,resolution=128,copy=False,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
@@ -229,43 +229,41 @@ class OsirisData(osiris_common.OsirisCommon):
         except TypeError:
             pass
         
+        # List of directions
+        dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"]}
+        
+        #print dir_list.get(direction,"x")[0]
+        # Set dx to whole box if not specified
+        if dx+dy == 0.0:
+            dx = np.amax(self.get(dir_list.get(direction,"x")[0])) - np.amin(self.get(dir_list.get(direction,"x")[0]))
+        elif dx == 0.0:
+            dx = dy
+        # Make it possible to call with only one size in the arguments
+        if dy == 0.0:
+            dy = dx
+        
         # Define x,y directions depending on the input direction
         if direction.startswith("auto"):
             view = direction.split(":")[1]
             dir_x = "x"
             dir_y = "y"
             # Compute angular momentum vector
-            sphere = np.where(self.data["r"]["values"] < 0.3*dx)
-            A_x = np.sum((self.data["y"]["values"][sphere] * self.data["velocity_z"]["values"][sphere] - \
-                          self.data["z"]["values"][sphere] * self.data["velocity_y"]["values"][sphere])* \
-                          self.data["mass"]["values"][sphere])
-            A_y = np.sum((self.data["z"]["values"][sphere] * self.data["velocity_x"]["values"][sphere] - \
-                          self.data["x"]["values"][sphere] * self.data["velocity_z"]["values"][sphere])* \
-                          self.data["mass"]["values"][sphere])
-            A_z = np.sum((self.data["x"]["values"][sphere] * self.data["velocity_y"]["values"][sphere] - \
-                          self.data["y"]["values"][sphere] * self.data["velocity_x"]["values"][sphere])* \
-                          self.data["mass"]["values"][sphere])
+            sphere = np.where(self.get("r") < 0.5*((np.amax(self.get("x"))-np.amin(self.get("x"))) if dx == 0.0 else dx))
+            pos    = np.vstack((self.get("x")[sphere],self.get("y")[sphere],self.get("z")[sphere])*self.get("mass")[sphere]).T
+            vel    = np.vstack((self.get("velocity_x")[sphere],self.get("velocity_y")[sphere],self.get("velocity_z")[sphere])).T
+            AngMom = np.sum(np.cross(pos,vel),axis=0)
             if view == "top":
-                dir1 = [A_x,A_y,A_z]
+                dir1 = AngMom
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
-                if A_x == A_y == 0.0:
-                    dir1 = [-A_z,0,A_x]
+                if AngMom[0] == AngMom[1] == 0.0:
+                    dir1 = [-AngMom[2],0,AngMom[0]]
                 else:
-                    dir1 = [-A_y,A_x,0]
-        
-        elif direction == "z":
-            dir_x = "x"
-            dir_y = "y"
-            dir1 = [0,0,1]
-        elif direction == "y":
-            dir_x = "x"
-            dir_y = "z"
-            dir1 = [0,1,0]
-        elif direction == "x":
-            dir_x = "y"
-            dir_y = "z"
-            dir1 = [1,0,0]
+                    dir1 = [-AngMom[1],AngMom[0],0]
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0],dir1[1],dir1[2]))
+        elif ((direction == "x") or (direction == "y") or (direction == "z")):
+            [dir_x,dir_y] = dir_list[direction]
+            dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
         elif len(direction) == 3:
             dir_x = "x"
             dir_y = "y"
@@ -273,15 +271,6 @@ class OsirisData(osiris_common.OsirisCommon):
         else:
             print("Bad direction for slice")
             return
-        
-        # Set dx to whole box if not specified
-        try:
-            dx += 0
-        except TypeError:
-            dx = np.amax(self.data[dir_x]["values"]) - np.amin(self.data[dir_x]["values"])
-        # Make it possible to call with only one size in the arguments
-        if dy == 0.0:
-            dy = dx
         
         norm1 = np.linalg.norm(dir1)
         dir1 = dir1/norm1
@@ -294,11 +283,11 @@ class OsirisData(osiris_common.OsirisCommon):
         
         sqrt3 = np.sqrt(3.0)
         
-        dist = (a_plane*self.data["x"]["values"]+b_plane*self.data["y"]["values"]+c_plane*self.data["z"]["values"]+d_plane) \
+        dist = (a_plane*self.get("x")+b_plane*self.get("y")+c_plane*self.get("z")+d_plane) \
              / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-        cube = np.where(abs(dist) <= sqrt3*0.5*self.data["dx"]["values"]+0.5*dz)
+        cube = np.where(abs(dist) <= sqrt3*0.5*self.get("dx")+0.5*dz)
         
         # Choose 2 vectors normal to the direction n and normal to each other
         if a_plane == b_plane == 0:
@@ -312,21 +301,21 @@ class OsirisData(osiris_common.OsirisCommon):
         dir2 = dir2 / norm2
         dir3 = dir3 / norm3
                 
-        dataz = self.data[var]["values"][cube]
+        dataz = self.get(var)[cube]
         ncells = np.shape(dataz)[0]
-        celldx = self.data["dx"]["values"][cube]
+        celldx = self.get("dx")[cube]
         
         # Project coordinates onto the plane by taking dot product with axes vectors
-        coords = np.transpose([self.data["x"]["values"][cube]-origin[0],self.data["y"]["values"][cube]-origin[1],self.data["z"]["values"][cube]-origin[2]])
+        coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
         datax = np.inner(coords,dir2)
         datay = np.inner(coords,dir3)
         # Now project vectors and streamlines using the same method
         if vec:
-            vectors = np.transpose([self.data[vec+"_x"]["values"][cube],self.data[vec+"_y"]["values"][cube],self.data[vec+"_z"]["values"][cube]])
+            vectors = np.transpose([self.get(vec+"_x")[cube],self.get(vec+"_y")[cube],self.get(vec+"_z")[cube]])
             datau1 = np.inner(vectors,dir2)
             datav1 = np.inner(vectors,dir3)
         if stream:
-            streams = np.transpose([self.data[stream+"_x"]["values"][cube],self.data[stream+"_y"]["values"][cube],self.data[stream+"_z"]["values"][cube]])
+            streams = np.transpose([self.get(stream+"_x")[cube],self.get(stream+"_y")[cube],self.get(stream+"_z")[cube]])
             datau2 = np.inner(streams,dir2)
             datav2 = np.inner(streams,dir3)
         
@@ -498,7 +487,7 @@ class OsirisData(osiris_common.OsirisCommon):
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
                 if dz == 0.0:
-                    subset = np.where(self.data["r"]["values"][cube] < dx*0.01)
+                    subset = np.where(self.get("r")[cube] < dx*0.01)
                     thickness = 0.5*np.average(celldx[subset])
                 else:
                     thickness = 0.5*dz
@@ -559,8 +548,8 @@ class OsirisData(osiris_common.OsirisCommon):
             pass
                 
         # Get the data values and units
-        datax  = self.data[direction]["values"]
-        datay  = self.data[var]["values"]
+        datax  = self.get(direction)
+        datay  = self.get(var)
         xlabel = self.data[direction]["label"]+" ["+self.data[direction]["unit"]+"]"
         ylabel = self.data[var]["label"]+" ["+self.data[var]["unit"]+"]"
         #if var_z:
@@ -596,15 +585,15 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Select only the cells in contact with the profile line
         dirs = "xyz".replace(direction,"")
-        cube = np.where(np.logical_and(datax-0.5*self.data["dx"]["values"] <= xmax,\
-                        np.logical_and(datax+0.5*self.data["dx"]["values"] >= xmin,\
-                        np.logical_and(abs(self.data[dirs[0]]["values"]-eval(dirs[0])) <= 0.51*self.data["dx"]["values"],\
-                                       abs(self.data[dirs[1]]["values"]-eval(dirs[1])) <= 0.51*self.data["dx"]["values"]))))
+        cube = np.where(np.logical_and(datax-0.5*self.get("dx") <= xmax,\
+                        np.logical_and(datax+0.5*self.get("dx") >= xmin,\
+                        np.logical_and(abs(self.get(dirs[0])-eval(dirs[0])) <= 0.51*self.get("dx"),\
+                                       abs(self.get(dirs[1])-eval(dirs[1])) <= 0.51*self.get("dx")))))
         order = datax[cube].argsort()
         x = datax[cube][order]
         y = datay[cube][order]
         if var_z:
-            z  = self.data[var_z]["values"][cube][order]
+            z  = self.get(var_z)[cube][order]
             zlabel = self.data[var_z]["label"]
         
         dx = xmax-xmin

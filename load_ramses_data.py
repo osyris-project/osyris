@@ -167,7 +167,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # We have to open the files in binary format, and count all the bytes in the ===
         # file structure to extract just the data we need. =============================
         # See output_amr.f90 and output_hydro.f90 in the RAMSES source. ================
-        #print type(self.info["ncpu"])
         print("Processing %i files in " % (self.info["ncpu"]) + infile)
         
         # Define the size of the region to be read
