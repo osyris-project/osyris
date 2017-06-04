@@ -39,10 +39,12 @@ constants = {
 #=======================================================================================
 # Custom colormaps
 #=======================================================================================
-cmap1 = LinearSegmentedColormap.from_list("osiris" , ["#2b3c4e","#249593","#db6a6c","#ffffff"],N=20)
-cmap2 = LinearSegmentedColormap.from_list("osiris2", ["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"])
+cmap1 = LinearSegmentedColormap.from_list("osiris"  ,["#2b3c4e","#249593","#db6a6c","#ffffff"])
+cmap2 = LinearSegmentedColormap.from_list("osiris2" ,["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"])
+cmap3 = LinearSegmentedColormap.from_list("osiris_r",["#ffffff","#db6a6c","#249593","#2b3c4e"])
 plt.register_cmap(cmap=cmap1)
 plt.register_cmap(cmap=cmap2)
+plt.register_cmap(cmap=cmap3)
 
 #===================================================================================
 # Here are some additional variables that are to be computed every time data is
