@@ -2,7 +2,7 @@
 
 # Osiris #
 
-A small collection of python visualization scripts for RAMSES data. It is not meant to replace large projects such as Pymses, it's purpose is more to plot small 'quick and dirty' diagnostics while a simulation is running.
+A small python visualization utility for RAMSES data. It is not meant to replace large projects such as Pymses, it's purpose is more to plot small 'quick and dirty' diagnostics while a simulation is running.
 
 ### Installation ###
 
