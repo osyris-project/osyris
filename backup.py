@@ -27,10 +27,10 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
-                       cmap="osiris",resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
-                       ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
-                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
-                       clear=True,plot=True,block=False):
+                       cmap=conf.default_values["colormap"],resolution=256,copy=False,xmin=None,\
+                       xmax=None,ymin=None,ymax=None,nc=20,new_window=False,evol=False,update=None,\
+                       outline=False,scatter=False,marker=".",iskip=1,color="b",summed=False,\
+                       cbar=True,clear=True,plot=True,block=False):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -215,12 +215,13 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=0.0,dy=0.0,dz=0.0,cmap="osiris",axes=None,resolution=128,copy=False,\
+                   dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
                    nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
                    vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
-                   summed=False,vsum=False,ssum=False,logz=False,image=False):
+                   summed=False,vsum=False,ssum=False,logz=False,image=False,resolution=128,\
+                   copy=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -542,10 +543,9 @@ class OsirisData(osiris_common.OsirisCommon):
     #=======================================================================================
     # Plot a 1D profile through the data cube.
     #=======================================================================================
-    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,axes=None,\
-                     cmap="osiris",copy=False,xmin=None,xmax=None,ymin=None,\
-                     ymax=None,new_window=False,update=None,\
-                     marker=None,iskip=1,color="b",cbar=True,\
+    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,\
+                     axes=None,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,\
+                     new_window=False,update=None,marker=None,iskip=1,color="b",cbar=True,\
                      clear=True,plot=True):
         
         # Possibility of updating the data from inside the plotting routines
