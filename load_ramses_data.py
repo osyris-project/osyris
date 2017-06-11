@@ -194,13 +194,20 @@ class LoadRamsesData(plot_osiris.OsirisData):
         if lmax==0:
            lmax = self.info["levelmax"]
         
-        xcent = np.zeros([8,3],dtype=np.float64)
-        
         # We will store the cells in a dictionary which we build as we go along.
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
         
+        # Allocate work arrays
+        twotondim = 2**self.info["ndim"]
+        xcent = np.zeros([8,3],dtype=np.float64)
+        xg    = np.zeros([self.info["ngridmax"],3],dtype=np.float64)
+        son   = np.zeros([self.info["ngridmax"],twotondim],dtype=np.int32)
+        var   = np.zeros([self.info["ngridmax"],twotondim,nvar_read],dtype=np.float64)
+        xyz   = np.zeros([self.info["ngridmax"],twotondim,self.info["ndim"]],dtype=np.float64)
+        ref   = np.zeros([self.info["ngridmax"],twotondim],dtype=np.bool)
+                    
         iprog = 1
         istep = 10
         ncells_tot = 0
@@ -238,6 +245,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 [nx,ny,nz] = struct.unpack("3i", amrContent[offset:offset+12])
                 ncoarse = nx*ny*nz
+                xbound = [float(nx/2),float(ny/2),float(nz/2)]
                 
                 # nboundary
                 ninteg = 7
@@ -247,9 +255,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 nquadr = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 nboundary = struct.unpack("i", amrContent[offset:offset+4])[0]
-                
-                twotondim = 2**self.info["ndim"]
-                xbound = [float(nx/2),float(ny/2),float(nz/2)]
                 
                 # noutput
                 ninteg = 9
@@ -315,10 +320,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     xcent[ind,2]=(float(iz)-0.5)*dxcell
                 
                 # Cumulative offsets in AMR file
-                ninteg = ninteg1
-                nfloat = nfloat1
-                nlines = nlines1
-                nstrin = nstrin1
+                ninteg_amr = ninteg1
+                nfloat_amr = nfloat1
+                nlines_amr = nlines1
+                nstrin_amr = nstrin1
                 
                 # Cumulative offsets in HYDRO file
                 ninteg_hydro = ninteg2
@@ -339,50 +344,45 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     
                         if j == k:
                             # xg: grid coordinates
-                            ninteg0 = ninteg + ncache*3
-                            nfloat0 = nfloat
-                            nlines0 = nlines + 3
-                            nstrin0 = nstrin
-                            xg = np.zeros([ncache,3],dtype=np.float64)
+                            ninteg = ninteg_amr + ncache*3
+                            nfloat = nfloat_amr
+                            nlines = nlines_amr + 3
+                            nstrin = nstrin_amr
                             for n in range(self.info["ndim"]):
-                                offset = 4*ninteg0 + 8*(nlines0+nfloat0+n*(ncache+1)) + nstrin0 + 4
-                                xg[:,n] = struct.unpack("%id"%(ncache), amrContent[offset:offset+8*ncache])
+                                offset = 4*ninteg + 8*(nlines+nfloat+n*(ncache+1)) + nstrin + 4
+                                xg[:ncache,n] = struct.unpack("%id"%(ncache), amrContent[offset:offset+8*ncache])
                                 
                             # son indices
-                            ninteg0 = ninteg + ncache*(4+2*self.info["ndim"])
-                            nfloat0 = nfloat + ncache*self.info["ndim"]
-                            nlines0 = nlines + 4 + 3*self.info["ndim"]
-                            nstrin0 = nstrin
-                            son = np.zeros([ncache,twotondim],dtype=np.int32)
-                            var = np.zeros([ncache,twotondim,nvar_read],dtype=np.float64)
-                            xyz = np.zeros([ncache,twotondim,self.info["ndim"]],dtype=np.float64)
-                            ref = np.zeros([ncache,twotondim],dtype=np.bool)
+                            ninteg = ninteg_amr + ncache*(4+2*self.info["ndim"])
+                            nfloat = nfloat_amr + ncache*self.info["ndim"]
+                            nlines = nlines_amr + 4 + 3*self.info["ndim"]
+                            nstrin = nstrin_amr
                             for ind in range(twotondim):
-                                offset = 4*(ninteg0+ind*ncache) + 8*(nlines0+nfloat0+ind) + nstrin0 + 4
-                                son[:,ind] = struct.unpack("%ii"%(ncache), amrContent[offset:offset+4*ncache])
+                                offset = 4*(ninteg+ind*ncache) + 8*(nlines+nfloat+ind) + nstrin + 4
+                                son[:ncache,ind] = struct.unpack("%ii"%(ncache), amrContent[offset:offset+4*ncache])
                                 # var: hydro variables
                                 jvar = 0
                                 for ivar in range(self.info["nvar"]):
                                     if var_read[ivar]:
                                         offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar"]+ivar)*(ncache+1)) + nstrin_hydro + 4
-                                        var[:,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
+                                        var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
                                         jvar += 1
-                                var[:,ind,-5] = float(ilevel+1)
+                                var[:ncache,ind,-5] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
-                                    xyz[:,ind,n] = xg[:,n] + xcent[ind,n]-xbound[n]
-                                    var[:,ind,-4+n] = xyz[:,ind,n]*self.info["boxlen"]
-                                var[:,ind,-1] = dxcell*self.info["boxlen"]
+                                    xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
+                                    var[:ncache,ind,-4+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
+                                var[:ncache,ind,-1] = dxcell*self.info["boxlen"]
                                 # ref: True if the cell is unrefined
-                                ref[:,ind] = np.logical_not(np.logical_and(son[:,ind] > 0,ilevel < lmax))
+                                ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax))
                             
                             # Select only the unrefined cells that are in the region of interest
-                            cube = np.where(np.logical_and(ref, \
-                                            np.logical_and((xyz[:,:,0]+dx2)>=xmin, \
-                                            np.logical_and((xyz[:,:,1]+dx2)>=ymin, \
-                                            np.logical_and((xyz[:,:,2]+dx2)>=zmin, \
-                                            np.logical_and((xyz[:,:,0]-dx2)<=xmax, \
-                                            np.logical_and((xyz[:,:,1]-dx2)<=ymax, \
-                                                           (xyz[:,:,2]-dx2)<=zmax)))))))
+                            cube = np.where(np.logical_and(ref[:ncache,:], \
+                                            np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                            np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                                            np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
+                                            np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                                            np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
+                                                           (xyz[:ncache,:,2]-dx2)<=zmax)))))))
                             
                             cells = var[cube]
                             ncells = np.shape(cells)[0]
@@ -394,18 +394,18 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                 
                                 
                         # Now increment the offsets while looping through the domains
-                        ninteg += ncache*(4+3*twotondim+2*self.info["ndim"])
-                        nfloat += ncache*self.info["ndim"]
-                        nlines += 4 + 3*twotondim + 3*self.info["ndim"]
+                        ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
+                        nfloat_amr += ncache*self.info["ndim"]
+                        nlines_amr += 4 + 3*twotondim + 3*self.info["ndim"]
                         
                         nfloat_hydro += ncache*twotondim*self.info["nvar"]
                         nlines_hydro += twotondim*self.info["nvar"]
                 
                 # Now increment the offsets while looping through the levels
-                ninteg1 = ninteg
-                nfloat1 = nfloat
-                nlines1 = nlines
-                nstrin1 = nstrin
+                ninteg1 = ninteg_amr
+                nfloat1 = nfloat_amr
+                nlines1 = nlines_amr
+                nstrin1 = nstrin_amr
                 
                 ninteg2 = ninteg_hydro
                 nfloat2 = nfloat_hydro
