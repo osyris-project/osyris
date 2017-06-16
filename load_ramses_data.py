@@ -374,15 +374,22 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                 var[:ncache,ind,-1] = dxcell*self.info["boxlen"]
                                 # ref: True if the cell is unrefined
                                 ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax))
-                            
+
                             # Select only the unrefined cells that are in the region of interest
-                            cube = np.where(np.logical_and(ref[:ncache,:], \
-                                            np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                            np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
-                                            np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
-                                            np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                            np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
+                            if self.info["ndim"] == 3:
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                                                np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
+                                                np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                                                np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
                                                            (xyz[:ncache,:,2]-dx2)<=zmax)))))))
+                            if self.info["ndim"] == 2:
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                                                np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                                                               (xyz[:ncache,:,1]-dx2)<=ymax)))))
                             
                             cells = var[cube]
                             ncells = np.shape(cells)[0]
