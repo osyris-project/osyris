@@ -377,7 +377,17 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                 ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax))
 
                             # Select only the unrefined cells that are in the region of interest
-                            if self.info["ndim"] == 3:
+                            if self.info["ndim"] == 1:
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                               (xyz[:ncache,:,0]-dx2)<=xmax)))
+                            elif self.info["ndim"] == 2:
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                                                np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                                                               (xyz[:ncache,:,1]-dx2)<=ymax)))))
+                            elif self.info["ndim"] == 3:
                                 cube = np.where(np.logical_and(ref[:ncache,:], \
                                                 np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                 np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
@@ -385,12 +395,9 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                 np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
                                                            (xyz[:ncache,:,2]-dx2)<=zmax)))))))
-                            if self.info["ndim"] == 2:
-                                cube = np.where(np.logical_and(ref[:ncache,:], \
-                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                                np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
-                                                np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                                               (xyz[:ncache,:,1]-dx2)<=ymax)))))
+                            else:
+                                print("Bad number of dimensions")
+                                return 0
                             
                             cells = var[cube]
                             ncells = np.shape(cells)[0]
@@ -600,7 +607,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
             xc = yc = zc = 0.5*self.info["boxsize"]
             
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/conf.constants[self.info["scale"]]
-        self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]
+        if self.info["ndim"] > 1:
+            self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 2:
             self.data["z"]["values"] = (self.data["z"]["values"] - zc)/conf.constants[self.info["scale"]]
         self.info["xc"] = xc/conf.constants[self.info["scale"]]
