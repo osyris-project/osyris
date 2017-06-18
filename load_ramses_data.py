@@ -207,7 +207,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         var   = np.zeros([self.info["ngridmax"],twotondim,nvar_read],dtype=np.float64)
         xyz   = np.zeros([self.info["ngridmax"],twotondim,self.info["ndim"]],dtype=np.float64)
         ref   = np.zeros([self.info["ngridmax"],twotondim],dtype=np.bool)
-                    
+        
         iprog = 1
         istep = 10
         ncells_tot = 0
@@ -255,6 +255,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 nquadr = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 nboundary = struct.unpack("i", amrContent[offset:offset+4])[0]
+                ngridlevel = np.zeros([self.info["ncpu"]+nboundary,self.info["levelmax"]],dtype=np.int32)
                 
                 # noutput
                 ninteg = 9
@@ -272,7 +273,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
             nstrin = 0
             nquadr = 0
             offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-            ngridlevel = np.asarray(struct.unpack("%ii"%(self.info["ncpu"]*self.info["levelmax"]), amrContent[offset:offset+4*self.info["ncpu"]*self.info["levelmax"]])).reshape(self.info["levelmax"],self.info["ncpu"]).T
+            ngridlevel[:self.info["ncpu"],:] = np.asarray(struct.unpack("%ii"%(self.info["ncpu"]*self.info["levelmax"]), amrContent[offset:offset+4*self.info["ncpu"]*self.info["levelmax"]])).reshape(self.info["levelmax"],self.info["ncpu"]).T
             
             # Read boundary grids if any
             if nboundary > 0:
@@ -282,7 +283,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 nstrin = 0
                 nquadr = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                ngridbound = np.asarray(struct.unpack("%ii"%(nboundary*self.info["levelmax"]), amrContent[offset:offset+4*nboundary*self.info["levelmax"]])).reshape(self.info["levelmax"],nboundary).T
+                ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(struct.unpack("%ii"%(nboundary*self.info["levelmax"]), amrContent[offset:offset+4*nboundary*self.info["levelmax"]])).reshape(self.info["levelmax"],nboundary).T
     
             # Determine bound key precision
             ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5
