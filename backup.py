@@ -367,7 +367,7 @@ class OsirisData(osiris_common.OsirisCommon):
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
                     za[j,i] = za[j,i] + dataz[n]*celldx[n]
-                    zb[j,i] = zb[j,i] + 1.0
+                    zb[j,i] = zb[j,i] + celldx[n]
                     if vec:
                         u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
                         v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
