@@ -469,7 +469,7 @@ class OsirisData(osiris_common.OsirisCommon):
                      cmap=None,copy=False,xmin=None,xmax=None,ymin=None,\
                      ymax=None,new_window=False,update=None,\
                      marker=None,iskip=1,color="b",cbar=True,\
-                     clear=True,plot=True):
+                     clear=True,plot=True,**kwargs):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -552,8 +552,8 @@ class OsirisData(osiris_common.OsirisCommon):
                 plt.subplot(111)
                 theAxes = plt.gca()
             
-            theAxes.plot(x,y,marker=marker)
-                            
+            theAxes.plot(x,y,marker=marker,**kwargs)
+            
             theAxes.set_xlabel(xlabel)
             theAxes.set_ylabel(ylabel)
             if clear:

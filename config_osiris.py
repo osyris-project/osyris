@@ -60,8 +60,8 @@ def additional_variables(holder):
     
     # Magnetic field
     holder.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x",verbose=False)
-    holder.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_x",verbose=False)
-    holder.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_x",verbose=False)
+    holder.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_y",verbose=False)
+    holder.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_z",verbose=False)
     holder.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B",verbose=False)
     
     # Mass and radius

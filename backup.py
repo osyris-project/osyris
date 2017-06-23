@@ -366,16 +366,16 @@ class OsirisData(osiris_common.OsirisCommon):
             # Fill in the slice pixels with data
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
-                    za[j,i] = za[j,i] + dataz[n]
+                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
                     zb[j,i] = zb[j,i] + 1.0
                     if vec:
-                        u1[j,i] = u1[j,i] + datau1[n]
-                        v1[j,i] = v1[j,i] + datav1[n]
-                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)
+                        u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
+                        v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
+                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
                     if stream:
-                        u2[j,i] = u2[j,i] + datau2[n]
-                        v2[j,i] = v2[j,i] + datav2[n]
-                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)
+                        u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
+                        v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
+                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
         
         # Compute z averages
         if summed:
@@ -545,8 +545,8 @@ class OsirisData(osiris_common.OsirisCommon):
     #=======================================================================================
     def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,\
                      axes=None,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,\
-                     new_window=False,update=None,marker=None,iskip=1,color="b",cbar=True,\
-                     clear=True,plot=True):
+                     new_window=False,update=None,marker=None,iskip=1,cbar=True,\
+                     clear=True,plot=True,**kwargs):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -629,7 +629,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 plt.subplot(111)
                 theAxes = plt.gca()
             
-            theAxes.plot(x,y,marker=marker)
+            theAxes.plot(x,y,marker=marker,**kwargs)
                             
             theAxes.set_xlabel(xlabel)
             theAxes.set_ylabel(ylabel)
