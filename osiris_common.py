@@ -1,4 +1,5 @@
 import numpy as np
+import config_osiris as conf
 
 class OsirisCommon:
      
