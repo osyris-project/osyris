@@ -116,21 +116,21 @@ class OsirisData(osiris_common.OsirisCommon):
             if var_z:
                 z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
                 if summed:
-                    z = np.ma.masked_where(z0 < 1.0, z1)
+                    z = np.ma.masked_where(z0 == 0.0, z1)
                 else:
-                    z = np.ma.masked_where(z0 < 1.0, z1/z0)
+                    z = np.ma.masked_where(z0 == 0.0, z1/z0)
                 if logz:
                     z = np.log10(z)
                     zlabel = "log("+zlabel+")"
                 zlabel += " ["+self.data[var_z]["unit"]+"]"
             else:
-                z = np.ma.masked_where(z0 < 1.0, np.log10(z0))
+                z = np.ma.masked_where(z0 == 0.0, np.log10(z0))
                 zlabel = "log(Number of cells)"
                 
             if var_c:
                 datac = self.get(var_c)
                 z2, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=datac)
-                c = np.ma.masked_where(z0 < 1.0, z2/z0)
+                c = np.ma.masked_where(z0 == 0.0, z2/z0)
         
         # Begin plotting -------------------------------------
         if plot:
@@ -379,29 +379,29 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Compute z averages
         if summed:
-            z = np.ma.masked_where(zb < 1.0, za)
+            z = np.ma.masked_where(zb == 0.0, za)
         else:
-            z = np.ma.masked_where(zb < 1.0, za/zb)
+            z = np.ma.masked_where(zb == 0.0, za/zb)
         if logz:
             z = np.log10(z)
         if vec:
             if vsum:
-                u1 = np.ma.masked_where(zb < 1.0, u1)
-                v1 = np.ma.masked_where(zb < 1.0, v1)
-                w1 = np.ma.masked_where(zb < 1.0, z1)
+                u1 = np.ma.masked_where(zb == 0.0, u1)
+                v1 = np.ma.masked_where(zb == 0.0, v1)
+                w1 = np.ma.masked_where(zb == 0.0, z1)
             else:
-                u1 = np.ma.masked_where(zb < 1.0, u1/zb)
-                v1 = np.ma.masked_where(zb < 1.0, v1/zb)
-                w1 = np.ma.masked_where(zb < 1.0, z1/zb)
+                u1 = np.ma.masked_where(zb == 0.0, u1/zb)
+                v1 = np.ma.masked_where(zb == 0.0, v1/zb)
+                w1 = np.ma.masked_where(zb == 0.0, z1/zb)
         if stream:
             if ssum:
-                u2 = np.ma.masked_where(zb < 1.0, u2)
-                v2 = np.ma.masked_where(zb < 1.0, v2)
-                w2 = np.ma.masked_where(zb < 1.0, z2)
+                u2 = np.ma.masked_where(zb == 0.0, u2)
+                v2 = np.ma.masked_where(zb == 0.0, v2)
+                w2 = np.ma.masked_where(zb == 0.0, z2)
             else:
-                u2 = np.ma.masked_where(zb < 1.0, u2/zb)
-                v2 = np.ma.masked_where(zb < 1.0, v2/zb)
-                w2 = np.ma.masked_where(zb < 1.0, z2/zb)
+                u2 = np.ma.masked_where(zb == 0.0, u2/zb)
+                v2 = np.ma.masked_where(zb == 0.0, v2/zb)
+                w2 = np.ma.masked_where(zb == 0.0, z2/zb)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
