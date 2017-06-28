@@ -1,7 +1,7 @@
 import numpy as np
 import struct
 import glob
-import backup
+import plot_osiris
 import config_osiris as conf
 
 divider = "============================================"
@@ -11,7 +11,7 @@ divider = "============================================"
 # It calls "rd.ramses_data" which is a fortran file reader.
 # It then stores the data in a dictionary named "data"
 #=======================================================================================
-class LoadRamsesData(backup.OsirisData):
+class LoadRamsesData(plot_osiris.OsirisData):
  
     #===================================================================================
     # The constructor reads in the data and fills the data structure which is a python

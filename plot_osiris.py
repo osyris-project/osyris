@@ -27,10 +27,10 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
-                       cmap="osiris",resolution=256,copy=False,xmin=None,xmax=None,ymin=None,\
-                       ymax=None,nc=20,new_window=False,evol=False,update=None,outline=False,\
-                       scatter=False,marker=".",iskip=1,color="b",summed=False,cbar=True,\
-                       clear=True,plot=True,block=False):
+                       cmap=conf.default_values["colormap"],resolution=256,copy=False,xmin=None,\
+                       xmax=None,ymin=None,ymax=None,nc=20,new_window=False,evol=False,update=None,\
+                       outline=False,scatter=False,marker=".",iskip=1,color="b",summed=False,\
+                       cbar=True,clear=True,plot=True,block=False):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -44,12 +44,12 @@ class OsirisData(osiris_common.OsirisCommon):
         ny = resolution+1
         
         # Get the data values and units
-        datax  = self.data[var_x]["values"]
-        datay  = self.data[var_y]["values"]
+        datax  = self.get(var_x)
+        datay  = self.get(var_y)
         xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
         ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
         if var_z:
-            dataz  = self.data[var_z]["values"]
+            dataz  = self.get(var_z)
             zlabel = self.data[var_z]["label"]
         
         # Define plotting range
@@ -116,21 +116,21 @@ class OsirisData(osiris_common.OsirisCommon):
             if var_z:
                 z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
                 if summed:
-                    z = np.ma.masked_where(z0 < 1.0, z1)
+                    z = np.ma.masked_where(z0 == 0.0, z1)
                 else:
-                    z = np.ma.masked_where(z0 < 1.0, z1/z0)
+                    z = np.ma.masked_where(z0 == 0.0, z1/z0)
                 if logz:
                     z = np.log10(z)
                     zlabel = "log("+zlabel+")"
                 zlabel += " ["+self.data[var_z]["unit"]+"]"
             else:
-                z = np.ma.masked_where(z0 < 1.0, np.log10(z0))
+                z = np.ma.masked_where(z0 == 0.0, np.log10(z0))
                 zlabel = "log(Number of cells)"
                 
             if var_c:
-                datac = self.data[var_c]["values"]
+                datac = self.get(var_c)
                 z2, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=datac)
-                c = np.ma.masked_where(z0 < 1.0, z2/z0)
+                c = np.ma.masked_where(z0 == 0.0, z2/z0)
         
         # Begin plotting -------------------------------------
         if plot:
@@ -215,11 +215,13 @@ class OsirisData(osiris_common.OsirisCommon):
     # - resolution : number of pixels in the slice.
     #=======================================================================================
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   dx=None,dy=0.0,cmap="osiris",axes=None,resolution=128,copy=False,nc=20,\
-                   vskip=None,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
+                   dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
+                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
                    zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
                    vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vkey=True,plot=True,center=False,block=False,image=False):
+                   vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
+                   summed=False,vsum=False,ssum=False,logz=False,image=False,resolution=128,\
+                   copy=False):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -228,47 +230,103 @@ class OsirisData(osiris_common.OsirisCommon):
         except TypeError:
             pass
         
+        # List of directions
+        dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"]}
+        
+        #print dir_list.get(direction,"x")[0]
+        # Set dx to whole box if not specified
+        if dx+dy == 0.0:
+            dx = np.amax(self.get(dir_list.get(direction,"x")[0])) - np.amin(self.get(dir_list.get(direction,"x")[0]))
+        elif dx == 0.0:
+            dx = dy
+        # Make it possible to call with only one size in the arguments
+        if dy == 0.0:
+            dy = dx
+        
         # Define x,y directions depending on the input direction
-        if direction == "z":
+        if direction.startswith("auto"):
+            params = direction.split(":")
+            if len(params) == 1:
+                view = "top"
+            else:
+                view = params[1]
+            if len(params) < 3:
+                sphere_rad = 0.5*((np.amax(self.get("x"))-np.amin(self.get("x"))) if dx == 0.0 else dx)
+            else:
+                sphere_rad = float(params[2])
             dir_x = "x"
             dir_y = "y"
-        elif direction == "y":
+            # Compute angular momentum vector
+            sphere = np.where(self.get("r") < sphere_rad)
+            pos    = np.vstack((self.get("x")[sphere],self.get("y")[sphere],self.get("z")[sphere])*self.get("mass")[sphere]).T
+            vel    = np.vstack((self.get("velocity_x")[sphere],self.get("velocity_y")[sphere],self.get("velocity_z")[sphere])).T
+            AngMom = np.sum(np.cross(pos,vel),axis=0)
+            if view == "top":
+                dir1 = AngMom
+            elif view == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                if AngMom[0] == AngMom[1] == 0.0:
+                    dir1 = [-AngMom[2],0,AngMom[0]]
+                else:
+                    dir1 = [-AngMom[1],AngMom[0],0]
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0],dir1[1],dir1[2]))
+        elif ((direction == "x") or (direction == "y") or (direction == "z")):
+            [dir_x,dir_y] = dir_list[direction]
+            dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
+        elif len(direction) == 3:
             dir_x = "x"
-            dir_y = "z"
-        elif direction == "x":
-            dir_x = "y"
-            dir_y = "z"
+            dir_y = "y"
+            dir1 = direction
         else:
             print("Bad direction for slice")
             return
         
-        # Set dx to whole box if not specified
-        try:
-            dx += 0
-        except TypeError:
-            dx = np.amax(self.data[dir_x]["values"]) - np.amin(self.data[dir_x]["values"])
-        # Make it possible to call with only one size in the arguments
-        if dy == 0.0:
-            dy = dx
-
-        # Select only the cells in contact with the slice
-        cube = np.where(np.logical_and(self.data[dir_x]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dx,\
-                        np.logical_and(self.data[dir_x]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dx,\
-                        np.logical_and(self.data[dir_y]["values"]-0.5*self.data["dx"]["values"] <=  0.5*dy,\
-                        np.logical_and(self.data[dir_y]["values"]+0.5*self.data["dx"]["values"] >= -0.5*dy,\
-                               abs(self.data[direction]["values"]) <= 0.51*self.data["dx"]["values"])))))
+        norm1 = np.linalg.norm(dir1)
+        dir1 = dir1/norm1
         
-        datax = self.data[dir_x]["values"][cube]
-        datay = self.data[dir_y]["values"][cube]
-        dataz = self.data[var  ]["values"][cube]
+        # Define equation of a plane
+        a_plane = dir1[0]
+        b_plane = dir1[1]
+        c_plane = dir1[2]
+        d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+        
+        sqrt3 = np.sqrt(3.0)
+        
+        dist = (a_plane*self.get("x")+b_plane*self.get("y")+c_plane*self.get("z")+d_plane) \
+             / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+
+        # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
+        cube = np.where(abs(dist) <= sqrt3*0.5*self.get("dx")+0.5*dz)
+        
+        # Choose 2 vectors normal to the direction n and normal to each other
+        if a_plane == b_plane == 0:
+            dir2 = [-c_plane,0,a_plane]
+        else:
+            dir2 = [-b_plane,a_plane,0]
+        dir3 = np.cross(dir1,dir2)
+        
+        norm2 = np.linalg.norm(dir2)
+        norm3 = np.linalg.norm(dir3)
+        dir2 = dir2 / norm2
+        dir3 = dir3 / norm3
+                
+        dataz = self.get(var)[cube]
+        ncells = np.shape(dataz)[0]
+        celldx = self.get("dx")[cube]
+        
+        # Project coordinates onto the plane by taking dot product with axes vectors
+        coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
+        datax = np.inner(coords,dir2)
+        datay = np.inner(coords,dir3)
+        # Now project vectors and streamlines using the same method
         if vec:
-            datau1 = self.data[vec+"_"+dir_x]["values"][cube]
-            datav1 = self.data[vec+"_"+dir_y]["values"][cube]
+            vectors = np.transpose([self.get(vec+"_x")[cube],self.get(vec+"_y")[cube],self.get(vec+"_z")[cube]])
+            datau1 = np.inner(vectors,dir2)
+            datav1 = np.inner(vectors,dir3)
         if stream:
-            datau2 = self.data[stream+"_"+dir_x]["values"][cube]
-            datav2 = self.data[stream+"_"+dir_y]["values"][cube]
-        celldx = self.data["dx"]["values"][cube]
-        ncells = np.shape(datax)[0]
+            streams = np.transpose([self.get(stream+"_x")[cube],self.get(stream+"_y")[cube],self.get(stream+"_z")[cube]])
+            datau2 = np.inner(streams,dir2)
+            datav2 = np.inner(streams,dir3)
         
         # Define slice extent and resolution
         xmin = -0.5*dx
@@ -294,10 +352,10 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Loop through all data cells and find extent covered by the current cell size
         for n in range(ncells):
-            x1 = datax[n]-0.5*celldx[n]
-            x2 = datax[n]+0.5*celldx[n]
-            y1 = datay[n]-0.5*celldx[n]
-            y2 = datay[n]+0.5*celldx[n]
+            x1 = datax[n]-0.5*celldx[n]*sqrt3
+            x2 = datax[n]+0.5*celldx[n]*sqrt3
+            y1 = datay[n]-0.5*celldx[n]*sqrt3
+            y2 = datay[n]+0.5*celldx[n]*sqrt3
             
             # Find the indices of the slice pixels which are covered by the current cell
             ix1 = max(int((x1-xmin)/dpx),0)
@@ -320,15 +378,30 @@ class OsirisData(osiris_common.OsirisCommon):
                         z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
         
         # Compute z averages
-        z = np.ma.masked_where(zb == 0.0, za/zb)
+        if summed:
+            z = np.ma.masked_where(zb == 0.0, za)
+        else:
+            z = np.ma.masked_where(zb == 0.0, za/zb)
+        if logz:
+            z = np.log10(z)
         if vec:
-            u1 = np.ma.masked_where(zb == 0.0, u1/zb)
-            v1 = np.ma.masked_where(zb == 0.0, v1/zb)
-            w1 = np.ma.masked_where(zb == 0.0, z1/zb)
+            if vsum:
+                u1 = np.ma.masked_where(zb == 0.0, u1)
+                v1 = np.ma.masked_where(zb == 0.0, v1)
+                w1 = np.ma.masked_where(zb == 0.0, z1)
+            else:
+                u1 = np.ma.masked_where(zb == 0.0, u1/zb)
+                v1 = np.ma.masked_where(zb == 0.0, v1/zb)
+                w1 = np.ma.masked_where(zb == 0.0, z1/zb)
         if stream:
-            u2 = np.ma.masked_where(zb == 0.0, u2/zb)
-            v2 = np.ma.masked_where(zb == 0.0, v2/zb)
-            w2 = np.ma.masked_where(zb == 0.0, z2/zb)
+            if ssum:
+                u2 = np.ma.masked_where(zb == 0.0, u2)
+                v2 = np.ma.masked_where(zb == 0.0, v2)
+                w2 = np.ma.masked_where(zb == 0.0, z2)
+            else:
+                u2 = np.ma.masked_where(zb == 0.0, u2/zb)
+                v2 = np.ma.masked_where(zb == 0.0, v2/zb)
+                w2 = np.ma.masked_where(zb == 0.0, z2/zb)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
@@ -422,10 +495,15 @@ class OsirisData(osiris_common.OsirisCommon):
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
-                subset = np.where(self.data["r"]["values"][cube] < dx*0.01)
-                thickness = 0.5*np.average(celldx[subset])
+                if dz == 0.0:
+                    subset = np.where(self.get("r")[cube] < dx*0.01)
+                    thickness = 0.5*np.average(celldx[subset])
+                else:
+                    thickness = 0.5*dz
+                div = np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
                 for key in self.sinks.keys():
-                    if abs(self.sinks[key][direction]) <= thickness:
+                    dist = (a_plane*self.sinks[key]["x"]+b_plane*self.sinks[key]["y"]+c_plane*self.sinks[key]["z"]+d_plane) / div
+                    if abs(dist) <= thickness:
                         crad = max(self.sinks[key]["radius"],dx*0.01)
                         circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
                         circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
@@ -465,10 +543,9 @@ class OsirisData(osiris_common.OsirisCommon):
     #=======================================================================================
     # Plot a 1D profile through the data cube.
     #=======================================================================================
-    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,axes=None,\
-                     cmap=None,copy=False,xmin=None,xmax=None,ymin=None,\
-                     ymax=None,new_window=False,update=None,\
-                     marker=None,iskip=1,color="b",cbar=True,\
+    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,\
+                     axes=None,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,\
+                     new_window=False,update=None,marker=None,iskip=1,cbar=True,\
                      clear=True,plot=True,**kwargs):
         
         # Possibility of updating the data from inside the plotting routines
@@ -479,8 +556,8 @@ class OsirisData(osiris_common.OsirisCommon):
             pass
                 
         # Get the data values and units
-        datax  = self.data[direction]["values"]
-        datay  = self.data[var]["values"]
+        datax  = self.get(direction)
+        datay  = self.get(var)
         xlabel = self.data[direction]["label"]+" ["+self.data[direction]["unit"]+"]"
         ylabel = self.data[var]["label"]+" ["+self.data[var]["unit"]+"]"
         #if var_z:
@@ -516,15 +593,15 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Select only the cells in contact with the profile line
         dirs = "xyz".replace(direction,"")
-        cube = np.where(np.logical_and(datax-0.5*self.data["dx"]["values"] <= xmax,\
-                        np.logical_and(datax+0.5*self.data["dx"]["values"] >= xmin,\
-                        np.logical_and(abs(self.data[dirs[0]]["values"]-eval(dirs[0])) <= 0.51*self.data["dx"]["values"],\
-                                       abs(self.data[dirs[1]]["values"]-eval(dirs[1])) <= 0.51*self.data["dx"]["values"]))))
+        cube = np.where(np.logical_and(datax-0.5*self.get("dx") <= xmax,\
+                        np.logical_and(datax+0.5*self.get("dx") >= xmin,\
+                        np.logical_and(abs(self.get(dirs[0])-eval(dirs[0])) <= 0.51*self.get("dx"),\
+                                       abs(self.get(dirs[1])-eval(dirs[1])) <= 0.51*self.get("dx")))))
         order = datax[cube].argsort()
         x = datax[cube][order]
         y = datay[cube][order]
         if var_z:
-            z  = self.data[var_z]["values"][cube][order]
+            z  = self.get(var_z)[cube][order]
             zlabel = self.data[var_z]["label"]
         
         dx = xmax-xmin
@@ -553,7 +630,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes = plt.gca()
             
             theAxes.plot(x,y,marker=marker,**kwargs)
-            
+                            
             theAxes.set_xlabel(xlabel)
             theAxes.set_ylabel(ylabel)
             if clear:
@@ -573,4 +650,5 @@ class OsirisData(osiris_common.OsirisCommon):
             return x,y,z
         else:
             return
+
 
