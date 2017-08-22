@@ -36,6 +36,6 @@ mydata.plot_slice("log_T",direction="z",vec="velocity",dx=100,axes=ax5,cmap="hot
 # Now update values with later snapshot
 mydata.update_values(201)
 # Re-plot x,y density slice with velocity vectors in color
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100,axes=ax6)
+mydata.plot_slice("log_rho",direction="auto:top",vec="velocity",dx=100,axes=ax6)
 
 fig.savefig("demo.pdf",bbox_inches="tight")

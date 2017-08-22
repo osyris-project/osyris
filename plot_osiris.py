@@ -244,7 +244,11 @@ class OsirisData(osiris_common.OsirisCommon):
             dy = dx
         
         # Define x,y directions depending on the input direction
-        if direction.startswith("auto"):
+        if len(direction) == 3:
+            dir_x = "x"
+            dir_y = "y"
+            dir1 = direction
+        elif direction.startswith("auto"):
             params = direction.split(":")
             if len(params) == 1:
                 view = "top"
@@ -265,24 +269,29 @@ class OsirisData(osiris_common.OsirisCommon):
                 dir1 = AngMom
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
-                if AngMom[0] == AngMom[1] == 0.0:
-                    dir1 = [-AngMom[2],0,AngMom[0]]
-                else:
-                    dir1 = [-AngMom[1],AngMom[0],0]
+                dir1 = osiris_common.perpendicular_vector(AngMom)
             print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0],dir1[1],dir1[2]))
         elif ((direction == "x") or (direction == "y") or (direction == "z")):
             [dir_x,dir_y] = dir_list[direction]
             dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
-        elif len(direction) == 3:
+        elif self.info["ndim"]==2:
+            dir1 = [0,0,1]
             dir_x = "x"
             dir_y = "y"
-            dir1 = direction
         else:
             print("Bad direction for slice")
             return
         
+        # Choose 2 vectors normal to the direction n and normal to each other
+        dir2 = osiris_common.perpendicular_vector(dir1)
+        dir3 = np.cross(dir1,dir2)
+        
         norm1 = np.linalg.norm(dir1)
-        dir1 = dir1/norm1
+        norm2 = np.linalg.norm(dir2)
+        norm3 = np.linalg.norm(dir3)
+        dir1 = dir1 / norm1
+        dir2 = dir2 / norm2
+        dir3 = dir3 / norm3
         
         # Define equation of a plane
         a_plane = dir1[0]
@@ -297,19 +306,7 @@ class OsirisData(osiris_common.OsirisCommon):
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
         cube = np.where(abs(dist) <= sqrt3*0.5*self.get("dx")+0.5*dz)
-        
-        # Choose 2 vectors normal to the direction n and normal to each other
-        if a_plane == b_plane == 0:
-            dir2 = [-c_plane,0,a_plane]
-        else:
-            dir2 = [-b_plane,a_plane,0]
-        dir3 = np.cross(dir1,dir2)
-        
-        norm2 = np.linalg.norm(dir2)
-        norm3 = np.linalg.norm(dir3)
-        dir2 = dir2 / norm2
-        dir3 = dir3 / norm3
-                
+                        
         dataz = self.get(var)[cube]
         ncells = np.shape(dataz)[0]
         celldx = self.get("dx")[cube]
