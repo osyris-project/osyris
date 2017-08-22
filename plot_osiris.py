@@ -320,11 +320,19 @@ class OsirisData(osiris_common.OsirisCommon):
         datay = np.inner(coords,dir3)
         # Now project vectors and streamlines using the same method
         if vec:
-            vectors = np.transpose([self.get(vec+"_x")[cube],self.get(vec+"_y")[cube],self.get(vec+"_z")[cube]])
+            try:
+                vz = self.get(vec+"_z")[cube]
+            except KeyError:
+                vz = self.get(vec+"_x")[cube]*0.0
+            vectors = np.transpose([self.get(vec+"_x")[cube],self.get(vec+"_y")[cube],vz])
             datau1 = np.inner(vectors,dir2)
             datav1 = np.inner(vectors,dir3)
         if stream:
-            streams = np.transpose([self.get(stream+"_x")[cube],self.get(stream+"_y")[cube],self.get(stream+"_z")[cube]])
+            try:
+                sz = self.get(stream+"_z")[cube]
+            except KeyError:
+                sz = self.get(stream+"_x")[cube]*0.0
+            streams = np.transpose([self.get(stream+"_x")[cube],self.get(stream+"_y")[cube],sz])
             datau2 = np.inner(streams,dir2)
             datav2 = np.inner(streams,dir3)
         
