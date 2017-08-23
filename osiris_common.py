@@ -105,21 +105,11 @@ class OsirisCommon:
 #=======================================================================================    
 def perpendicular_vector(v):
 
-    # x = y = z = 0 is not an acceptable solution
-    if v[0] == v[1] == v[2] == 0:
-        raise ValueError("zero-vector")
+    ## x = y = z = 0 is not an acceptable solution
+    #if v[0] == v[1] == v[2] == 0:
+        #raise ValueError("zero-vector")
 
-    # If one dimension is zero, this can be solved by setting that to
-    # non-zero and the others to zero. Example: (4, 2, 0) lies in the
-    # x-y-Plane, so (0, 0, 1) is orthogonal to the plane.
-    if v[0] == 0:
+    if v[0] == v[1] == 0:
         return [1,0,0]
-    if v[1] == 0:
-        return [0,1,0]
-    if v[2] == 0:
-        return [0,0,1]
-
-    # arbitrarily set a = b = 1
-    # then the equation simplifies to
-    #     c = -(x + y)/z
-    return [1, 1, -1.0 * (v[0] + v[1]) / v[2]]
+    else:
+        return [-v[1],v[0],0]
