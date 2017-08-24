@@ -429,6 +429,8 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(data_pieces.values(), axis=0)
+        # Free memory
+        del data_pieces,xcent,xg,son,var,xyz,ref
         
         print("Total number of cells loaded: %i" % ncells_tot)
         if self.info["nsinks"] > 0:
