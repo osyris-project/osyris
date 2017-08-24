@@ -234,10 +234,10 @@ class OsirisData(osiris_common.OsirisCommon):
         dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"]}
         
         # Set dx to whole box if not specified
-        boxmin_x = np.amin(self.get(dir_list.get(direction,"x")[0]))
-        boxmax_x = np.amax(self.get(dir_list.get(direction,"x")[0]))
-        boxmin_y = np.amin(self.get(dir_list.get(direction,"y")[0]))
-        boxmax_y = np.amax(self.get(dir_list.get(direction,"y")[0]))
+        boxmin_x = np.amin(self.get(dir_list.get(direction)[0]))
+        boxmax_x = np.amax(self.get(dir_list.get(direction)[0]))
+        boxmin_y = np.amin(self.get(dir_list.get(direction)[1]))
+        boxmax_y = np.amax(self.get(dir_list.get(direction)[1]))
         if dx+dy == 0.0:
             dx = boxmax_x - boxmin_x
             dy = boxmax_y - boxmin_y
