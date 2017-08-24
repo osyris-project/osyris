@@ -30,7 +30,8 @@ class OsirisData(osiris_common.OsirisCommon):
                        cmap=conf.default_values["colormap"],resolution=256,copy=False,xmin=None,\
                        xmax=None,ymin=None,ymax=None,nc=20,new_window=False,evol=False,update=None,\
                        outline=False,scatter=False,marker=".",iskip=1,color="b",summed=False,\
-                       cbar=True,clear=True,plot=True,block=False):
+                       cbar=True,clear=True,plot=True,block=False,markersize=20,\
+                       markeredgecolor='None'):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -147,7 +148,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes = plt.gca()
             
             if scatter:
-                cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor='None',cmap=cmap)
+                cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor=markeredgecolor,cmap=cmap,s=markersize)
             else:
                 # First plot the filled colour contours
                 cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
@@ -231,7 +232,7 @@ class OsirisData(osiris_common.OsirisCommon):
             pass
         
         # List of directions
-        dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"]}
+        dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
         
         # Set dx to whole box if not specified
         boxmin_x = np.amin(self.get(dir_list.get(direction)[0]))
