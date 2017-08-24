@@ -233,10 +233,14 @@ class OsirisData(osiris_common.OsirisCommon):
         # List of directions
         dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"]}
         
-        #print dir_list.get(direction,"x")[0]
         # Set dx to whole box if not specified
+        boxmin_x = np.amin(self.get(dir_list.get(direction,"x")[0]))
+        boxmax_x = np.amax(self.get(dir_list.get(direction,"x")[0]))
+        boxmin_y = np.amin(self.get(dir_list.get(direction,"y")[0]))
+        boxmax_y = np.amax(self.get(dir_list.get(direction,"y")[0]))
         if dx+dy == 0.0:
-            dx = np.amax(self.get(dir_list.get(direction,"x")[0])) - np.amin(self.get(dir_list.get(direction,"x")[0]))
+            dx = boxmax_x - boxmin_x
+            dy = boxmax_y - boxmin_y
         elif dx == 0.0:
             dx = dy
         # Make it possible to call with only one size in the arguments
@@ -334,10 +338,10 @@ class OsirisData(osiris_common.OsirisCommon):
             datav2 = np.inner(streams,dir3)
         
         # Define slice extent and resolution
-        xmin = -0.5*dx
-        xmax =  0.5*dx
-        ymin = -0.5*dy
-        ymax =  0.5*dy
+        xmin = max(-0.5*dx,boxmin_x)
+        xmax = xmin + dx
+        ymin = max(-0.5*dy,boxmin_y)
+        ymax = ymin + dy
         nx   = resolution
         ny   = resolution
         dpx  = (xmax-xmin)/nx
@@ -523,7 +527,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 title += ""
                 theAxes.set_title(title)
             except TypeError:
-                theAxes.set_title("Time = %.3f kyr" % (self.info["time"]/conf.constants["kyr"]))
+                theAxes.set_title("Time = %.3f %s" % (self.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
             theAxes.set_aspect("equal")
 
             if fname:

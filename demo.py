@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import osiris as pp
 
+# Change default time unit to kyr
+pp.conf.default_values["time_unit"]="kyr"
+
 # Load data
 mydata = pp.RamsesData(nout=71,center="max:density",scale="au")
 

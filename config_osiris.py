@@ -11,7 +11,8 @@ default_values = {
     "dx"          : 0.0  ,
     "dy"          : 0.0  ,
     "dz"          : 0.0  ,
-    "scale"       : "au" ,
+    "scale"       : "cm" ,
+    "time_unit"   : "s" ,
     "verbose"     : False,
     "path"        : ""   ,
     "variables"   : []   ,
@@ -32,6 +33,7 @@ constants = {
     "cm"  : 1.0,
     "au"  : 1.495980e+13,
     "pc"  : 3.085678e+18,
+    "s"   : 1.0,
     "yr"  : 365.25*86400.0,
     "kyr" : 365.25*86400.0*1000.0,
     "msun": 1.9889e33
