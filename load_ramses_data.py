@@ -245,7 +245,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 [nx,ny,nz] = struct.unpack("3i", amrContent[offset:offset+12])
                 ncoarse = nx*ny*nz
-                xbound = [float(nx/2),float(ny/2),float(nz/2)]
+                xbound = [float(int(nx/2)),float(int(ny/2)),float(int(nz/2))]
                 
                 # nboundary
                 ninteg = 7
@@ -265,7 +265,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 nquadr = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 noutput = struct.unpack("i", amrContent[offset:offset+4])[0]
-            
+
             # Read the number of grids
             ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
@@ -313,9 +313,9 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 dxcell=0.5**(ilevel+1)
                 dx2=0.5*dxcell
                 for ind in range(twotondim):
-                    iz=(ind)/4
-                    iy=(ind-4*iz)/2
-                    ix=(ind-2*iy-4*iz)
+                    iz=int((ind)/4)
+                    iy=int((ind-4*iz)/2)
+                    ix=int((ind-2*iy-4*iz))
                     xcent[ind,0]=(float(ix)-0.5)*dxcell
                     xcent[ind,1]=(float(iy)-0.5)*dxcell
                     xcent[ind,2]=(float(iz)-0.5)*dxcell
@@ -428,7 +428,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 nstrin2 = nstrin_hydro
         
         # Merge all the data pieces into the master data array
-        master_data_array = np.concatenate(data_pieces.values(), axis=0)
+        master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
         
@@ -607,7 +607,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                 
         except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
-            
+
         self.data["x"]["values"] = (self.data["x"]["values"] - xc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 1:
             self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]

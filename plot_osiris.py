@@ -340,9 +340,9 @@ class OsirisData(osiris_common.OsirisCommon):
         
         # Define slice extent and resolution
         xmin = max(-0.5*dx,boxmin_x)
-        xmax = xmin + dx
+        xmax = min(xmin+dx,boxmax_x)
         ymin = max(-0.5*dy,boxmin_y)
-        ymax = ymin + dy
+        ymax = min(ymin+dy,boxmax_y)
         nx   = resolution
         ny   = resolution
         dpx  = (xmax-xmin)/nx
@@ -506,7 +506,7 @@ class OsirisData(osiris_common.OsirisCommon):
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0
                 if dz == 0.0:
-                    subset = np.where(self.get("r")[cube] < dx*0.01)
+                    subset = np.where(self.get("r")[cube] < dx*0.05)
                     thickness = 0.5*np.average(celldx[subset])
                 else:
                     thickness = 0.5*dz
