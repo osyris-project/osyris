@@ -235,10 +235,10 @@ class OsirisData(osiris_common.OsirisCommon):
         dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
         
         # Set dx to whole box if not specified
-        boxmin_x = np.amin(self.get(dir_list.get(direction)[0]))
-        boxmax_x = np.amax(self.get(dir_list.get(direction)[0]))
-        boxmin_y = np.amin(self.get(dir_list.get(direction)[1]))
-        boxmax_y = np.amax(self.get(dir_list.get(direction)[1]))
+        boxmin_x = np.amin(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmax_x = np.amax(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmin_y = np.amin(self.get(dir_list.get(direction,["x","y"])[1]))
+        boxmax_y = np.amax(self.get(dir_list.get(direction,["x","y"])[1]))
         if dx+dy == 0.0:
             dx = boxmax_x - boxmin_x
             dy = boxmax_y - boxmin_y
@@ -249,10 +249,10 @@ class OsirisData(osiris_common.OsirisCommon):
             dy = dx
         
         # Define x,y directions depending on the input direction
-        if len(direction) == 3:
+        if direction[0]=="[" and direction[-1]=="]":
             dir_x = "x"
             dir_y = "y"
-            dir1 = direction
+            dir1 = eval(direction)
         elif direction.startswith("auto"):
             params = direction.split(":")
             if len(params) == 1:
