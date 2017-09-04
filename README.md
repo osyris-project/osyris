@@ -2,7 +2,7 @@
 
 # Osiris #
 
-A small python visualization utility for RAMSES data. It is not meant to replace large projects such as Pymses, it's purpose is more to plot small 'quick and dirty' diagnostics while a simulation is running. It can however also be used to produce publication grade figures.
+A python visualization utility for RAMSES data. It's purpose is to plot quick diagnostics while a simulation is running, and also produce publication grade figures.
 
 ### Installation ###
 
@@ -72,4 +72,4 @@ fig.savefig("demo.pdf",bbox_inches="tight")
 
 * Neil Vaytet (StarPlan/NBI)
 * Tommaso Grassi (StarPlan/NBI)
-* Matthias González (CEA Saclay)
+* Matthias Gonzï¿½lez (CEA Saclay)
