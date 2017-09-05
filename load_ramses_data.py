@@ -374,7 +374,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                     var[:ncache,ind,-4+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
                                 var[:ncache,ind,-1] = dxcell*self.info["boxlen"]
                                 # ref: True if the cell is unrefined
-                                ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax))
+                                ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax-1))
 
                             # Select only the unrefined cells that are in the region of interest
                             if self.info["ndim"] == 1:
