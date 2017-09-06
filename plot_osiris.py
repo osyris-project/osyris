@@ -215,14 +215,24 @@ class OsirisData(osiris_common.OsirisCommon):
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
+    #def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
+                   #dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
+                   #nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
+                   #zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
+                   #vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
+                   #vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
+                   #summed=False,vsum=False,ssum=False,logz=False,image=False,resolution=128,\
+                   #copy=False,overwrite=False,contours=False,ccolor=None,slice_args={},image_args={},contour_args={}\
+                   #vec_args={},stream_args={}):
+    
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
-                   nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
-                   zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
-                   vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
-                   summed=False,vsum=False,ssum=False,logz=False,image=False,resolution=128,\
-                   copy=False):
+                   nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
+                   title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
+                   origin=[0,0,0],summed=False,logz=False,image=False,resolution=128,\
+                   copy=False,contours=False,slice_args={},image_args={},\
+                   contours_args={},vec_args={},stream_args={}):
+    
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -390,28 +400,26 @@ class OsirisData(osiris_common.OsirisCommon):
         # Compute z averages
         if summed:
             z = np.ma.masked_where(zb == 0.0, za)
-        else:
-            z = np.ma.masked_where(zb == 0.0, za/zb)
-        if logz:
-            z = np.log10(z)
-        if vec:
-            if vsum:
+            if vec:
                 u1 = np.ma.masked_where(zb == 0.0, u1)
                 v1 = np.ma.masked_where(zb == 0.0, v1)
                 w1 = np.ma.masked_where(zb == 0.0, z1)
-            else:
-                u1 = np.ma.masked_where(zb == 0.0, u1/zb)
-                v1 = np.ma.masked_where(zb == 0.0, v1/zb)
-                w1 = np.ma.masked_where(zb == 0.0, z1/zb)
-        if stream:
-            if ssum:
+            if stream:
                 u2 = np.ma.masked_where(zb == 0.0, u2)
                 v2 = np.ma.masked_where(zb == 0.0, v2)
                 w2 = np.ma.masked_where(zb == 0.0, z2)
-            else:
+        else:
+            z = np.ma.masked_where(zb == 0.0, za/zb)
+            if vec:
+                u1 = np.ma.masked_where(zb == 0.0, u1/zb)
+                v1 = np.ma.masked_where(zb == 0.0, v1/zb)
+                w1 = np.ma.masked_where(zb == 0.0, z1/zb)
+            if stream:
                 u2 = np.ma.masked_where(zb == 0.0, u2/zb)
                 v2 = np.ma.masked_where(zb == 0.0, v2/zb)
                 w2 = np.ma.masked_where(zb == 0.0, z2/zb)
+        if logz:
+            z = np.log10(z)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
@@ -429,21 +437,15 @@ class OsirisData(osiris_common.OsirisCommon):
             zlab += " ["+self.data[var  ]["unit"]+"]"
         
         # Define colorbar limits
-        need_levels = False
         try:
             zmin += 0
-            need_levels = True
         except TypeError:
             zmin = np.amin(z)
         try:
             zmax += 0
-            need_levels = True
         except TypeError:
             zmax = np.amax(z)
-        if need_levels:
-            clevels = np.linspace(zmin,zmax,nc)
-        else:
-            clevels = None
+        clevels = np.linspace(zmin,zmax,nc)
         
         # Begin plotting -------------------------------------
         if plot:
@@ -460,9 +462,20 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes = plt.gca()
             
             if image:
-                cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],cmap=cmap,vmin=zmin,vmax=zmax,interpolation="none",origin="lower")
+                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap}
+                for key in image_args.keys():
+                    image_args_plot[key] = image_args[key]
+                cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
+            elif contours:
+                contours_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
+                for key in contours_args.keys():
+                    contours_args_plot[key] = contours_args[key]
+                cont = theAxes.contour(x,y,z,**contours_args_plot)
             else:
-                cont = theAxes.contourf(x,y,z,nc,levels=clevels,cmap=cmap,extend=extend)
+                slice_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
+                for key in slice_args.keys():
+                    slice_args_plot[key] = slice_args[key]
+                cont = theAxes.contourf(x,y,z,**slice_args_plot)
             if cbar:
                cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
                cb.ax.set_ylabel(zlab)
@@ -470,38 +483,62 @@ class OsirisData(osiris_common.OsirisCommon):
             theAxes.set_xlabel(xlab)
             theAxes.set_ylabel(ylab)
             
+            # Plot vector field
             if vec:
-                try:
-                    vskip += 0
-                except TypeError:
-                    vskip = int(0.071*resolution)
-                
-                try:
-                    vscale += 0
-                except TypeError:
-                    vscale = np.amax(w1[::vskip,::vskip])
-                
-                if vcmap:
+                # Here we define a set of default parameters
+                vec_args_osiris  = {"vskip"   : int(0.047*resolution),
+                                    "vscale"  : np.amax(w1),
+                                    "vsize"   : 15.0,
+                                    "vkey"    : True,
+                                    "vkey_pos": [0.70,-0.08],
+                                    "cbar"    : False,
+                                    "cbax"    : None}
+                # Save a copy so we can exclude these parameters specific to osiris from the ones
+                # to be sent to the matplotlib quiver routine.
+                ignore = set(vec_args_osiris.keys())
+                # Now we go through the arguments taken from the function call - vec_args - and
+                # add them to the osiris arguments.
+                for key in vec_args.keys():
+                    vec_args_osiris[key] = vec_args[key]
+                # We now define default parameters for the quiver function
+                vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w"}
+                # Then run through the vec_args, adding them to the plotting arguments, but
+                # ignoring all osiris specific arguments
+                keys = set(vec_args.keys())
+                for key in keys.difference(ignore):
+                    vec_args_plot[key] = vec_args[key]
+                # We are now ready to plot the vectors. Note that we need two different calls if
+                # a colormap is used for the vectors.
+                vskip = vec_args_osiris["vskip"]
+                if vec_args_plot["cmap"]:
                     vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                          w1[::vskip,::vskip],cmap=vcmap,pivot="mid",scale=vsize*vscale)
+                                          w1[::vskip,::vskip],**vec_args_plot)
+                    if vec_args_osiris["cbar"]:
+                        vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal")
+                        vcb.ax.set_xlabel(vec+" ["+self.data[vec+"_"+dir_x]["unit"]+"]")
                 else:
                     vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                          color=vcolor,pivot="mid",scale=vsize*vscale)
-
+                                          **vec_args_plot)
+                
                 # Plot the scale of the vectors under the axes
                 unit_u = self.data[vec+"_"+dir_x]["unit"]
-                if vkey:
-                    theAxes.quiverkey(vect,vkey_pos[0],vkey_pos[1], vscale,"%.2f [%s]" % (vscale, unit_u),\
-                                      labelpos="E", coordinates="axes", color="k", labelcolor="k",zorder=100)
+                if vec_args_osiris["vkey"]:
+                    theAxes.quiverkey(vect,vec_args_osiris["vkey_pos"][0],vec_args_osiris["vkey_pos"][1],\
+                                      vec_args_osiris["vscale"],"%.2f [%s]" % (vec_args_osiris["vscale"],\
+                                      unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
+                                      zorder=100)
 
             if stream:
-                if scmap:
-                    if scmap.startswith("log"):
+                stream_args_plot = {"cmap":None,"color":"w"}
+                for key in stream_args.keys():
+                    stream_args_plot[key] = stream_args[key]
+                if stream_args_plot["cmap"]:
+                    if stream_args_plot["cmap"].startswith("log"):
                         w2 = np.log10(w2)
-                        scmap = scmap.split(",")[1]
-                    strm = theAxes.streamplot(x,y,u2,v2,color=w2,cmap=scmap)
-                else:
-                    strm = theAxes.streamplot(x,y,u2,v2,color=scolor)
+                        stream_args_plot["cmap"] = stream_args_plot["cmap"].split(",")[1]
+                    stream_args_plot["color"]=w2
+                
+                strm = theAxes.streamplot(x,y,u2,v2,**stream_args_plot)
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0

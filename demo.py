@@ -32,7 +32,7 @@ mydata.plot_histogram("log_rho","log_vel","log_T",axes=ax2,cmap="gnuplot",scatte
 #x,z density slice with B field streamlines
 mydata.plot_slice("log_rho",direction="y",stream="B",dx=100,axes=ax3)
 # x,y density slice with velocity vectors in color
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100,axes=ax4,vskip=4,vcmap="seismic")
+mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
 # x,y temperature slice with velocity vectors
 mydata.plot_slice("log_T",direction="z",vec="velocity",dx=100,axes=ax5,cmap="hot")
 
