@@ -28,10 +28,9 @@ class OsirisData(osiris_common.OsirisCommon):
     #=======================================================================================
     def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
                        cmap=conf.default_values["colormap"],resolution=256,copy=False,xmin=None,\
-                       xmax=None,ymin=None,ymax=None,nc=20,new_window=False,evol=False,update=None,\
-                       outline=False,scatter=False,marker=".",iskip=1,color="b",summed=False,\
-                       cbar=True,clear=True,plot=True,block=False,markersize=20,\
-                       markeredgecolor='None'):
+                       xmax=None,ymin=None,ymax=None,nc=20,new_window=False,update=None,cbar=True,\
+                       outline=False,scatter=False,summed=False,clear=True,plot=True,block=False,\
+                       histogram_args={},scatter_args={},contour_args={},outline_args={}):
 
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -105,15 +104,7 @@ class OsirisData(osiris_common.OsirisCommon):
             for j in range(ny-1):
                 y[j] = 0.5*(ye[j]+ye[j+1])
         
-        if scatter:
-            xs = datax[::iskip]
-            ys = datay[::iskip]
-            if var_z:
-                zs = dataz[::iskip]
-            else:
-                zs = color
-        else:
-        
+        if not scatter:
             if var_z:
                 z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
                 if summed:
@@ -148,36 +139,64 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes = plt.gca()
             
             if scatter:
-                cont = theAxes.scatter(xs,ys,c=zs,marker=marker,edgecolor=markeredgecolor,cmap=cmap,s=markersize)
+                scatter_args_osiris = {"iskip":1}
+                # Save a copy so we can exclude these parameters specific to osiris from the ones
+                # to be sent to the matplotlib quiver routine.
+                ignore = set(scatter_args_osiris.keys())
+                # Now we go through the arguments taken from the function call - scatter_args - and
+                # add them to the osiris arguments.
+                for key in scatter_args.keys():
+                    scatter_args_osiris[key] = scatter_args[key]
+                # We now define default parameters for the scatter function
+                scatter_args_plot = {"cmap":cmap,"marker":".","color":"b","edgecolor":"None","s":20}
+                # Then run through the vec_args, adding them to the plotting arguments, but
+                # ignoring all osiris specific arguments
+                keys = set(scatter_args.keys())
+                for key in keys.difference(ignore):
+                    scatter_args_plot[key] = scatter_args[key]
+                iskip = scatter_args_osiris["iskip"]
+                # Now we can start plotting
+                if var_z:
+                    zs = dataz[::iskip]
+                else:
+                    zs = color
+                cont = theAxes.scatter(datax[::iskip],datay[::iskip],c=zs,**scatter_args_plot)
             else:
+                # Run through arguments
+                histogram_args_plot = {"cmap":cmap}
+                for key in histogram_args.keys():
+                    histogram_args_plot[key] = histogram_args[key]
                 # First plot the filled colour contours
-                cont = theAxes.contourf(x,y,z,nc,cmap=cmap)
+                cont = theAxes.contourf(x,y,z,nc,**histogram_args_plot)
             
                 # If var_c is specified, overlay black contours
                 if var_c:
-                    over = theAxes.contour(x,y,c,colors="k")
-                    theAxes.clabel(over,inline=1)
+                    # Run through arguments
+                    contour_args_plot = {"colors":"k"}
+                    clabel_args = {"fmt":"%1.3f"}
+                    ignore = set(clabel_args.keys())
+                    keys = set(contour_args.keys())
+                    for key in keys.difference(ignore):
+                        contour_args_plot[key] = contour_args[key]
+                    for key in contour_args.keys():
+                        clabel_args[key] = contour_args[key]
+                    # Now overlay contours
+                    over = theAxes.contour(x,y,c,**contour_args_plot)
+                    theAxes.clabel(over,inline=1,fmt=clabel_args["fmt"])
                     leg = [over.collections[0]]
                     theAxes.legend(leg,[self.data[var_c]["label"]],loc=2)
             
             if outline:
-                outl = theAxes.contour(x,y,z0,levels=[1.0],colors="grey")
+                outline_args_plot = {"levels":[1.0],"colors":"grey"}
+                for key in outline_args.keys():
+                    outline_args_plot[key] = outline_args[key]
+                outl = theAxes.contour(x,y,z0,**outline_args_plot)
             
             if ((var_z or (not scatter)) and (cbar)):
                 cb = plt.colorbar(cont,ax=theAxes)
                 cb.ax.set_ylabel(zlabel)
                 cb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
-            # Plot evolution (this is quite specific to star formation)
-            if evol:
-                f = open(evol,"a")
-                imax = np.argmax(datax)
-                f.write("%.14e  %.14e  %.14e\n" % (self.info["time"],datax[imax],datay[imax]))
-                f.close()
-                datat = np.loadtxt(evol)
-                if np.shape(np.shape(datat))[0] > 1:
-                    theAxes.plot(datat[:,1],datat[:,2],color="k",lw=3)
-                
+                            
             theAxes.set_xlabel(xlabel)
             theAxes.set_ylabel(ylabel)
             if clear:
@@ -205,9 +224,9 @@ class OsirisData(osiris_common.OsirisCommon):
     # - vec        : the vector field to be overplotted. For velocity, one should supply
     #                "velocity" as input and the routine will search for "velocity_x" and
     #                "velocity_y" in the variable fields.
-    # - streamlines: if true, streamlines are drawn for the vector fields instead of arrows.
-    #                In addition, if you set streamlines="log", the coloring of the
-    #                streamlines will be logarithmic.
+    # - stream     : the field for streamlines to be overplotted. For B field, one should
+    #                supply "B" as input and the routine will search for "B_x" and
+    #                "B_y" in the variable fields.
     # - fname      : if specified, the figure is saved to file.
     # - dx         : the x extent of the slice, in units of scale (see data loader)
     # - dy         : the y extent of the slice, in units of scale. If not specified, dy = dx
@@ -215,24 +234,13 @@ class OsirisData(osiris_common.OsirisCommon):
     # - axes       : if specified, the data is plotted on the specified axes (see demo).
     # - resolution : number of pixels in the slice.
     #=======================================================================================
-    #def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
-                   #dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
-                   #nc=20,new_window=False,vcmap=False,scmap=False,sinks=True,update=None,\
-                   #zmin=None,zmax=None,extend="neither",vscale=None,vsize=15.0,title=None,\
-                   #vcolor="w",scolor="w",vkey_pos=[0.70,-0.08],cbar=True,cbax=None,clear=True,
-                   #vskip=None,vkey=True,plot=True,center=False,block=False,origin=[0,0,0],
-                   #summed=False,vsum=False,ssum=False,logz=False,image=False,resolution=128,\
-                   #copy=False,overwrite=False,contours=False,ccolor=None,slice_args={},image_args={},contour_args={}\
-                   #vec_args={},stream_args={}):
-    
     def plot_slice(self,var="density",direction="z",vec=False,stream=False,fname=None,\
                    dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
                    nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
                    title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
                    origin=[0,0,0],summed=False,logz=False,image=False,resolution=128,\
-                   copy=False,contours=False,slice_args={},image_args={},\
-                   contours_args={},vec_args={},stream_args={}):
-    
+                   copy=False,contour=False,slice_args={},image_args={},\
+                   contour_args={},vec_args={},stream_args={}):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -466,11 +474,11 @@ class OsirisData(osiris_common.OsirisCommon):
                 for key in image_args.keys():
                     image_args_plot[key] = image_args[key]
                 cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
-            elif contours:
-                contours_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
-                for key in contours_args.keys():
-                    contours_args_plot[key] = contours_args[key]
-                cont = theAxes.contour(x,y,z,**contours_args_plot)
+            elif contour:
+                contour_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
+                for key in contour_args.keys():
+                    contour_args_plot[key] = contour_args[key]
+                cont = theAxes.contour(x,y,z,**contour_args_plot)
             else:
                 slice_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
                 for key in slice_args.keys():
@@ -590,9 +598,8 @@ class OsirisData(osiris_common.OsirisCommon):
     #=======================================================================================
     # Plot a 1D profile through the data cube.
     #=======================================================================================
-    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,var_z=None,fname=None,logz=False,\
-                     axes=None,copy=False,xmin=None,xmax=None,ymin=None,ymax=None,\
-                     new_window=False,update=None,marker=None,iskip=1,cbar=True,\
+    def plot_profile(self,direction,var,x=0.0,y=0.0,z=0.0,fname=None,axes=None,copy=False,\
+                     xmin=None,xmax=None,ymin=None,ymax=None,new_window=False,update=None,\
                      clear=True,plot=True,**kwargs):
         
         # Possibility of updating the data from inside the plotting routines
@@ -607,9 +614,6 @@ class OsirisData(osiris_common.OsirisCommon):
         datay  = self.get(var)
         xlabel = self.data[direction]["label"]+" ["+self.data[direction]["unit"]+"]"
         ylabel = self.data[var]["label"]+" ["+self.data[var]["unit"]+"]"
-        #if var_z:
-            #dataz  = self.data[var_z]["values"]
-            #zlabel = self.data[var_z]["label"]
         
         # Define plotting range
         autoxmin = False
@@ -647,9 +651,6 @@ class OsirisData(osiris_common.OsirisCommon):
         order = datax[cube].argsort()
         x = datax[cube][order]
         y = datay[cube][order]
-        if var_z:
-            z  = self.get(var_z)[cube][order]
-            zlabel = self.data[var_z]["label"]
         
         dx = xmax-xmin
         dy = ymax-ymin
@@ -676,7 +677,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 plt.subplot(111)
                 theAxes = plt.gca()
             
-            theAxes.plot(x,y,marker=marker,**kwargs)
+            theAxes.plot(x,y,**kwargs)
                             
             theAxes.set_xlabel(xlabel)
             theAxes.set_ylabel(ylabel)
@@ -697,5 +698,3 @@ class OsirisData(osiris_common.OsirisCommon):
             return x,y,z
         else:
             return
-
-

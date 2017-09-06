@@ -21,13 +21,13 @@ ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
 # Density vs B field with AMR level contours
-mydata.plot_histogram("log_rho","log_B",var_c="level",axes=ax1,cmap="YlGnBu")
+mydata.plot_histogram("log_rho","log_B",var_c="level",axes=ax1,cmap="YlGnBu",contour_args={"fmt":"%i"})
 
 # Create new field with log of velocity
 mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
 # Density vs log_vel
-mydata.plot_histogram("log_rho","log_vel","log_T",axes=ax2,cmap="gnuplot",scatter=True,outline=True,iskip=100)
+mydata.plot_histogram("log_rho","log_vel","log_T",axes=ax2,cmap="gnuplot",scatter=True,outline=True,scatter_args={"iskip":100})
 
 #x,z density slice with B field streamlines
 mydata.plot_slice("log_rho",direction="y",stream="B",dx=100,axes=ax3)
