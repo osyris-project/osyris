@@ -293,7 +293,8 @@ class OsirisData(osiris_common.OsirisCommon):
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
                 dir1 = osiris_common.perpendicular_vector(AngMom)
-            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0],dir1[1],dir1[2]))
+            norm1 = np.linalg.norm(dir1)
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
         elif ((direction == "x") or (direction == "y") or (direction == "z")):
             [dir_x,dir_y] = dir_list[direction]
             dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
