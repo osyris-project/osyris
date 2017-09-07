@@ -239,8 +239,8 @@ class OsirisData(osiris_common.OsirisCommon):
                    nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
                    title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
                    origin=[0,0,0],summed=False,logz=False,image=False,resolution=128,\
-                   copy=False,contour=False,slice_args={},image_args={},\
-                   contour_args={},vec_args={},stream_args={}):
+                   copy=False,contour=False,overwrite=False,slice_args={},\
+                   image_args={},contour_args={},vec_args={},stream_args={}):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -393,18 +393,32 @@ class OsirisData(osiris_common.OsirisCommon):
             iy2 = min(int((y2-ymin)/dpy),ny-1)
             
             # Fill in the slice pixels with data
-            for j in range(iy1,iy2+1):
-                for i in range(ix1,ix2+1):
-                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
-                    zb[j,i] = zb[j,i] + celldx[n]
-                    if vec:
-                        u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
-                        v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
-                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                    if stream:
-                        u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
-                        v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
-                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+            if overwrite:
+                for j in range(iy1,iy2+1):
+                    for i in range(ix1,ix2+1):
+                        za[j,i] = dataz[n]*celldx[n]
+                        zb[j,i] = celldx[n]
+                        if vec:
+                            u1[j,i] = datau1[n]*celldx[n]
+                            v1[j,i] = datav1[n]*celldx[n]
+                            z1[j,i] = np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                        if stream:
+                            u2[j,i] = datau2[n]*celldx[n]
+                            v2[j,i] = datav2[n]*celldx[n]
+                            z2[j,i] = np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+            else:
+                for j in range(iy1,iy2+1):
+                    for i in range(ix1,ix2+1):
+                        za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                        zb[j,i] = zb[j,i] + celldx[n]
+                        if vec:
+                            u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
+                            v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
+                            z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                        if stream:
+                            u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
+                            v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
+                            z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
         
         # Compute z averages
         if summed:
@@ -476,12 +490,19 @@ class OsirisData(osiris_common.OsirisCommon):
                     image_args_plot[key] = image_args[key]
                 cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
             elif contour:
-                contour_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
-                for key in contour_args.keys():
+                contour_args_plot = {"levels":clevels,"extend":"neither","cmap":cmap}
+                clabel_args = {"label":False,"fmt":"%1.3f"}
+                ignore = set(clabel_args.keys())
+                keys = set(contour_args.keys())
+                for key in keys.difference(ignore):
                     contour_args_plot[key] = contour_args[key]
+                for key in contour_args.keys():
+                    clabel_args[key] = contour_args[key]
                 cont = theAxes.contour(x,y,z,**contour_args_plot)
+                if clabel_args["label"]:
+                    theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
             else:
-                slice_args_plot = {"levels":clevels,"extend":"both","cmap":cmap}
+                slice_args_plot = {"levels":clevels,"extend":"neither","cmap":cmap}
                 for key in slice_args.keys():
                     slice_args_plot[key] = slice_args[key]
                 cont = theAxes.contourf(x,y,z,**slice_args_plot)
