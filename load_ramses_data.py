@@ -472,14 +472,14 @@ class LoadRamsesData(plot_osiris.OsirisData):
         for key in sorted(self.data.keys()):
             maxlen1 = max(maxlen1,len(key))
             maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
-            maxlen3 = max(maxlen3,len(str(np.amin(self.data[key]["values"]))))
-            maxlen4 = max(maxlen4,len(str(np.amax(self.data[key]["values"]))))
+            maxlen3 = max(maxlen3,len(str(np.nanmin(self.data[key]["values"]))))
+            maxlen4 = max(maxlen4,len(str(np.nanmax(self.data[key]["values"]))))
         print("The variables are:")
         print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
         for key in sorted(self.data.keys()):
             print(key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
-                  str(np.amin(self.data[key]["values"])).ljust(maxlen3)+" "+\
-                  str(np.amax(self.data[key]["values"])).ljust(maxlen4))
+                  str(np.nanmin(self.data[key]["values"])).ljust(maxlen3)+" "+\
+                  str(np.nanmax(self.data[key]["values"])).ljust(maxlen4))
         return
     
     #=======================================================================================

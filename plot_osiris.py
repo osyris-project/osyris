@@ -61,22 +61,22 @@ class OsirisData(osiris_common.OsirisCommon):
         try:
             xmin += 0
         except TypeError:
-            xmin = np.amin(datax)
+            xmin = np.nanmin(datax)
             autoxmin = True
         try:
             xmax += 0
         except TypeError:
-            xmax = np.amax(datax)
+            xmax = np.nanmax(datax)
             autoxmax = True
         try:
             ymin += 0
         except TypeError:
-            ymin = np.amin(datay)
+            ymin = np.nanmin(datay)
             autoymin = True
         try:
             ymax += 0
         except TypeError:
-            ymax = np.amax(datay)
+            ymax = np.nanmax(datay)
             autoymax = True
         
         dx = xmax-xmin
@@ -148,7 +148,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 for key in scatter_args.keys():
                     scatter_args_osiris[key] = scatter_args[key]
                 # We now define default parameters for the scatter function
-                scatter_args_plot = {"cmap":cmap,"marker":".","color":"b","edgecolor":"None","s":20}
+                scatter_args_plot = {"cmap":cmap,"marker":".","c":"b","edgecolor":"None","s":20}
                 # Then run through the vec_args, adding them to the plotting arguments, but
                 # ignoring all osiris specific arguments
                 keys = set(scatter_args.keys())
@@ -157,10 +157,8 @@ class OsirisData(osiris_common.OsirisCommon):
                 iskip = scatter_args_osiris["iskip"]
                 # Now we can start plotting
                 if var_z:
-                    zs = dataz[::iskip]
-                else:
-                    zs = color
-                cont = theAxes.scatter(datax[::iskip],datay[::iskip],c=zs,**scatter_args_plot)
+                    scatter_args_plot["c"] = dataz[::iskip]
+                cont = theAxes.scatter(datax[::iskip],datay[::iskip],**scatter_args_plot)
             else:
                 # Run through arguments
                 histogram_args_plot = {"cmap":cmap}
@@ -253,10 +251,10 @@ class OsirisData(osiris_common.OsirisCommon):
         dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
         
         # Set dx to whole box if not specified
-        boxmin_x = np.amin(self.get(dir_list.get(direction,["x","y"])[0]))
-        boxmax_x = np.amax(self.get(dir_list.get(direction,["x","y"])[0]))
-        boxmin_y = np.amin(self.get(dir_list.get(direction,["x","y"])[1]))
-        boxmax_y = np.amax(self.get(dir_list.get(direction,["x","y"])[1]))
+        boxmin_x = np.nanmin(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmax_x = np.nanmax(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmin_y = np.nanmin(self.get(dir_list.get(direction,["x","y"])[1]))
+        boxmax_y = np.nanmax(self.get(dir_list.get(direction,["x","y"])[1]))
         if dx+dy == 0.0:
             dx = boxmax_x - boxmin_x
             dy = boxmax_y - boxmin_y
@@ -278,7 +276,7 @@ class OsirisData(osiris_common.OsirisCommon):
             else:
                 view = params[1]
             if len(params) < 3:
-                sphere_rad = 0.5*((np.amax(self.get("x"))-np.amin(self.get("x"))) if dx == 0.0 else dx)
+                sphere_rad = 0.5*((np.nanmax(self.get("x"))-np.nanmin(self.get("x"))) if dx == 0.0 else dx)
             else:
                 sphere_rad = float(params[2])
             dir_x = "x"
@@ -463,13 +461,12 @@ class OsirisData(osiris_common.OsirisCommon):
         try:
             zmin += 0
         except TypeError:
-            zmin = np.amin(z)
+            zmin = np.nanmin(z)
         try:
             zmax += 0
         except TypeError:
-            zmax = np.amax(z)
+            zmax = np.nanmax(z)
         clevels = np.linspace(zmin,zmax,nc)
-        
         # Begin plotting -------------------------------------
         if plot:
             if axes:
@@ -517,7 +514,7 @@ class OsirisData(osiris_common.OsirisCommon):
             if vec:
                 # Here we define a set of default parameters
                 vec_args_osiris  = {"vskip"   : int(0.047*resolution),
-                                    "vscale"  : np.amax(w1),
+                                    "vscale"  : np.nanmax(w1),
                                     "vsize"   : 15.0,
                                     "vkey"    : True,
                                     "vkey_pos": [0.70,-0.08],
@@ -646,22 +643,22 @@ class OsirisData(osiris_common.OsirisCommon):
         try:
             xmin += 0
         except TypeError:
-            xmin = np.amin(datax)
+            xmin = np.nanmin(datax)
             autoxmin = True
         try:
             xmax += 0
         except TypeError:
-            xmax = np.amax(datax)
+            xmax = np.nanmax(datax)
             autoxmax = True
         try:
             ymin += 0
         except TypeError:
-            ymin = np.amin(datay)
+            ymin = np.nanmin(datay)
             autoymin = True
         try:
             ymax += 0
         except TypeError:
-            ymax = np.amax(datay)
+            ymax = np.nanmax(datay)
             autoymax = True
         
         # Select only the cells in contact with the profile line
