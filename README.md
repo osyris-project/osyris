@@ -71,9 +71,12 @@ fig.savefig("demo.pdf",bbox_inches="tight")
 
 ```
 
+### Have a problem or need a new feature? ###
+
+Use the [Issue tracker](https://bitbucket.org/nvaytet/osiris/issues) on the Bitbucket website.
 
 ### Contributors ###
 
 * Neil Vaytet (StarPlan/NBI)
 * Tommaso Grassi (StarPlan/NBI)
-* Matthias Gonz�lez (CEA Saclay)
+* Matthias Gonzalez (CEA Saclay)
