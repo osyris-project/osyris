@@ -449,8 +449,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
             if not update:
                 self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+            # Replace "_" with " " to avoid error with latex when saving figures
+            theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theKey,values=master_data_array[:,i]*norm,verbose=False)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False)
         
         # Re-center the mesh around chosen center
         self.re_center()
