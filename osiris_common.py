@@ -1,3 +1,4 @@
+import struct
 import numpy as np
 import config_osiris as conf
 
@@ -96,6 +97,134 @@ class OsirisCommon:
     #=======================================================================================
     def get(self,var):
         return self.data[var]["values"]
+        
+    #=======================================================================================
+    # This function writes the RAMSES data to a VTK file for 3D visualization
+    #=======================================================================================
+    def to_vtk(self,fname="osiris_data.vtu",variables=False):
+        
+        try:
+            from scipy.spatial import Delaunay
+        except ImportError:
+            print("Scipy Delaunay library not found. This is needed for VTK output. Exiting.")
+
+        # Print status
+        if not fname.endswith(".vtu"):
+            fname += ".vtu"
+        print("Writing data to VTK file: "+fname)
+        
+        # Coordinates ot RAMSES cell centers
+        points = np.array([self.get("x"),self.get("y"),self.get("z")]).T
+        
+        # Compute Delaunay tetrahedralization from cell nodes
+        # Note that this step can take a lot of time!
+        ncells = self.info["ncells"]
+        print("Computing Delaunay mesh with %i points." % ncells)
+        print("This may take some time...")
+        tri = Delaunay(points)
+        ntetra = np.shape(tri.simplices)[0]
+        nverts = ntetra*4
+        print("Delaunay mesh with %i tetrahedra complete." % ntetra)
+
+        nvars = len(self.data.keys())
+
+        # Compute byte sizes
+        nbytes_xyz   = 3 * ncells * 8
+        nbytes_cellc =     nverts * 4
+        nbytes_cello =     ntetra * 4
+        nbytes_cellt =     ntetra * 4
+        nbytes_vars  =     [ncells * 8] * nvars
+
+        # Compute byte offsets
+        ioff0 = 0                        # xyz coordinates
+        ioff1 = ioff0 + 4 + nbytes_xyz   # cell connectivity
+        ioff2 = ioff1 + 4 + nbytes_cellc # cell offsets
+        ioff3 = ioff2 + 4 + nbytes_cello # cell types
+        
+        ioffv = np.zeros([nvars],dtype=np.int32)
+        ioffv[0] = ioff3 + 4 + nbytes_cellt # first hydro variable
+        for i in range(1,nvars):
+            ioffv[i] = ioffv[i-1] + 4 + nbytes_vars[i-1]
+
+        # Open file for binary output
+        f = open(fname, "wb")
+
+        # Write VTK file header
+        f.write('<?xml version=\"1.0\"?>\n')
+        f.write('<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n')
+        f.write('   <UnstructuredGrid>\n')
+        f.write('   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n' % (ncells,ntetra))
+        f.write('      <Points>\n')
+        f.write('         <DataArray type=\"Float64\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%i\" />\n' % ioff0)
+        f.write('      </Points>\n')
+        f.write('      <Cells>\n')
+        f.write('         <DataArray type=\"Int32\" Name=\"connectivity\" format=\"appended\" offset=\"%i\" />\n' % ioff1)
+        f.write('         <DataArray type=\"Int32\" Name=\"offsets\" format=\"appended\" offset=\"%i\" />\n' % ioff2)
+        f.write('         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % ioff3)
+        f.write('      </Cells>\n')
+        f.write('      <PointData>\n')
+        ivar = 0
+        for key in self.data.keys():
+            f.write('         <DataArray type=\"Float64\" Name=\"'+key+'\" format=\"appended\" offset=\"%i\" />\n' % ioffv[ivar])
+            ivar += 1
+        f.write('      </PointData>\n')
+        f.write('   </Piece>\n')
+        f.write('   </UnstructuredGrid>\n')
+        f.write('   <AppendedData encoding=\"raw\">\n')
+        f.write('_')
+
+        # Now write data in binary. Every data field is preceded by its byte size.
+        
+        # x,y,z coordinates of the points
+        ints = [nbytes_xyz]
+        s = struct.pack('<i', *ints)
+        f.write(s)
+        floats = np.ravel(points)
+        s = struct.pack('<%id'%len(floats), *floats)
+        f.write(s)
+
+        # Cell connectivity
+        ints = [nbytes_cellc]
+        s = struct.pack('<i', *ints)
+        f.write(s)
+        ints = np.ravel(tri.simplices)
+        s = struct.pack('<%ii'%len(ints), *ints)
+        f.write(s)
+
+        # Cell offsets
+        ints = [nbytes_cello]
+        s = struct.pack('<i', *ints)
+        f.write(s)
+        ints = range(4,ntetra*4+1,4)
+        s = struct.pack('<%ii'%len(ints), *ints)
+        f.write(s)
+
+        # Cell types: number 10 is tetrahedron in VTK file format
+        ints = [nbytes_cellt]
+        s = struct.pack('<i', *ints)
+        f.write(s)
+        ints = [10] * ntetra
+        s = struct.pack('<%ii'%len(ints), *ints)
+        f.write(s)
+
+        # Hydro variables
+        ivar = 0
+        for key in self.data.keys():
+            ints = [nbytes_vars[ivar]]
+            s = struct.pack('<i', *ints)
+            f.write(s)
+            floats = self.get(key)
+            s = struct.pack('<%id'%len(floats), *floats)
+            f.write(s)
+
+        # Close file
+        f.write('   </AppendedData>\n')
+        f.write('</VTKFile>\n')
+        f.close()
+
+        print("File "+fname+" succesfully written.")
+
+        return
     
 #=======================================================================================
 # The function finds an arbitrary perpendicular vector to v.
