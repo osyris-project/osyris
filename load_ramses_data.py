@@ -511,30 +511,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     zc = self.sinks[self.info["center"]]["z"]/self.info["boxlen"]/self.info["unit_l"]
                 else:
                     xc = yc = zc = 0.5
-                    #if dx+dy+dz > 0.0:
-                        #active_lmax,failed = rd.quick_amr_scan(self.info["infile"])
-                        #coarse_lmax = int(0.3*(active_lmax - self.info["levelmin"]) + self.info["levelmin"])
-                        #[data1,names,nn,fail] = rd.ramses_data(self.info["infile"],coarse_lmax,xc,yc,zc,0.0,0.0,0.0,conf.constants[self.info["scale"]],True)
-                        #temp = dict()
-                        #list_vars = names.decode().split()
-                        #for i in range(len(list_vars)):
-                            #theKey = list_vars[i]
-                            #temp[theKey] = data1[:nn,i]
-                        #if self.info["center"].startswith("max"):
-                            #cvar=self.info["center"].split(":")[1]
-                            #maxloc = np.argmax(temp[cvar])
-                            #xc = temp["x"][maxloc]/self.info["boxlen"]
-                            #yc = temp["y"][maxloc]/self.info["boxlen"]
-                            #zc = temp["z"][maxloc]/self.info["boxlen"]
-                        #elif self.info["center"].startswith("min"):
-                            #cvar=self.info["center"].split(":")[1]
-                            #minloc = np.argmin(temp[cvar])
-                            #xc = temp["x"][minloc]/self.info["boxlen"]
-                            #yc = temp["y"][minloc]/self.info["boxlen"]
-                            #zc = temp["z"][minloc]/self.info["boxlen"]
-                        #else:
-                            #print("Bad center value:"+str(self.info["center"]))
-                            #return
+                    
         return xc,yc,zc
     
     #=======================================================================================

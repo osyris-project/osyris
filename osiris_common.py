@@ -225,20 +225,3 @@ class OsirisCommon:
         print("File "+fname+" succesfully written.")
 
         return
-    
-#=======================================================================================
-# The function finds an arbitrary perpendicular vector to v.
-# for two vectors (x, y, z) and (a, b, c) to be perpendicular,
-# the following equation has to be fulfilled
-#     0 = ax + by + cz
-#=======================================================================================    
-def perpendicular_vector(v):
-
-    ## x = y = z = 0 is not an acceptable solution
-    #if v[0] == v[1] == v[2] == 0:
-        #raise ValueError("zero-vector")
-
-    if v[0] == v[1] == 0:
-        return [1,0,0]
-    else:
-        return [-v[1],v[0],0]

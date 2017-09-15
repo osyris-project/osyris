@@ -2,6 +2,7 @@ import numpy as np
 import osiris_common
 import config_osiris as conf
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
 
 #=======================================================================================
 # This is a dummy class which gives access to the plotting functions to the other
@@ -26,10 +27,11 @@ class OsirisData(osiris_common.OsirisCommon):
     # - cmap : the colormap
     # - resolution: the data is binned in a 2D matrix of size 'resolution' 
     #=======================================================================================
-    def plot_histogram(self,var_x,var_y,var_z=None,var_c=None,fname=None,logz=False,axes=None,\
-                       cmap=conf.default_values["colormap"],resolution=256,copy=False,xmin=None,\
-                       xmax=None,ymin=None,ymax=None,nc=20,new_window=False,update=None,cbar=True,\
-                       outline=False,scatter=False,summed=False,clear=True,plot=True,block=False,\
+    def plot_histogram(self,var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
+                       cmap=conf.default_values["colormap"],resolution=256,copy=False,\
+                       xmin=None,xmax=None,ymin=None,ymax=None,nc=20,new_window=False,\
+                       update=None,cbar=True,outline=False,scatter=False,summed=False,\
+                       clear=True,plot=True,block=False,zmin=None,zmax=None,cbax=None,\
                        histogram_args={},scatter_args={},contour_args={},outline_args={}):
 
         # Possibility of updating the data from inside the plotting routines
@@ -104,25 +106,16 @@ class OsirisData(osiris_common.OsirisCommon):
             for j in range(ny-1):
                 y[j] = 0.5*(ye[j]+ye[j+1])
         
-        if not scatter:
-            if var_z:
-                z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
-                if summed:
-                    z = np.ma.masked_where(z0 == 0.0, z1)
-                else:
-                    z = np.ma.masked_where(z0 == 0.0, z1/z0)
-                if logz:
-                    z = np.log10(z)
-                    zlabel = "log("+zlabel+")"
-                zlabel += " ["+self.data[var_z]["unit"]+"]"
+        if var_z:
+            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
+            if summed:
+                z = np.ma.masked_where(z0 == 0.0, z1)
             else:
-                z = np.ma.masked_where(z0 == 0.0, np.log10(z0))
-                zlabel = "log(Number of cells)"
-                
-            if var_c:
-                datac = self.get(var_c)
-                z2, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=datac)
-                c = np.ma.masked_where(z0 == 0.0, z2/z0)
+                z = np.ma.masked_where(z0 == 0.0, z1/z0)
+            zlabel = self.data[var_z]["label"]+" ["+self.data[var_z]["unit"]+"]"
+        else:
+            z = np.ma.masked_where(z0 == 0.0, z0)
+            zlabel = "Number of cells"
         
         # Begin plotting -------------------------------------
         if plot:
@@ -138,6 +131,31 @@ class OsirisData(osiris_common.OsirisCommon):
                 plt.subplot(111)
                 theAxes = plt.gca()
             
+            # Define contour limits
+            try:
+                zmin += 0
+            except TypeError:
+                zmin = np.nanmin(z)
+            try:
+                zmax += 0
+            except TypeError:
+                zmax = np.nanmax(z)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(zmin,zmax,nc)
+                cb_format = None
+            
             if scatter:
                 scatter_args_osiris = {"iskip":1}
                 # Save a copy so we can exclude these parameters specific to osiris from the ones
@@ -148,7 +166,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 for key in scatter_args.keys():
                     scatter_args_osiris[key] = scatter_args[key]
                 # We now define default parameters for the scatter function
-                scatter_args_plot = {"cmap":cmap,"marker":".","c":"b","edgecolor":"None","s":20}
+                scatter_args_plot = {"cmap":cmap,"marker":".","c":"b","edgecolor":"None","s":20,"norm":norm}
                 # Then run through the vec_args, adding them to the plotting arguments, but
                 # ignoring all osiris specific arguments
                 keys = set(scatter_args.keys())
@@ -159,31 +177,27 @@ class OsirisData(osiris_common.OsirisCommon):
                 if var_z:
                     scatter_args_plot["c"] = dataz[::iskip]
                 cont = theAxes.scatter(datax[::iskip],datay[::iskip],**scatter_args_plot)
+            elif contour:
+                # Run through arguments
+                contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+                clabel_args = {"label":False,"fmt":"%1.3f"}
+                ignore = set(clabel_args.keys())
+                keys = set(contour_args.keys())
+                for key in keys.difference(ignore):
+                    contour_args_plot[key] = contour_args[key]
+                for key in contour_args.keys():
+                    clabel_args[key] = contour_args[key]
+                cont = theAxes.contour(x,y,z,nc,**contour_args_plot)
+                if clabel_args["label"]:
+                    theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
             else:
                 # Run through arguments
-                histogram_args_plot = {"cmap":cmap}
+                histogram_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
                 for key in histogram_args.keys():
                     histogram_args_plot[key] = histogram_args[key]
                 # First plot the filled colour contours
                 cont = theAxes.contourf(x,y,z,nc,**histogram_args_plot)
-            
-                # If var_c is specified, overlay black contours
-                if var_c:
-                    # Run through arguments
-                    contour_args_plot = {"colors":"k"}
-                    clabel_args = {"fmt":"%1.3f"}
-                    ignore = set(clabel_args.keys())
-                    keys = set(contour_args.keys())
-                    for key in keys.difference(ignore):
-                        contour_args_plot[key] = contour_args[key]
-                    for key in contour_args.keys():
-                        clabel_args[key] = contour_args[key]
-                    # Now overlay contours
-                    over = theAxes.contour(x,y,c,**contour_args_plot)
-                    theAxes.clabel(over,inline=1,fmt=clabel_args["fmt"])
-                    leg = [over.collections[0]]
-                    theAxes.legend(leg,[self.data[var_c]["label"]],loc=2)
-            
+                        
             if outline:
                 outline_args_plot = {"levels":[1.0],"colors":"grey"}
                 for key in outline_args.keys():
@@ -191,7 +205,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 outl = theAxes.contour(x,y,z0,**outline_args_plot)
             
             if ((var_z or (not scatter)) and (cbar)):
-                cb = plt.colorbar(cont,ax=theAxes)
+                cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
                 cb.ax.set_ylabel(zlabel)
                 cb.ax.yaxis.set_label_coords(-1.1,0.5)
                             
@@ -236,9 +250,9 @@ class OsirisData(osiris_common.OsirisCommon):
                    dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
                    nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
                    title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
-                   origin=[0,0,0],summed=False,logz=False,image=False,resolution=128,\
-                   copy=False,contour=False,overwrite=False,slice_args={},\
-                   image_args={},contour_args={},vec_args={},stream_args={}):
+                   origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
+                   contour=False,slice_args={},image_args={},contour_args={},\
+                   vec_args={},stream_args={}):
         
         # Possibility of updating the data from inside the plotting routines
         try:
@@ -269,6 +283,8 @@ class OsirisData(osiris_common.OsirisCommon):
             dir_x = "x"
             dir_y = "y"
             dir1 = eval(direction)
+            dir2 = osiris_common.perpendicular_vector(dir1)
+            dir3 = np.cross(dir1,dir2)
         elif direction.startswith("auto"):
             params = direction.split(":")
             if len(params) == 1:
@@ -288,25 +304,29 @@ class OsirisData(osiris_common.OsirisCommon):
             AngMom = np.sum(np.cross(pos,vel),axis=0)
             if view == "top":
                 dir1 = AngMom
+                dir2 = [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
+                dir3 = np.cross(dir1,dir2)
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
-                dir1 = osiris_common.perpendicular_vector(AngMom)
+                dir3 = AngMom
+                dir1 = [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
+                dir2 = np.cross(dir1,dir3)
             norm1 = np.linalg.norm(dir1)
             print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
         elif ((direction == "x") or (direction == "y") or (direction == "z")):
             [dir_x,dir_y] = dir_list[direction]
             dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
+            dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
+            dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
         elif self.info["ndim"]==2:
             dir1 = [0,0,1]
+            dir2 = [1,0,0]
+            dir3 = [0,1,0]
             dir_x = "x"
             dir_y = "y"
         else:
             print("Bad direction for slice")
             return
-        
-        # Choose 2 vectors normal to the direction n and normal to each other
-        dir2 = osiris_common.perpendicular_vector(dir1)
-        dir3 = np.cross(dir1,dir2)
         
         norm1 = np.linalg.norm(dir1)
         norm2 = np.linalg.norm(dir2)
@@ -391,32 +411,18 @@ class OsirisData(osiris_common.OsirisCommon):
             iy2 = min(int((y2-ymin)/dpy),ny-1)
             
             # Fill in the slice pixels with data
-            if overwrite:
-                for j in range(iy1,iy2+1):
-                    for i in range(ix1,ix2+1):
-                        za[j,i] = dataz[n]*celldx[n]
-                        zb[j,i] = celldx[n]
-                        if vec:
-                            u1[j,i] = datau1[n]*celldx[n]
-                            v1[j,i] = datav1[n]*celldx[n]
-                            z1[j,i] = np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                        if stream:
-                            u2[j,i] = datau2[n]*celldx[n]
-                            v2[j,i] = datav2[n]*celldx[n]
-                            z2[j,i] = np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
-            else:
-                for j in range(iy1,iy2+1):
-                    for i in range(ix1,ix2+1):
-                        za[j,i] = za[j,i] + dataz[n]*celldx[n]
-                        zb[j,i] = zb[j,i] + celldx[n]
-                        if vec:
-                            u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
-                            v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
-                            z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                        if stream:
-                            u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
-                            v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
-                            z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+            for j in range(iy1,iy2+1):
+                for i in range(ix1,ix2+1):
+                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                    zb[j,i] = zb[j,i] + celldx[n]
+                    if vec:
+                        u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
+                        v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
+                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                    if stream:
+                        u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
+                        v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
+                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
         
         # Compute z averages
         if summed:
@@ -439,8 +445,10 @@ class OsirisData(osiris_common.OsirisCommon):
                 u2 = np.ma.masked_where(zb == 0.0, u2/zb)
                 v2 = np.ma.masked_where(zb == 0.0, v2/zb)
                 w2 = np.ma.masked_where(zb == 0.0, z2/zb)
-        if logz:
-            z = np.log10(z)
+        
+        # Round off AMR levels to integers
+        if var == "level":
+            z = np.around(z)
         
         # Define cell centers for filled contours
         x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
@@ -457,18 +465,34 @@ class OsirisData(osiris_common.OsirisCommon):
         if len(self.data[var  ]["unit"]) > 0:
             zlab += " ["+self.data[var  ]["unit"]+"]"
         
-        # Define colorbar limits
-        try:
-            zmin += 0
-        except TypeError:
-            zmin = np.nanmin(z)
-        try:
-            zmax += 0
-        except TypeError:
-            zmax = np.nanmax(z)
-        clevels = np.linspace(zmin,zmax,nc)
         # Begin plotting -------------------------------------
         if plot:
+            
+            # Define colorbar limits
+            try:
+                zmin += 0
+            except TypeError:
+                zmin = np.nanmin(z)
+            try:
+                zmax += 0
+            except TypeError:
+                zmax = np.nanmax(z)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(zmin,zmax,nc)
+                cb_format = None
+            
             if axes:
                 theAxes = axes
             elif new_window:
@@ -482,12 +506,12 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes = plt.gca()
             
             if image:
-                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap}
+                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
                 for key in image_args.keys():
                     image_args_plot[key] = image_args[key]
                 cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
             elif contour:
-                contour_args_plot = {"levels":clevels,"extend":"neither","cmap":cmap}
+                contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
                 clabel_args = {"label":False,"fmt":"%1.3f"}
                 ignore = set(clabel_args.keys())
                 keys = set(contour_args.keys())
@@ -499,12 +523,12 @@ class OsirisData(osiris_common.OsirisCommon):
                 if clabel_args["label"]:
                     theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
             else:
-                slice_args_plot = {"levels":clevels,"extend":"neither","cmap":cmap}
+                slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
                 for key in slice_args.keys():
                     slice_args_plot[key] = slice_args[key]
                 cont = theAxes.contourf(x,y,z,**slice_args_plot)
             if cbar:
-               cb = plt.colorbar(cont,ax=theAxes,cax=cbax)
+               cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
                cb.ax.set_ylabel(zlab)
                cb.ax.yaxis.set_label_coords(-1.1,0.5)
             theAxes.set_xlabel(xlab)
@@ -528,7 +552,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 for key in vec_args.keys():
                     vec_args_osiris[key] = vec_args[key]
                 # We now define default parameters for the quiver function
-                vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w"}
+                vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
                 # Then run through the vec_args, adding them to the plotting arguments, but
                 # ignoring all osiris specific arguments
                 keys = set(vec_args.keys())
@@ -537,12 +561,26 @@ class OsirisData(osiris_common.OsirisCommon):
                 # We are now ready to plot the vectors. Note that we need two different calls if
                 # a colormap is used for the vectors.
                 vskip = vec_args_osiris["vskip"]
-                if vec_args_plot["cmap"]:
+                vcmap = vec_args_plot["cmap"]
+                if vcmap:
+                    if vcmap.startswith("log") or vcmap.endswith("log"):
+                        vcmap = vcmap.replace("log","")
+                        chars = [",",":",";"," "]
+                        for ch in chars:
+                            vcmap = vcmap.replace(ch,"")
+                        if len(vcmap) == 0:
+                            vcmap = conf.default_values["colormap"]
+                        vec_args_plot["cmap"] = vcmap
+                        vec_args_plot["norm"] = LogNorm()
+                        vcb_format = "%.1e"
+                    else:
+                        vcb_format = None
+                    
                     vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                           w1[::vskip,::vskip],**vec_args_plot)
                     if vec_args_osiris["cbar"]:
-                        vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal")
-                        vcb.ax.set_xlabel(vec+" ["+self.data[vec+"_"+dir_x]["unit"]+"]")
+                        vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vcb_format)
+                        vcb.ax.set_xlabel(vec+"_"+dir_x+dir_y+" ["+self.data[vec+"_"+dir_x]["unit"]+"]")
                 else:
                     vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                           **vec_args_plot)
@@ -556,16 +594,43 @@ class OsirisData(osiris_common.OsirisCommon):
                                       zorder=100)
 
             if stream:
-                stream_args_plot = {"cmap":None,"color":"w"}
+                # Here we define a set of default parameters
+                stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1}
+                # Save a copy so we can exclude these parameters specific to osiris from the ones
+                # to be sent to the matplotlib quiver routine.
+                ignore = set(stream_args_osiris.keys())
+                # Now we go through the arguments taken from the function call - stream_args - and
+                # add them to the osiris arguments.
                 for key in stream_args.keys():
+                    stream_args_osiris[key] = stream_args[key]
+                # We now define default parameters for the streamplot function
+                stream_args_plot = {"cmap":None,"color":"w","norm":None}
+                # Then run through the stream_args, adding them to the plotting arguments, but
+                # ignoring all osiris specific arguments
+                keys = set(stream_args.keys())
+                for key in keys.difference(ignore):
                     stream_args_plot[key] = stream_args[key]
-                if stream_args_plot["cmap"]:
-                    if stream_args_plot["cmap"].startswith("log"):
-                        w2 = np.log10(w2)
-                        stream_args_plot["cmap"] = stream_args_plot["cmap"].split(",")[1]
+                # We are now ready to plot the streamlines.
+                sskip = stream_args_osiris["sskip"]
+                scmap = stream_args_plot["cmap"]
+                if scmap:
+                    if scmap.startswith("log") or scmap.endswith("log"):
+                        scmap = scmap.replace("log","")
+                        chars = [",",":",";"," "]
+                        for ch in chars:
+                            scmap = scmap.replace(ch,"")
+                        if len(scmap) == 0:
+                            scmap = conf.default_values["colormap"]
+                        stream_args_plot["cmap"] = scmap
+                        stream_args_plot["norm"] = LogNorm()
+                        scb_format = "%.1e"
+                    else:
+                        scb_format = None
                     stream_args_plot["color"]=w2
-                
-                strm = theAxes.streamplot(x,y,u2,v2,**stream_args_plot)
+                strm = theAxes.streamplot(x[::sskip],y[::sskip],u2[::sskip,::sskip],v2[::sskip,::sskip],**stream_args_plot)
+                if stream_args_osiris["cbar"]:
+                        scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=scb_format)
+                        scb.ax.set_xlabel(stream+"_"+dir_x+dir_y+" ["+self.data[stream+"_"+dir_x]["unit"]+"]")
             
             if self.info["nsinks"] > 0 and sinks:
                 sinkMasstot=0.0

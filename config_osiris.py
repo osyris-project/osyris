@@ -75,7 +75,7 @@ def additional_variables(holder):
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)",verbose=False)
     holder.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)",verbose=False)
     holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
-    holder.new_field(name="log_m",operation="np.log10(mass)",unit="g",label="log(Mass)",verbose=False)
+    holder.new_field(name="log_m",operation="np.log10(mass)",unit="Msun",label="log(Mass)",verbose=False)
     
     #========================== ADD YOUR VARIABLES HERE ============================
 
