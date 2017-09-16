@@ -136,15 +136,15 @@ class OsirisCommon:
         nbytes_vars  =     [ncells * 8] * nvars
 
         # Compute byte offsets
-        ioff0 = 0                        # xyz coordinates
-        ioff1 = ioff0 + 4 + nbytes_xyz   # cell connectivity
-        ioff2 = ioff1 + 4 + nbytes_cellc # cell offsets
-        ioff3 = ioff2 + 4 + nbytes_cello # cell types
+        offsets = np.zeros([nvars+4],dtype=np.int64)
+        offsets[0] = 0                             # xyz coordinates
+        offsets[1] = offsets[0] + 4 + nbytes_xyz   # cell connectivity
+        offsets[2] = offsets[1] + 4 + nbytes_cellc # cell offsets
+        offsets[3] = offsets[2] + 4 + nbytes_cello # cell types
         
-        ioffv = np.zeros([nvars],dtype=np.int32)
-        ioffv[0] = ioff3 + 4 + nbytes_cellt # first hydro variable
-        for i in range(1,nvars):
-            ioffv[i] = ioffv[i-1] + 4 + nbytes_vars[i-1]
+        offsets[4] = offsets[3] + 4 + nbytes_cellt # first hydro variable
+        for i in range(nvars-1):
+            offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i-1]
 
         # Open file for binary output
         f = open(fname, "wb")
@@ -155,17 +155,17 @@ class OsirisCommon:
         f.write('   <UnstructuredGrid>\n')
         f.write('   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n' % (ncells,ntetra))
         f.write('      <Points>\n')
-        f.write('         <DataArray type=\"Float64\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%i\" />\n' % ioff0)
+        f.write('         <DataArray type=\"Float64\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%i\" />\n' % offsets[0])
         f.write('      </Points>\n')
         f.write('      <Cells>\n')
-        f.write('         <DataArray type=\"Int32\" Name=\"connectivity\" format=\"appended\" offset=\"%i\" />\n' % ioff1)
-        f.write('         <DataArray type=\"Int32\" Name=\"offsets\" format=\"appended\" offset=\"%i\" />\n' % ioff2)
-        f.write('         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % ioff3)
+        f.write('         <DataArray type=\"Int32\" Name=\"connectivity\" format=\"appended\" offset=\"%i\" />\n' % offsets[1])
+        f.write('         <DataArray type=\"Int32\" Name=\"offsets\" format=\"appended\" offset=\"%i\" />\n' % offsets[2])
+        f.write('         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % offsets[3])
         f.write('      </Cells>\n')
         f.write('      <PointData>\n')
-        ivar = 0
+        ivar = 4
         for key in self.data.keys():
-            f.write('         <DataArray type=\"Float64\" Name=\"'+key+'\" format=\"appended\" offset=\"%i\" />\n' % ioffv[ivar])
+            f.write('         <DataArray type=\"Float64\" Name=\"'+key+'\" format=\"appended\" offset=\"%i\" />\n' % offsets[ivar])
             ivar += 1
         f.write('      </PointData>\n')
         f.write('   </Piece>\n')
@@ -176,46 +176,26 @@ class OsirisCommon:
         # Now write data in binary. Every data field is preceded by its byte size.
         
         # x,y,z coordinates of the points
-        ints = [nbytes_xyz]
-        s = struct.pack('<i', *ints)
-        f.write(s)
-        floats = np.ravel(points)
-        s = struct.pack('<%id'%len(floats), *floats)
-        f.write(s)
+        f.write(struct.pack('<i', *[nbytes_xyz]))
+        f.write(struct.pack('<%id'%(ncells*3), *np.ravel(points)))
 
         # Cell connectivity
-        ints = [nbytes_cellc]
-        s = struct.pack('<i', *ints)
-        f.write(s)
-        ints = np.ravel(tri.simplices)
-        s = struct.pack('<%ii'%len(ints), *ints)
-        f.write(s)
+        f.write(struct.pack('<i', *[nbytes_cellc]))
+        f.write(struct.pack('<%ii'%nverts, *np.ravel(tri.simplices)))
 
         # Cell offsets
-        ints = [nbytes_cello]
-        s = struct.pack('<i', *ints)
-        f.write(s)
-        ints = range(4,ntetra*4+1,4)
-        s = struct.pack('<%ii'%len(ints), *ints)
-        f.write(s)
+        f.write(struct.pack('<i', *[nbytes_cello]))
+        f.write(struct.pack('<%ii'%ntetra, *range(4,ntetra*4+1,4)))
 
         # Cell types: number 10 is tetrahedron in VTK file format
-        ints = [nbytes_cellt]
-        s = struct.pack('<i', *ints)
-        f.write(s)
-        ints = [10] * ntetra
-        s = struct.pack('<%ii'%len(ints), *ints)
-        f.write(s)
+        f.write(struct.pack('<i', *[nbytes_cellt]))
+        f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
 
         # Hydro variables
         ivar = 0
         for key in self.data.keys():
-            ints = [nbytes_vars[ivar]]
-            s = struct.pack('<i', *ints)
-            f.write(s)
-            floats = self.get(key)
-            s = struct.pack('<%id'%len(floats), *floats)
-            f.write(s)
+            f.write(struct.pack('<i', *[nbytes_vars[ivar]]))
+            f.write(struct.pack('<%id'%ncells, *self.get(key)))
 
         # Close file
         f.write('   </AppendedData>\n')
