@@ -133,7 +133,7 @@ class OsirisCommon:
         nbytes_cellc =     nverts * 4
         nbytes_cello =     ntetra * 4
         nbytes_cellt =     ntetra * 4
-        nbytes_vars  =     [ncells * 8] * nvars
+        nbytes_vars  =    [ncells * 8] * nvars
 
         # Compute byte offsets
         offsets = np.zeros([nvars+4],dtype=np.int64)
@@ -201,7 +201,22 @@ class OsirisCommon:
         f.write('   </AppendedData>\n')
         f.write('</VTKFile>\n')
         f.close()
+        
+        # File size
+        fsize_raw = offsets[nvars+3] + nbytes_vars[nvars-1]
+        if fsize_raw > 1000000000:
+            fsize = float(fsize_raw)/1.0e9
+            funit = "Gb"
+        elif fsize_raw > 1000000:
+            fsize = float(fsize_raw)/1.0e6
+            funit = "Mb"
+        elif fsize_raw > 1000:
+            fsize = float(fsize_raw)/1.0e3
+            funit = "kb"
+        else:
+            fsize = float(fsize_raw)
+            funit = "b"
 
-        print("File "+fname+" succesfully written.")
+        print("File "+fname+(" of size %.1f"%fsize)+funit+" succesfully written.")
 
         return
