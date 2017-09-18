@@ -304,12 +304,12 @@ class OsirisData(osiris_common.OsirisCommon):
             AngMom = np.sum(np.cross(pos,vel),axis=0)
             if view == "top":
                 dir1 = AngMom
-                dir2 = [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
+                dir2 = osiris_common.perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
                 dir3 = np.cross(dir1,dir2)
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
                 dir3 = AngMom
-                dir1 = [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
+                dir1 = osiris_common.perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
                 dir2 = np.cross(dir1,dir3)
             norm1 = np.linalg.norm(dir1)
             print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))

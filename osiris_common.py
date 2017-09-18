@@ -126,14 +126,45 @@ class OsirisCommon:
         nverts = ntetra*4
         print("Delaunay mesh with %i tetrahedra complete." % ntetra)
 
-        nvars = len(self.data.keys())
+        # Create list of variables by grouping x,y,z components together
+        nvarmax = len(self.data.keys())
+        n_components = [] #np.zeros([nvarmax],dtype=np.int32)
+        varlist = []
+        varnames = []
+        for key in self.data.keys():
+            if key.endswith("_x") or key.endswith("_y") or key.endswith("_z"):
+                rawkey = key[:-2]
+                try:
+                    k = len(self.get(rawkey+"_x"))+len(self.get(rawkey+"_y"))+len(self.get(rawkey+"_z"))
+                    ok = True
+                    for i in range(np.shape(varlist)[0]):
+                        for j in range(n_components[i]):
+                            if key == varlist[i][j]:
+                                ok = False
+                                break
+                    if ok:
+                        varlist.append([rawkey+"_x",rawkey+"_y",rawkey+"_z"])
+                        n_components.append(3)
+                        varnames.append(rawkey+"_vec")
+                except KeyError:
+                    varlist.append([key,"",""])
+                    n_components.append(1)
+                    varnames.append(key)
+            else:
+                varlist.append([key,"",""])
+                n_components.append(1)
+                varnames.append(key)
+        
+        nvars = len(n_components)
 
         # Compute byte sizes
         nbytes_xyz   = 3 * ncells * 8
         nbytes_cellc =     nverts * 4
         nbytes_cello =     ntetra * 4
         nbytes_cellt =     ntetra * 4
-        nbytes_vars  =    [ncells * 8] * nvars
+        nbytes_vars  = np.zeros([nvars],dtype=np.int32)
+        for i in range(nvars):
+            nbytes_vars[i] = n_components[i] * ncells * 8
 
         # Compute byte offsets
         offsets = np.zeros([nvars+4],dtype=np.int64)
@@ -141,11 +172,10 @@ class OsirisCommon:
         offsets[1] = offsets[0] + 4 + nbytes_xyz   # cell connectivity
         offsets[2] = offsets[1] + 4 + nbytes_cellc # cell offsets
         offsets[3] = offsets[2] + 4 + nbytes_cello # cell types
-        
         offsets[4] = offsets[3] + 4 + nbytes_cellt # first hydro variable
         for i in range(nvars-1):
-            offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i-1]
-
+            offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i]
+            
         # Open file for binary output
         f = open(fname, "wb")
 
@@ -163,10 +193,8 @@ class OsirisCommon:
         f.write('         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % offsets[3])
         f.write('      </Cells>\n')
         f.write('      <PointData>\n')
-        ivar = 4
-        for key in self.data.keys():
-            f.write('         <DataArray type=\"Float64\" Name=\"'+key+'\" format=\"appended\" offset=\"%i\" />\n' % offsets[ivar])
-            ivar += 1
+        for i in range(nvars):
+            f.write('         <DataArray type=\"Float64\" Name=\"'+varnames[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
         f.write('      </PointData>\n')
         f.write('   </Piece>\n')
         f.write('   </UnstructuredGrid>\n')
@@ -192,10 +220,15 @@ class OsirisCommon:
         f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
 
         # Hydro variables
-        ivar = 0
-        for key in self.data.keys():
-            f.write(struct.pack('<i', *[nbytes_vars[ivar]]))
-            f.write(struct.pack('<%id'%ncells, *self.get(key)))
+        #ivar = 0
+        for i in range(nvars):
+        #for key in self.data.keys():
+            if n_components[i] == 3:
+                celldata = np.ravel(np.array([self.get(varlist[i][0]),self.get(varlist[i][1]),self.get(varlist[i][2])]).T)
+            else:
+                celldata = self.get(varlist[i][0])
+            f.write(struct.pack('<i', *[nbytes_vars[i]]))
+            f.write(struct.pack('<%id'%(ncells*n_components[i]), *celldata))
 
         # Close file
         f.write('   </AppendedData>\n')
@@ -220,3 +253,25 @@ class OsirisCommon:
         print("File "+fname+(" of size %.1f"%fsize)+funit+" succesfully written.")
 
         return
+
+#=======================================================================================
+# The function finds an arbitrary perpendicular vector to v.
+# for two vectors (x, y, z) and (a, b, c) to be perpendicular,
+# the following equation has to be fulfilled
+#     0 = ax + by + cz
+#=======================================================================================    
+def perpendicular_vector(v):
+
+    # x = y = z = 0 is not an acceptable solution
+    if v[0] == v[1] == v[2] == 0:
+        raise ValueError("zero-vector")
+    
+    if v[2] == 0:
+        return [-v[1],v[0],0]
+    else:
+        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
+
+    #if v[0] == v[1] == 0:
+        #return [1,0,0]
+    #else:
+        #return [-v[1],v[0],0]
