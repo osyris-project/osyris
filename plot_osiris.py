@@ -571,7 +571,7 @@ class OsirisData(osiris_common.OsirisCommon):
                         if len(vcmap) == 0:
                             vcmap = conf.default_values["colormap"]
                         vec_args_plot["cmap"] = vcmap
-                        vec_args_plot["norm"] = LogNorm()
+                        vec_args_plot["norm"] = LogNorm(vmin=np.nanmin(w1[::vskip,::vskip]),vmax=np.nanmax(w1[::vskip,::vskip]))
                         vcb_format = "%.1e"
                     else:
                         vcb_format = None
@@ -622,11 +622,11 @@ class OsirisData(osiris_common.OsirisCommon):
                         if len(scmap) == 0:
                             scmap = conf.default_values["colormap"]
                         stream_args_plot["cmap"] = scmap
-                        stream_args_plot["norm"] = LogNorm()
+                        stream_args_plot["norm"] = LogNorm(vmin=np.nanmin(w2[::sskip,::sskip]),vmax=np.nanmax(w2[::sskip,::sskip]))
                         scb_format = "%.1e"
                     else:
                         scb_format = None
-                    stream_args_plot["color"]=w2
+                    stream_args_plot["color"]=w2[::sskip,::sskip]
                 strm = theAxes.streamplot(x[::sskip],y[::sskip],u2[::sskip,::sskip],v2[::sskip,::sskip],**stream_args_plot)
                 if stream_args_osiris["cbar"]:
                         scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=scb_format)
