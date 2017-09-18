@@ -59,25 +59,28 @@ class OsirisData(osiris_common.OsirisCommon):
         autoxmax = False
         autoymin = False
         autoymax = False
-        
         try:
             xmin += 0
         except TypeError:
+            datax[np.isneginf(datax)] = np.inf
             xmin = np.nanmin(datax)
             autoxmin = True
         try:
             xmax += 0
         except TypeError:
+            datax[np.isinf(datax)] = np.NINF
             xmax = np.nanmax(datax)
             autoxmax = True
         try:
             ymin += 0
         except TypeError:
+            datay[np.isneginf(datay)] = np.inf
             ymin = np.nanmin(datay)
             autoymin = True
         try:
             ymax += 0
         except TypeError:
+            datay[np.isinf(datay)] = np.NINF
             ymax = np.nanmax(datay)
             autoymax = True
         
@@ -92,19 +95,18 @@ class OsirisData(osiris_common.OsirisCommon):
         if autoymax:
             ymax = ymax + 0.05*dy
         
-        if (outline or (not scatter)):
-            # Construct some edge specifiers for the histogram2d function call
-            xe = np.linspace(xmin,xmax,nx)
-            ye = np.linspace(ymin,ymax,ny)
-            # Call the numpy histogram2d function
-            z0, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
-            # In the contour plots, x and y are the centers of the cells, instead of the edges.
-            x = np.zeros([nx-1])
-            y = np.zeros([ny-1])
-            for i in range(nx-1):
-                x[i] = 0.5*(xe[i]+xe[i+1])
-            for j in range(ny-1):
-                y[j] = 0.5*(ye[j]+ye[j+1])
+        # Construct some edge specifiers for the histogram2d function call
+        xe = np.linspace(xmin,xmax,nx)
+        ye = np.linspace(ymin,ymax,ny)
+        # Call the numpy histogram2d function
+        z0, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe))
+        # In the contour plots, x and y are the centers of the cells, instead of the edges.
+        x = np.zeros([nx-1])
+        y = np.zeros([ny-1])
+        for i in range(nx-1):
+            x[i] = 0.5*(xe[i]+xe[i+1])
+        for j in range(ny-1):
+            y[j] = 0.5*(ye[j]+ye[j+1])
         
         if var_z:
             z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=dataz)
