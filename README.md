@@ -80,3 +80,7 @@ Use the [Issue tracker](https://bitbucket.org/nvaytet/osiris/issues) on the Bitb
 * Neil Vaytet (StarPlan/NBI)
 * Tommaso Grassi (StarPlan/NBI)
 * Matthias Gonzalez (CEA Saclay)
+
+### License
+
+Osiris is distributed under the GPLv3 license.
