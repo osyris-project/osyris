@@ -401,8 +401,8 @@ class OsirisData(osiris_common.OsirisCommon):
         ymax = min(ymin+dy,boxmax_y)
         nx   = resolution
         ny   = resolution
-        dpx  = (xmax-xmin)/nx
-        dpy  = (ymax-ymin)/ny
+        dpx  = (xmax-xmin)/float(nx)
+        dpy  = (ymax-ymin)/float(ny)
         
         # We now create empty data arrays that will be filled by the cell data
         za = np.zeros([ny,nx])
@@ -662,7 +662,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 sink_y = np.inner(sinkcoords,dir3)
                 subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
                 srad = np.maximum(self.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-                sink_scat = theAxes.scatter(sink_x[subset],sink_y[subset],c="w",edgecolor="k",s=srad)
+                sink_scat = theAxes.scatter(sink_x[subset],sink_y[subset],c="w",edgecolor="k",s=(687.0*srad/dx)**2,alpha=0.7)
 
             try:
                 title += ""
