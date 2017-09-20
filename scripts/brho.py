@@ -31,6 +31,6 @@ mydata = pp.RamsesData(nout=nout,center="max:density",scale="au")
 
 # Density vs T
 if(len(fname) > 0):
-    mydata.plot_histogram("log_rho","log_B",fname=fname)
+    mydata.plot_histogram("log_rho","log_B",fname=fname,cmap="osiris_r,log")
 else:
-    mydata.plot_histogram("log_rho","log_B",block=True)
+    mydata.plot_histogram("log_rho","log_B",block=True,cmap="osiris_r,log")
