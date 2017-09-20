@@ -19,6 +19,7 @@ import numpy as np
 import osiris_common
 import config_osiris as conf
 import matplotlib.pyplot as plt
+import matplotlib.collections
 from matplotlib.colors import LogNorm
 
 #=======================================================================================
@@ -662,8 +663,11 @@ class OsirisData(osiris_common.OsirisCommon):
                 sink_y = np.inner(sinkcoords,dir3)
                 subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
                 srad = np.maximum(self.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-                sink_scat = theAxes.scatter(sink_x[subset],sink_y[subset],c="w",edgecolor="k",s=(687.0*srad/dx)**2,alpha=0.7)
-
+                xy = np.array([sink_x[subset],sink_y[subset]]).T
+                patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
+                coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+                theAxes.add_collection(coll)
+                
             try:
                 title += ""
                 theAxes.set_title(title)
