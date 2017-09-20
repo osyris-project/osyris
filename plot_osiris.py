@@ -660,7 +660,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 sinkcoords = np.transpose([self.sinks["x"]-origin[0],self.sinks["y"]-origin[1],self.sinks["z"]-origin[2]])
                 sink_x = np.inner(sinkcoords,dir2)
                 sink_y = np.inner(sinkcoords,dir3)
-                subset = np.where(dist <= thickness)
+                subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
                 srad = np.maximum(self.sinks["radius"][subset],np.full(len(subset),dx*0.01))
                 sink_scat = theAxes.scatter(sink_x[subset],sink_y[subset],c="w",edgecolor="k",s=srad)
 
@@ -669,6 +669,14 @@ class OsirisData(osiris_common.OsirisCommon):
                 theAxes.set_title(title)
             except TypeError:
                 theAxes.set_title("Time = %.3f %s" % (self.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
+            
+            if clear:
+                theAxes.set_xlim([xmin,xmax])
+                theAxes.set_ylim([ymin,ymax])
+            #else:
+                #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+                #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+            
             theAxes.set_aspect("equal")
 
             if fname:

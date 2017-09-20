@@ -523,9 +523,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     return
             except TypeError: # if not it should have the format 'sink1', or 'max:density'
                 if self.info["center"].startswith("sink"):
-                    xc = self.sinks[self.info["center"]]["x"]/self.info["boxlen"]/self.info["unit_l"]
-                    yc = self.sinks[self.info["center"]]["y"]/self.info["boxlen"]/self.info["unit_l"]
-                    zc = self.sinks[self.info["center"]]["z"]/self.info["boxlen"]/self.info["unit_l"]
+                    isink = self.sinks["id"].index(self.info["center"])
+                    xc = self.sinks["x"][isink]/self.info["boxlen"]/self.info["unit_l"]
+                    yc = self.sinks["y"][isink]/self.info["boxlen"]/self.info["unit_l"]
+                    zc = self.sinks["z"][isink]/self.info["boxlen"]/self.info["unit_l"]
                 else:
                     xc = yc = zc = 0.5
                     
@@ -580,9 +581,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     return
             except TypeError: # if not it should have the format 'sink1', or 'max:density'
                 if self.info["center"].startswith("sink"):
-                    xc = self.sinks[self.info["center"]]["x"]
-                    yc = self.sinks[self.info["center"]]["y"]
-                    zc = self.sinks[self.info["center"]]["z"]
+                    isink = self.sinks["id"].index(self.info["center"])
+                    xc = self.sinks["x"][isink]
+                    yc = self.sinks["y"][isink]
+                    zc = self.sinks["z"][isink]
                 elif self.info["center"].startswith("max"):
                     cvar=self.info["center"].split(":")[1]
                     maxloc = np.argmax(self.data[cvar]["values"])
@@ -670,7 +672,10 @@ class LoadRamsesData(plot_osiris.OsirisData):
             self.sinks["y"] *= self.info["unit_l"]
             self.sinks["z"] *= self.info["unit_l"]
             self.sinks["radius"] = np.full(self.info["nsinks"],r_sink)
-            
+            ids = []
+            for i in range(self.info["nsinks"]):
+                ids.append("sink"+str(int(self.sinks["number"][i])))
+            self.sinks["id"] = ids
             #print("Read %i sink particles" % self.info["nsinks"])
             
         return
