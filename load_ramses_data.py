@@ -550,11 +550,16 @@ class LoadRamsesData(plot_osiris.OsirisData):
             
             # Re-center sinks
             if self.info["nsinks"] > 0:
-                for key in self.sinks.keys():
-                    self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                    self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                    self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                    self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
+                self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
+            
+                #for key in self.sinks.keys():
+                    #self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                    #self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                    #self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                    #self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
             
             self.info["center"] = newcenter
         
@@ -619,11 +624,11 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # Re-center sinks
         if self.info["nsinks"] > 0:
-            for key in self.sinks.keys():
-                self.sinks[key]["x"     ] = self.sinks[key]["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
-                self.sinks[key]["y"     ] = self.sinks[key]["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
-                self.sinks[key]["z"     ] = self.sinks[key]["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
-                self.sinks[key]["radius"] = self.sinks[key]["radius"]*self.info["boxsize"]
+            #for key in self.sinks.keys():
+            self.sinks["x"     ] = self.sinks["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
+            self.sinks["y"     ] = self.sinks["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
+            self.sinks["z"     ] = self.sinks["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
+            self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]
         
         return
         
@@ -657,17 +662,14 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     r_sink = 4.0/(2.0**self.info["levelmax"])
             
             self.sinks = dict()
-            for i in range(self.info["nsinks"]):
-                key = "sink"+str(int(sinklist[i][0]))
-                self.sinks[key] = dict()
-                j = 1
-                for entry in conf.default_values["sink_format"]:
-                    self.sinks[key][entry] = sinklist[i][j]
-                    j += 1
-                self.sinks[key]["x"] *= self.info["unit_l"]
-                self.sinks[key]["y"] *= self.info["unit_l"]
-                self.sinks[key]["z"] *= self.info["unit_l"]
-                self.sinks[key]["radius"  ] = r_sink
+            j = 0
+            for entry in conf.default_values["sink_format"]:
+                self.sinks[entry] = sinklist[:,j]
+                j += 1
+            self.sinks["x"] *= self.info["unit_l"]
+            self.sinks["y"] *= self.info["unit_l"]
+            self.sinks["z"] *= self.info["unit_l"]
+            self.sinks["radius"] = np.full(self.info["nsinks"],r_sink)
             
             #print("Read %i sink particles" % self.info["nsinks"])
             

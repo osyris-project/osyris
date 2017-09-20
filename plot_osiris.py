@@ -652,25 +652,17 @@ class OsirisData(osiris_common.OsirisCommon):
                         scb.ax.set_xlabel(stream+"_"+dir_x+dir_y+" ["+self.data[stream+"_"+dir_x]["unit"]+"]")
             
             if self.info["nsinks"] > 0 and sinks:
-                sinkMasstot=0.0
                 if dz == 0.0:
-                    subset = np.where(self.get("r")[cube] < dx*0.05)
-                    thickness = 0.5*np.average(celldx[subset])
+                    thickness = 0.05*dx
                 else:
                     thickness = 0.5*dz
-                div = np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-                for key in self.sinks.keys():
-                    dist = (a_plane*self.sinks[key]["x"]+b_plane*self.sinks[key]["y"]+c_plane*self.sinks[key]["z"]+d_plane) / div
-                    if abs(dist) <= thickness:
-                        crad = max(self.sinks[key]["radius"],dx*0.01)
-                        circle1 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,edgecolor="none",facecolor="w",alpha=0.5)
-                        circle2 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad,facecolor="none",edgecolor="k")
-                        circle3 = plt.Circle((self.sinks[key][dir_x],self.sinks[key][dir_y]),crad*0.2,color="k")
-                        theAxes.add_patch(circle1)
-                        theAxes.add_patch(circle2)
-                        theAxes.add_patch(circle3)
-                        sinkMasstot+=self.sinks[key]["mass"]
-                theAxes.text(0.02,-0.09,"Msink = %4.1f Msun" % sinkMasstot,transform=theAxes.transAxes,color="k")
+                dist = (a_plane*self.sinks["x"]+b_plane*self.sinks["y"]+c_plane*self.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+                sinkcoords = np.transpose([self.sinks["x"]-origin[0],self.sinks["y"]-origin[1],self.sinks["z"]-origin[2]])
+                sink_x = np.inner(sinkcoords,dir2)
+                sink_y = np.inner(sinkcoords,dir3)
+                subset = np.where(dist <= thickness)
+                srad = np.maximum(self.sinks["radius"][subset],np.full(len(subset),dx*0.01))
+                sink_scat = theAxes.scatter(sink_x[subset],sink_y[subset],c="w",edgecolor="k",s=srad)
 
             try:
                 title += ""
