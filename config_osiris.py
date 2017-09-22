@@ -38,8 +38,8 @@ default_values = {
                      "thermal_pressure","radiative_energy_1","passive_scalar_1",\
                      "passive_scalar_2","passive_scalar_3","passive_scalar_4",\
                      "temperature"],
-    "sink_format" : ["mass","dmf","x","y","z","vx","vy","vz","period","lx","ly",\
-                     "lz","acc_rate","acc_lum","age","int_lum","Teff"],
+    "sink_format" : ["number","mass","dmf","x","y","z","vx","vy","vz","period",\
+                     "lx","ly","lz","acc_rate","acc_lum","age","int_lum","Teff"],
     "colormap"    : "osiris"
 }
 

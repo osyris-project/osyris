@@ -645,13 +645,12 @@ class LoadRamsesData(plot_osiris.OsirisData):
         except IOError:
             self.info["nsinks"] = 0
             return
-        
         if np.shape(sinklist)[0] == 0:
             self.info["nsinks"] = 0
         else:
             list_shape = np.shape(np.shape(sinklist))[0]
             if list_shape == 1:
-                sinklist = [sinklist[:],sinklist[:]]
+                sinklist = np.reshape(sinklist, (1, np.shape(sinklist)[0]))
                 self.info["nsinks"] = 1
             else:
                 self.info["nsinks"] = np.shape(sinklist)[0]
@@ -662,7 +661,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     r_sink = self.info["ncell_racc"]/(2.0**self.info["levelmax"])
                 except KeyError:
                     r_sink = 4.0/(2.0**self.info["levelmax"])
-            
             self.sinks = dict()
             j = 0
             for entry in conf.default_values["sink_format"]:
