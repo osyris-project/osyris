@@ -46,12 +46,14 @@ class OsirisCommon:
                     print("Error parsing operation when trying to create variable: "+name)
                     print("The attempted operation was: "+op_parsed)
                 return
-        self.data[name] = dict()
-        self.data[name]["values"   ] = new_data
-        self.data[name]["unit"     ] = unit
-        self.data[name]["label"    ] = label
-        self.data[name]["operation"] = op_parsed
-        self.data[name]["depth"    ] = depth+1
+        TheDict = dict()
+        TheDict["values"   ] = new_data
+        TheDict["unit"     ] = unit
+        TheDict["label"    ] = label
+        TheDict["operation"] = op_parsed
+        TheDict["depth"    ] = depth+1
+        
+        setattr(self, name, TheDict)
         
         return
     
