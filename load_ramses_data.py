@@ -27,13 +27,15 @@ divider = "============================================"
 
 class OsirisData():
     
-    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth):
+    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0):
         
         setattr(self, 'values', the_values)
         setattr(self, 'unit'  , the_unit)
         setattr(self, 'label', the_label)
         setattr(self, 'operation', the_operation)
         setattr(self, 'depth', the_depth)
+        setattr(self, 'norm', the_norm)
+        
         
         return
     
@@ -73,15 +75,16 @@ class LoadRamsesData():
         ## Re-center the mesh around chosen center
         #self.re_center()
         
-        ## Read in custom variables if any from the configuration file
-        #conf.additional_variables(self)
+        # Read in custom variables if any from the configuration file
+        conf.additional_variables(self)
         
-        ## Print exit message
-        #print("Memory used: %.2f Mb" % (len(self.data)*self.info["ncells"]*8.0/1.0e6))
-        #print(self.info["infile"]+" successfully loaded")
-        #if verbose:
-            #self.print_info()
-        #print(divider)
+        # Print exit message
+        var_list = self.get_var_list()
+        print("Memory used: %.2f Mb" % (len(var_list)*self.info["ncells"]*8.0/1.0e6))
+        print(self.info["infile"]+" successfully loaded")
+        if verbose:
+            self.print_info()
+        print(divider)
     
     #=======================================================================================
     # Generate the file name
@@ -475,20 +478,33 @@ class LoadRamsesData():
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
-        if not update:
-            self.data = dict()
+        #if not update:
+            #self.data = dict()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
-            if not update:
-                self.data[theKey] = dict()
+            #if not update:
+                #self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False,norm=norm)
         
-        ## Re-center the mesh around chosen center
-        #self.re_center()
+        # Hard coded additional data fields needed
+        [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+        self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm)
+        self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm)
+        self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm)
+        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0)
+        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0)
+        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0)
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm)
+        
+
+        #self.print_info()
+        
+        # Re-center the mesh around chosen center
+        self.re_center()
 
         return 1
         
@@ -504,17 +520,19 @@ class LoadRamsesData():
         maxlen2 = 0
         maxlen3 = 0
         maxlen4 = 0
-        for key in sorted(self.data.keys()):
+        key_list = self.get_var_list()
+        #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
+        for key in sorted(key_list):
             maxlen1 = max(maxlen1,len(key))
-            maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
-            maxlen3 = max(maxlen3,len(str(np.nanmin(self.data[key]["values"]))))
-            maxlen4 = max(maxlen4,len(str(np.nanmax(self.data[key]["values"]))))
+            maxlen2 = max(maxlen2,len(getattr(self,key).unit))
+            maxlen3 = max(maxlen3,len(str(np.nanmin(getattr(self,key).values))))
+            maxlen4 = max(maxlen4,len(str(np.nanmax(getattr(self,key).values))))
         print("The variables are:")
         print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
-        for key in sorted(self.data.keys()):
-            print(key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
-                  str(np.nanmin(self.data[key]["values"])).ljust(maxlen3)+" "+\
-                  str(np.nanmax(self.data[key]["values"])).ljust(maxlen4))
+        for key in sorted(key_list):
+            print(key.ljust(maxlen1)+" ["+getattr(self,key).unit.ljust(maxlen2)+"] "+\
+                  str(np.nanmin(getattr(self,key).values)).ljust(maxlen3)+" "+\
+                  str(np.nanmax(getattr(self,key).values)).ljust(maxlen4))
         return
     
     #=======================================================================================
@@ -554,32 +572,35 @@ class LoadRamsesData():
     #=======================================================================================
     def re_center(self,newcenter=None):
         
+        #try: # check if newcenter is defined
+            #lc = len(newcenter)
+            #self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
+            #self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
+            #if self.info["ndim"] > 2:
+                #self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
+            
+            ## Re-scale the cell and box sizes
+            #self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
+            #self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
+            
+            ## Re-center sinks
+            #if self.info["nsinks"] > 0:
+                #self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                #self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                #self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                #self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
+            
+                ##for key in self.sinks.keys():
+                    ##self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
+            
+            #self.info["center"] = newcenter
+        
         try: # check if newcenter is defined
             lc = len(newcenter)
-            self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
-            self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
-            if self.info["ndim"] > 2:
-                self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
-            
-            # Re-scale the cell and box sizes
-            self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
-            self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
-            
-            # Re-center sinks
-            if self.info["nsinks"] > 0:
-                self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
-            
-                #for key in self.sinks.keys():
-                    #self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
-            
             self.info["center"] = newcenter
-        
         except TypeError:
             pass
         
@@ -603,23 +624,23 @@ class LoadRamsesData():
                     zc = self.sinks["z"][isink]
                 elif self.info["center"].startswith("max"):
                     cvar=self.info["center"].split(":")[1]
-                    maxloc = np.argmax(self.data[cvar]["values"])
-                    xc = self.data["x"]["values"][maxloc]
-                    yc = self.data["y"]["values"][maxloc]
-                    zc = self.data["z"]["values"][maxloc]
+                    maxloc = np.argmax(getattr(self,cvar).values)
+                    xc = self.x_raw.values[maxloc]
+                    yc = self.y_raw.values[maxloc]
+                    zc = self.z_raw.values[maxloc]
                 elif self.info["center"].startswith("min"):
                     cvar=self.info["center"].split(":")[1]
-                    minloc = np.argmin(self.data[cvar]["values"])
-                    xc = self.data["x"]["values"][minloc]
-                    yc = self.data["y"]["values"][minloc]
-                    zc = self.data["z"]["values"][minloc]
+                    minloc = np.argmin(getattr(self,cvar).values)
+                    xc = self.x_raw.values[minloc]
+                    yc = self.y_raw.values[minloc]
+                    zc = self.z_raw.values[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
                     [op_parsed,depth] = self.parse_operation(cvar)
                     select = eval("np.where("+op_parsed+")")
-                    xc = np.average(self.data["x"]["values"][select])
-                    yc = np.average(self.data["y"]["values"][select])
-                    zc = np.average(self.data["z"]["values"][select])
+                    xc = np.average(self.x_raw.values[select])
+                    yc = np.average(self.y_raw.values[select])
+                    zc = np.average(self.z_raw.values[select])
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
@@ -627,18 +648,18 @@ class LoadRamsesData():
         except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
 
-        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/conf.constants[self.info["scale"]]
+        self.x.values = (self.x_raw.values - xc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 1:
-            self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]
+            self.y.values = (self.y_raw.values - yc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 2:
-            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/conf.constants[self.info["scale"]]
+            self.z.values = (self.z_raw.values - zc)/conf.constants[self.info["scale"]]
         self.info["xc"] = xc/conf.constants[self.info["scale"]]
         self.info["yc"] = yc/conf.constants[self.info["scale"]]
         self.info["zc"] = zc/conf.constants[self.info["scale"]]
         
         # Re-scale the cell and box sizes
-        self.data["dx"]["values"] = self.data["dx"]["values"]/conf.constants[self.info["scale"]]
-        self.info["boxsize"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
+        self.dx.values = self.dx_raw.values/conf.constants[self.info["scale"]]
+        self.info["boxsize_scaled"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
         
         # Re-center sinks
         if self.info["nsinks"] > 0:
@@ -646,7 +667,7 @@ class LoadRamsesData():
             self.sinks["x"     ] = self.sinks["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
             self.sinks["y"     ] = self.sinks["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
             self.sinks["z"     ] = self.sinks["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
-            self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]
+            self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]/conf.constants[self.info["scale"]]
         
         return
         
@@ -811,7 +832,7 @@ class LoadRamsesData():
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[]):
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0):
         
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
@@ -833,7 +854,7 @@ class LoadRamsesData():
         #TheDict["operation"] = op_parsed
         #TheDict["depth"    ] = depth+1
         
-        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1)
+        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm)
         
         
         setattr(self, name, dataField)
@@ -854,7 +875,10 @@ class LoadRamsesData():
         expression = " "+operation+" "
         # Sort the list of variable keys in the order of the longest to the shortest.
         # This guards against replacing 'B' inside 'logB' for example.
-        key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        #key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        #print key_list
+        key_list = self.get_var_list()
+        key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
         # For replacing, we need to create a list of hash keys to replace on instance at a
         # time
         hashkeys  = dict()
@@ -882,7 +906,7 @@ class LoadRamsesData():
                         #hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
                         hashkeys[theHash] = "self.get(\""+key+"\")"
                         expression = expression.replace(key,theHash,1)
-                        max_depth = max(max_depth,self.data[key]["depth"])
+                        max_depth = max(max_depth,getattr(self,key).depth)
                     else:
                         # Replace anyway to prevent from replacing "x" in "max("
                         theHash = "#"+str(hashcount).zfill(5)+"#"
@@ -901,6 +925,14 @@ class LoadRamsesData():
     def get(self,var):
         return getattr(getattr(self,var),'values')
     
+    def get_var_list(self):
+        key_list = []
+        att_list =  dir(self)
+        for att in att_list:
+            class_name = getattr(self,att).__class__.__name__
+            if class_name == 'OsirisData':
+                key_list.append(att)
+        return key_list
         
     #=======================================================================================
     # This function writes the RAMSES data to a VTK file for 3D visualization
