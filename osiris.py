@@ -83,13 +83,22 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
     ny = resolution+1
     
     # Get the data values and units
-    datax  = var_x.values
-    datay  = var_y.values
-    #xlabel = self.data[var_x]["label"]+" ["+self.data[var_x]["unit"]+"]"
-    #ylabel = self.data[var_y]["label"]+" ["+self.data[var_y]["unit"]+"]"
+    if var_x.kind == "vector":
+        datax = np.linalg.norm(var_x.values,axis=1)
+    else:
+        datax = var_x.values
+    if var_y.kind == "vector":
+        datay = np.linalg.norm(var_y.values,axis=1)
+    else:
+        datay  = var_y.values
+    xlabel = var_x.label+" ["+var_x.unit+"]"
+    ylabel = var_y.label+" ["+var_y.unit+"]"
     if var_z:
-        dataz  = var_z.values
-        #zlabel = self.data[var_z]["label"]
+        if var_z.kind == "vector":
+            dataz = np.linalg.norm(var_z.values,axis=1)
+        else:
+            dataz  = var_z.values
+            zlabel = var_z.label
     
     # Define plotting range
     autoxmin = False
@@ -248,8 +257,8 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
             cb.ax.set_ylabel(zlabel)
             cb.ax.yaxis.set_label_coords(-1.1,0.5)
                         
-        #theAxes.set_xlabel(xlabel)
-        #theAxes.set_ylabel(ylabel)
+        theAxes.set_xlabel(xlabel)
+        theAxes.set_ylabel(ylabel)
         if clear:
             theAxes.set_xlim([xmin,xmax])
             theAxes.set_ylim([ymin,ymax])
@@ -268,7 +277,492 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
     else:
         return
 
+#=======================================================================================
+# Plot a 2D slice through the data cube. The arguments are:
+# - var        : the key for the variable to be plotted, e.g. "density" or "log_rho"
+# - direction  : the direction normal to the plane of the slice
+# - vec        : the vector field to be overplotted. For velocity, one should supply
+#                "velocity" as input and the routine will search for "velocity_x" and
+#                "velocity_y" in the variable fields.
+# - stream     : the field for streamlines to be overplotted. For B field, one should
+#                supply "B" as input and the routine will search for "B_x" and
+#                "B_y" in the variable fields.
+# - fname      : if specified, the figure is saved to file.
+# - dx         : the x extent of the slice, in units of scale (see data loader)
+# - dy         : the y extent of the slice, in units of scale. If not specified, dy = dx
+# - cmap       : the colormap
+# - axes       : if specified, the data is plotted on the specified axes (see demo).
+# - resolution : number of pixels in the slice.
+#=======================================================================================
+def plot_slice(holder,scal=False,vec=False,stream=False,direction="z",fname=None,\
+               dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
+               nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
+               title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
+               origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
+               contour=False,slice_args={},image_args={},contour_args={},\
+               vec_args={},stream_args={}):
+    
+    ## Possibility of updating the data from inside the plotting routines
+    #try:
+        #update += 0
+        #self.update_values(nout=update)
+    #except TypeError:
+        #pass
+        
+    if holder.info["ndim"] < 2:
+        print("Cannot plot slice from 1D data. Exiting...")
+        return
+    
+    # List of directions
+    dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
+    
+    # Set dx to whole box if not specified
+    boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
+    boxmax_x = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[0]))
+    boxmin_y = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[1]))
+    boxmax_y = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[1]))
+    if dx+dy == 0.0:
+        dx = boxmax_x - boxmin_x
+        dy = boxmax_y - boxmin_y
+    elif dx == 0.0:
+        dx = dy
+    # Make it possible to call with only one size in the arguments
+    if dy == 0.0:
+        dy = dx
+    
+    # Define x,y directions depending on the input direction
+    if direction[0]=="[" and direction[-1]=="]":
+        dir_x = "x"
+        dir_y = "y"
+        dir1 = eval(direction)
+        dir2 = perpendicular_vector(dir1)
+        dir3 = np.cross(dir1,dir2)
+    elif direction.startswith("auto"):
+        params = direction.split(":")
+        if len(params) == 1:
+            view = "top"
+        else:
+            view = params[1]
+        if len(params) < 3:
+            sphere_rad = 0.5*((np.nanmax(holder.get("x"))-np.nanmin(holder.get("x"))) if dx == 0.0 else dx)
+        else:
+            sphere_rad = float(params[2])
+        dir_x = "x"
+        dir_y = "y"
+        # Compute angular momentum vector
+        sphere = np.where(holder.get("r") < sphere_rad)
+        pos    = np.vstack((holder.get("x")[sphere],holder.get("y")[sphere],holder.get("z")[sphere])*holder.get("mass")[sphere]).T
+        #vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
+        vel    = holder.get("velocity")[sphere]
+        AngMom = np.sum(np.cross(pos,vel),axis=0)
+        if view == "top":
+            dir1 = AngMom
+            dir2 = perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
+            dir3 = np.cross(dir1,dir2)
+        elif view == "side":
+            # Choose a vector perpendicular to the angular momentum vector
+            dir3 = AngMom
+            dir1 = perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
+            dir2 = np.cross(dir1,dir3)
+        norm1 = np.linalg.norm(dir1)
+        print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
+    elif ((direction == "x") or (direction == "y") or (direction == "z")):
+        [dir_x,dir_y] = dir_list[direction]
+        dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
+        dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
+        dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
+    elif holder.info["ndim"]==2:
+        dir1 = [0,0,1]
+        dir2 = [1,0,0]
+        dir3 = [0,1,0]
+        dir_x = "x"
+        dir_y = "y"
+    else:
+        print("Bad direction for slice")
+        return
+    
+    norm1 = np.linalg.norm(dir1)
+    norm2 = np.linalg.norm(dir2)
+    norm3 = np.linalg.norm(dir3)
+    dir1 = dir1 / norm1
+    dir2 = dir2 / norm2
+    dir3 = dir3 / norm3
+    
+    # Define equation of a plane
+    a_plane = dir1[0]
+    b_plane = dir1[1]
+    c_plane = dir1[2]
+    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+    
+    sqrt3 = np.sqrt(3.0)
+    
+    dist = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
+         / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
 
+    # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
+    cube = np.where(abs(dist) <= sqrt3*0.5*holder.get("dx")+0.5*dz)
+    ncells = np.shape(holder.get("dx")[cube])[0]
+    celldx = holder.get("dx")[cube]
+    # Project coordinates onto the plane by taking dot product with axes vectors
+    coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
+    datax = np.inner(coords,dir2)
+    datay = np.inner(coords,dir3)
+    
+    if scal:
+        if scal.kind == "vector":
+            dataz = np.linalg.norm(scal.values[cube,:],axis=1)
+        else:
+            dataz = scal.values[cube]
+    
+    # Now project vectors and streamlines using the same method
+    if vec:
+        if vec.kind == "scalar":
+            print("Warning: cannot make vectors out of scalar field.")
+        else:
+            if holder.info["ndim"] < 3:
+                datau1 = vec.values[cube][0]
+                datav1 = vec.values[cube][1]
+            else:
+                #print vec.values[cube]
+                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
+                #datau1 = np.inner(vec.values[cube,:],dir2)
+                #datav1 = np.inner(vec.values[cube,:],dir3)
+                datau1 = np.inner(vec.values[cube],dir2)
+                datav1 = np.inner(vec.values[cube],dir3)
+        #print np.shape(datau1)
+        #print np.shape(vec.values[cube,:]),np.shape(dir2)
+    if stream:
+        if stream.kind == "scalar":
+            print("Warning: cannot make streamlines out of scalar field.")
+        else:
+            if holder.info["ndim"] < 3:
+                datau2 = stream.values[cube][0]
+                datav2 = stream.values[cube][1]
+            else:
+                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
+                datau2 = np.inner(stream.values[cube],dir2)
+                datav2 = np.inner(stream.values[cube],dir3)
+        
+        #try:
+            #sz = holder.get(stream+"_z")[cube]
+        #except KeyError:
+            #sz = holder.get(stream+"_x")[cube]*0.0
+        #streams = np.transpose([holder.get(stream+"_x")[cube],holder.get(stream+"_y")[cube],sz])
+        #datau2 = np.inner(streams,dir2)
+        #datav2 = np.inner(streams,dir3)
+    
+    # Define slice extent and resolution
+    xmin = max(-0.5*dx,boxmin_x)
+    xmax = min(xmin+dx,boxmax_x)
+    ymin = max(-0.5*dy,boxmin_y)
+    ymax = min(ymin+dy,boxmax_y)
+    nx   = resolution
+    ny   = resolution
+    dpx  = (xmax-xmin)/float(nx)
+    dpy  = (ymax-ymin)/float(ny)
+    
+    # We now create empty data arrays that will be filled by the cell data
+    za = np.zeros([ny,nx])
+    zb = np.zeros([ny,nx])
+    if vec:
+        u1 = np.zeros([ny,nx])
+        v1 = np.zeros([ny,nx])
+        z1 = np.zeros([ny,nx])
+    if stream:
+        u2 = np.zeros([ny,nx])
+        v2 = np.zeros([ny,nx])
+        z2 = np.zeros([ny,nx])
+    
+    # Loop through all data cells and find extent covered by the current cell size
+    for n in range(ncells):
+        x1 = datax[n]-0.5*celldx[n]*sqrt3
+        x2 = datax[n]+0.5*celldx[n]*sqrt3
+        y1 = datay[n]-0.5*celldx[n]*sqrt3
+        y2 = datay[n]+0.5*celldx[n]*sqrt3
+        
+        # Find the indices of the slice pixels which are covered by the current cell
+        ix1 = max(int((x1-xmin)/dpx),0)
+        ix2 = min(int((x2-xmin)/dpx),nx-1)
+        iy1 = max(int((y1-ymin)/dpy),0)
+        iy2 = min(int((y2-ymin)/dpy),ny-1)
+        
+        # Fill in the slice pixels with data
+        for j in range(iy1,iy2+1):
+            for i in range(ix1,ix2+1):
+                zb[j,i] = zb[j,i] + celldx[n]
+                if scal:
+                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                if vec:
+                    u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
+                    v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
+                    z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                if stream:
+                    u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
+                    v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
+                    z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+    
+    # Compute z averages
+    if summed:
+        z = np.ma.masked_where(zb == 0.0, za)
+        if vec:
+            u1 = np.ma.masked_where(zb == 0.0, u1)
+            v1 = np.ma.masked_where(zb == 0.0, v1)
+            w1 = np.ma.masked_where(zb == 0.0, z1)
+        if stream:
+            u2 = np.ma.masked_where(zb == 0.0, u2)
+            v2 = np.ma.masked_where(zb == 0.0, v2)
+            w2 = np.ma.masked_where(zb == 0.0, z2)
+    else:
+        z = np.ma.masked_where(zb == 0.0, za/zb)
+        if vec:
+            u1 = np.ma.masked_where(zb == 0.0, u1/zb)
+            v1 = np.ma.masked_where(zb == 0.0, v1/zb)
+            w1 = np.ma.masked_where(zb == 0.0, z1/zb)
+        if stream:
+            u2 = np.ma.masked_where(zb == 0.0, u2/zb)
+            v2 = np.ma.masked_where(zb == 0.0, v2/zb)
+            w2 = np.ma.masked_where(zb == 0.0, z2/zb)
+    
+    # Round off AMR levels to integers
+    if scal.label == "level":
+        z = np.around(z)
+    
+    # Define cell centers for filled contours
+    x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+    y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+    
+    # Define axes labels
+    xlab = getattr(holder,dir_x).label
+    if len(getattr(holder,dir_x).unit) > 0:
+        xlab += " ["+getattr(holder,dir_x).unit+"]"
+    ylab = getattr(holder,dir_y).label
+    if len(getattr(holder,dir_y).unit) > 0:
+        ylab += " ["+getattr(holder,dir_y).unit+"]"
+    if scal:
+        zlab = scal.label
+        if len(scal.unit) > 0:
+            zlab += " ["+scal.unit+"]"
+    
+    # Begin plotting -------------------------------------
+    if plot:
+        
+        if axes:
+            theAxes = axes
+        elif new_window:
+            plt.figure()
+            plt.subplot(111)
+            theAxes = plt.gca()
+        else:
+            if clear:
+                plt.clf()
+            plt.subplot(111)
+            theAxes = plt.gca()
+        
+        if scal:
+            # Define colorbar limits
+            try:
+                zmin += 0
+            except TypeError:
+                zmin = np.nanmin(z)
+            try:
+                zmax += 0
+            except TypeError:
+                zmax = np.nanmax(z)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(zmin,zmax,nc)
+                cb_format = None
+            
+            if image:
+                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
+                for key in image_args.keys():
+                    image_args_plot[key] = image_args[key]
+                cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
+            elif contour:
+                contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+                clabel_args = {"label":False,"fmt":"%1.3f"}
+                ignore = set(clabel_args.keys())
+                keys = set(contour_args.keys())
+                for key in keys.difference(ignore):
+                    contour_args_plot[key] = contour_args[key]
+                for key in contour_args.keys():
+                    clabel_args[key] = contour_args[key]
+                cont = theAxes.contour(x,y,z,**contour_args_plot)
+                if clabel_args["label"]:
+                    theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
+            else:
+                slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+                for key in slice_args.keys():
+                    slice_args_plot[key] = slice_args[key]
+                cont = theAxes.contourf(x,y,z,**slice_args_plot)
+            if cbar:
+               cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
+               cb.ax.set_ylabel(zlab)
+               cb.ax.yaxis.set_label_coords(-1.1,0.5)
+        #theAxes.set_xlabel(xlab)
+        #theAxes.set_ylabel(ylab)
+        
+        # Plot vector field
+        if vec:
+            # Here we define a set of default parameters
+            vec_args_osiris  = {"vskip"   : int(0.047*resolution),
+                                "vscale"  : np.nanmax(w1),
+                                "vsize"   : 15.0,
+                                "vkey"    : True,
+                                "vkey_pos": [0.70,-0.08],
+                                "cbar"    : False,
+                                "cbax"    : None}
+            # Save a copy so we can exclude these parameters specific to osiris from the ones
+            # to be sent to the matplotlib quiver routine.
+            ignore = set(vec_args_osiris.keys())
+            # Now we go through the arguments taken from the function call - vec_args - and
+            # add them to the osiris arguments.
+            for key in vec_args.keys():
+                vec_args_osiris[key] = vec_args[key]
+            # We now define default parameters for the quiver function
+            vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
+            # Then run through the vec_args, adding them to the plotting arguments, but
+            # ignoring all osiris specific arguments
+            keys = set(vec_args.keys())
+            for key in keys.difference(ignore):
+                vec_args_plot[key] = vec_args[key]
+            # We are now ready to plot the vectors. Note that we need two different calls if
+            # a colormap is used for the vectors.
+            vskip = vec_args_osiris["vskip"]
+            vcmap = vec_args_plot["cmap"]
+            if vcmap:
+                if vcmap.startswith("log") or vcmap.endswith("log"):
+                    vcmap = vcmap.replace("log","")
+                    chars = [",",":",";"," "]
+                    for ch in chars:
+                        vcmap = vcmap.replace(ch,"")
+                    if len(vcmap) == 0:
+                        vcmap = conf.default_values["colormap"]
+                    vec_args_plot["cmap"] = vcmap
+                    vec_args_plot["norm"] = LogNorm(vmin=np.nanmin(w1[::vskip,::vskip]),vmax=np.nanmax(w1[::vskip,::vskip]))
+                    vcb_format = "%.1e"
+                else:
+                    vcb_format = None
+                
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                      w1[::vskip,::vskip],**vec_args_plot)
+                if vec_args_osiris["cbar"]:
+                    vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vcb_format)
+                    vcb.ax.set_xlabel(vec.label+" ["+vec.unit+"]")
+            else:
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                                      **vec_args_plot)
+            
+            # Plot the scale of the vectors under the axes
+            unit_u = vec.unit
+            if vec_args_osiris["vkey"]:
+                theAxes.quiverkey(vect,vec_args_osiris["vkey_pos"][0],vec_args_osiris["vkey_pos"][1],\
+                                  vec_args_osiris["vscale"],"%.2f [%s]" % (vec_args_osiris["vscale"],\
+                                  unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
+                                  zorder=100)
+
+        if stream:
+            # Here we define a set of default parameters
+            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1}
+            # Save a copy so we can exclude these parameters specific to osiris from the ones
+            # to be sent to the matplotlib quiver routine.
+            ignore = set(stream_args_osiris.keys())
+            # Now we go through the arguments taken from the function call - stream_args - and
+            # add them to the osiris arguments.
+            for key in stream_args.keys():
+                stream_args_osiris[key] = stream_args[key]
+            # We now define default parameters for the streamplot function
+            stream_args_plot = {"cmap":None,"color":"w","norm":None}
+            # Then run through the stream_args, adding them to the plotting arguments, but
+            # ignoring all osiris specific arguments
+            keys = set(stream_args.keys())
+            for key in keys.difference(ignore):
+                stream_args_plot[key] = stream_args[key]
+            # We are now ready to plot the streamlines.
+            sskip = stream_args_osiris["sskip"]
+            scmap = stream_args_plot["cmap"]
+            if scmap:
+                if scmap.startswith("log") or scmap.endswith("log"):
+                    scmap = scmap.replace("log","")
+                    chars = [",",":",";"," "]
+                    for ch in chars:
+                        scmap = scmap.replace(ch,"")
+                    if len(scmap) == 0:
+                        scmap = conf.default_values["colormap"]
+                    stream_args_plot["cmap"] = scmap
+                    stream_args_plot["norm"] = LogNorm(vmin=np.nanmin(w2[::sskip,::sskip]),vmax=np.nanmax(w2[::sskip,::sskip]))
+                    scb_format = "%.1e"
+                else:
+                    scb_format = None
+                stream_args_plot["color"]=w2[::sskip,::sskip]
+            strm = theAxes.streamplot(x[::sskip],y[::sskip],u2[::sskip,::sskip],v2[::sskip,::sskip],**stream_args_plot)
+            if stream_args_osiris["cbar"]:
+                    scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=scb_format)
+                    scb.ax.set_xlabel(stream.label+" ["+stream.unit+"]")
+        
+        if holder.info["nsinks"] > 0 and sinks:
+            if dz == 0.0:
+                thickness = 0.05*dx
+            else:
+                thickness = 0.5*dz
+            dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+            sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
+            sink_x = np.inner(sinkcoords,dir2)
+            sink_y = np.inner(sinkcoords,dir3)
+            subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
+            srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
+            xy = np.array([sink_x[subset],sink_y[subset]]).T
+            patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
+            coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+            theAxes.add_collection(coll)
+            
+        try:
+            title += ""
+            theAxes.set_title(title)
+        except TypeError:
+            theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
+        
+        if clear:
+            theAxes.set_xlim([xmin,xmax])
+            theAxes.set_ylim([ymin,ymax])
+        #else:
+            #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+            #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+        
+        theAxes.set_xlabel(xlab)
+        theAxes.set_ylabel(ylab)
+        
+        theAxes.set_aspect("equal")
+
+        if fname:
+            plt.savefig(fname,bbox_inches="tight")
+        elif axes:
+            pass
+        else:
+            plt.show(block=block)
+    
+    if copy:
+        if vec and stream:
+            return x,y,z,u1,v1,w1,u2,v2,w2
+        elif vec:
+            return x,y,z,u1,v1,w1
+        elif stream:
+            return x,y,z,u2,v2,w2
+        else:
+            return x,y,z
+    else:
+        return
 
 
 
@@ -435,3 +929,16 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     print("File "+fname+(" of size %.1f"%fsize)+funit+" succesfully written.")
 
     return
+
+
+
+def perpendicular_vector(v):
+
+    # x = y = z = 0 is not an acceptable solution
+    if v[0] == v[1] == v[2] == 0:
+        raise ValueError("zero-vector")
+    
+    if v[2] == 0:
+        return [-v[1],v[0],0]
+    else:
+        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]

@@ -27,7 +27,7 @@ divider = "============================================"
 
 class OsirisData():
     
-    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0):
+    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0,the_kind="scalar"):
         
         setattr(self, 'values', the_values)
         setattr(self, 'unit'  , the_unit)
@@ -35,6 +35,7 @@ class OsirisData():
         setattr(self, 'operation', the_operation)
         setattr(self, 'depth', the_depth)
         setattr(self, 'norm', the_norm)
+        setattr(self, 'kind', the_kind)
         
         
         return
@@ -490,6 +491,40 @@ class LoadRamsesData():
             # Use the 'new_field' function to create data field
             self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False,norm=norm)
         
+        # Convert vector components to vector objects
+        if self.info["ndim"] > 1:
+            for i in range(len(list_vars)):
+                key = list_vars[i]
+                if key.endswith("_x"):
+                    rawkey = key[:-2]
+                    ok = True
+                    try:
+                        k1 = len(self.get(rawkey+"_y"))
+                    except AttributeError:
+                        ok = False
+                    if self.info["ndim"] > 2:
+                        try:
+                            k2 = len(self.get(rawkey+"_z"))
+                        except AttributeError:
+                            ok = False
+                    
+                    if ok:
+                        if self.info["ndim"] > 2:
+                            vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y"),self.get(rawkey+"_z")]).reshape(3,self.info["ncells"]).T
+                        else:
+                            vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y")]).reshape(2,self.info["ncells"]).T
+                        vec_name = rawkey
+                        while hasattr(self,vec_name):
+                            vec_name += "_vec"
+                        self.new_field(name=vec_name,operation="",unit=getattr(self,key).unit,label=key.replace("_"," "),values=vector,verbose=False,norm=getattr(self,key).norm,kind="vector")
+                        self.delete_field(key)
+                        self.delete_field(rawkey+"_y")
+                        if self.info["ndim"] > 2:
+                            self.delete_field(rawkey+"_z")
+                        
+                        
+        #self.print_info()
+        
         # Hard coded additional data fields needed
         [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
         self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm)
@@ -520,19 +555,22 @@ class LoadRamsesData():
         maxlen2 = 0
         maxlen3 = 0
         maxlen4 = 0
+        maxlen5 = 0
         key_list = self.get_var_list()
         #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
         for key in sorted(key_list):
             maxlen1 = max(maxlen1,len(key))
-            maxlen2 = max(maxlen2,len(getattr(self,key).unit))
-            maxlen3 = max(maxlen3,len(str(np.nanmin(getattr(self,key).values))))
-            maxlen4 = max(maxlen4,len(str(np.nanmax(getattr(self,key).values))))
+            maxlen2 = max(maxlen2,len(getattr(self,key).kind))
+            maxlen3 = max(maxlen3,len(getattr(self,key).unit))
+            maxlen4 = max(maxlen4,len(str(np.nanmin(getattr(self,key).values))))
+            maxlen5 = max(maxlen5,len(str(np.nanmax(getattr(self,key).values))))
         print("The variables are:")
-        print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
+        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Unit".ljust(maxlen3)+"     Min".ljust(maxlen4)+"      Max".ljust(maxlen5))
         for key in sorted(key_list):
-            print(key.ljust(maxlen1)+" ["+getattr(self,key).unit.ljust(maxlen2)+"] "+\
-                  str(np.nanmin(getattr(self,key).values)).ljust(maxlen3)+" "+\
-                  str(np.nanmax(getattr(self,key).values)).ljust(maxlen4))
+            print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
+                  " ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
+                  str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
+                  str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
         return
     
     #=======================================================================================
@@ -832,7 +870,7 @@ class LoadRamsesData():
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0):
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar"):
         
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
@@ -854,12 +892,26 @@ class LoadRamsesData():
         #TheDict["operation"] = op_parsed
         #TheDict["depth"    ] = depth+1
         
-        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm)
+        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm,kind)
         
-        
+        if hasattr(self,name) and verbose:
+            print("Warning: field "+name+" already exists and will be overwritten.")
         setattr(self, name, dataField)
         
         return
+    
+    #=======================================================================================
+    # The new field function is used to create a new data field. Say you want to take the
+    # log of the density. You create a new field by calling:
+    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+    # The operation string is then evaluated using the 'eval' function.
+    #=======================================================================================
+    def delete_field(self,name):
+        
+        delattr(self,name)
+        
+        return
+    
     
     #=======================================================================================
     # The operation parser converts an operation string into an expression which contains
