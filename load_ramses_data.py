@@ -27,16 +27,16 @@ divider = "============================================"
 
 class OsirisData():
     
-    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0,the_kind="scalar"):
+    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0,the_kind="scalar",parent=None):
         
-        setattr(self, 'values', the_values)
-        setattr(self, 'unit'  , the_unit)
-        setattr(self, 'label', the_label)
-        setattr(self, 'operation', the_operation)
-        setattr(self, 'depth', the_depth)
-        setattr(self, 'norm', the_norm)
-        setattr(self, 'kind', the_kind)
-        
+        self.values = the_values
+        self.unit = the_unit
+        self.label = the_label
+        self.operation = the_operation
+        self.depth = the_depth
+        self.norm = the_norm
+        self.kind = the_kind
+        self.parent = parent
         
         return
     
@@ -892,7 +892,7 @@ class LoadRamsesData():
         #TheDict["operation"] = op_parsed
         #TheDict["depth"    ] = depth+1
         
-        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm,kind)
+        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm,kind,parent=self)
         
         if hasattr(self,name) and verbose:
             print("Warning: field "+name+" already exists and will be overwritten.")

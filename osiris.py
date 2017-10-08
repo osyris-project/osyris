@@ -159,7 +159,8 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
         if summed:
             z = np.ma.masked_where(z0 == 0.0, z1)
         else:
-            z = np.ma.masked_where(z0 == 0.0, z1/z0)
+            with np.errstate(divide="ignore"):
+                z = np.ma.masked_where(z0 == 0.0, z1/z0)
         #zlabel = self.data[var_z]["label"]+" ["+self.data[var_z]["unit"]+"]"
     else:
         z = np.ma.masked_where(z0 == 0.0, z0)
@@ -294,7 +295,7 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
 # - axes       : if specified, the data is plotted on the specified axes (see demo).
 # - resolution : number of pixels in the slice.
 #=======================================================================================
-def plot_slice(holder,scal=False,vec=False,stream=False,direction="z",fname=None,\
+def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
                dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
                nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
                title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
@@ -308,6 +309,17 @@ def plot_slice(holder,scal=False,vec=False,stream=False,direction="z",fname=None
         #self.update_values(nout=update)
     #except TypeError:
         #pass
+    
+    # Find parent container of object to plot
+    if scal:
+        holder = scal.parent
+    elif vec:
+        holder = vec.parent
+    elif stream:
+        holder = stream.parent
+    else:
+        print("Nothing to plot.")
+        return
         
     if holder.info["ndim"] < 2:
         print("Cannot plot slice from 1D data. Exiting...")
@@ -315,6 +327,9 @@ def plot_slice(holder,scal=False,vec=False,stream=False,direction="z",fname=None
     
     # List of directions
     dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
+    
+    
+    
     
     # Set dx to whole box if not specified
     boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
