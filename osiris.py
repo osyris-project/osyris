@@ -295,12 +295,12 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
 # - axes       : if specified, the data is plotted on the specified axes (see demo).
 # - resolution : number of pixels in the slice.
 #=======================================================================================
-def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
+def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
                dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
-               nc=20,new_window=False,sinks=True,update=None,zmin=None,zmax=None,\
+               nc=20,new_window=False,sinks=True,update=None,vmin=None,vmax=None,\
                title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
                origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
-               contour=False,slice_args={},image_args={},contour_args={},\
+               contour=False,scalar_args={},image_args={},contour_args={},\
                vec_args={},stream_args={}):
     
     ## Possibility of updating the data from inside the plotting routines
@@ -311,8 +311,12 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
         #pass
     
     # Find parent container of object to plot
-    if scal:
-        holder = scal.parent
+    if scalar:
+        holder = scalar.parent
+    elif image:
+        holder = image.parent
+    elif contour:
+        holder = contour.parent
     elif vec:
         holder = vec.parent
     elif stream:
@@ -423,11 +427,23 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
     datax = np.inner(coords,dir2)
     datay = np.inner(coords,dir3)
     
-    if scal:
-        if scal.kind == "vector":
-            dataz = np.linalg.norm(scal.values[cube,:],axis=1)
+    if scalar:
+        if scalar.kind == "vector":
+            dataz1 = np.linalg.norm(scalar.values[cube,:],axis=1)
         else:
-            dataz = scal.values[cube]
+            dataz1 = scalar.values[cube]
+    
+    if image:
+        if image.kind == "vector":
+            dataz2 = np.linalg.norm(image.values[cube,:],axis=1)
+        else:
+            dataz2 = image.values[cube]
+    
+    if contour:
+        if contour.kind == "vector":
+            dataz3 = np.linalg.norm(contour.values[cube,:],axis=1)
+        else:
+            dataz3 = contour.values[cube]
     
     # Now project vectors and streamlines using the same method
     if vec:
@@ -479,6 +495,8 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
     # We now create empty data arrays that will be filled by the cell data
     za = np.zeros([ny,nx])
     zb = np.zeros([ny,nx])
+    zc = np.zeros([ny,nx])
+    zd = np.zeros([ny,nx])
     if vec:
         u1 = np.zeros([ny,nx])
         v1 = np.zeros([ny,nx])
@@ -504,9 +522,14 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
         # Fill in the slice pixels with data
         for j in range(iy1,iy2+1):
             for i in range(ix1,ix2+1):
-                zb[j,i] = zb[j,i] + celldx[n]
-                if scal:
-                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                za[j,i] = za[j,i] + celldx[n]
+                if scalar:
+                    zb[j,i] = zb[j,i] + dataz1[n]*celldx[n]
+                if image:
+                    zc[j,i] = zc[j,i] + dataz2[n]*celldx[n]
+                if contour:
+                    zd[j,i] = zd[j,i] + dataz3[n]*celldx[n]
+                
                 if vec:
                     u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
                     v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
@@ -518,45 +541,42 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
     
     # Compute z averages
     if summed:
-        z = np.ma.masked_where(zb == 0.0, za)
+        if scalar:
+            z_scal = np.ma.masked_where(za == 0.0, zb)
+        if image:
+            z_imag = np.ma.masked_where(za == 0.0, zc)
+        if contour:
+            z_cont = np.ma.masked_where(za == 0.0, zd)
+        
         if vec:
-            u1 = np.ma.masked_where(zb == 0.0, u1)
-            v1 = np.ma.masked_where(zb == 0.0, v1)
-            w1 = np.ma.masked_where(zb == 0.0, z1)
+            u1 = np.ma.masked_where(za == 0.0, u1)
+            v1 = np.ma.masked_where(za == 0.0, v1)
+            w1 = np.ma.masked_where(za == 0.0, z1)
         if stream:
-            u2 = np.ma.masked_where(zb == 0.0, u2)
-            v2 = np.ma.masked_where(zb == 0.0, v2)
-            w2 = np.ma.masked_where(zb == 0.0, z2)
+            u2 = np.ma.masked_where(za == 0.0, u2)
+            v2 = np.ma.masked_where(za == 0.0, v2)
+            w2 = np.ma.masked_where(za == 0.0, z2)
     else:
-        z = np.ma.masked_where(zb == 0.0, za/zb)
+        if scalar:
+            z_scal = np.ma.masked_where(za == 0.0, zb/za)
+        if image:
+            z_imag = np.ma.masked_where(za == 0.0, zc/za)
+        if contour:
+            z_cont = np.ma.masked_where(za == 0.0, zd/za)
         if vec:
-            u1 = np.ma.masked_where(zb == 0.0, u1/zb)
-            v1 = np.ma.masked_where(zb == 0.0, v1/zb)
-            w1 = np.ma.masked_where(zb == 0.0, z1/zb)
+            u1 = np.ma.masked_where(za == 0.0, u1/za)
+            v1 = np.ma.masked_where(za == 0.0, v1/za)
+            w1 = np.ma.masked_where(za == 0.0, z1/za)
         if stream:
-            u2 = np.ma.masked_where(zb == 0.0, u2/zb)
-            v2 = np.ma.masked_where(zb == 0.0, v2/zb)
-            w2 = np.ma.masked_where(zb == 0.0, z2/zb)
-    
-    # Round off AMR levels to integers
-    if scal.label == "level":
-        z = np.around(z)
-    
+            u2 = np.ma.masked_where(za == 0.0, u2/za)
+            v2 = np.ma.masked_where(za == 0.0, v2/za)
+            w2 = np.ma.masked_where(za == 0.0, z2/za)
+        
     # Define cell centers for filled contours
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     
-    # Define axes labels
-    xlab = getattr(holder,dir_x).label
-    if len(getattr(holder,dir_x).unit) > 0:
-        xlab += " ["+getattr(holder,dir_x).unit+"]"
-    ylab = getattr(holder,dir_y).label
-    if len(getattr(holder,dir_y).unit) > 0:
-        ylab += " ["+getattr(holder,dir_y).unit+"]"
-    if scal:
-        zlab = scal.label
-        if len(scal.unit) > 0:
-            zlab += " ["+scal.unit+"]"
+    
     
     # Begin plotting -------------------------------------
     if plot:
@@ -573,16 +593,59 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
             plt.subplot(111)
             theAxes = plt.gca()
         
-        if scal:
+        # If vmin and vmax are specified as a normal argument and not in a dict,
+        # there should only be one of scalar, image or contour
+        score = 0
+        if scalar:
+            score += 1
+        if image:
+            score += 1
+        if contour:
+            score += 1
+
+        #if score > 1:
+            #print("vmin and vmax limits cannot be applied to more than one scalar field.")
+            #print("Please use scalar_args={}, image_args={}, contour_args={}.")
+            #return
+            
+        
+        if scalar:
+            
+            # Round off AMR levels to integers
+            if scalar.label == "level":
+                z_scal = np.around(z_scal)
+            
+            scalar_args_osiris  = {"vmin"   : int(0.047*resolution),
+                                "vscale"  : np.nanmax(w1),
+                                "vsize"   : 15.0,
+                                "vkey"    : True,
+                                "vkey_pos": [0.70,-0.08],
+                                "cbar"    : False,
+                                "cbax"    : None}
+            # Save a copy so we can exclude these parameters specific to osiris from the ones
+            # to be sent to the matplotlib quiver routine.
+            ignore = set(vec_args_osiris.keys())
+            # Now we go through the arguments taken from the function call - vec_args - and
+            # add them to the osiris arguments.
+            for key in vec_args.keys():
+                vec_args_osiris[key] = vec_args[key]
+            # We now define default parameters for the quiver function
+            vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
+            # Then run through the vec_args, adding them to the plotting arguments, but
+            # ignoring all osiris specific arguments
+            keys = set(vec_args.keys())
+            for key in keys.difference(ignore):
+                vec_args_plot[key] = vec_args[key]
+            
             # Define colorbar limits
             try:
                 zmin += 0
             except TypeError:
-                zmin = np.nanmin(z)
+                zmin = np.nanmin(z_scal)
             try:
                 zmax += 0
             except TypeError:
-                zmax = np.nanmax(z)
+                zmax = np.nanmax(z_scal)
             
             if cmap.startswith("log") or cmap.endswith("log"):
                 cmap = cmap.replace("log","")
@@ -599,32 +662,101 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
                 clevels = np.linspace(zmin,zmax,nc)
                 cb_format = None
             
-            if image:
-                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
-                for key in image_args.keys():
-                    image_args_plot[key] = image_args[key]
-                cont = theAxes.imshow(z,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
-            elif contour:
-                contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
-                clabel_args = {"label":False,"fmt":"%1.3f"}
-                ignore = set(clabel_args.keys())
-                keys = set(contour_args.keys())
-                for key in keys.difference(ignore):
-                    contour_args_plot[key] = contour_args[key]
-                for key in contour_args.keys():
-                    clabel_args[key] = contour_args[key]
-                cont = theAxes.contour(x,y,z,**contour_args_plot)
-                if clabel_args["label"]:
-                    theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
-            else:
-                slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
-                for key in slice_args.keys():
-                    slice_args_plot[key] = slice_args[key]
-                cont = theAxes.contourf(x,y,z,**slice_args_plot)
+            slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+            for key in slice_args.keys():
+                slice_args_plot[key] = slice_args[key]
+            contf = theAxes.contourf(x,y,z_scal,**slice_args_plot)
             if cbar:
-               cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
-               cb.ax.set_ylabel(zlab)
-               cb.ax.yaxis.set_label_coords(-1.1,0.5)
+                cb = plt.colorbar(contf,ax=theAxes,cax=cbax,format=cb_format)
+                z_scal_lab = scalar.label
+                if len(scalar.unit) > 0:
+                    z_scal_lab += " ["+scalar.unit+"]"
+                cb.ax.set_ylabel(z_scal_lab)
+                cb.ax.yaxis.set_label_coords(-1.1,0.5)
+            
+        if image:
+            # Define colorbar limits
+            try:
+                zmin += 0
+            except TypeError:
+                zmin = np.nanmin(z_imag)
+            try:
+                zmax += 0
+            except TypeError:
+                zmax = np.nanmax(z_imag)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(zmin,zmax,nc)
+                cb_format = None
+            
+            image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
+            for key in image_args.keys():
+                image_args_plot[key] = image_args[key]
+            img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
+            
+            if cbar:
+                cb = plt.colorbar(img,ax=theAxes,cax=cbax,format=cb_format)
+                z_imag_lab = image.label
+                if len(image.unit) > 0:
+                    z_imag_lab += " ["+image.unit+"]"
+                cb.ax.set_ylabel(z_imag_lab)
+                cb.ax.yaxis.set_label_coords(-1.1,0.5)
+                
+        if contour:
+            # Define colorbar limits
+            try:
+                zmin += 0
+            except TypeError:
+                zmin = np.nanmin(z_cont)
+            try:
+                zmax += 0
+            except TypeError:
+                zmax = np.nanmax(z_cont)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(zmin,zmax,nc)
+                cb_format = None
+            
+            contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm,"zorder":10}
+            clabel_args = {"label":False,"fmt":"%1.3f"}
+            ignore = set(clabel_args.keys())
+            keys = set(contour_args.keys())
+            for key in keys.difference(ignore):
+                contour_args_plot[key] = contour_args[key]
+            for key in contour_args.keys():
+                clabel_args[key] = contour_args[key]
+            cont = theAxes.contour(x,y,z_cont,**contour_args_plot)
+            if clabel_args["label"]:
+                theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
+            if cbar:
+                cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
+                z_cont_lab = contour.label
+                if len(contour.unit) > 0:
+                    z_cont_lab += " ["+contour.unit+"]"
+                cb.ax.set_ylabel(z_cont_lab)
+                cb.ax.yaxis.set_label_coords(-1.1,0.5)
         #theAxes.set_xlabel(xlab)
         #theAxes.set_ylabel(ylab)
         
@@ -755,6 +887,13 @@ def plot_slice(scal=False,vec=False,stream=False,direction="z",fname=None,\
             #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
             #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
         
+        # Define axes labels
+        xlab = getattr(holder,dir_x).label
+        if len(getattr(holder,dir_x).unit) > 0:
+            xlab += " ["+getattr(holder,dir_x).unit+"]"
+        ylab = getattr(holder,dir_y).label
+        if len(getattr(holder,dir_y).unit) > 0:
+            ylab += " ["+getattr(holder,dir_y).unit+"]"
         theAxes.set_xlabel(xlab)
         theAxes.set_ylabel(ylab)
         
