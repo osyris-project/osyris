@@ -296,9 +296,9 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
 # - resolution : number of pixels in the slice.
 #=======================================================================================
 def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
-               dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
-               nc=20,new_window=False,sinks=True,update=None,vmin=None,vmax=None,\
-               title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
+               dx=0.0,dy=0.0,dz=0.0,axes=None,\
+               nc=20,new_window=False,sinks=True,update=None,\
+               title=None,clear=True,plot=True,block=False,\
                origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
                contour=False,scalar_args={},image_args={},contour_args={},\
                vec_args={},stream_args={}):
@@ -593,81 +593,49 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
             plt.subplot(111)
             theAxes = plt.gca()
         
-        # If vmin and vmax are specified as a normal argument and not in a dict,
-        # there should only be one of scalar, image or contour
-        score = 0
-        if scalar:
-            score += 1
-        if image:
-            score += 1
-        if contour:
-            score += 1
-
-        #if score > 1:
-            #print("vmin and vmax limits cannot be applied to more than one scalar field.")
-            #print("Please use scalar_args={}, image_args={}, contour_args={}.")
-            #return
-            
-        
         if scalar:
             
             # Round off AMR levels to integers
             if scalar.label == "level":
                 z_scal = np.around(z_scal)
-            
-            scalar_args_osiris  = {"vmin"   : int(0.047*resolution),
-                                "vscale"  : np.nanmax(w1),
-                                "vsize"   : 15.0,
-                                "vkey"    : True,
-                                "vkey_pos": [0.70,-0.08],
-                                "cbar"    : False,
-                                "cbax"    : None}
+            # Here we define a set of default parameters
+            scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
             # Save a copy so we can exclude these parameters specific to osiris from the ones
             # to be sent to the matplotlib quiver routine.
-            ignore = set(vec_args_osiris.keys())
-            # Now we go through the arguments taken from the function call - vec_args - and
+            ignore = set(scalar_args_osiris.keys())
+            # Now we go through the arguments taken from the function call - scalar_args - and
             # add them to the osiris arguments.
-            for key in vec_args.keys():
-                vec_args_osiris[key] = vec_args[key]
-            # We now define default parameters for the quiver function
-            vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
-            # Then run through the vec_args, adding them to the plotting arguments, but
-            # ignoring all osiris specific arguments
-            keys = set(vec_args.keys())
-            for key in keys.difference(ignore):
-                vec_args_plot[key] = vec_args[key]
-            
-            # Define colorbar limits
-            try:
-                zmin += 0
-            except TypeError:
-                zmin = np.nanmin(z_scal)
-            try:
-                zmax += 0
-            except TypeError:
-                zmax = np.nanmax(z_scal)
-            
+            for key in scalar_args.keys():
+                scalar_args_osiris[key] = scalar_args[key]
+            # Define colorbar scaling
+            cmap = scalar_args_osiris["cmap"]
             if cmap.startswith("log") or cmap.endswith("log"):
+                cmap_save = cmap
                 cmap = cmap.replace("log","")
                 chars = [",",":",";"," "]
                 for ch in chars:
                     cmap = cmap.replace(ch,"")
                 if len(cmap) == 0:
-                    cmap = conf.default_values["colormap"]
+                    cmap = cmap_save
                 norm = LogNorm()
-                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                clevels = np.logspace(np.log10(scalar_args_osiris["vmin"]),np.log10(scalar_args_osiris["vmax"]),nc)
                 cb_format = "%.1e"
             else:
                 norm = None
-                clevels = np.linspace(zmin,zmax,nc)
+                clevels = np.linspace(scalar_args_osiris["vmin"],scalar_args_osiris["vmax"],nc)
                 cb_format = None
             
-            slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
-            for key in slice_args.keys():
-                slice_args_plot[key] = slice_args[key]
-            contf = theAxes.contourf(x,y,z_scal,**slice_args_plot)
-            if cbar:
-                cb = plt.colorbar(contf,ax=theAxes,cax=cbax,format=cb_format)
+            # We now define default parameters for the matplotlib function
+            scalar_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+            # Then run through the vec_args, adding them to the plotting arguments, but
+            # ignoring all osiris specific arguments
+            keys = set(scalar_args.keys())
+            for key in keys.difference(ignore):
+                scalar_args_plot[key] = scalar_args[key]
+            
+            contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
+            if scalar_args_osiris["cbar"]:
+                cb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=cb_format)
                 z_scal_lab = scalar.label
                 if len(scalar.unit) > 0:
                     z_scal_lab += " ["+scalar.unit+"]"
@@ -675,38 +643,48 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
                 cb.ax.yaxis.set_label_coords(-1.1,0.5)
             
         if image:
-            # Define colorbar limits
-            try:
-                zmin += 0
-            except TypeError:
-                zmin = np.nanmin(z_imag)
-            try:
-                zmax += 0
-            except TypeError:
-                zmax = np.nanmax(z_imag)
             
+            # Round off AMR levels to integers
+            if image.label == "level":
+                z_imag = np.around(z_imag)
+            # Here we define a set of default parameters
+            image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
+            # Save a copy so we can exclude these parameters specific to osiris from the ones
+            # to be sent to the matplotlib quiver routine.
+            ignore = set(image_args_osiris.keys())
+            # Now we go through the arguments taken from the function call - image_args - and
+            # add them to the osiris arguments.
+            for key in image_args.keys():
+                image_args_osiris[key] = image_args[key]
+            # Define colorbar scaling
+            cmap = image_args_osiris["cmap"]
             if cmap.startswith("log") or cmap.endswith("log"):
+                cmap_save = cmap
                 cmap = cmap.replace("log","")
                 chars = [",",":",";"," "]
                 for ch in chars:
                     cmap = cmap.replace(ch,"")
                 if len(cmap) == 0:
-                    cmap = conf.default_values["colormap"]
+                    cmap = cmap_save
                 norm = LogNorm()
-                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
+                #clevels = np.logspace(np.log10(image_args_osiris["vmin"]),np.log10(image_args_osiris["vmax"]),nc)
                 cb_format = "%.1e"
             else:
                 norm = None
-                clevels = np.linspace(zmin,zmax,nc)
+                #clevels = np.linspace(image_args_osiris["vmin"],image_args_osiris["vmax"],nc)
                 cb_format = None
             
-            image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
-            for key in image_args.keys():
+            # We now define default parameters for the matplotlib function
+            image_args_plot = {"cmap":cmap,"norm":norm}
+            # Then run through the vec_args, adding them to the plotting arguments, but
+            # ignoring all osiris specific arguments
+            keys = set(image_args.keys())
+            for key in keys.difference(ignore):
                 image_args_plot[key] = image_args[key]
-            img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],vmin=zmin,vmax=zmax,**image_args_plot)
             
-            if cbar:
-                cb = plt.colorbar(img,ax=theAxes,cax=cbax,format=cb_format)
+            img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
+            if image_args_osiris["cbar"]:
+                cb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=cb_format)
                 z_imag_lab = image.label
                 if len(image.unit) > 0:
                     z_imag_lab += " ["+image.unit+"]"
@@ -714,6 +692,7 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
                 cb.ax.yaxis.set_label_coords(-1.1,0.5)
                 
         if contour:
+            
             # Define colorbar limits
             try:
                 zmin += 0
