@@ -805,3 +805,305 @@ class OsirisData(osiris_common.OsirisCommon):
             return x,y,z
         else:
             return
+        
+        
+    #=======================================================================================
+    # Plot a column density through the data cube.
+    #=======================================================================================
+    def plot_column_density(self,var="density",direction="z",fname=None,\
+                   dx=0.0,dy=0.0,dz=0.0,cmap=conf.default_values["colormap"],axes=None,\
+                   nc=21,new_window=False,sinks=True,update=None,vmin=None,vmax=None,\
+                   title=None,cbar=True,cbax=None,clear=True,plot=True,block=False,\
+                   origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
+                   contour=False,nz=0,slice_args={},image_args={},contour_args={}):
+        
+        # Possibility of updating the data from inside the plotting routines
+        try:
+            update += 0
+            self.update_values(nout=update)
+        except TypeError:
+            pass
+        
+        # List of directions
+        dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
+        
+        # Set dx to whole box if not specified
+        boxmin_x = np.nanmin(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmax_x = np.nanmax(self.get(dir_list.get(direction,["x","y"])[0]))
+        boxmin_y = np.nanmin(self.get(dir_list.get(direction,["x","y"])[1]))
+        boxmax_y = np.nanmax(self.get(dir_list.get(direction,["x","y"])[1]))
+        if dx+dy == 0.0:
+            dx = boxmax_x - boxmin_x
+            dy = boxmax_y - boxmin_y
+        elif dx == 0.0:
+            dx = dy
+        # Make it possible to call with only one size in the arguments
+        if dy == 0.0:
+            dy = dx
+        if dz == 0.0:
+            dz = dx
+        
+        # Define x,y directions depending on the input direction
+        if direction[0]=="[" and direction[-1]=="]":
+            dir_x = "x"
+            dir_y = "y"
+            dir1 = eval(direction)
+            dir2 = osiris_common.perpendicular_vector(dir1)
+            dir3 = np.cross(dir1,dir2)
+        elif direction.startswith("auto"):
+            params = direction.split(":")
+            if len(params) == 1:
+                view = "top"
+            else:
+                view = params[1]
+            if len(params) < 3:
+                sphere_rad = 0.5*((np.nanmax(self.get("x"))-np.nanmin(self.get("x"))) if dx == 0.0 else dx)
+            else:
+                sphere_rad = float(params[2])
+            dir_x = "x"
+            dir_y = "y"
+            # Compute angular momentum vector
+            sphere = np.where(self.get("r") < sphere_rad)
+            pos    = np.vstack((self.get("x")[sphere],self.get("y")[sphere],self.get("z")[sphere])*self.get("mass")[sphere]).T
+            vel    = np.vstack((self.get("velocity_x")[sphere],self.get("velocity_y")[sphere],self.get("velocity_z")[sphere])).T
+            AngMom = np.sum(np.cross(pos,vel),axis=0)
+            if view == "top":
+                dir1 = AngMom
+                dir2 = osiris_common.perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
+                dir3 = np.cross(dir1,dir2)
+            elif view == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                dir3 = AngMom
+                dir1 = osiris_common.perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
+                dir2 = np.cross(dir1,dir3)
+            norm1 = np.linalg.norm(dir1)
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
+        elif ((direction == "x") or (direction == "y") or (direction == "z")):
+            [dir_x,dir_y] = dir_list[direction]
+            dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
+            dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
+            dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
+        elif self.info["ndim"]==2:
+            dir1 = [0,0,1]
+            dir2 = [1,0,0]
+            dir3 = [0,1,0]
+            dir_x = "x"
+            dir_y = "y"
+        else:
+            print("Bad direction for slice")
+            return
+        
+        norm1 = np.linalg.norm(dir1)
+        norm2 = np.linalg.norm(dir2)
+        norm3 = np.linalg.norm(dir3)
+        dir1 = dir1 / norm1
+        dir2 = dir2 / norm2
+        dir3 = dir3 / norm3
+        
+        # Define equation of a plane
+        a_plane = dir1[0]
+        b_plane = dir1[1]
+        c_plane = dir1[2]
+        d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+        sqrt3 = np.sqrt(3.0)
+        
+        # Define slice extent and resolution
+        xmin = max(-0.5*dx,boxmin_x)
+        xmax = min(xmin+dx,boxmax_x)
+        ymin = max(-0.5*dy,boxmin_y)
+        ymax = min(ymin+dy,boxmax_y)
+        nx   = resolution
+        ny   = resolution
+        dpx  = (xmax-xmin)/float(nx)
+        dpy  = (ymax-ymin)/float(ny)
+        
+        # We now create empty data arrays that will be filled by the cell data
+        col_dens = np.zeros([ny,nx])
+        
+        # Define cube vertical size
+        zmin = max(-0.5*dz,boxmin_x)
+        zmax = min(xmin+dx,boxmax_x)
+        if nz == 0:
+            nz = resolution
+        dpz = (zmax-zmin)/float(nz)
+        h = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
+        
+        iprog = 1
+        istep = 10
+        
+        for iz in range(nz):
+            
+            # Print progress
+            percentage = int(float(iz)*100.0/float(nz))
+            if percentage >= iprog*istep:
+                print("%3i%% done" % percentage)
+                iprog += 1
+        
+            dist = (a_plane*self.get("x")+b_plane*self.get("y")+c_plane*self.get("z")+d_plane) \
+                 / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2) - h[iz]
+
+            # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
+            cube = np.where(abs(dist) <= sqrt3*0.5*self.get("dx")+0.5*dpz)
+
+            dataz = self.get(var)[cube]
+            ncells = np.shape(dataz)[0]
+            celldx = self.get("dx")[cube]
+            
+            # Project coordinates onto the plane by taking dot product with axes vectors
+            coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
+            datax = np.inner(coords,dir2)
+            datay = np.inner(coords,dir3)
+            
+            # We now create empty data arrays that will be filled by the cell data
+            za = np.zeros([ny,nx])
+            zb = np.zeros([ny,nx])
+            
+            # Loop through all data cells and find extent covered by the current cell size
+            for n in range(ncells):
+                x1 = datax[n]-0.5*celldx[n]*sqrt3
+                x2 = datax[n]+0.5*celldx[n]*sqrt3
+                y1 = datay[n]-0.5*celldx[n]*sqrt3
+                y2 = datay[n]+0.5*celldx[n]*sqrt3
+                
+                # Find the indices of the slice pixels which are covered by the current cell
+                ix1 = max(int((x1-xmin)/dpx),0)
+                ix2 = min(int((x2-xmin)/dpx),nx-1)
+                iy1 = max(int((y1-ymin)/dpy),0)
+                iy2 = min(int((y2-ymin)/dpy),ny-1)
+                
+                # Fill in the slice pixels with data
+                for j in range(iy1,iy2+1):
+                    for i in range(ix1,ix2+1):
+                        za[j,i] = za[j,i] + dataz[n]*celldx[n]
+                        zb[j,i] = zb[j,i] + celldx[n]
+                        
+            # Compute z averages
+            z = np.ma.masked_where(zb == 0.0, za/zb)
+            
+            # Add to total column density
+            col_dens += z*dpz*conf.constants[self.info["scale"]]
+        
+        # Define cell centers for filled contours
+        x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+        y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+        
+        # Define axes labels
+        xlab = self.data[dir_x]["label"]
+        if len(self.data[dir_x]["unit"]) > 0:
+            xlab += " ["+self.data[dir_x]["unit"]+"]"
+        ylab = self.data[dir_y]["label"]
+        if len(self.data[dir_y]["unit"]) > 0:
+            ylab += " ["+self.data[dir_y]["unit"]+"]"
+        zlab = "Column density"
+        #zlab = self.data[var  ]["label"]
+        #if len(self.data[var  ]["unit"]) > 0:
+            #zlab += " ["+self.data[var  ]["unit"]+"]"
+        
+        # Begin plotting -------------------------------------
+        if plot:
+            
+            # Define colorbar limits
+            try:
+                vmin += 0
+            except TypeError:
+                vmin = np.nanmin(col_dens)
+            try:
+                vmax += 0
+            except TypeError:
+                vmax = np.nanmax(col_dens)
+            
+            if cmap.startswith("log") or cmap.endswith("log"):
+                cmap = cmap.replace("log","")
+                chars = [",",":",";"," "]
+                for ch in chars:
+                    cmap = cmap.replace(ch,"")
+                if len(cmap) == 0:
+                    cmap = conf.default_values["colormap"]
+                norm = LogNorm()
+                clevels = np.logspace(np.log10(vmin),np.log10(vmax),nc)
+                cb_format = "%.1e"
+            else:
+                norm = None
+                clevels = np.linspace(vmin,vmax,nc)
+                cb_format = None
+            
+            if axes:
+                theAxes = axes
+            elif new_window:
+                plt.figure()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            else:
+                if clear:
+                    plt.clf()
+                plt.subplot(111)
+                theAxes = plt.gca()
+            
+            if image:
+                image_args_plot = {"interpolation":"none","origin":"lower","cmap":cmap,"norm":norm}
+                for key in image_args.keys():
+                    image_args_plot[key] = image_args[key]
+                cont = theAxes.imshow(col_dens,extent=[xmin,xmax,ymin,ymax],vmin=vmin,vmax=vmax,**image_args_plot)
+            elif contour:
+                contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+                clabel_args = {"label":False,"fmt":"%1.3f"}
+                ignore = set(clabel_args.keys())
+                keys = set(contour_args.keys())
+                for key in keys.difference(ignore):
+                    contour_args_plot[key] = contour_args[key]
+                for key in contour_args.keys():
+                    clabel_args[key] = contour_args[key]
+                cont = theAxes.contour(x,y,col_dens,**contour_args_plot)
+                if clabel_args["label"]:
+                    theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
+            else:
+                slice_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
+                for key in slice_args.keys():
+                    slice_args_plot[key] = slice_args[key]
+                cont = theAxes.contourf(x,y,col_dens,**slice_args_plot)
+            if cbar:
+               cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
+               cb.ax.set_ylabel(zlab)
+               cb.ax.yaxis.set_label_coords(-1.1,0.5)
+            theAxes.set_xlabel(xlab)
+            theAxes.set_ylabel(ylab)
+            
+            if self.info["nsinks"] > 0 and sinks:
+                thickness = 0.5*dz
+                dist = (a_plane*self.sinks["x"]+b_plane*self.sinks["y"]+c_plane*self.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+                sinkcoords = np.transpose([self.sinks["x"]-origin[0],self.sinks["y"]-origin[1],self.sinks["z"]-origin[2]])
+                sink_x = np.inner(sinkcoords,dir2)
+                sink_y = np.inner(sinkcoords,dir3)
+                subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
+                srad = np.maximum(self.sinks["radius"][subset],np.full(len(subset),dx*0.01))
+                xy = np.array([sink_x[subset],sink_y[subset]]).T
+                patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
+                coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+                theAxes.add_collection(coll)
+                
+            try:
+                title += ""
+                theAxes.set_title(title)
+            except TypeError:
+                theAxes.set_title("Time = %.3f %s" % (self.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
+            
+            if clear:
+                theAxes.set_xlim([xmin,xmax])
+                theAxes.set_ylim([ymin,ymax])
+            #else:
+                #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+                #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+            
+            theAxes.set_aspect("equal")
+
+            if fname:
+                plt.savefig(fname,bbox_inches="tight")
+            elif axes:
+                pass
+            else:
+                plt.show(block=block)
+        
+        if copy:
+            return x,y,col_dens
+        else:
+            return
