@@ -159,7 +159,7 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
         if summed:
             z = np.ma.masked_where(z0 == 0.0, z1)
         else:
-            with np.errstate(divide="ignore"):
+            with np.errstate(divide="ignore",invalid="ignore"):
                 z = np.ma.masked_where(z0 == 0.0, z1/z0)
         #zlabel = self.data[var_z]["label"]+" ["+self.data[var_z]["unit"]+"]"
     else:
