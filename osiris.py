@@ -297,7 +297,7 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
 #=======================================================================================
 def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
                dx=0.0,dy=0.0,dz=0.0,axes=None,\
-               nc=20,new_window=False,sinks=True,update=None,\
+               new_window=False,sinks=True,update=None,\
                title=None,clear=True,plot=True,block=False,\
                origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
                contour=False,scalar_args={},image_args={},contour_args={},\
@@ -598,49 +598,15 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
             # Round off AMR levels to integers
             if scalar.label == "level":
                 z_scal = np.around(z_scal)
-            # Here we define a set of default parameters
-            scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
-            # Save a copy so we can exclude these parameters specific to osiris from the ones
-            # to be sent to the matplotlib quiver routine.
-            ignore = set(scalar_args_osiris.keys())
-            # Now we go through the arguments taken from the function call - scalar_args - and
-            # add them to the osiris arguments.
-            for key in scalar_args.keys():
-                scalar_args_osiris[key] = scalar_args[key]
-            # Define colorbar scaling
-            cmap = scalar_args_osiris["cmap"]
-            if cmap.startswith("log") or cmap.endswith("log"):
-                cmap_save = cmap
-                cmap = cmap.replace("log","")
-                chars = [",",":",";"," "]
-                for ch in chars:
-                    cmap = cmap.replace(ch,"")
-                if len(cmap) == 0:
-                    cmap = cmap_save
-                norm = LogNorm()
-                clevels = np.logspace(np.log10(scalar_args_osiris["vmin"]),np.log10(scalar_args_osiris["vmax"]),nc)
-                cb_format = "%.1e"
-            else:
-                norm = None
-                clevels = np.linspace(scalar_args_osiris["vmin"],scalar_args_osiris["vmax"],nc)
-                cb_format = None
-            
-            # We now define default parameters for the matplotlib function
-            scalar_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm}
-            # Then run through the vec_args, adding them to the plotting arguments, but
-            # ignoring all osiris specific arguments
-            keys = set(scalar_args.keys())
-            for key in keys.difference(ignore):
-                scalar_args_plot[key] = scalar_args[key]
-            
+            # Parse scalar plot arguments
+            scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+            scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
+            parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
             contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
             if scalar_args_osiris["cbar"]:
-                cb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=cb_format)
-                z_scal_lab = scalar.label
-                if len(scalar.unit) > 0:
-                    z_scal_lab += " ["+scalar.unit+"]"
-                cb.ax.set_ylabel(z_scal_lab)
-                cb.ax.yaxis.set_label_coords(-1.1,0.5)
+                scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
+                scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+                scb.ax.yaxis.set_label_coords(-1.1,0.5)
             
         if image:
             
@@ -648,148 +614,52 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
             if image.label == "level":
                 z_imag = np.around(z_imag)
             # Here we define a set of default parameters
-            image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
-            # Save a copy so we can exclude these parameters specific to osiris from the ones
-            # to be sent to the matplotlib quiver routine.
-            ignore = set(image_args_osiris.keys())
-            # Now we go through the arguments taken from the function call - image_args - and
-            # add them to the osiris arguments.
-            for key in image_args.keys():
-                image_args_osiris[key] = image_args[key]
-            # Define colorbar scaling
-            cmap = image_args_osiris["cmap"]
-            if cmap.startswith("log") or cmap.endswith("log"):
-                cmap_save = cmap
-                cmap = cmap.replace("log","")
-                chars = [",",":",";"," "]
-                for ch in chars:
-                    cmap = cmap.replace(ch,"")
-                if len(cmap) == 0:
-                    cmap = cmap_save
-                norm = LogNorm()
-                #clevels = np.logspace(np.log10(image_args_osiris["vmin"]),np.log10(image_args_osiris["vmax"]),nc)
-                cb_format = "%.1e"
-            else:
-                norm = None
-                #clevels = np.linspace(image_args_osiris["vmin"],image_args_osiris["vmax"],nc)
-                cb_format = None
-            
-            # We now define default parameters for the matplotlib function
-            image_args_plot = {"cmap":cmap,"norm":norm}
-            # Then run through the vec_args, adding them to the plotting arguments, but
-            # ignoring all osiris specific arguments
-            keys = set(image_args.keys())
-            for key in keys.difference(ignore):
-                image_args_plot[key] = image_args[key]
-            
+            image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+            # cmap and norm are just dummy arguments to tell the parsing function that they are required
+            image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
+            parse_arguments(image_args,image_args_osiris,image_args_plot)
             img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
             if image_args_osiris["cbar"]:
-                cb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=cb_format)
-                z_imag_lab = image.label
-                if len(image.unit) > 0:
-                    z_imag_lab += " ["+image.unit+"]"
-                cb.ax.set_ylabel(z_imag_lab)
-                cb.ax.yaxis.set_label_coords(-1.1,0.5)
+                icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
+                icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
+                icb.ax.yaxis.set_label_coords(-1.1,0.5)
                 
         if contour:
             
-            # Define colorbar limits
-            try:
-                zmin += 0
-            except TypeError:
-                zmin = np.nanmin(z_cont)
-            try:
-                zmax += 0
-            except TypeError:
-                zmax = np.nanmax(z_cont)
-            
-            if cmap.startswith("log") or cmap.endswith("log"):
-                cmap = cmap.replace("log","")
-                chars = [",",":",";"," "]
-                for ch in chars:
-                    cmap = cmap.replace(ch,"")
-                if len(cmap) == 0:
-                    cmap = conf.default_values["colormap"]
-                norm = LogNorm()
-                clevels = np.logspace(np.log10(zmin),np.log10(zmax),nc)
-                cb_format = "%.1e"
-            else:
-                norm = None
-                clevels = np.linspace(zmin,zmax,nc)
-                cb_format = None
-            
-            contour_args_plot = {"levels":clevels,"cmap":cmap,"norm":norm,"zorder":10}
-            clabel_args = {"label":False,"fmt":"%1.3f"}
-            ignore = set(clabel_args.keys())
-            keys = set(contour_args.keys())
-            for key in keys.difference(ignore):
-                contour_args_plot[key] = contour_args[key]
-            for key in contour_args.keys():
-                clabel_args[key] = contour_args[key]
+            # Round off AMR levels to integers
+            if contour.label == "level":
+                z_cont = np.around(z_cont)
+            # Here we define a set of default parameters
+            contour_args_osiris = {"vmin":np.nanmin(z_cont),"vmax":np.nanmax(z_cont),"cbar":False,"cbax":None,\
+                                   "cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
+            # levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
+            contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
+            parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
             cont = theAxes.contour(x,y,z_cont,**contour_args_plot)
-            if clabel_args["label"]:
-                theAxes.clabel(cont,inline=1,fmt=clabel_args["fmt"])
-            if cbar:
-                cb = plt.colorbar(cont,ax=theAxes,cax=cbax,format=cb_format)
-                z_cont_lab = contour.label
-                if len(contour.unit) > 0:
-                    z_cont_lab += " ["+contour.unit+"]"
-                cb.ax.set_ylabel(z_cont_lab)
-                cb.ax.yaxis.set_label_coords(-1.1,0.5)
-        #theAxes.set_xlabel(xlab)
-        #theAxes.set_ylabel(ylab)
+            if contour_args_osiris["label"]:
+                theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
+            if contour_args_osiris["cbar"]:
+                ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
+                ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
+                ccb.ax.yaxis.set_label_coords(-1.1,0.5)
         
         # Plot vector field
         if vec:
-            # Here we define a set of default parameters
-            vec_args_osiris  = {"vskip"   : int(0.047*resolution),
-                                "vscale"  : np.nanmax(w1),
-                                "vsize"   : 15.0,
-                                "vkey"    : True,
-                                "vkey_pos": [0.70,-0.08],
-                                "cbar"    : False,
-                                "cbax"    : None}
-            # Save a copy so we can exclude these parameters specific to osiris from the ones
-            # to be sent to the matplotlib quiver routine.
-            ignore = set(vec_args_osiris.keys())
-            # Now we go through the arguments taken from the function call - vec_args - and
-            # add them to the osiris arguments.
-            for key in vec_args.keys():
-                vec_args_osiris[key] = vec_args[key]
-            # We now define default parameters for the quiver function
-            vec_args_plot = {"cmap":None,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
-            # Then run through the vec_args, adding them to the plotting arguments, but
-            # ignoring all osiris specific arguments
-            keys = set(vec_args.keys())
-            for key in keys.difference(ignore):
-                vec_args_plot[key] = vec_args[key]
-            # We are now ready to plot the vectors. Note that we need two different calls if
-            # a colormap is used for the vectors.
+            
+            vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w1),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
+                               "cbar":False,"cbax":None,"vmin":np.nanmin(w1),"vmax":np.nanmax(w1),"nc":21,"cmap":None}
+            vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
+            parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
             vskip = vec_args_osiris["vskip"]
-            vcmap = vec_args_plot["cmap"]
-            if vcmap:
-                if vcmap.startswith("log") or vcmap.endswith("log"):
-                    vcmap = vcmap.replace("log","")
-                    chars = [",",":",";"," "]
-                    for ch in chars:
-                        vcmap = vcmap.replace(ch,"")
-                    if len(vcmap) == 0:
-                        vcmap = conf.default_values["colormap"]
-                    vec_args_plot["cmap"] = vcmap
-                    vec_args_plot["norm"] = LogNorm(vmin=np.nanmin(w1[::vskip,::vskip]),vmax=np.nanmax(w1[::vskip,::vskip]))
-                    vcb_format = "%.1e"
-                else:
-                    vcb_format = None
-                
+            if vec_args_plot["cmap"]:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                       w1[::vskip,::vskip],**vec_args_plot)
                 if vec_args_osiris["cbar"]:
-                    vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vcb_format)
-                    vcb.ax.set_xlabel(vec.label+" ["+vec.unit+"]")
+                    vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
+                    vcb.ax.set_xlabel(vec.label+(" ["+vec.unit+"]" if len(vec.unit) > 0 else ""))
             else:
                 vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
                                       **vec_args_plot)
-            
             # Plot the scale of the vectors under the axes
             unit_u = vec.unit
             if vec_args_osiris["vkey"]:
@@ -799,43 +669,19 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
                                   zorder=100)
 
         if stream:
+            
             # Here we define a set of default parameters
-            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1}
-            # Save a copy so we can exclude these parameters specific to osiris from the ones
-            # to be sent to the matplotlib quiver routine.
-            ignore = set(stream_args_osiris.keys())
-            # Now we go through the arguments taken from the function call - stream_args - and
-            # add them to the osiris arguments.
-            for key in stream_args.keys():
-                stream_args_osiris[key] = stream_args[key]
-            # We now define default parameters for the streamplot function
-            stream_args_plot = {"cmap":None,"color":"w","norm":None}
-            # Then run through the stream_args, adding them to the plotting arguments, but
-            # ignoring all osiris specific arguments
-            keys = set(stream_args.keys())
-            for key in keys.difference(ignore):
-                stream_args_plot[key] = stream_args[key]
-            # We are now ready to plot the streamlines.
+            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w2),"vmax":np.nanmax(w2),"nc":21,"cmap":None}
+            stream_args_plot = {"cmap":1,"color":"w","norm":None}
+            parse_arguments(stream_args,stream_args_osiris,stream_args_plot)
             sskip = stream_args_osiris["sskip"]
-            scmap = stream_args_plot["cmap"]
-            if scmap:
-                if scmap.startswith("log") or scmap.endswith("log"):
-                    scmap = scmap.replace("log","")
-                    chars = [",",":",";"," "]
-                    for ch in chars:
-                        scmap = scmap.replace(ch,"")
-                    if len(scmap) == 0:
-                        scmap = conf.default_values["colormap"]
-                    stream_args_plot["cmap"] = scmap
-                    stream_args_plot["norm"] = LogNorm(vmin=np.nanmin(w2[::sskip,::sskip]),vmax=np.nanmax(w2[::sskip,::sskip]))
-                    scb_format = "%.1e"
-                else:
-                    scb_format = None
+            if stream_args_plot["cmap"]:
                 stream_args_plot["color"]=w2[::sskip,::sskip]
             strm = theAxes.streamplot(x[::sskip],y[::sskip],u2[::sskip,::sskip],v2[::sskip,::sskip],**stream_args_plot)
             if stream_args_osiris["cbar"]:
-                    scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=scb_format)
-                    scb.ax.set_xlabel(stream.label+" ["+stream.unit+"]")
+                scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
+                scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
+            
         
         if holder.info["nsinks"] > 0 and sinks:
             if dz == 0.0:
@@ -1075,3 +921,51 @@ def perpendicular_vector(v):
         return [-v[1],v[0],0]
     else:
         return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
+
+
+def parse_arguments(args,args_osiris,args_plot):
+    
+    #scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
+    # Save a copy so we can exclude these parameters specific to osiris from the ones
+    # to be sent to the matplotlib quiver routine.
+    ignore = set(args_osiris.keys())
+    # Now we go through the arguments taken from the function call - scalar_args - and
+    # add them to the osiris arguments.
+    for key in args.keys():
+        args_osiris[key] = args[key]
+    # Define colorbar scaling
+    cmap = args_osiris["cmap"]
+    norm = None
+    clevels = np.linspace(args_osiris["vmin"],args_osiris["vmax"],args_osiris["nc"])
+    args_osiris["cb_format"] = None
+    try:
+        if cmap.startswith("log") or cmap.endswith("log"):
+            #cmap_save = cmap
+            cmap = cmap.replace("log","")
+            chars = [",",":",";"," "]
+            for ch in chars:
+                cmap = cmap.replace(ch,"")
+            if len(cmap) == 0:
+                cmap = conf.default_values["colormap"] # cmap_save
+            #norm = LogNorm()
+            norm = LogNorm(vmin=args_osiris["vmin"],vmax=args_osiris["vmax"])
+            clevels = np.logspace(np.log10(args_osiris["vmin"]),np.log10(args_osiris["vmax"]),args_osiris["nc"])
+            args_osiris["cb_format"] = "%.1e"
+    except AttributeError:
+        pass
+    
+    # We now define default parameters for the matplotlib function
+    keylist = args_plot.keys()
+    if "levels" in keylist:
+        args_plot["levels"]=clevels
+    if "cmap" in keylist:
+        args_plot["cmap"]=cmap
+    if "norm" in keylist:
+        args_plot["norm"]=norm
+    # Then run through the vec_args, adding them to the plotting arguments, but
+    # ignoring all osiris specific arguments
+    keys = set(args.keys())
+    for key in keys.difference(ignore):
+        args_plot[key] = args[key]
+    
+    return
