@@ -501,10 +501,24 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
         z_imag = griddata(points, dataz2, (grid_x, grid_y), method=interpolation)
     if contour:
         z_cont = griddata(points, dataz3, (grid_x, grid_y), method=interpolation)
+    if vec:
+        u_vect = griddata(points, datau1, (grid_x, grid_y), method=interpolation)
+        v_vect = griddata(points, datav1, (grid_x, grid_y), method=interpolation)
+        w_vect = griddata(points, np.sqrt(datau1**2+datav1**2), (grid_x, grid_y), method=interpolation)
+    if stream:
+        u_strm = griddata(points, datau2, (grid_x, grid_y), method=interpolation)
+        v_strm = griddata(points, datav2, (grid_x, grid_y), method=interpolation)
+        w_strm = griddata(points, np.sqrt(datau2**2+datav2**2), (grid_x, grid_y), method=interpolation)
         
-    grid_z0 = griddata(points, dataz1, (grid_x, grid_y), method='nearest')
-    grid_z1 = griddata(points, dataz1, (grid_x, grid_y), method='linear')
-    grid_z2 = griddata(points, dataz1, (grid_x, grid_y), method='cubic')
+        #if vec:
+                    #u1[j,i] += datau1[n]*celldx[n]
+                    #v1[j,i] += datav1[n]*celldx[n]
+                    #z1[j,i] += np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                #if stream:
+                    #u2[j,i] += datau2[n]*celldx[n]
+                    #v2[j,i] += datav2[n]*celldx[n]
+                    #z2[j,i] += np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+    
     
     
     #axes.imshow(grid_z2.T, extent=(xmin,xmax,ymin,ymax), origin='lower')
@@ -665,19 +679,19 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
         # Plot vector field
         if vec:
             
-            vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w1),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
-                               "cbar":False,"cbax":None,"vmin":np.nanmin(w1),"vmax":np.nanmax(w1),"nc":21,"cmap":None}
+            vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
+                               "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
             vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
             parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
             vskip = vec_args_osiris["vskip"]
             if vec_args_plot["cmap"]:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
-                                      w1[::vskip,::vskip],**vec_args_plot)
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
+                                      w_vect[::vskip,::vskip],**vec_args_plot)
                 if vec_args_osiris["cbar"]:
                     vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
                     vcb.ax.set_xlabel(vec.label+(" ["+vec.unit+"]" if len(vec.unit) > 0 else ""))
             else:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u1[::vskip,::vskip],v1[::vskip,::vskip],\
+                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
                                       **vec_args_plot)
             # Plot the scale of the vectors under the axes
             unit_u = vec.unit
@@ -690,13 +704,13 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
         if stream:
             
             # Here we define a set of default parameters
-            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w2),"vmax":np.nanmax(w2),"nc":21,"cmap":None}
+            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w_strm),"vmax":np.nanmax(w_strm),"nc":21,"cmap":None}
             stream_args_plot = {"cmap":1,"color":"w","norm":None}
             parse_arguments(stream_args,stream_args_osiris,stream_args_plot)
             sskip = stream_args_osiris["sskip"]
             if stream_args_plot["cmap"]:
-                stream_args_plot["color"]=w2[::sskip,::sskip]
-            strm = theAxes.streamplot(x[::sskip],y[::sskip],u2[::sskip,::sskip],v2[::sskip,::sskip],**stream_args_plot)
+                stream_args_plot["color"]=w_strm[::sskip,::sskip]
+            strm = theAxes.streamplot(x[::sskip],y[::sskip],u_strm[::sskip,::sskip],v_strm[::sskip,::sskip],**stream_args_plot)
             if stream_args_osiris["cbar"]:
                 scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
                 scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
@@ -752,11 +766,11 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     
     if copy:
         if vec and stream:
-            return x,y,z,u1,v1,w1,u2,v2,w2
+            return x,y,z,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
         elif vec:
-            return x,y,z,u1,v1,w1
+            return x,y,z,u_vect,v_vect,w_vect
         elif stream:
-            return x,y,z,u2,v2,w2
+            return x,y,z,u_strm,v_strm,w_strm
         else:
             return x,y,z
     else:
@@ -779,6 +793,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
                         origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
+                        interpolation="linear",\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
     
     ## Possibility of updating the data from inside the plotting routines
@@ -943,175 +958,196 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     nx   = resolution
     ny   = resolution
     if nz == 0:
-        nx = resolution
+        nz = resolution
     dpx  = (xmax-xmin)/float(nx)
     dpy  = (ymax-ymin)/float(ny)
     dpz  = (zmax-zmin)/float(nz)
     
-    # We now create empty data arrays that will be filled by the cell data
-    za = np.zeros([nz,ny,nx])
-    zb = np.zeros([nz,ny,nx])
-    zc = np.zeros([nz,ny,nx])
-    zd = np.zeros([nz,ny,nx])
-    
-    print ncells
-    
-    # Loop through all data cells and find extent covered by the current cell size
-    for n in range(ncells):
-        
-        x1 = datax[n]-0.5*celldx[n]*sqrt3
-        x2 = datax[n]+0.5*celldx[n]*sqrt3
-        y1 = datay[n]-0.5*celldx[n]*sqrt3
-        y2 = datay[n]+0.5*celldx[n]*sqrt3
-        z1 = dataz[n]-0.5*celldx[n]*sqrt3
-        z2 = dataz[n]+0.5*celldx[n]*sqrt3
-        
-        # Find the indices of the slice pixels which are covered by the current cell
-        ix1 = max(int((x1-xmin)/dpx),0)
-        ix2 = min(int((x2-xmin)/dpx),nx-1)
-        iy1 = max(int((y1-ymin)/dpy),0)
-        iy2 = min(int((y2-ymin)/dpy),ny-1)
-        iz1 = max(int((z1-zmin)/dpz),0)
-        iz2 = min(int((z2-zmin)/dpz),nz-1)
-        
-        # Fill in the slice pixels with data
-        for k in range(iz1,iz2+1):
-            for j in range(iy1,iy2+1):
-                for i in range(ix1,ix2+1):
-                    za[k,j,i] += celldx[n]
-                    if scalar:
-                        zb[k,j,i] += data1[n]*celldx[n]
-                    if image:
-                        zc[k,j,i] += data2[n]*celldx[n]
-                    if contour:
-                        zd[k,j,i] += data3[n]*celldx[n]
-    
-    # Compute column density
-    if scalar:
-        cd_scal = np.sum(np.ma.masked_where(za == 0.0, zb/za),axis=0)*dz*conf.constants[holder.info["scale"]]
-    if image:
-        cd_imag = np.sum(np.ma.masked_where(za == 0.0, zc/za),axis=0)*dz*conf.constants[holder.info["scale"]]
-    if contour:
-        cd_cont = np.sum(np.ma.masked_where(za == 0.0, zd/za),axis=0)*dz*conf.constants[holder.info["scale"]]
-
-    print np.shape(cd_scal)    
-    
-    # Define cell centers for filled contours
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+    z = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
     
     
     
-    # Begin plotting -------------------------------------
-    if plot:
+    grid_x, grid_y, grid_z = np.meshgrid(x, y, z)
+    
+    points = np.transpose([datax,datay,dataz])
+    print np.shape(points)
+    
+    #from scipy.interpolate import griddata
+    if scalar:
+        z_scal = griddata(points, data1, (grid_x, grid_y, grid_z), method=interpolation)
+        print np.shape(z_scal)
+    if image:
+        z_imag = griddata(points, data2, (grid_x, grid_y, grid_z), method=interpolation)
+    if contour:
+        z_cont = griddata(points, data3, (grid_x, grid_y, grid_z), method=interpolation)
+    
+    
+    ### We now create empty data arrays that will be filled by the cell data
+    ##za = np.zeros([nz,ny,nx])
+    ##zb = np.zeros([nz,ny,nx])
+    ##zc = np.zeros([nz,ny,nx])
+    ##zd = np.zeros([nz,ny,nx])
+    
+    ##print ncells
+    
+    ### Loop through all data cells and find extent covered by the current cell size
+    ##for n in range(ncells):
         
-        if axes:
-            theAxes = axes
-        elif new_window:
-            plt.figure()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        else:
-            if clear:
-                plt.clf()
-            plt.subplot(111)
-            theAxes = plt.gca()
+        ##x1 = datax[n]-0.5*celldx[n]*sqrt3
+        ##x2 = datax[n]+0.5*celldx[n]*sqrt3
+        ##y1 = datay[n]-0.5*celldx[n]*sqrt3
+        ##y2 = datay[n]+0.5*celldx[n]*sqrt3
+        ##z1 = dataz[n]-0.5*celldx[n]*sqrt3
+        ##z2 = dataz[n]+0.5*celldx[n]*sqrt3
         
-        if scalar:
-            
-            # Round off AMR levels to integers
-            if scalar.label == "level":
-                cd_scal = np.around(cd_scal)
-            # Parse scalar plot arguments
-            scalar_args_osiris = {"vmin":np.nanmin(cd_scal),"vmax":np.nanmax(cd_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
-            parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
-            contf = theAxes.contourf(x,y,cd_scal,**scalar_args_plot)
-            if scalar_args_osiris["cbar"]:
-                scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
-                scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-                scb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
-        if image:
-            
-            # Round off AMR levels to integers
-            if image.label == "level":
-                cd_imag = np.around(cd_imag)
-            # Here we define a set of default parameters
-            image_args_osiris = {"vmin":np.nanmin(cd_imag),"vmax":np.nanmax(cd_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            # cmap and norm are just dummy arguments to tell the parsing function that they are required
-            image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
-            parse_arguments(image_args,image_args_osiris,image_args_plot)
-            img = theAxes.imshow(cd_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
-            if image_args_osiris["cbar"]:
-                icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
-                icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
-                icb.ax.yaxis.set_label_coords(-1.1,0.5)
-                
-        if contour:
-            
-            # Round off AMR levels to integers
-            if contour.label == "level":
-                cd_cont = np.around(cd_cont)
-            # Here we define a set of default parameters
-            contour_args_osiris = {"vmin":np.nanmin(cd_cont),"vmax":np.nanmax(cd_cont),"cbar":False,"cbax":None,\
-                                   "cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
-            # levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
-            contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
-            parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
-            cont = theAxes.contour(x,y,cd_cont,**contour_args_plot)
-            if contour_args_osiris["label"]:
-                theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
-            if contour_args_osiris["cbar"]:
-                ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
-                ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
-                ccb.ax.yaxis.set_label_coords(-1.1,0.5)
+        ### Find the indices of the slice pixels which are covered by the current cell
+        ##ix1 = max(int((x1-xmin)/dpx),0)
+        ##ix2 = min(int((x2-xmin)/dpx),nx-1)
+        ##iy1 = max(int((y1-ymin)/dpy),0)
+        ##iy2 = min(int((y2-ymin)/dpy),ny-1)
+        ##iz1 = max(int((z1-zmin)/dpz),0)
+        ##iz2 = min(int((z2-zmin)/dpz),nz-1)
         
-        
-        if holder.info["nsinks"] > 0 and sinks:
-            thickness = 0.5*dz
-            dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-            sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
-            sink_x = np.inner(sinkcoords,dir2)
-            sink_y = np.inner(sinkcoords,dir3)
-            subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
-            srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-            xy = np.array([sink_x[subset],sink_y[subset]]).T
-            patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-            coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
-            theAxes.add_collection(coll)
-            
-        try:
-            title += ""
-            theAxes.set_title(title)
-        except TypeError:
-            theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
-        
-        if clear:
-            theAxes.set_xlim([xmin,xmax])
-            theAxes.set_ylim([ymin,ymax])
-        #else:
-            #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-            #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-        
-        # Define axes labels
-        xlab = getattr(holder,dir_x).label
-        if len(getattr(holder,dir_x).unit) > 0:
-            xlab += " ["+getattr(holder,dir_x).unit+"]"
-        ylab = getattr(holder,dir_y).label
-        if len(getattr(holder,dir_y).unit) > 0:
-            ylab += " ["+getattr(holder,dir_y).unit+"]"
-        theAxes.set_xlabel(xlab)
-        theAxes.set_ylabel(ylab)
-        
-        theAxes.set_aspect("equal")
+        ### Fill in the slice pixels with data
+        ##for k in range(iz1,iz2+1):
+            ##for j in range(iy1,iy2+1):
+                ##for i in range(ix1,ix2+1):
+                    ##za[k,j,i] += celldx[n]
+                    ##if scalar:
+                        ##zb[k,j,i] += data1[n]*celldx[n]
+                    ##if image:
+                        ##zc[k,j,i] += data2[n]*celldx[n]
+                    ##if contour:
+                        ##zd[k,j,i] += data3[n]*celldx[n]
+    
+    ## Compute column density
+    #if scalar:
+        #cd_scal = np.sum(np.ma.masked_where(za == 0.0, zb/za),axis=0)*dz*conf.constants[holder.info["scale"]]
+    #if image:
+        #cd_imag = np.sum(np.ma.masked_where(za == 0.0, zc/za),axis=0)*dz*conf.constants[holder.info["scale"]]
+    #if contour:
+        #cd_cont = np.sum(np.ma.masked_where(za == 0.0, zd/za),axis=0)*dz*conf.constants[holder.info["scale"]]
 
-        if fname:
-            plt.savefig(fname,bbox_inches="tight")
-        elif axes:
-            pass
-        else:
-            plt.show(block=block)
+    #print np.shape(cd_scal)    
+    
+    ## Define cell centers for filled contours
+    #x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
+    #y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+    
+    
+    
+    ## Begin plotting -------------------------------------
+    #if plot:
+        
+        #if axes:
+            #theAxes = axes
+        #elif new_window:
+            #plt.figure()
+            #plt.subplot(111)
+            #theAxes = plt.gca()
+        #else:
+            #if clear:
+                #plt.clf()
+            #plt.subplot(111)
+            #theAxes = plt.gca()
+        
+        #if scalar:
+            
+            ## Round off AMR levels to integers
+            #if scalar.label == "level":
+                #cd_scal = np.around(cd_scal)
+            ## Parse scalar plot arguments
+            #scalar_args_osiris = {"vmin":np.nanmin(cd_scal),"vmax":np.nanmax(cd_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+            #scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
+            #parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
+            #contf = theAxes.contourf(x,y,cd_scal,**scalar_args_plot)
+            #if scalar_args_osiris["cbar"]:
+                #scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
+                #scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+                #scb.ax.yaxis.set_label_coords(-1.1,0.5)
+            
+        #if image:
+            
+            ## Round off AMR levels to integers
+            #if image.label == "level":
+                #cd_imag = np.around(cd_imag)
+            ## Here we define a set of default parameters
+            #image_args_osiris = {"vmin":np.nanmin(cd_imag),"vmax":np.nanmax(cd_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+            ## cmap and norm are just dummy arguments to tell the parsing function that they are required
+            #image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
+            #parse_arguments(image_args,image_args_osiris,image_args_plot)
+            #img = theAxes.imshow(cd_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
+            #if image_args_osiris["cbar"]:
+                #icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
+                #icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
+                #icb.ax.yaxis.set_label_coords(-1.1,0.5)
+                
+        #if contour:
+            
+            ## Round off AMR levels to integers
+            #if contour.label == "level":
+                #cd_cont = np.around(cd_cont)
+            ## Here we define a set of default parameters
+            #contour_args_osiris = {"vmin":np.nanmin(cd_cont),"vmax":np.nanmax(cd_cont),"cbar":False,"cbax":None,\
+                                   #"cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
+            ## levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
+            #contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
+            #parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
+            #cont = theAxes.contour(x,y,cd_cont,**contour_args_plot)
+            #if contour_args_osiris["label"]:
+                #theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
+            #if contour_args_osiris["cbar"]:
+                #ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
+                #ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
+                #ccb.ax.yaxis.set_label_coords(-1.1,0.5)
+        
+        
+        #if holder.info["nsinks"] > 0 and sinks:
+            #thickness = 0.5*dz
+            #dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+            #sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
+            #sink_x = np.inner(sinkcoords,dir2)
+            #sink_y = np.inner(sinkcoords,dir3)
+            #subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
+            #srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
+            #xy = np.array([sink_x[subset],sink_y[subset]]).T
+            #patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
+            #coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+            #theAxes.add_collection(coll)
+            
+        #try:
+            #title += ""
+            #theAxes.set_title(title)
+        #except TypeError:
+            #theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
+        
+        #if clear:
+            #theAxes.set_xlim([xmin,xmax])
+            #theAxes.set_ylim([ymin,ymax])
+        ##else:
+            ##theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+            ##theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+        
+        ## Define axes labels
+        #xlab = getattr(holder,dir_x).label
+        #if len(getattr(holder,dir_x).unit) > 0:
+            #xlab += " ["+getattr(holder,dir_x).unit+"]"
+        #ylab = getattr(holder,dir_y).label
+        #if len(getattr(holder,dir_y).unit) > 0:
+            #ylab += " ["+getattr(holder,dir_y).unit+"]"
+        #theAxes.set_xlabel(xlab)
+        #theAxes.set_ylabel(ylab)
+        
+        #theAxes.set_aspect("equal")
+
+        #if fname:
+            #plt.savefig(fname,bbox_inches="tight")
+        #elif axes:
+            #pass
+        #else:
+            #plt.show(block=block)
     
     if copy:
         return x,y,cd_scal
