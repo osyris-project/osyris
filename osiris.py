@@ -278,30 +278,27 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
     else:
         return
 
+
 #=======================================================================================
 # Plot a 2D slice through the data cube. The arguments are:
-# - var        : the key for the variable to be plotted, e.g. "density" or "log_rho"
+# - scalar     : the scalar field to be plotted, e.g. mydata.density
+# - image      : the scalar field to be plotted with an image
+# - contour    : the scalar field to be plotted with contours
+# - vec        : the vector field to be overplotted, e.g. mydata.velocity
+# - stream     : the field for streamlines to be overplotted, e.g. mydata.B
 # - direction  : the direction normal to the plane of the slice
-# - vec        : the vector field to be overplotted. For velocity, one should supply
-#                "velocity" as input and the routine will search for "velocity_x" and
-#                "velocity_y" in the variable fields.
-# - stream     : the field for streamlines to be overplotted. For B field, one should
-#                supply "B" as input and the routine will search for "B_x" and
-#                "B_y" in the variable fields.
-# - fname      : if specified, the figure is saved to file.
 # - dx         : the x extent of the slice, in units of scale (see data loader)
 # - dy         : the y extent of the slice, in units of scale. If not specified, dy = dx
-# - cmap       : the colormap
+# - dz         : the thickness of the slice
 # - axes       : if specified, the data is plotted on the specified axes (see demo).
 # - resolution : number of pixels in the slice.
+# - fname      : if specified, the figure is saved to file.
 #=======================================================================================
-def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
-               dx=0.0,dy=0.0,dz=0.0,axes=None,\
-               new_window=False,sinks=True,update=None,\
-               title=None,clear=True,plot=True,block=False,\
-               origin=[0,0,0],summed=False,image=False,resolution=128,copy=False,\
-               contour=False,scalar_args={},image_args={},contour_args={},\
-               vec_args={},stream_args={}):
+def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,          \
+               direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
+               origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
+               new_window=False,update=None,clear=True,plot=True,block=False,          \
+               scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
     
     ## Possibility of updating the data from inside the plotting routines
     #try:
@@ -744,17 +741,9 @@ def plot_slice(scalar=False,vec=False,stream=False,direction="z",fname=None,\
         return
 
 
-
-
-
-
-
-
-
-
-
-
-
+#=======================================================================================
+# Write RAMSES data to VTK file
+#=======================================================================================
 def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     
     try:
@@ -910,7 +899,9 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     return
 
 
-
+#=======================================================================================
+# Compute a vector perpendicular to the input vector
+#=======================================================================================
 def perpendicular_vector(v):
 
     # x = y = z = 0 is not an acceptable solution
@@ -923,9 +914,12 @@ def perpendicular_vector(v):
         return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
 
 
+#=======================================================================================
+# Separate arguments to plotting functions between Osiris specific arguments and
+# Matplotlib arguments.
+#=======================================================================================
 def parse_arguments(args,args_osiris,args_plot):
     
-    #scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"]}
     # Save a copy so we can exclude these parameters specific to osiris from the ones
     # to be sent to the matplotlib quiver routine.
     ignore = set(args_osiris.keys())

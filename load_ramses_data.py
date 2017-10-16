@@ -977,6 +977,9 @@ class LoadRamsesData():
     def get(self,var):
         return getattr(getattr(self,var),'values')
     
+    #=======================================================================================
+    # The function returns the list of variables
+    #=======================================================================================
     def get_var_list(self):
         key_list = []
         att_list =  dir(self)
