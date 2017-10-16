@@ -80,8 +80,8 @@ class LoadRamsesData():
         conf.additional_variables(self)
         
         # Print exit message
-        var_list = self.get_var_list()
-        print("Memory used: %.2f Mb" % (len(var_list)*self.info["ncells"]*8.0/1.0e6))
+        [var_list,typ_list] = self.get_var_list(types=True)
+        print("Memory used: %.2f Mb" % ((typ_list.count('vector')*self.info["ndim"]+typ_list.count('scalar'))*self.info["ncells"]*8.0/1.0e6))
         print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
@@ -980,14 +980,19 @@ class LoadRamsesData():
     #=======================================================================================
     # The function returns the list of variables
     #=======================================================================================
-    def get_var_list(self):
+    def get_var_list(self,types=False):
         key_list = []
+        typ_list = []
         att_list =  dir(self)
         for att in att_list:
             class_name = getattr(self,att).__class__.__name__
             if class_name == 'OsirisData':
                 key_list.append(att)
-        return key_list
+                typ_list.append(getattr(self,att).kind)
+        if types:
+            return [key_list,typ_list]
+        else:
+            return key_list
         
     #=======================================================================================
     # This function writes the RAMSES data to a VTK file for 3D visualization
