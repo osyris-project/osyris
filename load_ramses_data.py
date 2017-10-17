@@ -235,8 +235,8 @@ class LoadRamsesData():
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
-        #self.hash_table = dict()
-        #cell_index = -1
+        self.hash_table = dict()
+        cell_index = -1
         
         
         # Allocate work arrays
@@ -445,18 +445,26 @@ class LoadRamsesData():
                                 ncells_tot += ncells
                                 npieces += 1
                                 # Add the cells in the master dictionary
-                                data_pieces["piece"+str(npieces)] = cells
+                                data_pieces["piece"+str(npieces).zfill(9)] = cells
                                 # Fill in hash table
                                 #print ncells
-                                #for icell in range(ncells):
-                                    #cell_index += 1
-                                    #print xyz[cube][icell,0]
-                                    #igrid = int(xyz[cube][icell,0]/dxcell)
-                                    #jgrid = int(xyz[cube][icell,1]/dxcell)
-                                    #kgrid = int(xyz[cube][icell,2]/dxcell)
-                                    #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(ilevel+1)
+                                xcells = xyz[cube]/dxcell
+                                #igrid = xcells[:,0].astype(np.int32)
+                                #jgrid = xcells[:,1].astype(np.int32)
+                                #kgrid = xcells[:,2].astype(np.int32)
+                                
+                                for icell in range(ncells):
+                                    cell_index += 1
+                                    ##print xyz[cube][icell,0]
+                                    igrid = int(xcells[icell,0])
+                                    jgrid = int(xcells[icell,1])
+                                    kgrid = int(xcells[icell,2])
+                                    #if ilevel==11:
+                                        #print icell,igrid,jgrid,kgrid
+                                    #theHash = str(igrid[icell])+','+str(jgrid[icell])+','+str(kgrid[icell])+','+str(ilevel+1)
+                                    theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(ilevel+1)
                                     ##print theHash
-                                    #self.hash_table[theHash] = cell_index
+                                    self.hash_table[theHash] = cell_index
 
                                 
                         # Now increment the offsets while looping through the domains
@@ -482,8 +490,9 @@ class LoadRamsesData():
         #sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
         #print list(sorted(data_pieces.keys(),key=lambda x:data_pieces.keys()))
         #master_data_array = np.concatenate(list(sorted(data_pieces.values(),key=lambda x:data_pieces.keys())), axis=0)
-        master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
-        #master_data_array = np.concatenate([data_pieces[key] for key in sorted(data_pieces.keys())], axis=0)
+        #master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
+        #print len(data_pieces.keys())
+        master_data_array = np.concatenate([data_pieces[key] for key in sorted(data_pieces.keys())], axis=0)
         
         #[attributes[key] for key in sorted(attributes.keys(), reverse=True)]
         # Free memory
@@ -557,15 +566,16 @@ class LoadRamsesData():
         self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0)
 
         # Create hash table
-        print("Building hash table")
-        self.hash_table = dict()
-        for icell in range(ncells_tot):
-            igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
-            jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
-            kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
-            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
-            #print theHash
-            self.hash_table[theHash] = icell
+        #print("Building hash table")
+        #self.hash_table = dict()
+        #for icell in range(ncells_tot):
+            #igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
+            #jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
+            #kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
+            ##print icell,igrid,jgrid,kgrid
+            #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
+            ##print theHash
+            #self.hash_table[theHash] = icell
 
         #self.print_info()
         
