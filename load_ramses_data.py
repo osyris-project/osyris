@@ -235,6 +235,9 @@ class LoadRamsesData():
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
+        #self.hash_table = dict()
+        #cell_index = -1
+        
         
         # Allocate work arrays
         twotondim = 2**self.info["ndim"]
@@ -431,7 +434,7 @@ class LoadRamsesData():
                                                 np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                 np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
-                                                           (xyz[:ncache,:,2]-dx2)<=zmax)))))))
+                                                               (xyz[:ncache,:,2]-dx2)<=zmax)))))))
                             else:
                                 print("Bad number of dimensions")
                                 return 0
@@ -443,7 +446,18 @@ class LoadRamsesData():
                                 npieces += 1
                                 # Add the cells in the master dictionary
                                 data_pieces["piece"+str(npieces)] = cells
-                                
+                                # Fill in hash table
+                                #print ncells
+                                #for icell in range(ncells):
+                                    #cell_index += 1
+                                    #print xyz[cube][icell,0]
+                                    #igrid = int(xyz[cube][icell,0]/dxcell)
+                                    #jgrid = int(xyz[cube][icell,1]/dxcell)
+                                    #kgrid = int(xyz[cube][icell,2]/dxcell)
+                                    #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(ilevel+1)
+                                    ##print theHash
+                                    #self.hash_table[theHash] = cell_index
+
                                 
                         # Now increment the offsets while looping through the domains
                         ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
@@ -465,7 +479,13 @@ class LoadRamsesData():
                 nstrin2 = nstrin_hydro
         
         # Merge all the data pieces into the master data array
+        #sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
+        #print list(sorted(data_pieces.keys(),key=lambda x:data_pieces.keys()))
+        #master_data_array = np.concatenate(list(sorted(data_pieces.values(),key=lambda x:data_pieces.keys())), axis=0)
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
+        #master_data_array = np.concatenate([data_pieces[key] for key in sorted(data_pieces.keys())], axis=0)
+        
+        #[attributes[key] for key in sorted(attributes.keys(), reverse=True)]
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
         
@@ -530,11 +550,22 @@ class LoadRamsesData():
         self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm)
         self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm)
         self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm)
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm)
         self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0)
         self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0)
         self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0)
-        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm)
-        
+        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0)
+
+        # Create hash table
+        print("Building hash table")
+        self.hash_table = dict()
+        for icell in range(ncells_tot):
+            igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
+            jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
+            kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
+            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
+            #print theHash
+            self.hash_table[theHash] = icell
 
         #self.print_info()
         
