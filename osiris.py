@@ -1614,23 +1614,37 @@ def plot_slice_hash(scalar=False,image=False,contour=False,vec=False,stream=Fals
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     
-    z_scal = np.zeros([ny,nx])
-    for i in range(nx):
-        for j in range(ny):
-            for l in range(holder.info["levelmax"],1,-1):
-                #print i,j,l
-                dxcell = 0.5**l
-                igrid = int(((x[i] + holder.info["xc"])/holder.info["boxsize_scaled"])/dxcell)
-                jgrid = int(((y[j] + holder.info["yc"])/holder.info["boxsize_scaled"])/dxcell)
-                kgrid = int(((0.0  + holder.info["zc"])/holder.info["boxsize_scaled"])/dxcell)
-                theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(l)
-                #print theHash
-                try:
-                    icell = holder.hash_table[theHash]
-                    break
-                except KeyError:
-                    pass
-            z_scal[j,i] = scalar.values[icell]
+    grid_x, grid_y = np.meshgrid(x, y)
+    
+    x3D = grid_x*dir2[0] + grid_y*dir3[0]
+    y3D = grid_x*dir2[1] + grid_y*dir3[1]
+    z3D = grid_x*dir2[2] + grid_y*dir3[2]
+    
+    points = np.transpose([x3D,y3D,z3D]).reshape([nx*ny,3])
+    
+    
+    
+    z_scal = np.transpose(interpolate(holder,scalar,points).reshape([nx,ny]))
+    #z_imag = np.transpose(values.reshape([nx,ny]))
+    
+    
+    #z_scal = np.zeros([ny,nx])
+    #for i in range(nx):
+        #for j in range(ny):
+            #for l in range(holder.info["levelmax"],1,-1):
+                ##print i,j,l
+                #dxcell = 0.5**l
+                #igrid = (((x[i] + holder.info["xc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
+                #jgrid = (((y[j] + holder.info["yc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
+                #kgrid = (((0.0  + holder.info["zc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
+                #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(l)
+                ##print theHash
+                #try:
+                    #icell = holder.hash_table[theHash]
+                    #break
+                #except KeyError:
+                    #pass
+            #z_scal[j,i] = scalar.values[icell]
     
             
             
@@ -1785,7 +1799,8 @@ def plot_slice_hash(scalar=False,image=False,contour=False,vec=False,stream=Fals
             scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
             scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
             parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
-            contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
+            #contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
+            contf = theAxes.contourf(grid_x,grid_y,z_scal,**scalar_args_plot)
             if scalar_args_osiris["cbar"]:
                 scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
                 scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
@@ -1925,3 +1940,106 @@ def plot_slice_hash(scalar=False,image=False,contour=False,vec=False,stream=Fals
             return x,y,z
     else:
         return
+
+
+
+
+
+
+
+#=======================================================================================
+# Interpolate data at any given point in the whole 3D domain
+#=======================================================================================
+def interpolate(holder,field,points):
+    
+    points[:,0] = ((points[:,0] + holder.info["xc"])/holder.info["boxsize_scaled"])
+    points[:,1] = ((points[:,1] + holder.info["yc"])/holder.info["boxsize_scaled"])
+    points[:,2] = ((points[:,2] + holder.info["zc"])/holder.info["boxsize_scaled"])
+
+    npoints = np.shape(points)[0]    
+    ilevl = holder.info["levelmax"]
+    values = np.zeros([npoints])
+    for ip in range(npoints):
+        not_found = True
+        loop_count = 0
+        while not_found:
+            l = max(min(ilevl+((-1)**loop_count)*int((loop_count+1)/2),holder.info["levelmax"]),0)
+            loop_count += 1
+            dxcell = 0.5**l
+            igrid = int(points[ip,0]/dxcell)
+            jgrid = int(points[ip,1]/dxcell)
+            kgrid = int(points[ip,2]/dxcell)
+            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(l)
+            try:
+                icell = holder.hash_table[theHash]
+                ilevl = l
+                not_found = False
+            except KeyError:
+                pass
+        
+        cube = dict()
+        dmax = 0.0
+        cube[theHash] = dict()
+        cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+        cube[theHash]["dist"] = np.sqrt((points[ip,0]-((igrid+0.5)*dxcell))**2 + \
+                                        (points[ip,1]-((jgrid+0.5)*dxcell))**2 + \
+                                        (points[ip,2]-((kgrid+0.5)*dxcell))**2)
+        dmax = max(dmax,cube[theHash]["dist"])
+        for i in range(3):
+            for j in range(3):
+                for k in range(3):
+                    if i == j == k == 1:
+                        pass
+                    else:
+                        ii = igrid-1+i
+                        jj = jgrid-1+j
+                        kk = kgrid-1+k
+                        theHash = str(ii)+','+str(jj)+','+str(kk)+','+str(ilevl)
+                        try:
+                            neighbour = holder.hash_table[theHash]
+                            cube[theHash] = dict()
+                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                            cube[theHash]["dist"] = np.sqrt((points[ip,0]-((ii+0.5)*dxcell))**2 + \
+                                                            (points[ip,1]-((jj+0.5)*dxcell))**2 + \
+                                                            (points[ip,2]-((kk+0.5)*dxcell))**2)
+                            dmax = max(dmax,cube[theHash]["dist"])
+                        except KeyError:
+                            theHash = str(2*ii)+','+str(2*jj)+','+str(2*kk)+','+str(ilevl+1)
+                            try:
+                                neighbour = holder.hash_table[theHash]
+                                for i1 in range(2):
+                                    for j1 in range(2):
+                                        for k1 in range(2):
+                                            theHash = str(2*ii+i1)+','+str(2*jj+j1)+','+str(2*kk+k1)+','+str(ilevl+1)
+                                            cube[theHash] = dict()
+                                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                                            cube[theHash]["dist"] = np.sqrt((points[ip,0]-((2*ii+i1+0.5)*dxcell*0.5))**2 + \
+                                                                            (points[ip,1]-((2*jj+j1+0.5)*dxcell*0.5))**2 + \
+                                                                            (points[ip,2]-((2*kk+k1+0.5)*dxcell*0.5))**2)
+                                            dmax = max(dmax,cube[theHash]["dist"])
+                            except KeyError:
+                                theHash = str(int(float(ii)/2.0))+','+str(int(float(jj)/2.0))+','+str(int(float(kk)/2.0))+','+str(ilevl-1)
+                                try:
+                                    neighbour = holder.hash_table[theHash]
+                                    cube[theHash] = dict()
+                                    cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                                    cube[theHash]["dist"] = np.sqrt((points[ip,0]-((int(float(ii)/2.0)+0.5)*dxcell*2.0))**2 + \
+                                                                    (points[ip,1]-((int(float(jj)/2.0)+0.5)*dxcell*2.0))**2 + \
+                                                                    (points[ip,2]-((int(float(kk)/2.0)+0.5)*dxcell*2.0))**2)
+                                    dmax = max(dmax,cube[theHash]["dist"])
+                                except KeyError:
+                                    print("Neighbour not found",igrid,jgrid,kgrid,i,j,k)
+                        
+        # Compute inverse distance weighting
+        result  = 0.0
+        weights = 0.0
+        for key in cube.keys():
+            #w = (0.1-1.0)/dmax * cube[key]["dist"] + 1.0
+            w = 1.0 / (np.exp(15.0*(cube[key]["dist"]/dmax-0.5)) + 1.0)
+            weights += w
+            result  += w*cube[key]["vars"]
+        
+        values[ip] = result/weights
+
+    return values
+

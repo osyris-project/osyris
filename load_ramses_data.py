@@ -448,24 +448,26 @@ class LoadRamsesData():
                                 data_pieces["piece"+str(npieces).zfill(9)] = cells
                                 # Fill in hash table
                                 #print ncells
-                                xcells = xyz[cube]/dxcell
+                                ijkcells = (xyz[cube]/dxcell).astype(np.int64)
                                 #igrid = xcells[:,0].astype(np.int32)
                                 #jgrid = xcells[:,1].astype(np.int32)
                                 #kgrid = xcells[:,2].astype(np.int32)
-                                
+                                #print np.shape(ijkcells)
                                 for icell in range(ncells):
                                     cell_index += 1
                                     ##print xyz[cube][icell,0]
-                                    igrid = int(xcells[icell,0])
-                                    jgrid = int(xcells[icell,1])
-                                    kgrid = int(xcells[icell,2])
+                                    #igrid = xcells[icell,0]
+                                    #jgrid = xcells[icell,1]
+                                    #kgrid = xcells[icell,2]
                                     #if ilevel==11:
                                         #print icell,igrid,jgrid,kgrid
                                     #theHash = str(igrid[icell])+','+str(jgrid[icell])+','+str(kgrid[icell])+','+str(ilevel+1)
-                                    theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(ilevel+1)
-                                    ##print theHash
+                                    theHash = str(ijkcells[icell,0])+','+str(ijkcells[icell,1])+','+str(ijkcells[icell,2])+','+str(ilevel+1)
+                                    #if ilevel==11:
+                                        #print theHash
                                     self.hash_table[theHash] = cell_index
-
+                                    #print theHash,hash(self.hash_table[theHash]),cell_index
+                                    
                                 
                         # Now increment the offsets while looping through the domains
                         ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
