@@ -17,6 +17,7 @@
 
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib.pyplot as plt
+import numpy as np
 
 #===================================================================================
 # Define default values so that you don't have to specify them every time.
@@ -76,12 +77,13 @@ def additional_variables(holder):
     holder.new_field(name="velocity_x",operation="momentum_x/density",unit="cm/s",label="velocity_x",verbose=False)
     holder.new_field(name="velocity_y",operation="momentum_y/density",unit="cm/s",label="velocity_y",verbose=False)
     holder.new_field(name="velocity_z",operation="momentum_z/density",unit="cm/s",label="velocity_z",verbose=False)
+    holder.new_field(name="velocity_mag",operation="np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2)",unit="cm/s",label="velocity",verbose=False)
     
     # Magnetic field
     holder.new_field(name="B_x",operation="0.5*(B_left_x+B_right_x)",unit="G",label="B_x",verbose=False)
     holder.new_field(name="B_y",operation="0.5*(B_left_y+B_right_y)",unit="G",label="B_y",verbose=False)
     holder.new_field(name="B_z",operation="0.5*(B_left_z+B_right_z)",unit="G",label="B_z",verbose=False)
-    holder.new_field(name="B",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B",verbose=False)
+    holder.new_field(name="Bmag",operation="np.sqrt(B_x**2+B_y**2+B_z**2)",unit="G",label="B",verbose=False)
     
     # Mass and radius
     holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=holder.info["scale"],label="Radius",verbose=False)
@@ -90,9 +92,11 @@ def additional_variables(holder):
     # Commonly used log quantities
     holder.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)",verbose=False)
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)",verbose=False)
-    holder.new_field(name="log_B",operation="np.log10(B)",unit="G",label="log(B)",verbose=False)
-    holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
+    holder.new_field(name="log_B",operation="np.log10(Bmag)",unit="G",label="log(B)",verbose=False)
     holder.new_field(name="log_m",operation="np.log10(mass)",unit="Msun",label="log(Mass)",verbose=False)
+    with np.errstate(divide="ignore"):
+        holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
+    
     
     #========================== ADD YOUR VARIABLES HERE ============================
 

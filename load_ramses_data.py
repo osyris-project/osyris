@@ -18,17 +18,43 @@
 import numpy as np
 import struct
 import glob
-import plot_osiris
+#import plot_osiris
 import config_osiris as conf
 
 divider = "============================================"
+
+
+
+class OsirisData():
+    
+    def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
+                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False):
+        
+        self.values = values
+        self.unit = unit
+        self.label = label
+        self.operation = operation
+        self.depth = depth
+        self.norm = norm
+        self.kind = kind
+        self.parent = parent
+        if vec_x:
+            self.x = vec_x
+        if vec_y:
+            self.y = vec_y
+        if vec_z:
+            self.z = vec_z
+        
+        return
+    
+
 
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
 # It calls "rd.ramses_data" which is a fortran file reader.
 # It then stores the data in a dictionary named "data"
 #=======================================================================================
-class LoadRamsesData(plot_osiris.OsirisData):
+class LoadRamsesData():
  
     #===================================================================================
     # The constructor reads in the data and fills the data structure which is a python
@@ -60,8 +86,12 @@ class LoadRamsesData(plot_osiris.OsirisData):
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
         
+        # Convert vector components to vector containers
+        self.create_vector_containers()
+        
         # Print exit message
-        print("Memory used: %.2f Mb" % (len(self.data)*self.info["ncells"]*8.0/1.0e6))
+        [var_list,typ_list] = self.get_var_list(types=True)
+        print("Memory used: %.2f Mb" % (typ_list.count('scalar')*self.info["ncells"]*8.0/1.0e6))
         print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
@@ -411,7 +441,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                                 np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                 np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
-                                                           (xyz[:ncache,:,2]-dx2)<=zmax)))))))
+                                                               (xyz[:ncache,:,2]-dx2)<=zmax)))))))
                             else:
                                 print("Bad number of dimensions")
                                 return 0
@@ -423,7 +453,6 @@ class LoadRamsesData(plot_osiris.OsirisData):
                                 npieces += 1
                                 # Add the cells in the master dictionary
                                 data_pieces["piece"+str(npieces)] = cells
-                                
                                 
                         # Now increment the offsets while looping through the domains
                         ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
@@ -446,6 +475,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
+        
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
         
@@ -459,17 +489,34 @@ class LoadRamsesData(plot_osiris.OsirisData):
         
         # This is the master data dictionary. For each entry, the dict has 5 fields.
         # It loops through the list of variables that it got from the file loader.
-        if not update:
-            self.data = dict()
+        #if not update:
+            #self.data = dict()
         for i in range(len(list_vars)):
             theKey = list_vars[i]
-            if not update:
-                self.data[theKey] = dict()
+            #if not update:
+                #self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=True,norm=norm)
+        
+                        
+                        
+        #self.print_info()
+        
+        # Hard coded additional data fields needed
+        [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+        self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm)
+        self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm)
+        self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm)
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm)
+        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0)
+        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0)
+        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0)
+        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0)
+
+        #self.print_info()
         
         # Re-center the mesh around chosen center
         self.re_center()
@@ -488,17 +535,22 @@ class LoadRamsesData(plot_osiris.OsirisData):
         maxlen2 = 0
         maxlen3 = 0
         maxlen4 = 0
-        for key in sorted(self.data.keys()):
+        maxlen5 = 0
+        key_list = self.get_var_list()
+        #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
+        for key in sorted(key_list):
             maxlen1 = max(maxlen1,len(key))
-            maxlen2 = max(maxlen2,len(self.data[key]["unit"]))
-            maxlen3 = max(maxlen3,len(str(np.nanmin(self.data[key]["values"]))))
-            maxlen4 = max(maxlen4,len(str(np.nanmax(self.data[key]["values"]))))
+            maxlen2 = max(maxlen2,len(getattr(self,key).kind))
+            maxlen3 = max(maxlen3,len(getattr(self,key).unit))
+            maxlen4 = max(maxlen4,len(str(np.nanmin(getattr(self,key).values))))
+            maxlen5 = max(maxlen5,len(str(np.nanmax(getattr(self,key).values))))
         print("The variables are:")
-        print("Name".ljust(maxlen1)+" "+"Unit".ljust(maxlen2)+"   Min".ljust(maxlen3)+"    Max".ljust(maxlen4))
-        for key in sorted(self.data.keys()):
-            print(key.ljust(maxlen1)+" ["+self.data[key]["unit"].ljust(maxlen2)+"] "+\
-                  str(np.nanmin(self.data[key]["values"])).ljust(maxlen3)+" "+\
-                  str(np.nanmax(self.data[key]["values"])).ljust(maxlen4))
+        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Unit".ljust(maxlen3)+"     Min".ljust(maxlen4)+"      Max".ljust(maxlen5))
+        for key in sorted(key_list):
+            print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
+                  " ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
+                  str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
+                  str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
         return
     
     #=======================================================================================
@@ -538,32 +590,35 @@ class LoadRamsesData(plot_osiris.OsirisData):
     #=======================================================================================
     def re_center(self,newcenter=None):
         
+        #try: # check if newcenter is defined
+            #lc = len(newcenter)
+            #self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
+            #self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
+            #if self.info["ndim"] > 2:
+                #self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
+            
+            ## Re-scale the cell and box sizes
+            #self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
+            #self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
+            
+            ## Re-center sinks
+            #if self.info["nsinks"] > 0:
+                #self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                #self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                #self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                #self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
+            
+                ##for key in self.sinks.keys():
+                    ##self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                    ##self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
+            
+            #self.info["center"] = newcenter
+        
         try: # check if newcenter is defined
             lc = len(newcenter)
-            self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
-            self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
-            if self.info["ndim"] > 2:
-                self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
-            
-            # Re-scale the cell and box sizes
-            self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
-            self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
-            
-            # Re-center sinks
-            if self.info["nsinks"] > 0:
-                self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
-            
-                #for key in self.sinks.keys():
-                    #self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                    #self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
-            
             self.info["center"] = newcenter
-        
         except TypeError:
             pass
         
@@ -587,23 +642,23 @@ class LoadRamsesData(plot_osiris.OsirisData):
                     zc = self.sinks["z"][isink]
                 elif self.info["center"].startswith("max"):
                     cvar=self.info["center"].split(":")[1]
-                    maxloc = np.argmax(self.data[cvar]["values"])
-                    xc = self.data["x"]["values"][maxloc]
-                    yc = self.data["y"]["values"][maxloc]
-                    zc = self.data["z"]["values"][maxloc]
+                    maxloc = np.argmax(getattr(self,cvar).values)
+                    xc = self.x_raw.values[maxloc]
+                    yc = self.y_raw.values[maxloc]
+                    zc = self.z_raw.values[maxloc]
                 elif self.info["center"].startswith("min"):
                     cvar=self.info["center"].split(":")[1]
-                    minloc = np.argmin(self.data[cvar]["values"])
-                    xc = self.data["x"]["values"][minloc]
-                    yc = self.data["y"]["values"][minloc]
-                    zc = self.data["z"]["values"][minloc]
+                    minloc = np.argmin(getattr(self,cvar).values)
+                    xc = self.x_raw.values[minloc]
+                    yc = self.y_raw.values[minloc]
+                    zc = self.z_raw.values[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
                     [op_parsed,depth] = self.parse_operation(cvar)
                     select = eval("np.where("+op_parsed+")")
-                    xc = np.average(self.data["x"]["values"][select])
-                    yc = np.average(self.data["y"]["values"][select])
-                    zc = np.average(self.data["z"]["values"][select])
+                    xc = np.average(self.x_raw.values[select])
+                    yc = np.average(self.y_raw.values[select])
+                    zc = np.average(self.z_raw.values[select])
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
@@ -611,18 +666,18 @@ class LoadRamsesData(plot_osiris.OsirisData):
         except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
 
-        self.data["x"]["values"] = (self.data["x"]["values"] - xc)/conf.constants[self.info["scale"]]
+        self.x.values = (self.x_raw.values - xc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 1:
-            self.data["y"]["values"] = (self.data["y"]["values"] - yc)/conf.constants[self.info["scale"]]
+            self.y.values = (self.y_raw.values - yc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 2:
-            self.data["z"]["values"] = (self.data["z"]["values"] - zc)/conf.constants[self.info["scale"]]
+            self.z.values = (self.z_raw.values - zc)/conf.constants[self.info["scale"]]
         self.info["xc"] = xc/conf.constants[self.info["scale"]]
         self.info["yc"] = yc/conf.constants[self.info["scale"]]
         self.info["zc"] = zc/conf.constants[self.info["scale"]]
         
         # Re-scale the cell and box sizes
-        self.data["dx"]["values"] = self.data["dx"]["values"]/conf.constants[self.info["scale"]]
-        self.info["boxsize"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
+        self.dx.values = self.dx_raw.values/conf.constants[self.info["scale"]]
+        self.info["boxsize_scaled"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
         
         # Re-center sinks
         if self.info["nsinks"] > 0:
@@ -630,7 +685,7 @@ class LoadRamsesData(plot_osiris.OsirisData):
             self.sinks["x"     ] = self.sinks["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
             self.sinks["y"     ] = self.sinks["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
             self.sinks["z"     ] = self.sinks["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
-            self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]
+            self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]/conf.constants[self.info["scale"]]
         
         return
         
@@ -778,3 +833,205 @@ class LoadRamsesData(plot_osiris.OsirisData):
             return [1.0,"K"]
         else:
             return [1.0,""]
+
+
+
+
+
+
+
+
+
+
+
+    #=======================================================================================
+    # The new field function is used to create a new data field. Say you want to take the
+    # log of the density. You create a new field by calling:
+    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+    # The operation string is then evaluated using the 'eval' function.
+    #=======================================================================================
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar"):
+        
+        if (len(operation) == 0) and (len(values) > 0):
+            new_data = values
+            op_parsed = operation
+            depth = -1
+        else:
+            [op_parsed,depth] = self.parse_operation(operation)
+            try:
+                new_data = eval(op_parsed)
+            except NameError:
+                if verbose:
+                    print("Error parsing operation when trying to create variable: "+name)
+                    print("The attempted operation was: "+op_parsed)
+                return
+        #TheDict = dict()
+        #TheDict["values"   ] = new_data
+        #TheDict["unit"     ] = unit
+        #TheDict["label"    ] = label
+        #TheDict["operation"] = op_parsed
+        #TheDict["depth"    ] = depth+1
+        
+        dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                               norm=norm,parent=self)
+                
+        if hasattr(self,name):
+            print("Warning: field "+name+" already exists and will be overwritten.")
+        setattr(self, name, dataField)
+        
+        return
+    
+    #=======================================================================================
+    # The new field function is used to create a new data field. Say you want to take the
+    # log of the density. You create a new field by calling:
+    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
+    # The operation string is then evaluated using the 'eval' function.
+    #=======================================================================================
+    def delete_field(self,name):
+        
+        delattr(self,name)
+        
+        return
+    
+    
+    #=======================================================================================
+    # The operation parser converts an operation string into an expression which contains
+    # variables from the data dictionary. If a name from the variable list, e.g. "density",
+    # is found in the operation, it is replaced by self.data["density"]["values"] so that it
+    # can be properly evaluated by the 'eval' function in the 'new_field' function.
+    #=======================================================================================
+    def parse_operation(self,operation):
+        
+        max_depth = 0
+        # Add space before and after to make it easier when searching for characters before
+        # and after
+        expression = " "+operation+" "
+        # Sort the list of variable keys in the order of the longest to the shortest.
+        # This guards against replacing 'B' inside 'logB' for example.
+        #key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
+        #print key_list
+        key_list = self.get_var_list()
+        key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
+        # For replacing, we need to create a list of hash keys to replace on instance at a
+        # time
+        hashkeys  = dict()
+        hashcount = 0
+        for key in key_list:
+            # Search for all instances in string
+            loop = True
+            loc = 0
+            while loop:
+                loc = expression.find(key,loc)
+                if loc == -1:
+                    loop = False
+                else:
+                    # Check character before and after. If they are either a letter or a '_'
+                    # then the instance is actually part of another variable or function
+                    # name.
+                    char_before = expression[loc-1]
+                    char_after  = expression[loc+len(key)]
+                    bad_before = (char_before.isalpha() or (char_before == "_"))
+                    bad_after = (char_after.isalpha() or (char_after == "_"))
+                    hashcount += 1
+                    if (not bad_before) and (not bad_after):
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
+                        # Store the data key in the hash table
+                        #hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
+                        hashkeys[theHash] = "self.get(\""+key+"\")"
+                        expression = expression.replace(key,theHash,1)
+                        max_depth = max(max_depth,getattr(self,key).depth)
+                    else:
+                        # Replace anyway to prevent from replacing "x" in "max("
+                        theHash = "#"+str(hashcount).zfill(5)+"#"
+                        hashkeys[theHash] = key
+                        expression = expression.replace(key,theHash,1)
+                    loc += 1
+        # Now go through all the hashes in the table and build the final expression
+        for theHash in hashkeys.keys():
+            expression = expression.replace(theHash,hashkeys[theHash])
+    
+        return [expression,max_depth]
+    
+    #=======================================================================================
+    # The function get returns the values of the selected variable
+    #=======================================================================================
+    def get(self,var):
+        return getattr(getattr(self,var),'values')
+    
+    #=======================================================================================
+    # The function returns the list of variables
+    #=======================================================================================
+    def get_var_list(self,types=False):
+        key_list = []
+        typ_list = []
+        att_list =  dir(self)
+        for att in att_list:
+            class_name = getattr(self,att).__class__.__name__
+            if class_name == 'OsirisData':
+                key_list.append(att)
+                typ_list.append(getattr(self,att).kind)
+        if types:
+            return [key_list,typ_list]
+        else:
+            return key_list
+    
+    #=======================================================================================
+    # Create a hash table for all the cells in the domain
+    #=======================================================================================
+    def create_hash_table(self):
+        
+        print("Building hash table")
+        self.hash_table = dict()
+        for icell in range(self.info["ncells"]):
+            igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
+            jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
+            kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
+            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
+            self.hash_table[theHash] = icell
+
+        return
+
+    #=======================================================================================
+    # Create dummy variables containing the components of the vectors
+    #=======================================================================================
+    def create_vector_containers(self):
+    
+        list_vars = self.get_var_list()
+    
+        if self.info["ndim"] > 1:
+            for i in range(len(list_vars)):
+                key = list_vars[i]
+                if key.endswith("_x"):
+                    rawkey = key[:-2]
+                    ok = True
+                    try:
+                        k1 = len(self.get(rawkey+"_y"))
+                    except AttributeError:
+                        ok = False
+                    if self.info["ndim"] > 2:
+                        try:
+                            k2 = len(self.get(rawkey+"_z"))
+                        except AttributeError:
+                            ok = False
+                    
+                    if ok:
+                        #if self.info["ndim"] > 2:
+                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y"),self.get(rawkey+"_z")]).reshape(3,self.info["ncells"]).T
+                        #else:
+                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y")]).reshape(2,self.info["ncells"]).T
+                        vec_name = rawkey
+                        while hasattr(self,vec_name):
+                            vec_name += "_vec"
+                        if self.info["ndim"] > 2:
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),vec_z=getattr(self,rawkey+"_z"),depth=0,kind='vector')
+                        else:
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),depth=0,kind='vector')
+                        setattr(self,vec_name,dataField)
+        
+                        
+                        #self.new_field(name=vec_name,operation="",unit=getattr(self,key).unit,label=key.replace("_"," "),values=vector,verbose=False,norm=getattr(self,key).norm,kind="vector")
+                        #self.delete_field(key)
+                        #self.delete_field(rawkey+"_y")
+                        #if self.info["ndim"] > 2:
+                            #self.delete_field(rawkey+"_z")
+        
