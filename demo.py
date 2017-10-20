@@ -41,7 +41,7 @@ osiris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,cmap="log,YlGnBu")
 osiris.plot_histogram(mydata.log_rho,mydata.log_B,var_z=mydata.level,contour=True,axes=ax1,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20)},cbar=False,zmin=6,zmax=16)
 
 # Create new field with log of velocity
-mydata.new_field(name="log_vel",operation="np.log10(np.linalg.norm(velocity,axis=1))",unit="cm/s",label="log(Velocity)")
+mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
 # Density vs log_vel
 osiris.plot_histogram(mydata.log_rho,mydata.log_vel,mydata.log_T,axes=ax2,cmap="gnuplot",scatter=True,outline=True,scatter_args={"iskip":100})

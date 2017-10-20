@@ -27,16 +27,23 @@ divider = "============================================"
 
 class OsirisData():
     
-    def __init__(self,the_values,the_unit,the_label,the_operation,the_depth,the_norm=1.0,the_kind="scalar",parent=None):
+    def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
+                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False):
         
-        self.values = the_values
-        self.unit = the_unit
-        self.label = the_label
-        self.operation = the_operation
-        self.depth = the_depth
-        self.norm = the_norm
-        self.kind = the_kind
+        self.values = values
+        self.unit = unit
+        self.label = label
+        self.operation = operation
+        self.depth = depth
+        self.norm = norm
+        self.kind = kind
         self.parent = parent
+        if vec_x:
+            self.x = vec_x
+        if vec_y:
+            self.y = vec_y
+        if vec_z:
+            self.z = vec_z
         
         return
     
@@ -79,9 +86,12 @@ class LoadRamsesData():
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
         
+        # Convert vector components to vector containers
+        self.create_vector_containers()
+        
         # Print exit message
         [var_list,typ_list] = self.get_var_list(types=True)
-        print("Memory used: %.2f Mb" % ((typ_list.count('vector')*self.info["ndim"]+typ_list.count('scalar'))*self.info["ncells"]*8.0/1.0e6))
+        print("Memory used: %.2f Mb" % (typ_list.count('scalar')*self.info["ncells"]*8.0/1.0e6))
         print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
@@ -489,38 +499,8 @@ class LoadRamsesData():
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False,norm=norm)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=True,norm=norm)
         
-        # Convert vector components to vector objects
-        if self.info["ndim"] > 1:
-            for i in range(len(list_vars)):
-                key = list_vars[i]
-                if key.endswith("_x"):
-                    rawkey = key[:-2]
-                    ok = True
-                    try:
-                        k1 = len(self.get(rawkey+"_y"))
-                    except AttributeError:
-                        ok = False
-                    if self.info["ndim"] > 2:
-                        try:
-                            k2 = len(self.get(rawkey+"_z"))
-                        except AttributeError:
-                            ok = False
-                    
-                    if ok:
-                        if self.info["ndim"] > 2:
-                            vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y"),self.get(rawkey+"_z")]).reshape(3,self.info["ncells"]).T
-                        else:
-                            vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y")]).reshape(2,self.info["ncells"]).T
-                        vec_name = rawkey
-                        while hasattr(self,vec_name):
-                            vec_name += "_vec"
-                        self.new_field(name=vec_name,operation="",unit=getattr(self,key).unit,label=key.replace("_"," "),values=vector,verbose=False,norm=getattr(self,key).norm,kind="vector")
-                        self.delete_field(key)
-                        self.delete_field(rawkey+"_y")
-                        if self.info["ndim"] > 2:
-                            self.delete_field(rawkey+"_z")
                         
                         
         #self.print_info()
@@ -535,18 +515,6 @@ class LoadRamsesData():
         self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0)
         self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0)
         self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0)
-
-        # Create hash table
-        #print("Building hash table")
-        #self.hash_table = dict()
-        #for icell in range(ncells_tot):
-            #igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
-            #jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
-            #kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
-            ##print icell,igrid,jgrid,kgrid
-            #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
-            ##print theHash
-            #self.hash_table[theHash] = icell
 
         #self.print_info()
         
@@ -904,9 +872,10 @@ class LoadRamsesData():
         #TheDict["operation"] = op_parsed
         #TheDict["depth"    ] = depth+1
         
-        dataField = OsirisData(new_data,unit,label,op_parsed,depth+1,norm,kind,parent=self)
-        
-        if hasattr(self,name) and verbose:
+        dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                               norm=norm,parent=self)
+                
+        if hasattr(self,name):
             print("Warning: field "+name+" already exists and will be overwritten.")
         setattr(self, name, dataField)
         
@@ -1007,7 +976,7 @@ class LoadRamsesData():
             return key_list
     
     #=======================================================================================
-    # The function returns the list of variables
+    # Create a hash table for all the cells in the domain
     #=======================================================================================
     def create_hash_table(self):
         
@@ -1021,3 +990,48 @@ class LoadRamsesData():
             self.hash_table[theHash] = icell
 
         return
+
+    #=======================================================================================
+    # Create dummy variables containing the components of the vectors
+    #=======================================================================================
+    def create_vector_containers(self):
+    
+        list_vars = self.get_var_list()
+    
+        if self.info["ndim"] > 1:
+            for i in range(len(list_vars)):
+                key = list_vars[i]
+                if key.endswith("_x"):
+                    rawkey = key[:-2]
+                    ok = True
+                    try:
+                        k1 = len(self.get(rawkey+"_y"))
+                    except AttributeError:
+                        ok = False
+                    if self.info["ndim"] > 2:
+                        try:
+                            k2 = len(self.get(rawkey+"_z"))
+                        except AttributeError:
+                            ok = False
+                    
+                    if ok:
+                        #if self.info["ndim"] > 2:
+                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y"),self.get(rawkey+"_z")]).reshape(3,self.info["ncells"]).T
+                        #else:
+                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y")]).reshape(2,self.info["ncells"]).T
+                        vec_name = rawkey
+                        while hasattr(self,vec_name):
+                            vec_name += "_vec"
+                        if self.info["ndim"] > 2:
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),vec_z=getattr(self,rawkey+"_z"),depth=0,kind='vector')
+                        else:
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),depth=0,kind='vector')
+                        setattr(self,vec_name,dataField)
+        
+                        
+                        #self.new_field(name=vec_name,operation="",unit=getattr(self,key).unit,label=key.replace("_"," "),values=vector,verbose=False,norm=getattr(self,key).norm,kind="vector")
+                        #self.delete_field(key)
+                        #self.delete_field(rawkey+"_y")
+                        #if self.info["ndim"] > 2:
+                            #self.delete_field(rawkey+"_z")
+        

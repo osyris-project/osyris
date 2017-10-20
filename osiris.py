@@ -344,46 +344,6 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     datax = np.inner(coords,dir2)
     datay = np.inner(coords,dir3)
     
-    if scalar:
-        if scalar.kind == "vector":
-            dataz1 = np.linalg.norm(scalar.values[cube,:],axis=1)
-        else:
-            dataz1 = scalar.values[cube]
-    
-    if image:
-        if image.kind == "vector":
-            dataz2 = np.linalg.norm(image.values[cube,:],axis=1)
-        else:
-            dataz2 = image.values[cube]
-    
-    if contour:
-        if contour.kind == "vector":
-            dataz3 = np.linalg.norm(contour.values[cube,:],axis=1)
-        else:
-            dataz3 = contour.values[cube]
-    
-    # Now project vectors and streamlines using the same method
-    if vec:
-        if vec.kind == "scalar":
-            print("Warning: cannot make vectors out of scalar field.")
-        else:
-            if holder.info["ndim"] < 3:
-                datau1 = vec.values[cube][0]
-                datav1 = vec.values[cube][1]
-            else:
-                datau1 = np.inner(vec.values[cube],dir2)
-                datav1 = np.inner(vec.values[cube],dir3)
-    if stream:
-        if stream.kind == "scalar":
-            print("Warning: cannot make streamlines out of scalar field.")
-        else:
-            if holder.info["ndim"] < 3:
-                datau2 = stream.values[cube][0]
-                datav2 = stream.values[cube][1]
-            else:
-                datau2 = np.inner(stream.values[cube],dir2)
-                datav2 = np.inner(stream.values[cube],dir3)
-    
     # Define slice extent and resolution
     xmin = max(-0.5*dx,box[0])
     xmax = min(xmin+dx,box[1])
@@ -399,22 +359,37 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     grid_x, grid_y = np.meshgrid(x, y)
     points = np.transpose([datax,datay])
     
+    
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
-        z_scal = griddata(points, dataz1, (grid_x, grid_y), method=interpolation)
+        z_scal = griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)
     if image:
-        z_imag = griddata(points, dataz2, (grid_x, grid_y), method=interpolation)
+        z_imag = griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)
     if contour:
-        z_cont = griddata(points, dataz3, (grid_x, grid_y), method=interpolation)
+        z_cont = griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)
     if vec:
-        u_vect = griddata(points, datau1, (grid_x, grid_y), method=interpolation)
-        v_vect = griddata(points, datav1, (grid_x, grid_y), method=interpolation)
-        w_vect = griddata(points, np.sqrt(datau1**2+datav1**2), (grid_x, grid_y), method=interpolation)
+        if holder.info["ndim"] < 3:
+            datau1 = vec.x.values[cube]
+            datav1 = vec.y.values[cube]
+        else:
+            vectors = np.transpose([vec.x.values[cube],vec.y.values[cube],vec.z.values[cube]])
+            datau1 = np.inner(vectors,dir2)
+            datav1 = np.inner(vectors,dir3)
+        u_vect = griddata(points,datau1,(grid_x,grid_y),method=interpolation)
+        v_vect = griddata(points,datav1,(grid_x,grid_y),method=interpolation)
+        w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)
     if stream:
-        u_strm = griddata(points, datau2, (grid_x, grid_y), method=interpolation)
-        v_strm = griddata(points, datav2, (grid_x, grid_y), method=interpolation)
-        w_strm = griddata(points, np.sqrt(datau2**2+datav2**2), (grid_x, grid_y), method=interpolation)
+        if holder.info["ndim"] < 3:
+            datau2 = stream.x.values[cube]
+            datav2 = stream.y.values[cube]
+        else:
+            streams = np.transpose([stream.x.values[cube],stream.y.values[cube],stream.z.values[cube]])
+            datau2 = np.inner(streams,dir2)
+            datav2 = np.inner(streams,dir3)
+        u_strm = griddata(points,datau2,(grid_x,grid_y),method=interpolation)
+        v_strm = griddata(points,datav2,(grid_x,grid_y),method=interpolation)
+        w_strm = griddata(points,np.sqrt(datau2**2+datav2**2),(grid_x,grid_y),method=interpolation)
     
     # Render the map    
     if plot:
@@ -448,7 +423,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
                         origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
-                        interpolation="linear",\
+                        interpolation="linear",verbose=False,\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
     
     ## Possibility of updating the data from inside the plotting routines
@@ -526,10 +501,11 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     for iz in range(nz):
         
         # Print progress
-        percentage = int(float(iz)*100.0/float(nz))
-        if percentage >= iprog*istep:
-            print("%3i%% done" % percentage)
-            iprog += 1
+        if verbose:
+            percentage = int(float(iz)*100.0/float(nz))
+            if percentage >= iprog*istep:
+                print("%3i%% done" % percentage)
+                iprog += 1
     
         dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
               / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2) - z[iz]
@@ -548,32 +524,14 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         coords = np.transpose([holder.get("x")[cube]-origin[0]-z[iz]*dir1[0],holder.get("y")[cube]-origin[1]-z[iz]*dir1[1],holder.get("z")[cube]-origin[2]-z[iz]*dir1[2]])
         datax = np.inner(coords,dir2)
         datay = np.inner(coords,dir3)
-        
-        if scalar:
-            if scalar.kind == "vector":
-                dataz1 = np.linalg.norm(scalar.values[cube,:],axis=1)
-            else:
-                dataz1 = scalar.values[cube]
-        
-        if image:
-            if image.kind == "vector":
-                dataz2 = np.linalg.norm(image.values[cube,:],axis=1)
-            else:
-                dataz2 = image.values[cube]
-        
-        if contour:
-            if contour.kind == "vector":
-                dataz3 = np.linalg.norm(contour.values[cube,:],axis=1)
-            else:
-                dataz3 = contour.values[cube]
-    
         points = np.transpose([datax,datay])
+        
         if scalar:
-            z_scal += griddata(points, dataz1, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_scal += griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
         if image:
-            z_imag += griddata(points, dataz2, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_imag += griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
         if contour:
-            z_cont += griddata(points, dataz3, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_cont += griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
     
     # Render the map    
     if plot:
@@ -857,8 +815,8 @@ def get_slice_direction(holder,direction,dx,dy):
         # Compute angular momentum vector
         sphere = np.where(holder.get("r") < sphere_rad)
         pos    = np.vstack((holder.get("x")[sphere],holder.get("y")[sphere],holder.get("z")[sphere])*holder.get("mass")[sphere]).T
-        #vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
-        vel    = holder.get("velocity")[sphere]
+        vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
+        #vel    = holder.get("velocity")[sphere]
         AngMom = np.sum(np.cross(pos,vel),axis=0)
         if view == "top":
             dir1 = AngMom
