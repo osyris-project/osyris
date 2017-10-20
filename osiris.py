@@ -418,12 +418,13 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     
     # Render the map    
     if plot:
-        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,\
-                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,  \
-                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,      \
-                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,      \
-                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,scalar_args=scalar_args,                \
-                   image_args=image_args,contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
+        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,    \
+                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
+                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
+                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
+                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
+                   origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
+                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -576,12 +577,13 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     
     # Render the map    
     if plot:
-        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,\
-                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,  \
-                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,      \
-                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,      \
-                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,dz=dz,scalar_args=scalar_args,          \
-                   image_args=image_args,contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
+        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,    \
+                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
+                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
+                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
+                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
+                   origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
+                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -904,7 +906,7 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
                w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
                clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
-               stream_args={},dz=0):
+               stream_args={},dz=0,thePlane=0,origin=[0,0,0],dir_vecs=0):
     
     # Find parent container of object to plot
     if scalar:
@@ -1024,14 +1026,16 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
         
     
     if holder.info["nsinks"] > 0 and sinks:
+        dx = xmax-xmin
         if dz == 0:
-            thickness = 0.05*(xmax-xmin)
+            thickness = 0.05*dx
         else:
             thickness = 0.5*dz
-        dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+        dist = (thePlane[0]*holder.sinks["x"]+thePlane[1]*holder.sinks["y"]+thePlane[2]*holder.sinks["z"]+thePlane[3]) \
+               / np.sqrt(thePlane[0]**2 + thePlane[1]**2 + thePlane[2]**2)
         sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
-        sink_x = np.inner(sinkcoords,dir2)
-        sink_y = np.inner(sinkcoords,dir3)
+        sink_x = np.inner(sinkcoords,dir_vecs[1])
+        sink_y = np.inner(sinkcoords,dir_vecs[2])
         subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
         srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
         xy = np.array([sink_x[subset],sink_y[subset]]).T
