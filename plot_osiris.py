@@ -374,7 +374,11 @@ class OsirisData(osiris_common.OsirisCommon):
         celldx = self.get("dx")[cube]
         
         # Project coordinates onto the plane by taking dot product with axes vectors
-        coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
+        cube_x = self.get("x")[cube]
+        cube_y = self.get("y")[cube]
+        cube_z = self.get("z")[cube]
+        coords = np.transpose([cube_x-origin[0],cube_y-origin[1],cube_z-origin[2]])
+        #coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
         datax = np.inner(coords,dir2)
         datay = np.inner(coords,dir3)
         # Now project vectors and streamlines using the same method
@@ -433,16 +437,28 @@ class OsirisData(osiris_common.OsirisCommon):
             # Fill in the slice pixels with data
             for j in range(iy1,iy2+1):
                 for i in range(ix1,ix2+1):
-                    za[j,i] = za[j,i] + dataz[n]*celldx[n]
-                    zb[j,i] = zb[j,i] + celldx[n]
+                    
+                    cellrad  = 0.5*celldx[n]*sqrt3
+                    cellarea = np.pi*(cellrad**2)
+                    pxy = [(i+0.5)*dpx+xmin,(j+0.5)*dpy+ymin]
+                    pixel_x = pxy[0]*dir2[0] + pxy[1]*dir3[0] + origin[0]
+                    pixel_y = pxy[0]*dir2[1] + pxy[1]*dir3[1] + origin[1]
+                    pixel_z = pxy[0]*dir2[2] + pxy[1]*dir3[2] + origin[2]
+                    d1 = 0.5*np.sqrt(dpx**2+dpy**2) + cellrad
+                    d2 = 2.0*cellrad
+                    d3 = np.sqrt((cube_x[n]-pixel_x)**2 + (cube_y[n]-pixel_y)**2 + (cube_z[n]-pixel_z)**2)
+                    weight = 1.0 / (np.exp(20.0*(d3-d1)/d2) + 1.0)
+                    
+                    za[j,i] = za[j,i] + dataz[n]*weight
+                    zb[j,i] = zb[j,i] + weight
                     if vec:
-                        u1[j,i] = u1[j,i] + datau1[n]*celldx[n]
-                        v1[j,i] = v1[j,i] + datav1[n]*celldx[n]
-                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
+                        u1[j,i] = u1[j,i] + datau1[n]*weight
+                        v1[j,i] = v1[j,i] + datav1[n]*weight
+                        z1[j,i] = z1[j,i] + np.sqrt(datau1[n]**2+datav1[n]**2)*weight
                     if stream:
-                        u2[j,i] = u2[j,i] + datau2[n]*celldx[n]
-                        v2[j,i] = v2[j,i] + datav2[n]*celldx[n]
-                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
+                        u2[j,i] = u2[j,i] + datau2[n]*weight
+                        v2[j,i] = v2[j,i] + datav2[n]*weight
+                        z2[j,i] = z2[j,i] + np.sqrt(datau2[n]**2+datav2[n]**2)*weight
         
         # Compute z averages
         if summed:
@@ -512,7 +528,6 @@ class OsirisData(osiris_common.OsirisCommon):
                 norm = None
                 clevels = np.linspace(zmin,zmax,nc)
                 cb_format = None
-            
             if axes:
                 theAxes = axes
             elif new_window:
@@ -950,7 +965,10 @@ class OsirisData(osiris_common.OsirisCommon):
             celldx = self.get("dx")[cube]
             
             # Project coordinates onto the plane by taking dot product with axes vectors
-            coords = np.transpose([self.get("x")[cube]-origin[0],self.get("y")[cube]-origin[1],self.get("z")[cube]-origin[2]])
+            cube_x = self.get("x")[cube]
+            cube_y = self.get("y")[cube]
+            cube_z = self.get("z")[cube]
+            coords = np.transpose([cube_x-origin[0],cube_y-origin[1],cube_z-origin[2]])
             datax = np.inner(coords,dir2)
             datay = np.inner(coords,dir3)
             
@@ -974,9 +992,21 @@ class OsirisData(osiris_common.OsirisCommon):
                 # Fill in the slice pixels with data
                 for j in range(iy1,iy2+1):
                     for i in range(ix1,ix2+1):
-                        za[j,i] = za[j,i] + dataz[n]*celldx[n]
-                        zb[j,i] = zb[j,i] + celldx[n]
                         
+                        cellrad  = 0.5*celldx[n]*sqrt3
+                        cellarea = np.pi*(cellrad**2)
+                        pxy = [(i+0.5)*dpx+xmin,(j+0.5)*dpy+ymin]
+                        pixel_x = pxy[0]*dir2[0] + pxy[1]*dir3[0] + origin[0]
+                        pixel_y = pxy[0]*dir2[1] + pxy[1]*dir3[1] + origin[1]
+                        pixel_z = pxy[0]*dir2[2] + pxy[1]*dir3[2] + origin[2]
+                        d1 = 0.5*np.sqrt(dpx**2+dpy**2) + cellrad
+                        d2 = 2.0*cellrad
+                        d3 = np.sqrt((cube_x[n]-pixel_x)**2 + (cube_y[n]-pixel_y)**2 + (cube_z[n]-pixel_z)**2)
+                        weight = 1.0 / (np.exp(20.0*(d3-d1)/d2) + 1.0)
+
+                        za[j,i] = za[j,i] + dataz[n]*weight
+                        zb[j,i] = zb[j,i] + weight
+
             # Compute z averages
             z = np.ma.masked_where(zb == 0.0, za/zb)
             
@@ -1026,7 +1056,7 @@ class OsirisData(osiris_common.OsirisCommon):
                 norm = None
                 clevels = np.linspace(vmin,vmax,nc)
                 cb_format = None
-            
+
             if axes:
                 theAxes = axes
             elif new_window:
