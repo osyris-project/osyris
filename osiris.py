@@ -47,7 +47,6 @@ class RamsesData(load_ramses_data.LoadRamsesData):
 #=======================================================================================
 
 
-
 #=======================================================================================
 # Plot a 2D histogram with two variables as input. This is used for instance to plot the
 # temperature as a function of density for every cell in the mesh. The input arguments
@@ -324,99 +323,22 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
         print("Cannot plot slice from 1D data. Exiting...")
         return
     
-    # List of directions
-    dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
-    
-    # Set dx to whole box if not specified
-    boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmax_x = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmin_y = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[1]))
-    boxmax_y = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[1]))
-    if dx+dy == 0.0:
-        dx = boxmax_x - boxmin_x
-        dy = boxmax_y - boxmin_y
-    elif dx == 0.0:
-        dx = dy
-    # Make it possible to call with only one size in the arguments
-    if dy == 0.0:
-        dy = dx
-    
-    # Define x,y directions depending on the input direction
-    if direction[0]=="[" and direction[-1]=="]":
-        dir_x = "x"
-        dir_y = "y"
-        dir1 = eval(direction)
-        dir2 = perpendicular_vector(dir1)
-        dir3 = np.cross(dir1,dir2)
-    elif direction.startswith("auto"):
-        params = direction.split(":")
-        if len(params) == 1:
-            view = "top"
-        else:
-            view = params[1]
-        if len(params) < 3:
-            sphere_rad = 0.5*((np.nanmax(holder.get("x"))-np.nanmin(holder.get("x"))) if dx == 0.0 else dx)
-        else:
-            sphere_rad = float(params[2])
-        dir_x = "x"
-        dir_y = "y"
-        # Compute angular momentum vector
-        sphere = np.where(holder.get("r") < sphere_rad)
-        pos    = np.vstack((holder.get("x")[sphere],holder.get("y")[sphere],holder.get("z")[sphere])*holder.get("mass")[sphere]).T
-        #vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
-        vel    = holder.get("velocity")[sphere]
-        AngMom = np.sum(np.cross(pos,vel),axis=0)
-        if view == "top":
-            dir1 = AngMom
-            dir2 = perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
-            dir3 = np.cross(dir1,dir2)
-        elif view == "side":
-            # Choose a vector perpendicular to the angular momentum vector
-            dir3 = AngMom
-            dir1 = perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
-            dir2 = np.cross(dir1,dir3)
-        norm1 = np.linalg.norm(dir1)
-        print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
-    elif ((direction == "x") or (direction == "y") or (direction == "z")):
-        [dir_x,dir_y] = dir_list[direction]
-        dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
-        dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
-        dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
-    elif holder.info["ndim"]==2:
-        dir1 = [0,0,1]
-        dir2 = [1,0,0]
-        dir3 = [0,1,0]
-        dir_x = "x"
-        dir_y = "y"
-    else:
-        print("Bad direction for slice")
-        return
-    
-    norm1 = np.linalg.norm(dir1)
-    norm2 = np.linalg.norm(dir2)
-    norm3 = np.linalg.norm(dir3)
-    dir1 = dir1 / norm1
-    dir2 = dir2 / norm2
-    dir3 = dir3 / norm3
+    # Get slice extent and direction vectors
+    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)
     
     # Define equation of a plane
     a_plane = dir1[0]
     b_plane = dir1[1]
     c_plane = dir1[2]
     d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
-    
-    #sqrt2 = np.sqrt(2.0)
-    sqrt3 = np.sqrt(3.0)
-    
+        
     dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
           / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
       
-    dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - sqrt3*0.5*holder.get("dx")
+    dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - np.sqrt(3.0)*0.5*holder.get("dx")
 
-    # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= sqrt3*0.5*holder.get("dx")+0.5*dz,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
-    ncells = np.shape(holder.get("dx")[cube])[0]
-    celldx = holder.get("dx")[cube]
+    # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")+0.5*dz,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
     datax = np.inner(coords,dir2)
@@ -449,14 +371,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
                 datau1 = vec.values[cube][0]
                 datav1 = vec.values[cube][1]
             else:
-                #print vec.values[cube]
-                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
-                #datau1 = np.inner(vec.values[cube,:],dir2)
-                #datav1 = np.inner(vec.values[cube,:],dir3)
                 datau1 = np.inner(vec.values[cube],dir2)
                 datav1 = np.inner(vec.values[cube],dir3)
-        #print np.shape(datau1)
-        #print np.shape(vec.values[cube,:]),np.shape(dir2)
     if stream:
         if stream.kind == "scalar":
             print("Warning: cannot make streamlines out of scalar field.")
@@ -465,23 +381,14 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
                 datau2 = stream.values[cube][0]
                 datav2 = stream.values[cube][1]
             else:
-                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
                 datau2 = np.inner(stream.values[cube],dir2)
                 datav2 = np.inner(stream.values[cube],dir3)
-        
-        #try:
-            #sz = holder.get(stream+"_z")[cube]
-        #except KeyError:
-            #sz = holder.get(stream+"_x")[cube]*0.0
-        #streams = np.transpose([holder.get(stream+"_x")[cube],holder.get(stream+"_y")[cube],sz])
-        #datau2 = np.inner(streams,dir2)
-        #datav2 = np.inner(streams,dir3)
     
     # Define slice extent and resolution
-    xmin = max(-0.5*dx,boxmin_x)
-    xmax = min(xmin+dx,boxmax_x)
-    ymin = max(-0.5*dy,boxmin_y)
-    ymax = min(ymin+dy,boxmax_y)
+    xmin = max(-0.5*dx,box[0])
+    xmax = min(xmin+dx,box[1])
+    ymin = max(-0.5*dy,box[2])
+    ymax = min(ymin+dy,box[3])
     nx   = resolution
     ny   = resolution
     dpx  = (xmax-xmin)/float(nx)
@@ -490,11 +397,10 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     
     grid_x, grid_y = np.meshgrid(x, y)
-    
     points = np.transpose([datax,datay])
-    print np.shape(points)
     
-    #from scipy.interpolate import griddata
+    # Use scipy interpolation function to make image
+    z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
         z_scal = griddata(points, dataz1, (grid_x, grid_y), method=interpolation)
     if image:
@@ -509,270 +415,18 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
         u_strm = griddata(points, datau2, (grid_x, grid_y), method=interpolation)
         v_strm = griddata(points, datav2, (grid_x, grid_y), method=interpolation)
         w_strm = griddata(points, np.sqrt(datau2**2+datav2**2), (grid_x, grid_y), method=interpolation)
-        
-        #if vec:
-                    #u1[j,i] += datau1[n]*celldx[n]
-                    #v1[j,i] += datav1[n]*celldx[n]
-                    #z1[j,i] += np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                #if stream:
-                    #u2[j,i] += datau2[n]*celldx[n]
-                    #v2[j,i] += datav2[n]*celldx[n]
-                    #z2[j,i] += np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
     
-    
-    
-    #axes.imshow(grid_z2.T, extent=(xmin,xmax,ymin,ymax), origin='lower')
-    
-    
-    ## We now create empty data arrays that will be filled by the cell data
-    #za = np.zeros([ny,nx])
-    #zb = np.zeros([ny,nx])
-    #zc = np.zeros([ny,nx])
-    #zd = np.zeros([ny,nx])
-    #if vec:
-        #u1 = np.zeros([ny,nx])
-        #v1 = np.zeros([ny,nx])
-        #z1 = np.zeros([ny,nx])
-    #if stream:
-        #u2 = np.zeros([ny,nx])
-        #v2 = np.zeros([ny,nx])
-        #z2 = np.zeros([ny,nx])
-    
-    ## Loop through all data cells and find extent covered by the current cell size
-    #for n in range(ncells):
-        
-        #x1 = datax[n]-0.5*celldx[n]*sqrt3
-        #x2 = datax[n]+0.5*celldx[n]*sqrt3
-        #y1 = datay[n]-0.5*celldx[n]*sqrt3
-        #y2 = datay[n]+0.5*celldx[n]*sqrt3
-        
-        ## Find the indices of the slice pixels which are covered by the current cell
-        #ix1 = max(int((x1-xmin)/dpx),0)
-        #ix2 = min(int((x2-xmin)/dpx),nx-1)
-        #iy1 = max(int((y1-ymin)/dpy),0)
-        #iy2 = min(int((y2-ymin)/dpy),ny-1)
-        
-        ## Fill in the slice pixels with data
-        #for j in range(iy1,iy2+1):
-            #for i in range(ix1,ix2+1):
-                #za[j,i] += celldx[n]
-                #if scalar:
-                    #zb[j,i] += dataz1[n]*celldx[n]
-                #if image:
-                    #zc[j,i] += dataz2[n]*celldx[n]
-                #if contour:
-                    #zd[j,i] += dataz3[n]*celldx[n]
-                
-                #if vec:
-                    #u1[j,i] += datau1[n]*celldx[n]
-                    #v1[j,i] += datav1[n]*celldx[n]
-                    #z1[j,i] += np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                #if stream:
-                    #u2[j,i] += datau2[n]*celldx[n]
-                    #v2[j,i] += datav2[n]*celldx[n]
-                    #z2[j,i] += np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
-    
-    ## Compute z averages
-    #if summed:
-        #if scalar:
-            #z_scal = np.ma.masked_where(za == 0.0, zb)
-        #if image:
-            #z_imag = np.ma.masked_where(za == 0.0, zc)
-        #if contour:
-            #z_cont = np.ma.masked_where(za == 0.0, zd)
-        
-        #if vec:
-            #u1 = np.ma.masked_where(za == 0.0, u1)
-            #v1 = np.ma.masked_where(za == 0.0, v1)
-            #w1 = np.ma.masked_where(za == 0.0, z1)
-        #if stream:
-            #u2 = np.ma.masked_where(za == 0.0, u2)
-            #v2 = np.ma.masked_where(za == 0.0, v2)
-            #w2 = np.ma.masked_where(za == 0.0, z2)
-    #else:
-        #if scalar:
-            #z_scal = np.ma.masked_where(za == 0.0, zb/za)
-        #if image:
-            #z_imag = np.ma.masked_where(za == 0.0, zc/za)
-        #if contour:
-            #z_cont = np.ma.masked_where(za == 0.0, zd/za)
-        #if vec:
-            #u1 = np.ma.masked_where(za == 0.0, u1/za)
-            #v1 = np.ma.masked_where(za == 0.0, v1/za)
-            #w1 = np.ma.masked_where(za == 0.0, z1/za)
-        #if stream:
-            #u2 = np.ma.masked_where(za == 0.0, u2/za)
-            #v2 = np.ma.masked_where(za == 0.0, v2/za)
-            #w2 = np.ma.masked_where(za == 0.0, z2/za)
-        
-    ## Define cell centers for filled contours
-    #x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    #y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-    
-    
-    
-    # Begin plotting -------------------------------------
+    # Render the map    
     if plot:
-        
-        if axes:
-            theAxes = axes
-        elif new_window:
-            plt.figure()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        else:
-            if clear:
-                plt.clf()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        
-        if scalar:
-            
-            # Round off AMR levels to integers
-            if scalar.label == "level":
-                z_scal = np.around(z_scal)
-            # Parse scalar plot arguments
-            scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
-            parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
-            contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
-            if scalar_args_osiris["cbar"]:
-                scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
-                scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-                scb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
-        if image:
-            
-            # Round off AMR levels to integers
-            if image.label == "level":
-                z_imag = np.around(z_imag)
-            # Here we define a set of default parameters
-            image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            # cmap and norm are just dummy arguments to tell the parsing function that they are required
-            image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
-            parse_arguments(image_args,image_args_osiris,image_args_plot)
-            img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
-            if image_args_osiris["cbar"]:
-                icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
-                icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
-                icb.ax.yaxis.set_label_coords(-1.1,0.5)
-                
-        if contour:
-            
-            # Round off AMR levels to integers
-            if contour.label == "level":
-                z_cont = np.around(z_cont)
-            # Here we define a set of default parameters
-            contour_args_osiris = {"vmin":np.nanmin(z_cont),"vmax":np.nanmax(z_cont),"cbar":False,"cbax":None,\
-                                   "cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
-            # levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
-            contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
-            parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
-            cont = theAxes.contour(x,y,z_cont,**contour_args_plot)
-            if contour_args_osiris["label"]:
-                theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
-            if contour_args_osiris["cbar"]:
-                ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
-                ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
-                ccb.ax.yaxis.set_label_coords(-1.1,0.5)
-        
-        # Plot vector field
-        if vec:
-            
-            vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
-                               "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
-            vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
-            parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
-            vskip = vec_args_osiris["vskip"]
-            if vec_args_plot["cmap"]:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
-                                      w_vect[::vskip,::vskip],**vec_args_plot)
-                if vec_args_osiris["cbar"]:
-                    vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
-                    vcb.ax.set_xlabel(vec.label+(" ["+vec.unit+"]" if len(vec.unit) > 0 else ""))
-            else:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
-                                      **vec_args_plot)
-            # Plot the scale of the vectors under the axes
-            unit_u = vec.unit
-            if vec_args_osiris["vkey"]:
-                theAxes.quiverkey(vect,vec_args_osiris["vkey_pos"][0],vec_args_osiris["vkey_pos"][1],\
-                                  vec_args_osiris["vscale"],"%.2f [%s]" % (vec_args_osiris["vscale"],\
-                                  unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
-                                  zorder=100)
-
-        if stream:
-            
-            # Here we define a set of default parameters
-            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w_strm),"vmax":np.nanmax(w_strm),"nc":21,"cmap":None}
-            stream_args_plot = {"cmap":1,"color":"w","norm":None}
-            parse_arguments(stream_args,stream_args_osiris,stream_args_plot)
-            sskip = stream_args_osiris["sskip"]
-            if stream_args_plot["cmap"]:
-                stream_args_plot["color"]=w_strm[::sskip,::sskip]
-            strm = theAxes.streamplot(x[::sskip],y[::sskip],u_strm[::sskip,::sskip],v_strm[::sskip,::sskip],**stream_args_plot)
-            if stream_args_osiris["cbar"]:
-                scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
-                scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
-            
-        
-        if holder.info["nsinks"] > 0 and sinks:
-            if dz == 0.0:
-                thickness = 0.05*dx
-            else:
-                thickness = 0.5*dz
-            dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-            sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
-            sink_x = np.inner(sinkcoords,dir2)
-            sink_y = np.inner(sinkcoords,dir3)
-            subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
-            srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-            xy = np.array([sink_x[subset],sink_y[subset]]).T
-            patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-            coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
-            theAxes.add_collection(coll)
-            
-        try:
-            title += ""
-            theAxes.set_title(title)
-        except TypeError:
-            theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
-        
-        if clear:
-            theAxes.set_xlim([xmin,xmax])
-            theAxes.set_ylim([ymin,ymax])
-        #else:
-            #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-            #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-        
-        # Define axes labels
-        xlab = getattr(holder,dir_x).label
-        if len(getattr(holder,dir_x).unit) > 0:
-            xlab += " ["+getattr(holder,dir_x).unit+"]"
-        ylab = getattr(holder,dir_y).label
-        if len(getattr(holder,dir_y).unit) > 0:
-            ylab += " ["+getattr(holder,dir_y).unit+"]"
-        theAxes.set_xlabel(xlab)
-        theAxes.set_ylabel(ylab)
-        
-        theAxes.set_aspect("equal")
-
-        if fname:
-            plt.savefig(fname,bbox_inches="tight")
-        elif axes:
-            pass
-        else:
-            plt.show(block=block)
+        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,\
+                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,  \
+                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,      \
+                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,      \
+                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,scalar_args=scalar_args,                \
+                   image_args=image_args,contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
     
     if copy:
-        if vec and stream:
-            return x,y,z,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
-        elif vec:
-            return x,y,z,u_vect,v_vect,w_vect
-        elif stream:
-            return x,y,z,u_strm,v_strm,w_strm
-        else:
-            return x,y,z
+        return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
     else:
         return
 
@@ -821,83 +475,12 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     if holder.info["ndim"] < 2:
         print("Cannot plot slice from 1D data. Exiting...")
         return
+        
+    # Get direction vectors
+    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)
     
-    # List of directions
-    dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
-    
-    # Set dx to whole box if not specified
-    boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmax_x = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmin_y = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[1]))
-    boxmax_y = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[1]))
-    if dx+dy == 0.0:
-        dx = boxmax_x - boxmin_x
-        dy = boxmax_y - boxmin_y
-    elif dx == 0.0:
-        dx = dy
-    # Make it possible to call with only one size in the arguments
-    if dy == 0.0:
-        dy = dx
     if dz == 0.0:
         dz = max(dx,dy)
-    
-    # Define x,y directions depending on the input direction
-    if direction[0]=="[" and direction[-1]=="]":
-        dir_x = "x"
-        dir_y = "y"
-        dir1 = eval(direction)
-        dir2 = perpendicular_vector(dir1)
-        dir3 = np.cross(dir1,dir2)
-    elif direction.startswith("auto"):
-        params = direction.split(":")
-        if len(params) == 1:
-            view = "top"
-        else:
-            view = params[1]
-        if len(params) < 3:
-            sphere_rad = 0.5*((np.nanmax(holder.get("x"))-np.nanmin(holder.get("x"))) if dx == 0.0 else dx)
-        else:
-            sphere_rad = float(params[2])
-        dir_x = "x"
-        dir_y = "y"
-        # Compute angular momentum vector
-        sphere = np.where(holder.get("r") < sphere_rad)
-        pos    = np.vstack((holder.get("x")[sphere],holder.get("y")[sphere],holder.get("z")[sphere])*holder.get("mass")[sphere]).T
-        #vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
-        vel    = holder.get("velocity")[sphere]
-        AngMom = np.sum(np.cross(pos,vel),axis=0)
-        if view == "top":
-            dir1 = AngMom
-            dir2 = perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
-            dir3 = np.cross(dir1,dir2)
-        elif view == "side":
-            # Choose a vector perpendicular to the angular momentum vector
-            dir3 = AngMom
-            dir1 = perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
-            dir2 = np.cross(dir1,dir3)
-        norm1 = np.linalg.norm(dir1)
-        print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
-    elif ((direction == "x") or (direction == "y") or (direction == "z")):
-        [dir_x,dir_y] = dir_list[direction]
-        dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
-        dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
-        dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
-    elif holder.info["ndim"]==2:
-        dir1 = [0,0,1]
-        dir2 = [1,0,0]
-        dir3 = [0,1,0]
-        dir_x = "x"
-        dir_y = "y"
-    else:
-        print("Bad direction for slice")
-        return
-    
-    norm1 = np.linalg.norm(dir1)
-    norm2 = np.linalg.norm(dir2)
-    norm3 = np.linalg.norm(dir3)
-    dir1 = dir1 / norm1
-    dir2 = dir2 / norm2
-    dir3 = dir3 / norm3
     
     # Define equation of a plane
     a_plane = dir1[0]
@@ -905,252 +488,103 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     c_plane = dir1[2]
     d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
     
-    #sqrt2 = np.sqrt(2.0)
-    #sqrt3 = np.sqrt(3.0)
-    
-    #dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
-          #/ np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-      
-    #dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2)
-
-    ## Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-    #cube = np.where(np.logical_and(abs(dist1) <= sqrt3*0.5*holder.get("dx")+0.5*dz,dist2 <= max(0.5*dx*sqrt2,0.5*dy*sqrt2)))
-    
     sqrt3 = np.sqrt(3.0)
     
-    dist = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - sqrt3*0.5*holder.get("dx")
-
-    # Select cube of cells
-    cube = np.where(np.abs(dist) <= max(dx,dy,dz)*0.5*sqrt3)
-    ncells = np.shape(holder.get("dx")[cube])[0]
-    celldx = holder.get("dx")[cube]
-    # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
-    datax = np.inner(coords,dir2)
-    datay = np.inner(coords,dir3)
-    dataz = np.inner(coords,dir1)
-    
-    if scalar:
-        if scalar.kind == "vector":
-            data1 = np.linalg.norm(scalar.values[cube,:],axis=1)
-        else:
-            data1 = scalar.values[cube]
-    
-    if image:
-        if image.kind == "vector":
-            data2 = np.linalg.norm(image.values[cube,:],axis=1)
-        else:
-            data2 = image.values[cube]
-    
-    if contour:
-        if contour.kind == "vector":
-            data3 = np.linalg.norm(contour.values[cube,:],axis=1)
-        else:
-            data3 = contour.values[cube]
-    
     # Define slice extent and resolution
-    xmin = max(-0.5*dx,boxmin_x)
-    xmax = min(xmin+dx,boxmax_x)
-    ymin = max(-0.5*dy,boxmin_y)
-    ymax = min(ymin+dy,boxmax_y)
+    xmin = max(-0.5*dx,box[0])
+    xmax = min(xmin+dx,box[1])
+    ymin = max(-0.5*dy,box[2])
+    ymax = min(ymin+dy,box[3])
     zmin = -0.5*dz
     zmax =  0.5*dz
     nx   = resolution
     ny   = resolution
     if nz == 0:
         nz = resolution
-    dpx  = (xmax-xmin)/float(nx)
-    dpy  = (ymax-ymin)/float(ny)
-    dpz  = (zmax-zmin)/float(nz)
-    
+    dpx = (xmax-xmin)/float(nx)
+    dpy = (ymax-ymin)/float(ny)
+    dpz = (zmax-zmin)/float(nz)
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     z = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
+    grid_x, grid_y = np.meshgrid(x, y)
     
     
-    
-    grid_x, grid_y, grid_z = np.meshgrid(x, y, z)
-    
-    points = np.transpose([datax,datay,dataz])
-    print np.shape(points)
-    
-    #from scipy.interpolate import griddata
+    # We now create empty data arrays that will be filled by the cell data
+    z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
-        z_scal = griddata(points, data1, (grid_x, grid_y, grid_z), method=interpolation)
-        print np.shape(z_scal)
+        z_scal = np.zeros([ny,nx])
     if image:
-        z_imag = griddata(points, data2, (grid_x, grid_y, grid_z), method=interpolation)
+        z_imag = np.zeros([ny,nx])
     if contour:
-        z_cont = griddata(points, data3, (grid_x, grid_y, grid_z), method=interpolation)
-    
-    
-    ### We now create empty data arrays that will be filled by the cell data
-    ##za = np.zeros([nz,ny,nx])
-    ##zb = np.zeros([nz,ny,nx])
-    ##zc = np.zeros([nz,ny,nx])
-    ##zd = np.zeros([nz,ny,nx])
-    
-    ##print ncells
-    
-    ### Loop through all data cells and find extent covered by the current cell size
-    ##for n in range(ncells):
-        
-        ##x1 = datax[n]-0.5*celldx[n]*sqrt3
-        ##x2 = datax[n]+0.5*celldx[n]*sqrt3
-        ##y1 = datay[n]-0.5*celldx[n]*sqrt3
-        ##y2 = datay[n]+0.5*celldx[n]*sqrt3
-        ##z1 = dataz[n]-0.5*celldx[n]*sqrt3
-        ##z2 = dataz[n]+0.5*celldx[n]*sqrt3
-        
-        ### Find the indices of the slice pixels which are covered by the current cell
-        ##ix1 = max(int((x1-xmin)/dpx),0)
-        ##ix2 = min(int((x2-xmin)/dpx),nx-1)
-        ##iy1 = max(int((y1-ymin)/dpy),0)
-        ##iy2 = min(int((y2-ymin)/dpy),ny-1)
-        ##iz1 = max(int((z1-zmin)/dpz),0)
-        ##iz2 = min(int((z2-zmin)/dpz),nz-1)
-        
-        ### Fill in the slice pixels with data
-        ##for k in range(iz1,iz2+1):
-            ##for j in range(iy1,iy2+1):
-                ##for i in range(ix1,ix2+1):
-                    ##za[k,j,i] += celldx[n]
-                    ##if scalar:
-                        ##zb[k,j,i] += data1[n]*celldx[n]
-                    ##if image:
-                        ##zc[k,j,i] += data2[n]*celldx[n]
-                    ##if contour:
-                        ##zd[k,j,i] += data3[n]*celldx[n]
-    
-    ## Compute column density
-    #if scalar:
-        #cd_scal = np.sum(np.ma.masked_where(za == 0.0, zb/za),axis=0)*dz*conf.constants[holder.info["scale"]]
-    #if image:
-        #cd_imag = np.sum(np.ma.masked_where(za == 0.0, zc/za),axis=0)*dz*conf.constants[holder.info["scale"]]
-    #if contour:
-        #cd_cont = np.sum(np.ma.masked_where(za == 0.0, zd/za),axis=0)*dz*conf.constants[holder.info["scale"]]
+        z_cont = np.zeros([ny,nx])
 
-    #print np.shape(cd_scal)    
+    iprog = 1
+    istep = 10
     
-    ## Define cell centers for filled contours
-    #x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    #y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+    for iz in range(nz):
+        
+        # Print progress
+        percentage = int(float(iz)*100.0/float(nz))
+        if percentage >= iprog*istep:
+            print("%3i%% done" % percentage)
+            iprog += 1
     
-    
-    
-    ## Begin plotting -------------------------------------
-    #if plot:
-        
-        #if axes:
-            #theAxes = axes
-        #elif new_window:
-            #plt.figure()
-            #plt.subplot(111)
-            #theAxes = plt.gca()
-        #else:
-            #if clear:
-                #plt.clf()
-            #plt.subplot(111)
-            #theAxes = plt.gca()
-        
-        #if scalar:
-            
-            ## Round off AMR levels to integers
-            #if scalar.label == "level":
-                #cd_scal = np.around(cd_scal)
-            ## Parse scalar plot arguments
-            #scalar_args_osiris = {"vmin":np.nanmin(cd_scal),"vmax":np.nanmax(cd_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            #scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
-            #parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
-            #contf = theAxes.contourf(x,y,cd_scal,**scalar_args_plot)
-            #if scalar_args_osiris["cbar"]:
-                #scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
-                #scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-                #scb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
-        #if image:
-            
-            ## Round off AMR levels to integers
-            #if image.label == "level":
-                #cd_imag = np.around(cd_imag)
-            ## Here we define a set of default parameters
-            #image_args_osiris = {"vmin":np.nanmin(cd_imag),"vmax":np.nanmax(cd_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            ## cmap and norm are just dummy arguments to tell the parsing function that they are required
-            #image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
-            #parse_arguments(image_args,image_args_osiris,image_args_plot)
-            #img = theAxes.imshow(cd_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
-            #if image_args_osiris["cbar"]:
-                #icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
-                #icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
-                #icb.ax.yaxis.set_label_coords(-1.1,0.5)
-                
-        #if contour:
-            
-            ## Round off AMR levels to integers
-            #if contour.label == "level":
-                #cd_cont = np.around(cd_cont)
-            ## Here we define a set of default parameters
-            #contour_args_osiris = {"vmin":np.nanmin(cd_cont),"vmax":np.nanmax(cd_cont),"cbar":False,"cbax":None,\
-                                   #"cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
-            ## levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
-            #contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
-            #parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
-            #cont = theAxes.contour(x,y,cd_cont,**contour_args_plot)
-            #if contour_args_osiris["label"]:
-                #theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
-            #if contour_args_osiris["cbar"]:
-                #ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
-                #ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
-                #ccb.ax.yaxis.set_label_coords(-1.1,0.5)
-        
-        
-        #if holder.info["nsinks"] > 0 and sinks:
-            #thickness = 0.5*dz
-            #dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-            #sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
-            #sink_x = np.inner(sinkcoords,dir2)
-            #sink_y = np.inner(sinkcoords,dir3)
-            #subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
-            #srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-            #xy = np.array([sink_x[subset],sink_y[subset]]).T
-            #patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-            #coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
-            #theAxes.add_collection(coll)
-            
-        #try:
-            #title += ""
-            #theAxes.set_title(title)
-        #except TypeError:
-            #theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
-        
-        #if clear:
-            #theAxes.set_xlim([xmin,xmax])
-            #theAxes.set_ylim([ymin,ymax])
-        ##else:
-            ##theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-            ##theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-        
-        ## Define axes labels
-        #xlab = getattr(holder,dir_x).label
-        #if len(getattr(holder,dir_x).unit) > 0:
-            #xlab += " ["+getattr(holder,dir_x).unit+"]"
-        #ylab = getattr(holder,dir_y).label
-        #if len(getattr(holder,dir_y).unit) > 0:
-            #ylab += " ["+getattr(holder,dir_y).unit+"]"
-        #theAxes.set_xlabel(xlab)
-        #theAxes.set_ylabel(ylab)
-        
-        #theAxes.set_aspect("equal")
+        dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
+              / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2) - z[iz]
+          
+        dist2 = np.sqrt((holder.get("x")-origin[0]-z[iz]*dir1[0])**2 + \
+                        (holder.get("y")-origin[1]-z[iz]*dir1[1])**2 + \
+                        (holder.get("z")-origin[2]-z[iz]*dir1[2])**2) - sqrt3*0.5*holder.get("dx")
 
-        #if fname:
-            #plt.savefig(fname,bbox_inches="tight")
-        #elif axes:
-            #pass
-        #else:
-            #plt.show(block=block)
+        # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
+        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+        #cube = np.where(np.abs(dist1) <= sqrt3*0.5*holder.get("dx"))
+        #ncells = np.shape(holder.get("dx")[cube])[0]
+        #print ncells
+        #celldx = holder.get("dx")[cube]
+        # Project coordinates onto the plane by taking dot product with axes vectors
+        coords = np.transpose([holder.get("x")[cube]-origin[0]-z[iz]*dir1[0],holder.get("y")[cube]-origin[1]-z[iz]*dir1[1],holder.get("z")[cube]-origin[2]-z[iz]*dir1[2]])
+        datax = np.inner(coords,dir2)
+        datay = np.inner(coords,dir3)
+        
+        if scalar:
+            if scalar.kind == "vector":
+                dataz1 = np.linalg.norm(scalar.values[cube,:],axis=1)
+            else:
+                dataz1 = scalar.values[cube]
+        
+        if image:
+            if image.kind == "vector":
+                dataz2 = np.linalg.norm(image.values[cube,:],axis=1)
+            else:
+                dataz2 = image.values[cube]
+        
+        if contour:
+            if contour.kind == "vector":
+                dataz3 = np.linalg.norm(contour.values[cube,:],axis=1)
+            else:
+                dataz3 = contour.values[cube]
+    
+        points = np.transpose([datax,datay])
+        if scalar:
+            z_scal += griddata(points, dataz1, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+        if image:
+            z_imag += griddata(points, dataz2, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+        if contour:
+            z_cont += griddata(points, dataz3, (grid_x, grid_y), method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+    
+    # Render the map    
+    if plot:
+        render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,\
+                   z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,  \
+                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,      \
+                   axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,      \
+                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,scalar_args=scalar_args,                \
+                   image_args=image_args,contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
     
     if copy:
-        return x,y,cd_scal
+        return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
     else:
         return
 
@@ -1377,77 +811,10 @@ def parse_arguments(args,args_osiris,args_plot):
     
     return
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #=======================================================================================
-# Plot a 2D slice through the data cube. The arguments are:
-# - scalar     : the scalar field to be plotted, e.g. mydata.density
-# - image      : the scalar field to be plotted with an image
-# - contour    : the scalar field to be plotted with contours
-# - vec        : the vector field to be overplotted, e.g. mydata.velocity
-# - stream     : the field for streamlines to be overplotted, e.g. mydata.B
-# - direction  : the direction normal to the plane of the slice
-# - dx         : the x extent of the slice, in units of scale (see data loader)
-# - dy         : the y extent of the slice, in units of scale. If not specified, dy = dx
-# - dz         : the thickness of the slice
-# - axes       : if specified, the data is plotted on the specified axes (see demo).
-# - resolution : number of pixels in the slice.
-# - fname      : if specified, the figure is saved to file.
+# Find direction vectors for slice
 #=======================================================================================
-def plot_slice_hash(scalar=False,image=False,contour=False,vec=False,stream=False,          \
-               direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
-               origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
-               new_window=False,update=None,clear=True,plot=True,block=False,          \
-               interpolation='linear',
-               scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
-    
-    ## Possibility of updating the data from inside the plotting routines
-    #try:
-        #update += 0
-        #self.update_values(nout=update)
-    #except TypeError:
-        #pass
-    
-    # Find parent container of object to plot
-    if scalar:
-        holder = scalar.parent
-    elif image:
-        holder = image.parent
-    elif contour:
-        holder = contour.parent
-    elif vec:
-        holder = vec.parent
-    elif stream:
-        holder = stream.parent
-    else:
-        print("Nothing to plot.")
-        return
-        
-    if holder.info["ndim"] < 2:
-        print("Cannot plot slice from 1D data. Exiting...")
-        return
+def get_slice_direction(holder,direction,dx,dy):
     
     # List of directions
     dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
@@ -1524,433 +891,201 @@ def plot_slice_hash(scalar=False,image=False,contour=False,vec=False,stream=Fals
     dir2 = dir2 / norm2
     dir3 = dir3 / norm3
     
-    # Define equation of a plane
-    a_plane = dir1[0]
-    b_plane = dir1[1]
-    c_plane = dir1[2]
-    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
-    
-    #sqrt2 = np.sqrt(2.0)
-    sqrt3 = np.sqrt(3.0)
-    
-    dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
-          / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-      
-    dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - sqrt3*0.5*holder.get("dx")
+    box = [boxmin_x,boxmax_x,boxmin_y,boxmax_y]
 
-    # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= sqrt3*0.5*holder.get("dx")+0.5*dz,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
-    ncells = np.shape(holder.get("dx")[cube])[0]
-    celldx = holder.get("dx")[cube]
-    # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
-    datax = np.inner(coords,dir2)
-    datay = np.inner(coords,dir3)
+    return dx,dy,box,dir1,dir2,dir3,dir_x,dir_y
+
+
+#=======================================================================================
+# Use matplotlib to plot the slice or column density maps
+#=======================================================================================
+def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0,y=0,  \
+               z_scal=0,z_imag=0,z_cont=0,u_vect=0,v_vect=0,w_vect=0,u_strm=0,v_strm=0,\
+               w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
+               clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
+               resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
+               stream_args={}):
+    
+    # Find parent container of object to plot
+    if scalar:
+        holder = scalar.parent
+    elif image:
+        holder = image.parent
+    elif contour:
+        holder = contour.parent
+    elif vec:
+        holder = vec.parent
+    elif stream:
+        holder = stream.parent
+    else:
+        print("Nothing to render.")
+        return
+    
+    if axes:
+        theAxes = axes
+    elif new_window:
+        plt.figure()
+        plt.subplot(111)
+        theAxes = plt.gca()
+    else:
+        if clear:
+            plt.clf()
+        plt.subplot(111)
+        theAxes = plt.gca()
     
     if scalar:
-        if scalar.kind == "vector":
-            dataz1 = np.linalg.norm(scalar.values[cube,:],axis=1)
-        else:
-            dataz1 = scalar.values[cube]
-    
+        
+        # Round off AMR levels to integers
+        if scalar.label == "level":
+            z_scal = np.around(z_scal)
+        # Parse scalar plot arguments
+        scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+        scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
+        parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
+        contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
+        if scalar_args_osiris["cbar"]:
+            scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
+            scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+            scb.ax.yaxis.set_label_coords(-1.1,0.5)
+            
     if image:
-        if image.kind == "vector":
-            dataz2 = np.linalg.norm(image.values[cube,:],axis=1)
-        else:
-            dataz2 = image.values[cube]
-    
+        
+        # Round off AMR levels to integers
+        if image.label == "level":
+            z_imag = np.around(z_imag)
+        # Here we define a set of default parameters
+        image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
+        # cmap and norm are just dummy arguments to tell the parsing function that they are required
+        image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
+        parse_arguments(image_args,image_args_osiris,image_args_plot)
+        img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
+        if image_args_osiris["cbar"]:
+            icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
+            icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
+            icb.ax.yaxis.set_label_coords(-1.1,0.5)
+            
     if contour:
-        if contour.kind == "vector":
-            dataz3 = np.linalg.norm(contour.values[cube,:],axis=1)
-        else:
-            dataz3 = contour.values[cube]
+        
+        # Round off AMR levels to integers
+        if contour.label == "level":
+            z_cont = np.around(z_cont)
+        # Here we define a set of default parameters
+        contour_args_osiris = {"vmin":np.nanmin(z_cont),"vmax":np.nanmax(z_cont),"cbar":False,"cbax":None,\
+                               "cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
+        # levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
+        contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
+        parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
+        cont = theAxes.contour(x,y,z_cont,**contour_args_plot)
+        if contour_args_osiris["label"]:
+            theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
+        if contour_args_osiris["cbar"]:
+            ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
+            ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
+            ccb.ax.yaxis.set_label_coords(-1.1,0.5)
     
-    # Now project vectors and streamlines using the same method
+    # Plot vector field
     if vec:
-        if vec.kind == "scalar":
-            print("Warning: cannot make vectors out of scalar field.")
+        
+        vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
+                           "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
+        vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
+        parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
+        vskip = vec_args_osiris["vskip"]
+        if vec_args_plot["cmap"]:
+            vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
+                                  w_vect[::vskip,::vskip],**vec_args_plot)
+            if vec_args_osiris["cbar"]:
+                vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
+                vcb.ax.set_xlabel(vec.label+(" ["+vec.unit+"]" if len(vec.unit) > 0 else ""))
         else:
-            if holder.info["ndim"] < 3:
-                datau1 = vec.values[cube][0]
-                datav1 = vec.values[cube][1]
-            else:
-                #print vec.values[cube]
-                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
-                #datau1 = np.inner(vec.values[cube,:],dir2)
-                #datav1 = np.inner(vec.values[cube,:],dir3)
-                datau1 = np.inner(vec.values[cube],dir2)
-                datav1 = np.inner(vec.values[cube],dir3)
-        #print np.shape(datau1)
-        #print np.shape(vec.values[cube,:]),np.shape(dir2)
+            vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
+                                  **vec_args_plot)
+        # Plot the scale of the vectors under the axes
+        unit_u = vec.unit
+        if vec_args_osiris["vkey"]:
+            theAxes.quiverkey(vect,vec_args_osiris["vkey_pos"][0],vec_args_osiris["vkey_pos"][1],\
+                              vec_args_osiris["vscale"],"%.2f [%s]" % (vec_args_osiris["vscale"],\
+                              unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
+                              zorder=100)
+
     if stream:
-        if stream.kind == "scalar":
-            print("Warning: cannot make streamlines out of scalar field.")
+        
+        # Here we define a set of default parameters
+        stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w_strm),"vmax":np.nanmax(w_strm),"nc":21,"cmap":None}
+        stream_args_plot = {"cmap":1,"color":"w","norm":None}
+        parse_arguments(stream_args,stream_args_osiris,stream_args_plot)
+        sskip = stream_args_osiris["sskip"]
+        if stream_args_plot["cmap"]:
+            stream_args_plot["color"]=w_strm[::sskip,::sskip]
+        strm = theAxes.streamplot(x[::sskip],y[::sskip],u_strm[::sskip,::sskip],v_strm[::sskip,::sskip],**stream_args_plot)
+        if stream_args_osiris["cbar"]:
+            scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
+            scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
+        
+    
+    if holder.info["nsinks"] > 0 and sinks:
+        if dz == 0.0:
+            thickness = 0.05*dx
         else:
-            if holder.info["ndim"] < 3:
-                datau2 = stream.values[cube][0]
-                datav2 = stream.values[cube][1]
-            else:
-                #vectors = np.transpose([holder.get(vec+"_x")[cube],holder.get(vec+"_y")[cube],vz])
-                datau2 = np.inner(stream.values[cube],dir2)
-                datav2 = np.inner(stream.values[cube],dir3)
+            thickness = 0.5*dz
+        dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+        sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
+        sink_x = np.inner(sinkcoords,dir2)
+        sink_y = np.inner(sinkcoords,dir3)
+        subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
+        srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
+        xy = np.array([sink_x[subset],sink_y[subset]]).T
+        patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
+        coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+        theAxes.add_collection(coll)
         
-        #try:
-            #sz = holder.get(stream+"_z")[cube]
-        #except KeyError:
-            #sz = holder.get(stream+"_x")[cube]*0.0
-        #streams = np.transpose([holder.get(stream+"_x")[cube],holder.get(stream+"_y")[cube],sz])
-        #datau2 = np.inner(streams,dir2)
-        #datav2 = np.inner(streams,dir3)
+    try:
+        title += ""
+        theAxes.set_title(title)
+    except TypeError:
+        theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
     
-    # Define slice extent and resolution
-    xmin = max(-0.5*dx,boxmin_x)
-    xmax = min(xmin+dx,boxmax_x)
-    ymin = max(-0.5*dy,boxmin_y)
-    ymax = min(ymin+dy,boxmax_y)
-    nx   = resolution
-    ny   = resolution
-    dpx  = (xmax-xmin)/float(nx)
-    dpy  = (ymax-ymin)/float(ny)
-    x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-    
-    grid_x, grid_y = np.meshgrid(x, y)
-    
-    x3D = grid_x*dir2[0] + grid_y*dir3[0]
-    y3D = grid_x*dir2[1] + grid_y*dir3[1]
-    z3D = grid_x*dir2[2] + grid_y*dir3[2]
-    
-    points = np.transpose([x3D,y3D,z3D]).reshape([nx*ny,3])
-    
-    
-    
-    z_scal = np.transpose(interpolate(holder,scalar,points).reshape([nx,ny]))
-    #z_imag = np.transpose(values.reshape([nx,ny]))
-    
-    
-    #z_scal = np.zeros([ny,nx])
-    #for i in range(nx):
-        #for j in range(ny):
-            #for l in range(holder.info["levelmax"],1,-1):
-                ##print i,j,l
-                #dxcell = 0.5**l
-                #igrid = (((x[i] + holder.info["xc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
-                #jgrid = (((y[j] + holder.info["yc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
-                #kgrid = (((0.0  + holder.info["zc"])/holder.info["boxsize_scaled"])/dxcell).astype(np.int64)
-                #theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(l)
-                ##print theHash
-                #try:
-                    #icell = holder.hash_table[theHash]
-                    #break
-                #except KeyError:
-                    #pass
-            #z_scal[j,i] = scalar.values[icell]
-    
-            
-            
-    
-    
-    
-    
-    
-    #grid_x, grid_y = np.meshgrid(x, y)
-    
-    #points = np.transpose([datax,datay])
-    #print np.shape(points)
-    
-    ##from scipy.interpolate import griddata
-    #if scalar:
-        #z_scal = griddata(points, dataz1, (grid_x, grid_y), method=interpolation)
-    #if image:
-        #z_imag = griddata(points, dataz2, (grid_x, grid_y), method=interpolation)
-    #if contour:
-        #z_cont = griddata(points, dataz3, (grid_x, grid_y), method=interpolation)
-    #if vec:
-        #u_vect = griddata(points, datau1, (grid_x, grid_y), method=interpolation)
-        #v_vect = griddata(points, datav1, (grid_x, grid_y), method=interpolation)
-        #w_vect = griddata(points, np.sqrt(datau1**2+datav1**2), (grid_x, grid_y), method=interpolation)
-    #if stream:
-        #u_strm = griddata(points, datau2, (grid_x, grid_y), method=interpolation)
-        #v_strm = griddata(points, datav2, (grid_x, grid_y), method=interpolation)
-        #w_strm = griddata(points, np.sqrt(datau2**2+datav2**2), (grid_x, grid_y), method=interpolation)
-        
-        ##if vec:
-                    ##u1[j,i] += datau1[n]*celldx[n]
-                    ##v1[j,i] += datav1[n]*celldx[n]
-                    ##z1[j,i] += np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                ##if stream:
-                    ##u2[j,i] += datau2[n]*celldx[n]
-                    ##v2[j,i] += datav2[n]*celldx[n]
-                    ##z2[j,i] += np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
-    
-    
-    
-    ##axes.imshow(grid_z2.T, extent=(xmin,xmax,ymin,ymax), origin='lower')
-    
-    
-    ## We now create empty data arrays that will be filled by the cell data
-    #za = np.zeros([ny,nx])
-    #zb = np.zeros([ny,nx])
-    #zc = np.zeros([ny,nx])
-    #zd = np.zeros([ny,nx])
-    #if vec:
-        #u1 = np.zeros([ny,nx])
-        #v1 = np.zeros([ny,nx])
-        #z1 = np.zeros([ny,nx])
-    #if stream:
-        #u2 = np.zeros([ny,nx])
-        #v2 = np.zeros([ny,nx])
-        #z2 = np.zeros([ny,nx])
-    
-    ## Loop through all data cells and find extent covered by the current cell size
-    #for n in range(ncells):
-        
-        #x1 = datax[n]-0.5*celldx[n]*sqrt3
-        #x2 = datax[n]+0.5*celldx[n]*sqrt3
-        #y1 = datay[n]-0.5*celldx[n]*sqrt3
-        #y2 = datay[n]+0.5*celldx[n]*sqrt3
-        
-        ## Find the indices of the slice pixels which are covered by the current cell
-        #ix1 = max(int((x1-xmin)/dpx),0)
-        #ix2 = min(int((x2-xmin)/dpx),nx-1)
-        #iy1 = max(int((y1-ymin)/dpy),0)
-        #iy2 = min(int((y2-ymin)/dpy),ny-1)
-        
-        ## Fill in the slice pixels with data
-        #for j in range(iy1,iy2+1):
-            #for i in range(ix1,ix2+1):
-                #za[j,i] += celldx[n]
-                #if scalar:
-                    #zb[j,i] += dataz1[n]*celldx[n]
-                #if image:
-                    #zc[j,i] += dataz2[n]*celldx[n]
-                #if contour:
-                    #zd[j,i] += dataz3[n]*celldx[n]
-                
-                #if vec:
-                    #u1[j,i] += datau1[n]*celldx[n]
-                    #v1[j,i] += datav1[n]*celldx[n]
-                    #z1[j,i] += np.sqrt(datau1[n]**2+datav1[n]**2)*celldx[n]
-                #if stream:
-                    #u2[j,i] += datau2[n]*celldx[n]
-                    #v2[j,i] += datav2[n]*celldx[n]
-                    #z2[j,i] += np.sqrt(datau2[n]**2+datav2[n]**2)*celldx[n]
-    
-    ## Compute z averages
-    #if summed:
-        #if scalar:
-            #z_scal = np.ma.masked_where(za == 0.0, zb)
-        #if image:
-            #z_imag = np.ma.masked_where(za == 0.0, zc)
-        #if contour:
-            #z_cont = np.ma.masked_where(za == 0.0, zd)
-        
-        #if vec:
-            #u1 = np.ma.masked_where(za == 0.0, u1)
-            #v1 = np.ma.masked_where(za == 0.0, v1)
-            #w1 = np.ma.masked_where(za == 0.0, z1)
-        #if stream:
-            #u2 = np.ma.masked_where(za == 0.0, u2)
-            #v2 = np.ma.masked_where(za == 0.0, v2)
-            #w2 = np.ma.masked_where(za == 0.0, z2)
+    if clear:
+        theAxes.set_xlim([xmin,xmax])
+        theAxes.set_ylim([ymin,ymax])
     #else:
-        #if scalar:
-            #z_scal = np.ma.masked_where(za == 0.0, zb/za)
-        #if image:
-            #z_imag = np.ma.masked_where(za == 0.0, zc/za)
-        #if contour:
-            #z_cont = np.ma.masked_where(za == 0.0, zd/za)
-        #if vec:
-            #u1 = np.ma.masked_where(za == 0.0, u1/za)
-            #v1 = np.ma.masked_where(za == 0.0, v1/za)
-            #w1 = np.ma.masked_where(za == 0.0, z1/za)
-        #if stream:
-            #u2 = np.ma.masked_where(za == 0.0, u2/za)
-            #v2 = np.ma.masked_where(za == 0.0, v2/za)
-            #w2 = np.ma.masked_where(za == 0.0, z2/za)
-        
-    ## Define cell centers for filled contours
-    #x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    #y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
+        #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+        #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
     
+    # Define axes labels
+    xlab = getattr(holder,dir_x).label
+    if len(getattr(holder,dir_x).unit) > 0:
+        xlab += " ["+getattr(holder,dir_x).unit+"]"
+    ylab = getattr(holder,dir_y).label
+    if len(getattr(holder,dir_y).unit) > 0:
+        ylab += " ["+getattr(holder,dir_y).unit+"]"
+    theAxes.set_xlabel(xlab)
+    theAxes.set_ylabel(ylab)
     
-    
-    # Begin plotting -------------------------------------
-    if plot:
-        
-        if axes:
-            theAxes = axes
-        elif new_window:
-            plt.figure()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        else:
-            if clear:
-                plt.clf()
-            plt.subplot(111)
-            theAxes = plt.gca()
-        
-        if scalar:
-            
-            # Round off AMR levels to integers
-            if scalar.label == "level":
-                z_scal = np.around(z_scal)
-            # Parse scalar plot arguments
-            scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            scalar_args_plot = {"levels":1,"cmap":1,"norm":1}
-            parse_arguments(scalar_args,scalar_args_osiris,scalar_args_plot)
-            #contf = theAxes.contourf(x,y,z_scal,**scalar_args_plot)
-            contf = theAxes.contourf(grid_x,grid_y,z_scal,**scalar_args_plot)
-            if scalar_args_osiris["cbar"]:
-                scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
-                scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-                scb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
-        if image:
-            
-            # Round off AMR levels to integers
-            if image.label == "level":
-                z_imag = np.around(z_imag)
-            # Here we define a set of default parameters
-            image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
-            # cmap and norm are just dummy arguments to tell the parsing function that they are required
-            image_args_plot = {"cmap":1,"norm":1,"interpolation":"none","origin":"lower"}
-            parse_arguments(image_args,image_args_osiris,image_args_plot)
-            img = theAxes.imshow(z_imag,extent=[xmin,xmax,ymin,ymax],**image_args_plot)
-            if image_args_osiris["cbar"]:
-                icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
-                icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
-                icb.ax.yaxis.set_label_coords(-1.1,0.5)
-                
-        if contour:
-            
-            # Round off AMR levels to integers
-            if contour.label == "level":
-                z_cont = np.around(z_cont)
-            # Here we define a set of default parameters
-            contour_args_osiris = {"vmin":np.nanmin(z_cont),"vmax":np.nanmax(z_cont),"cbar":False,"cbax":None,\
-                                   "cmap":conf.default_values["colormap"],"nc":21,"label":False,"fmt":"%1.3f"}
-            # levels, cmap and norm are just dummy arguments to tell the parsing function that they are required
-            contour_args_plot = {"levels":1,"cmap":1,"norm":1,"zorder":10,"linestyles":"solid"}
-            parse_arguments(contour_args,contour_args_osiris,contour_args_plot)
-            cont = theAxes.contour(x,y,z_cont,**contour_args_plot)
-            if contour_args_osiris["label"]:
-                theAxes.clabel(cont,inline=1,fmt=contour_args_osiris["fmt"])
-            if contour_args_osiris["cbar"]:
-                ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
-                ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
-                ccb.ax.yaxis.set_label_coords(-1.1,0.5)
-        
-        # Plot vector field
-        if vec:
-            
-            vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
-                               "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
-            vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
-            parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
-            vskip = vec_args_osiris["vskip"]
-            if vec_args_plot["cmap"]:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
-                                      w_vect[::vskip,::vskip],**vec_args_plot)
-                if vec_args_osiris["cbar"]:
-                    vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
-                    vcb.ax.set_xlabel(vec.label+(" ["+vec.unit+"]" if len(vec.unit) > 0 else ""))
-            else:
-                vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
-                                      **vec_args_plot)
-            # Plot the scale of the vectors under the axes
-            unit_u = vec.unit
-            if vec_args_osiris["vkey"]:
-                theAxes.quiverkey(vect,vec_args_osiris["vkey_pos"][0],vec_args_osiris["vkey_pos"][1],\
-                                  vec_args_osiris["vscale"],"%.2f [%s]" % (vec_args_osiris["vscale"],\
-                                  unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
-                                  zorder=100)
+    theAxes.set_aspect("equal")
 
-        if stream:
-            
-            # Here we define a set of default parameters
-            stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w_strm),"vmax":np.nanmax(w_strm),"nc":21,"cmap":None}
-            stream_args_plot = {"cmap":1,"color":"w","norm":None}
-            parse_arguments(stream_args,stream_args_osiris,stream_args_plot)
-            sskip = stream_args_osiris["sskip"]
-            if stream_args_plot["cmap"]:
-                stream_args_plot["color"]=w_strm[::sskip,::sskip]
-            strm = theAxes.streamplot(x[::sskip],y[::sskip],u_strm[::sskip,::sskip],v_strm[::sskip,::sskip],**stream_args_plot)
-            if stream_args_osiris["cbar"]:
-                scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
-                scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
-            
-        
-        if holder.info["nsinks"] > 0 and sinks:
-            if dz == 0.0:
-                thickness = 0.05*dx
-            else:
-                thickness = 0.5*dz
-            dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-            sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
-            sink_x = np.inner(sinkcoords,dir2)
-            sink_y = np.inner(sinkcoords,dir3)
-            subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
-            srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
-            xy = np.array([sink_x[subset],sink_y[subset]]).T
-            patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-            coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
-            theAxes.add_collection(coll)
-            
-        try:
-            title += ""
-            theAxes.set_title(title)
-        except TypeError:
-            theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
-        
-        if clear:
-            theAxes.set_xlim([xmin,xmax])
-            theAxes.set_ylim([ymin,ymax])
-        #else:
-            #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-            #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-        
-        # Define axes labels
-        xlab = getattr(holder,dir_x).label
-        if len(getattr(holder,dir_x).unit) > 0:
-            xlab += " ["+getattr(holder,dir_x).unit+"]"
-        ylab = getattr(holder,dir_y).label
-        if len(getattr(holder,dir_y).unit) > 0:
-            ylab += " ["+getattr(holder,dir_y).unit+"]"
-        theAxes.set_xlabel(xlab)
-        theAxes.set_ylabel(ylab)
-        
-        theAxes.set_aspect("equal")
-
-        if fname:
-            plt.savefig(fname,bbox_inches="tight")
-        elif axes:
-            pass
-        else:
-            plt.show(block=block)
-    
-    if copy:
-        if vec and stream:
-            return x,y,z,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
-        elif vec:
-            return x,y,z,u_vect,v_vect,w_vect
-        elif stream:
-            return x,y,z,u_strm,v_strm,w_strm
-        else:
-            return x,y,z
+    if fname:
+        plt.savefig(fname,bbox_inches="tight")
+    elif axes:
+        pass
     else:
-        return
-
-
-
-
-
+        plt.show(block=block)
+        
+    return
 
 
 #=======================================================================================
 # Interpolate data at any given point in the whole 3D domain
 #=======================================================================================
-def interpolate(holder,field,points):
+def interpolate(field,points):
+    
+    holder = field.parent
+    
+    try:
+        hashTable = holder.hash_table
+    except AttributeError:
+        print("A hash table is needed to perform interpolations")
+        holder.create_hash_table()
     
     points[:,0] = ((points[:,0] + holder.info["xc"])/holder.info["boxsize_scaled"])
     points[:,1] = ((points[:,1] + holder.info["yc"])/holder.info["boxsize_scaled"])
@@ -2042,4 +1177,3 @@ def interpolate(holder,field,points):
         values[ip] = result/weights
 
     return values
-

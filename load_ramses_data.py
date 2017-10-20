@@ -235,9 +235,6 @@ class LoadRamsesData():
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
-        self.hash_table = dict()
-        cell_index = -1
-        
         
         # Allocate work arrays
         twotondim = 2**self.info["ndim"]
@@ -445,29 +442,7 @@ class LoadRamsesData():
                                 ncells_tot += ncells
                                 npieces += 1
                                 # Add the cells in the master dictionary
-                                data_pieces["piece"+str(npieces).zfill(9)] = cells
-                                # Fill in hash table
-                                #print ncells
-                                ijkcells = (xyz[cube]/dxcell).astype(np.int64)
-                                #igrid = xcells[:,0].astype(np.int32)
-                                #jgrid = xcells[:,1].astype(np.int32)
-                                #kgrid = xcells[:,2].astype(np.int32)
-                                #print np.shape(ijkcells)
-                                for icell in range(ncells):
-                                    cell_index += 1
-                                    ##print xyz[cube][icell,0]
-                                    #igrid = xcells[icell,0]
-                                    #jgrid = xcells[icell,1]
-                                    #kgrid = xcells[icell,2]
-                                    #if ilevel==11:
-                                        #print icell,igrid,jgrid,kgrid
-                                    #theHash = str(igrid[icell])+','+str(jgrid[icell])+','+str(kgrid[icell])+','+str(ilevel+1)
-                                    theHash = str(ijkcells[icell,0])+','+str(ijkcells[icell,1])+','+str(ijkcells[icell,2])+','+str(ilevel+1)
-                                    #if ilevel==11:
-                                        #print theHash
-                                    self.hash_table[theHash] = cell_index
-                                    #print theHash,hash(self.hash_table[theHash]),cell_index
-                                    
+                                data_pieces["piece"+str(npieces)] = cells
                                 
                         # Now increment the offsets while looping through the domains
                         ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
@@ -489,14 +464,8 @@ class LoadRamsesData():
                 nstrin2 = nstrin_hydro
         
         # Merge all the data pieces into the master data array
-        #sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
-        #print list(sorted(data_pieces.keys(),key=lambda x:data_pieces.keys()))
-        #master_data_array = np.concatenate(list(sorted(data_pieces.values(),key=lambda x:data_pieces.keys())), axis=0)
-        #master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
-        #print len(data_pieces.keys())
-        master_data_array = np.concatenate([data_pieces[key] for key in sorted(data_pieces.keys())], axis=0)
+        master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
         
-        #[attributes[key] for key in sorted(attributes.keys(), reverse=True)]
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
         
@@ -1036,169 +1005,19 @@ class LoadRamsesData():
             return [key_list,typ_list]
         else:
             return key_list
-        
+    
     #=======================================================================================
-    # This function writes the RAMSES data to a VTK file for 3D visualization
+    # The function returns the list of variables
     #=======================================================================================
-    def to_vtk(self,fname="osiris_data.vtu",variables=False):
+    def create_hash_table(self):
         
-        try:
-            from scipy.spatial import Delaunay
-        except ImportError:
-            print("Scipy Delaunay library not found. This is needed for VTK output. Exiting.")
-
-        # Print status
-        if not fname.endswith(".vtu"):
-            fname += ".vtu"
-        print("Writing data to VTK file: "+fname)
-        
-        # Coordinates ot RAMSES cell centers
-        points = np.array([self.get("x"),self.get("y"),self.get("z")]).T
-        
-        # Compute Delaunay tetrahedralization from cell nodes
-        # Note that this step can take a lot of time!
-        ncells = self.info["ncells"]
-        print("Computing Delaunay mesh with %i points." % ncells)
-        print("This may take some time...")
-        tri = Delaunay(points)
-        ntetra = np.shape(tri.simplices)[0]
-        nverts = ntetra*4
-        print("Delaunay mesh with %i tetrahedra complete." % ntetra)
-
-        # Create list of variables by grouping x,y,z components together
-        nvarmax = len(self.data.keys())
-        n_components = [] #np.zeros([nvarmax],dtype=np.int32)
-        varlist = []
-        varnames = []
-        for key in self.data.keys():
-            if key.endswith("_x") or key.endswith("_y") or key.endswith("_z"):
-                rawkey = key[:-2]
-                try:
-                    k = len(self.get(rawkey+"_x"))+len(self.get(rawkey+"_y"))+len(self.get(rawkey+"_z"))
-                    ok = True
-                    for i in range(np.shape(varlist)[0]):
-                        for j in range(n_components[i]):
-                            if key == varlist[i][j]:
-                                ok = False
-                                break
-                    if ok:
-                        varlist.append([rawkey+"_x",rawkey+"_y",rawkey+"_z"])
-                        n_components.append(3)
-                        varnames.append(rawkey+"_vec")
-                except KeyError:
-                    varlist.append([key,"",""])
-                    n_components.append(1)
-                    varnames.append(key)
-            else:
-                varlist.append([key,"",""])
-                n_components.append(1)
-                varnames.append(key)
-        
-        nvars = len(n_components)
-
-        # Compute byte sizes
-        nbytes_xyz   = 3 * ncells * 8
-        nbytes_cellc =     nverts * 4
-        nbytes_cello =     ntetra * 4
-        nbytes_cellt =     ntetra * 4
-        nbytes_vars  = np.zeros([nvars],dtype=np.int32)
-        for i in range(nvars):
-            nbytes_vars[i] = n_components[i] * ncells * 8
-
-        # Compute byte offsets
-        offsets = np.zeros([nvars+4],dtype=np.int64)
-        offsets[0] = 0                             # xyz coordinates
-        offsets[1] = offsets[0] + 4 + nbytes_xyz   # cell connectivity
-        offsets[2] = offsets[1] + 4 + nbytes_cellc # cell offsets
-        offsets[3] = offsets[2] + 4 + nbytes_cello # cell types
-        offsets[4] = offsets[3] + 4 + nbytes_cellt # first hydro variable
-        for i in range(nvars-1):
-            offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i]
-            
-        # Open file for binary output
-        f = open(fname, "wb")
-
-        # Write VTK file header
-        f.write('<?xml version=\"1.0\"?>\n')
-        f.write('<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n')
-        f.write('   <UnstructuredGrid>\n')
-        f.write('   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n' % (ncells,ntetra))
-        f.write('      <Points>\n')
-        f.write('         <DataArray type=\"Float64\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%i\" />\n' % offsets[0])
-        f.write('      </Points>\n')
-        f.write('      <Cells>\n')
-        f.write('         <DataArray type=\"Int32\" Name=\"connectivity\" format=\"appended\" offset=\"%i\" />\n' % offsets[1])
-        f.write('         <DataArray type=\"Int32\" Name=\"offsets\" format=\"appended\" offset=\"%i\" />\n' % offsets[2])
-        f.write('         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % offsets[3])
-        f.write('      </Cells>\n')
-        f.write('      <PointData>\n')
-        for i in range(nvars):
-            f.write('         <DataArray type=\"Float64\" Name=\"'+varnames[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
-        f.write('      </PointData>\n')
-        f.write('   </Piece>\n')
-        f.write('   </UnstructuredGrid>\n')
-        f.write('   <AppendedData encoding=\"raw\">\n')
-        f.write('_')
-
-        # Now write data in binary. Every data field is preceded by its byte size.
-        
-        # x,y,z coordinates of the points
-        f.write(struct.pack('<i', *[nbytes_xyz]))
-        f.write(struct.pack('<%id'%(ncells*3), *np.ravel(points)))
-
-        # Cell connectivity
-        f.write(struct.pack('<i', *[nbytes_cellc]))
-        f.write(struct.pack('<%ii'%nverts, *np.ravel(tri.simplices)))
-
-        # Cell offsets
-        f.write(struct.pack('<i', *[nbytes_cello]))
-        f.write(struct.pack('<%ii'%ntetra, *range(4,ntetra*4+1,4)))
-
-        # Cell types: number 10 is tetrahedron in VTK file format
-        f.write(struct.pack('<i', *[nbytes_cellt]))
-        f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
-
-        # Hydro variables
-        #ivar = 0
-        for i in range(nvars):
-        #for key in self.data.keys():
-            if n_components[i] == 3:
-                celldata = np.ravel(np.array([self.get(varlist[i][0]),self.get(varlist[i][1]),self.get(varlist[i][2])]).T)
-            else:
-                celldata = self.get(varlist[i][0])
-            f.write(struct.pack('<i', *[nbytes_vars[i]]))
-            f.write(struct.pack('<%id'%(ncells*n_components[i]), *celldata))
-
-        # Close file
-        f.write('   </AppendedData>\n')
-        f.write('</VTKFile>\n')
-        f.close()
-        
-        # File size
-        fsize_raw = offsets[nvars+3] + nbytes_vars[nvars-1]
-        if fsize_raw > 1000000000:
-            fsize = float(fsize_raw)/1.0e9
-            funit = "Gb"
-        elif fsize_raw > 1000000:
-            fsize = float(fsize_raw)/1.0e6
-            funit = "Mb"
-        elif fsize_raw > 1000:
-            fsize = float(fsize_raw)/1.0e3
-            funit = "kb"
-        else:
-            fsize = float(fsize_raw)
-            funit = "b"
-
-        print("File "+fname+(" of size %.1f"%fsize)+funit+" succesfully written.")
+        print("Building hash table")
+        self.hash_table = dict()
+        for icell in range(self.info["ncells"]):
+            igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
+            jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
+            kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
+            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
+            self.hash_table[theHash] = icell
 
         return
-
-
-
-
-
-
-
-
-
-
