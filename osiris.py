@@ -1024,8 +1024,8 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
         
     
     if holder.info["nsinks"] > 0 and sinks:
-        if dz == 0.0:
-            thickness = 0.05*dx
+        if dz == 0:
+            thickness = 0.05*(xmax-xmin)
         else:
             thickness = 0.5*dz
         dist = (a_plane*holder.sinks["x"]+b_plane*holder.sinks["y"]+c_plane*holder.sinks["z"]+d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
