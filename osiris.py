@@ -580,7 +580,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                    z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,  \
                    v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,      \
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,      \
-                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,scalar_args=scalar_args,                \
+                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,dz=dz,scalar_args=scalar_args,          \
                    image_args=image_args,contour_args=contour_args,vec_args=vec_args,stream_args=stream_args)
     
     if copy:
@@ -904,7 +904,7 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
                w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
                clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
-               stream_args={}):
+               stream_args={},dz=0):
     
     # Find parent container of object to plot
     if scalar:
