@@ -18,7 +18,6 @@
 import numpy as np
 import struct
 import glob
-#import plot_osiris
 import config_osiris as conf
 
 divider = "============================================"
@@ -531,26 +530,35 @@ class LoadRamsesData():
         for key in sorted(self.info.keys()):
             print(key+": "+str(self.info[key]))
         print("--------------------------------------------")
-        maxlen1 = 0
-        maxlen2 = 0
-        maxlen3 = 0
-        maxlen4 = 0
-        maxlen5 = 0
+        maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = 0
         key_list = self.get_var_list()
+        print_list = dict()
         #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
         for key in sorted(key_list):
+            print_list[key] = []
+            print_list[key].append(key)
             maxlen1 = max(maxlen1,len(key))
-            maxlen2 = max(maxlen2,len(getattr(self,key).kind))
-            maxlen3 = max(maxlen3,len(getattr(self,key).unit))
-            maxlen4 = max(maxlen4,len(str(np.nanmin(getattr(self,key).values))))
-            maxlen5 = max(maxlen5,len(str(np.nanmax(getattr(self,key).values))))
+            print_list[key].append(getattr(self,key).kind)
+            maxlen2 = max(maxlen2,len(print_list[key][1]))
+            print_list[key].append(getattr(self,key).unit)
+            maxlen3 = max(maxlen3,len(print_list[key][2]))
+            if print_list[key][1] == 'vector':
+                print_list[key].append("--")
+                print_list[key].append("--")
+            else:
+                print_list[key].append(str(np.nanmin(getattr(self,key).values)))
+                print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+            maxlen4 = max(maxlen4,len(print_list[key][3]))
+            maxlen5 = max(maxlen5,len(print_list[key][4]))
         print("The variables are:")
         print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Unit".ljust(maxlen3)+"     Min".ljust(maxlen4)+"      Max".ljust(maxlen5))
         for key in sorted(key_list):
-            print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
-                  " ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
-                  str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
-                  str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
+            print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" ["+print_list[key][2].ljust(maxlen3)+"] "+\
+                  print_list[key][3].ljust(maxlen4)+" "+print_list[key][4].ljust(maxlen5))
+            #print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
+                  #" ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
+                  #str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
+                  #str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
         return
     
     #=======================================================================================
@@ -1023,9 +1031,9 @@ class LoadRamsesData():
                         while hasattr(self,vec_name):
                             vec_name += "_vec"
                         if self.info["ndim"] > 2:
-                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),vec_z=getattr(self,rawkey+"_z"),depth=0,kind='vector')
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),vec_z=getattr(self,rawkey+"_z"),depth=0,kind='vector',unit=getattr(self,rawkey+"_x").unit,values="--")
                         else:
-                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),depth=0,kind='vector')
+                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),depth=0,kind='vector',unit=getattr(self,rawkey+"_x").unit,values="--")
                         setattr(self,vec_name,dataField)
         
                         
