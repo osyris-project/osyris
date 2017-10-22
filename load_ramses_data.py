@@ -662,7 +662,7 @@ class LoadRamsesData():
                     zc = self.z_raw.values[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
-                    [op_parsed,depth] = self.parse_operation(cvar)
+                    [op_parsed,depth,status] = self.parse_operation(cvar)
                     select = eval("np.where("+op_parsed+")")
                     xc = np.average(self.x_raw.values[select])
                     yc = np.average(self.y_raw.values[select])
@@ -858,42 +858,71 @@ class LoadRamsesData():
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar"):
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar",\
+                  vec_x=False,vec_y=False,vec_z=False):
         
+        # Case where values are given and no operation is to be computed
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
             op_parsed = operation
             depth = -1
-        else:
-            [op_parsed,depth] = self.parse_operation(operation)
-            try:
-                new_data = eval(op_parsed)
-            except NameError:
-                if verbose:
-                    print("Error parsing operation when trying to create variable: "+name)
-                    print("The attempted operation was: "+op_parsed)
+            dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                               norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z)
+            if hasattr(self,name):
+                print("Warning: field "+name+" already exists and will be overwritten.")
+            setattr(self, name, dataField)
+            
+        # Case where operation is required
+        elif (len(operation) > 0) and (len(values) == 0):
+            [op_parsed,depth,status] = self.parse_operation(operation)
+            if status == 0:
+                print("Cannot combine scalar and vector fields.")
                 return
-        #TheDict = dict()
-        #TheDict["values"   ] = new_data
-        #TheDict["unit"     ] = unit
-        #TheDict["label"    ] = label
-        #TheDict["operation"] = op_parsed
-        #TheDict["depth"    ] = depth+1
+            elif status == 1:
+                try:
+                    new_data = eval(op_parsed)
+                except NameError:
+                    if verbose:
+                        print("Error parsing operation when trying to create variable: "+name)
+                        print("The attempted operation was: "+op_parsed)
+                    return
+                dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                               norm=norm,kind=kind,parent=self)
+                if hasattr(self,name):
+                    print("Warning: field "+name+" already exists and will be overwritten.")
+                setattr(self, name, dataField)
+            elif status == 2:
+                # Dealing with vector fields: first create x,y,z components
+                comps = ["_x","_y","_z"]
+                for n in range(self.info["ndim"]):
+                    [op_parsed,depth,stat_n] = self.parse_operation(operation,suffix=comps[n])
+                    if stat_n == 1:
+                        try:
+                            new_data = eval(op_parsed)
+                        except NameError:
+                            if verbose:
+                                print("Error parsing operation when trying to create variable: "+name+comps[n])
+                                print("The attempted operation was: "+op_parsed)
+                            return
+                        dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                                       norm=norm,kind=kind,parent=self)
+                        if hasattr(self,name+comps[n]):
+                            print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
+                        setattr(self, name+comps[n], dataField)
+                    else:
+                        print("Error: failed to create vector field.")
+                        return
+                # Dealing with vector fields: then create vector container
+                self.vector_field(name=name,key=name)
         
-        dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                               norm=norm,parent=self)
-                
-        if hasattr(self,name):
-            print("Warning: field "+name+" already exists and will be overwritten.")
-        setattr(self, name, dataField)
+        # Case where both values and operation are required
+        else:
+            print("Both values and operation are defined. Please choose only one.")
         
         return
     
     #=======================================================================================
-    # The new field function is used to create a new data field. Say you want to take the
-    # log of the density. You create a new field by calling:
-    # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
-    # The operation string is then evaluated using the 'eval' function.
+    # Delete a variable field from the memory
     #=======================================================================================
     def delete_field(self,name):
         
@@ -901,14 +930,13 @@ class LoadRamsesData():
         
         return
     
-    
     #=======================================================================================
     # The operation parser converts an operation string into an expression which contains
     # variables from the data dictionary. If a name from the variable list, e.g. "density",
-    # is found in the operation, it is replaced by self.data["density"]["values"] so that it
+    # is found in the operation, it is replaced by self.density.values so that it
     # can be properly evaluated by the 'eval' function in the 'new_field' function.
     #=======================================================================================
-    def parse_operation(self,operation):
+    def parse_operation(self,operation,suffix=""):
         
         max_depth = 0
         # Add space before and after to make it easier when searching for characters before
@@ -916,14 +944,14 @@ class LoadRamsesData():
         expression = " "+operation+" "
         # Sort the list of variable keys in the order of the longest to the shortest.
         # This guards against replacing 'B' inside 'logB' for example.
-        #key_list = sorted(self.data.keys(),key=lambda x:len(x),reverse=True)
-        #print key_list
         key_list = self.get_var_list()
         key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
         # For replacing, we need to create a list of hash keys to replace on instance at a
         # time
         hashkeys  = dict()
         hashcount = 0
+        found_scalar = False
+        found_vector = False
         for key in key_list:
             # Search for all instances in string
             loop = True
@@ -945,9 +973,13 @@ class LoadRamsesData():
                         theHash = "#"+str(hashcount).zfill(5)+"#"
                         # Store the data key in the hash table
                         #hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
-                        hashkeys[theHash] = "self.get(\""+key+"\")"
+                        hashkeys[theHash] = "self.get(\""+key+suffix+"\")"
                         expression = expression.replace(key,theHash,1)
-                        max_depth = max(max_depth,getattr(self,key).depth)
+                        max_depth = max(max_depth,getattr(self,key+suffix).depth)
+                        if getattr(self,key+suffix).kind == "scalar":
+                            found_scalar = True
+                        if getattr(self,key+suffix).kind == "vector":
+                            found_vector = True
                     else:
                         # Replace anyway to prevent from replacing "x" in "max("
                         theHash = "#"+str(hashcount).zfill(5)+"#"
@@ -957,8 +989,17 @@ class LoadRamsesData():
         # Now go through all the hashes in the table and build the final expression
         for theHash in hashkeys.keys():
             expression = expression.replace(theHash,hashkeys[theHash])
-    
-        return [expression,max_depth]
+        
+        if found_scalar and found_vector:
+            status = 0
+        elif found_scalar:
+            status = 1
+        elif found_vector:
+            status = 2
+        else:
+            status = 3
+        
+        return [expression,max_depth,status]
     
     #=======================================================================================
     # The function get returns the values of the selected variable
@@ -1023,23 +1064,22 @@ class LoadRamsesData():
                             ok = False
                     
                     if ok:
-                        #if self.info["ndim"] > 2:
-                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y"),self.get(rawkey+"_z")]).reshape(3,self.info["ncells"]).T
-                        #else:
-                            #vector = np.concatenate([self.get(rawkey+"_x"),self.get(rawkey+"_y")]).reshape(2,self.info["ncells"]).T
                         vec_name = rawkey
                         while hasattr(self,vec_name):
                             vec_name += "_vec"
-                        if self.info["ndim"] > 2:
-                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),vec_z=getattr(self,rawkey+"_z"),depth=0,kind='vector',unit=getattr(self,rawkey+"_x").unit,values="--")
-                        else:
-                            dataField = OsirisData(label=vec_name,parent=self,vec_x=getattr(self,rawkey+"_x"),vec_y=getattr(self,rawkey+"_y"),depth=0,kind='vector',unit=getattr(self,rawkey+"_x").unit,values="--")
-                        setattr(self,vec_name,dataField)
-        
-                        
-                        #self.new_field(name=vec_name,operation="",unit=getattr(self,key).unit,label=key.replace("_"," "),values=vector,verbose=False,norm=getattr(self,key).norm,kind="vector")
-                        #self.delete_field(key)
-                        #self.delete_field(rawkey+"_y")
-                        #if self.info["ndim"] > 2:
-                            #self.delete_field(rawkey+"_z")
-        
+                        self.vector_field(name=vec_name,key=rawkey)
+
+        return
+
+    #=======================================================================================
+    # Create vector field
+    #=======================================================================================
+    def vector_field(self,name="",key=""):
+    
+        vec_z = False
+        if self.info["ndim"] > 2:
+            vec_z=getattr(self,key+"_z")
+        self.new_field(name=name,values="--",label=name,vec_x=getattr(self,key+"_x"),vec_y=getattr(self,key+"_y"),vec_z=getattr(self,key+"_z"),kind="vector",unit=getattr(self,key+"_x").unit)
+    
+        return
+
