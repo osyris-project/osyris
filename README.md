@@ -12,9 +12,9 @@ You will need matplotlib installed on your system. Clone the Osiris repository a
 
 ```
 #!python
-import osiris as pp
-mydata = pp.RamsesData(71,scale="au")
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100)
+import osiris
+mydata = osiris.RamsesData(71,scale="au")
+osiris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
 ```
 
 ### Demo ###
@@ -25,13 +25,13 @@ You can download the sample data [here](http://www.nbi.dk/~nvaytet/osiris/ramses
 #!python
 
 import matplotlib.pyplot as plt
-import osiris as pp
+import osiris
 
 # Change default time unit to kyr
-pp.conf.default_values["time_unit"]="kyr"
+osiris.conf.default_values["time_unit"]="kyr"
 
 # Load data
-mydata = pp.RamsesData(nout=71,center="max:density",scale="au")
+mydata = osiris.RamsesData(nout=71,center="max:density",scale="au")
 
 # Create figure
 fig = plt.figure()
@@ -46,27 +46,21 @@ ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
 # Density vs B field with AMR level contours
-mydata.plot_histogram("log_rho","log_B",axes=ax1,cmap="log,YlGnBu")
-mydata.plot_histogram("log_rho","log_B",var_z="level",contour=True,axes=ax1,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20)},cbar=False,zmin=6,zmax=16)
+osiris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,cmap="log,YlGnBu")
+osiris.plot_histogram(mydata.log_rho,mydata.log_B,var_z=mydata.level,contour=True,axes=ax1,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20)},cbar=False,zmin=6,zmax=16)
 
 # Create new field with log of velocity
 mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
 # Density vs log_vel
-mydata.plot_histogram("log_rho","log_vel","log_T",axes=ax2,cmap="gnuplot",scatter=True,outline=True,scatter_args={"iskip":100})
+osiris.plot_histogram(mydata.log_rho,mydata.log_vel,mydata.log_T,axes=ax2,cmap="gnuplot",scatter=True,outline=True,scatter_args={"iskip":100})
 
 #x,z density slice with B field streamlines
-mydata.plot_slice("density",direction="y",stream="B",dx=100,axes=ax3,cmap="log")
+osiris.plot_slice(mydata.density,direction="y",stream=mydata.B,dx=100,axes=ax3,scalar_args={"cmap":"log"})
 # x,y density slice with velocity vectors in color
-mydata.plot_slice("log_rho",direction="z",vec="velocity",dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
+osiris.plot_slice(scalar=mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
 # x,y temperature slice with velocity vectors
-mydata.plot_slice("log_T",direction="z",vec="velocity",dx=100,axes=ax5,cmap="hot")
-mydata.plot_slice("level",direction="z",dx=100,axes=ax5,contour=True,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)},cbar=False)
-
-# Now update values with later snapshot
-mydata.update_values(201)
-# Re-plot x,y density slice with velocity vectors in color
-mydata.plot_slice("log_rho",direction="auto:top",vec="velocity",dx=100,axes=ax6)
+osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)})
 
 fig.savefig("demo.pdf",bbox_inches="tight")
 ```
@@ -80,6 +74,7 @@ Use the [Issue tracker](https://bitbucket.org/nvaytet/osiris/issues) on the Bitb
 * Neil Vaytet (StarPlan/NBI)
 * Tommaso Grassi (StarPlan/NBI)
 * Matthias Gonzalez (CEA Saclay)
+* Troels Haugbolle (StarPlan/NBI)
 
 ### License
 
