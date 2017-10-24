@@ -67,12 +67,15 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
                    clear=True,plot=True,block=False,zmin=None,zmax=None,cbax=None,\
                    histogram_args={},scatter_args={},contour_args={},outline_args={}):
 
-    ## Possibility of updating the data from inside the plotting routines
-    #try:
-        #update += 0
-        #self.update_values(nout=update)
-    #except TypeError:
-        #pass
+    # Find parent container of object to plot
+    holder = var_x.parent
+    
+    # Possibility of updating the data from inside the plotting routines
+    try:
+        update += 0
+        holder.update_values(nout=update)
+    except TypeError:
+        pass
 
     # Parameters
     nx = resolution+1
@@ -297,13 +300,6 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
                interpolation='linear',
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
     
-    ## Possibility of updating the data from inside the plotting routines
-    #try:
-        #update += 0
-        #self.update_values(nout=update)
-    #except TypeError:
-        #pass
-    
     # Find parent container of object to plot
     if scalar:
         holder = scalar.parent
@@ -322,6 +318,13 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     if holder.info["ndim"] < 2:
         print("Cannot plot slice from 1D data. Exiting...")
         return
+    
+    # Possibility of updating the data from inside the plotting routines
+    try:
+        update += 0
+        holder.update_values(nout=update)
+    except TypeError:
+        pass
     
     # Get slice extent and direction vectors
     dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)
@@ -425,14 +428,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
                         interpolation="linear",verbose=False,\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
-    
-    ## Possibility of updating the data from inside the plotting routines
-    #try:
-        #update += 0
-        #self.update_values(nout=update)
-    #except TypeError:
-        #pass
-    
+        
     # Find parent container of object to plot
     if scalar:
         holder = scalar.parent
@@ -451,6 +447,13 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     if holder.info["ndim"] < 2:
         print("Cannot plot slice from 1D data. Exiting...")
         return
+    
+    # Possibility of updating the data from inside the plotting routines
+    try:
+        update += 0
+        holder.update_values(nout=update)
+    except TypeError:
+        pass
         
     # Get direction vectors
     dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)

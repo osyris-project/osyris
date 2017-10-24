@@ -498,7 +498,7 @@ class LoadRamsesData():
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=True,norm=norm)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False,norm=norm,update=update)
         
                         
                         
@@ -506,14 +506,14 @@ class LoadRamsesData():
         
         # Hard coded additional data fields needed
         [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-        self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm)
-        self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm)
-        self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm)
-        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm)
-        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0)
-        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0)
-        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0)
-        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0)
+        self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0,update=update)
 
         #self.print_info()
         
@@ -745,12 +745,12 @@ class LoadRamsesData():
     # The update_values function reads in a new ramses output and updates the fields in an
     # existing data structure. It also updates all the derived variables at the same time.
     #=======================================================================================
-    def update_values(self,nout="none",lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
+    def update_values(self,nout=-1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
                       path="",variables=[],verbose=False):
         
-        # Check if new output number is requested. If not, use same nout as before
-        if nout == "none":
-            nout = self.info["nout"]
+        ## Check if new output number is requested. If not, use same nout as before
+        #if nout == "none":
+            #nout = self.info["nout"]
         
         # Check if new lmax is requested. If not, use same lmax as before
         if lmax == 0:
@@ -792,11 +792,13 @@ class LoadRamsesData():
         # Now go through the fields and update the values of fields that have an operation
         # attached to them. IMPORTANT!: this needs to be done in the right order: use the
         # depth key to determine which variables depend on others
-        key_list = sorted(self.data.keys(),key=lambda x:self.data[x]["depth"])
+        key_list = self.get_var_list()
+        key_list = sorted(key_list,key=lambda x:getattr(self,x).depth)
         for key in key_list:
-            if len(self.data[key]["operation"]) > 0:
+            dataField = getattr(self,key)
+            if len(dataField.operation) > 0:
                 print("Re-computing "+key)
-                self.data[key]["values"] = eval(self.data[key]["operation"])
+                dataField.values = eval(dataField.operation)
         
         ## Re-center the mesh around chosen center
         #self.re_center()
@@ -859,18 +861,36 @@ class LoadRamsesData():
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
     def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar",\
-                  vec_x=False,vec_y=False,vec_z=False):
+                  vec_x=False,vec_y=False,vec_z=False,update=False):
         
         # Case where values are given and no operation is to be computed
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
             op_parsed = operation
             depth = -1
-            dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                               norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z)
             if hasattr(self,name):
-                print("Warning: field "+name+" already exists and will be overwritten.")
-            setattr(self, name, dataField)
+                if verbose:
+                    print("Warning: field "+name+" already exists and will be overwritten.")
+                theField = getattr(self,name)
+                theField.values = values
+                if not update:
+                    theField.unit = unit
+                    theField.label = label
+                    theField.operation = operation
+                    theField.depth = depth
+                    theField.norm = norm
+                    theField.kind = kind
+                    theField.parent = parent
+                    if vec_x:
+                        theField.x = vec_x
+                    if vec_y:
+                        theField.y = vec_y
+                    if vec_z:
+                        theField.z = vec_z
+            else:
+                dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                                       norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z)
+                setattr(self, name, dataField)
             
         # Case where operation is required
         elif (len(operation) > 0) and (len(values) == 0):
@@ -888,7 +908,7 @@ class LoadRamsesData():
                     return
                 dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                norm=norm,kind=kind,parent=self)
-                if hasattr(self,name):
+                if hasattr(self,name) and verbose:
                     print("Warning: field "+name+" already exists and will be overwritten.")
                 setattr(self, name, dataField)
             elif status == 2:
@@ -906,7 +926,7 @@ class LoadRamsesData():
                             return
                         dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                        norm=norm,kind=kind,parent=self)
-                        if hasattr(self,name+comps[n]):
+                        if hasattr(self,name+comps[n]) and verbose:
                             print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
                         setattr(self, name+comps[n], dataField)
                     else:
