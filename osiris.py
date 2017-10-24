@@ -293,11 +293,10 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
 # - resolution : number of pixels in the slice.
 # - fname      : if specified, the figure is saved to file.
 #=======================================================================================
-def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,          \
-               direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
-               origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
-               new_window=False,update=None,clear=True,plot=True,block=False,          \
-               interpolation='linear',
+def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axes=None,\
+               direction="z",dx=0.0,dy=0.0,fname=None,title=None,sinks=True,copy=False,\
+               origin=[0,0,0],resolution=128,summed=False,new_window=False,update=None,\
+               clear=True,plot=True,block=False,interpolation='linear',\
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
     
     # Find parent container of object to plot
@@ -341,7 +340,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,   
     dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - np.sqrt(3.0)*0.5*holder.get("dx")
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")+0.5*dz,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
     datax = np.inner(coords,dir2)
