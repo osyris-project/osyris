@@ -340,7 +340,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - np.sqrt(3.0)*0.5*holder.get("dx")
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5000000001*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
     datax = np.inner(coords,dir2)
@@ -517,7 +517,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         (holder.get("z")-origin[2]-z[iz]*dir1[2])**2) - sqrt3*0.5*holder.get("dx")
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5000000001*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
         #cube = np.where(np.abs(dist1) <= sqrt3*0.5*holder.get("dx"))
         #ncells = np.shape(holder.get("dx")[cube])[0]
         #print ncells
