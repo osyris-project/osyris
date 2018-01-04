@@ -201,7 +201,7 @@ class LoadRamsesData():
                 
         # Make sure we always read the coordinates
         #var_read += "1 1 1 1 1 "
-        list_vars.extend(("level","x","y","z","dx"))
+        list_vars.extend(("level","x","y","z","dx","cpu"))
         nvar_read = len(list_vars)
         
         # Load sink particles if any
@@ -414,11 +414,12 @@ class LoadRamsesData():
                                         offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar"]+ivar)*(ncache+1)) + nstrin_hydro + 4
                                         var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
                                         jvar += 1
-                                var[:ncache,ind,-5] = float(ilevel+1)
+                                var[:ncache,ind,-6] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-                                    var[:ncache,ind,-4+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
-                                var[:ncache,ind,-1] = dxcell*self.info["boxlen"]
+                                    var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
+                                var[:ncache,ind,-2] = dxcell*self.info["boxlen"]
+                                var[:ncache,ind,-1] = k+1
                                 # ref: True if the cell is unrefined
                                 ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax-1))
 

@@ -60,7 +60,7 @@ class RamsesData(load_ramses_data.LoadRamsesData):
 # - cmap : the colormap
 # - resolution: the data is binned in a 2D matrix of size 'resolution' 
 #=======================================================================================
-def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
+def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,logz=False,\
                    cmap=conf.default_values["colormap"],resolution=256,copy=False,\
                    xmin=None,xmax=None,ymin=None,ymax=None,nc=20,new_window=False,\
                    update=None,cbar=True,outline=False,scatter=False,summed=False,\
@@ -164,6 +164,9 @@ def plot_histogram(var_x,var_y,var_z=None,contour=False,fname=None,axes=None,\
     else:
         z = np.ma.masked_where(z0 == 0.0, z0)
         zlabel = "Number of cells"
+    
+    if logz:
+        z = np.log10(z)
     
     # Begin plotting -------------------------------------
     if plot:
@@ -357,10 +360,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     dpy  = (ymax-ymin)/float(ny)
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
-    
     grid_x, grid_y = np.meshgrid(x, y)
     points = np.transpose([datax,datay])
-    
     
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
@@ -898,7 +899,7 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
     if scalar:
         
         # Round off AMR levels to integers
-        if scalar.label == "level":
+        if scalar.label == "level" or scalar.label == "cpu":
             z_scal = np.around(z_scal)
         # Parse scalar plot arguments
         scalar_args_osiris = {"vmin":np.nanmin(z_scal),"vmax":np.nanmax(z_scal),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
@@ -913,7 +914,7 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
     if image:
         
         # Round off AMR levels to integers
-        if image.label == "level":
+        if image.label == "level" or image.label == "cpu":
             z_imag = np.around(z_imag)
         # Here we define a set of default parameters
         image_args_osiris = {"vmin":np.nanmin(z_imag),"vmax":np.nanmax(z_imag),"cbar":True,"cbax":None,"cmap":conf.default_values["colormap"],"nc":21}
@@ -929,7 +930,7 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
     if contour:
         
         # Round off AMR levels to integers
-        if contour.label == "level":
+        if contour.label == "level" or contour.label == "cpu":
             z_cont = np.around(z_cont)
         # Here we define a set of default parameters
         contour_args_osiris = {"vmin":np.nanmin(z_cont),"vmax":np.nanmax(z_cont),"cbar":False,"cbax":None,\
