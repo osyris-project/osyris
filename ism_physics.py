@@ -65,8 +65,8 @@ def read_eos_table(fname="tab_eos.dat"):
     
     # Now loop through all the data fields
     for i in range(len(data_fields)):
-        setattr(theTable,data_fields[i],np.transpose(np.reshape(get_binary_data(fmt=array_fmt,content=eosContent, \
-                ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,nquadr=nquadr),[theTable.nRho,theTable.nEner],order="F")))
+        setattr(theTable,data_fields[i],np.reshape(get_binary_data(fmt=array_fmt,content=eosContent, \
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,nquadr=nquadr),[theTable.nRho,theTable.nEner],order="F"))
         nfloat += array_size
         nlines += 1
     
@@ -91,25 +91,26 @@ def get_eos_variables(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres
     for i in range(len(variables)):
         if holder.info["eos"] == 1:
             if log:
-                print np.shape(getattr(holder.eos_table,variables[i]))
-                print np.shape(holder.eos_table.rho_eos[0,:])
-                print np.shape(holder.eos_table.ener_eos[:,0])
+                #print np.shape(getattr(holder.eos_table,variables[i]))
+                #print np.shape(holder.eos_table.rho_eos[0,:])
+                #print np.shape(holder.eos_table.ener_eos[:,0])
                 
                 #interp_spline = RectBivariateSpline(np.log10(holder.eos_table.ener_eos[:,0]), np.log10(holder.eos_table.rho_eos[0,:]), np.log10(getattr(holder.eos_table,variables[i])))
                 
-                pts = (np.log10(holder.eos_table.rho_eos[0,:]), np.log10(holder.eos_table.ener_eos[:,0]/holder.eos_table.rho_eos[:,0]))
-                print np.shape(pts)
+                pts = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
+                print np.shape(pts[0])
         
-                my_interpolating_function = RegularGridInterpolator((np.log10(holder.eos_table.rho_eos[0,:]), np.log10(holder.eos_table.ener_eos[:,0])), np.log10(getattr(holder.eos_table,variables[i])))
+                my_interpolating_function = RegularGridInterpolator(pts, np.log10(getattr(holder.eos_table,variables[i])))
                 
                 #func = interpolate.interp2d(np.log10(holder.eos_table.rho_eos[0,:]),np.log10(holder.eos_table.ener_eos[:,0]),np.log10(getattr(holder.eos_table,variables[i])),kind='linear')
                 #values = func(np.log10(holder.density.values),np.log10(getattr(holder,"passive_scalar_"+holder.info["npscal"]).values))
                 #values = func(np.log10(holder.density.values),np.log10(getattr(holder,"passive_scalar_4").values))
                 
-                pts = np.array([np.log10(holder.density.values), np.log10(holder.Eint.values)])
+                pts = np.array([np.log10(holder.density.values), np.log10(holder.Eint.values)]).T
                 values = my_interpolating_function(pts)
                 #values = interp_spline(np.log10(holder.Eint.values),np.log10(holder.density.values))
                 print values
+                holder.new_field(name=variables[i],label=variables[i],values=values,verbose=False,norm=1.0)
             
 
 #>>> xnew = np.arange(-5.01, 5.01, 1e-2)
