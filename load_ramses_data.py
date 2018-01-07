@@ -1135,11 +1135,15 @@ class LoadRamsesData():
 #=======================================================================================
 # Determine binary offset when reading fortran binary files and return unpacked data
 #=======================================================================================
-def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,content=None):
+def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,content=None,correction=0):
     
-    offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+    offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4 + correction
     byte_size = {"i":4,"d":8}
-    pack_size = eval(fmt[0:len(fmt)-1])*byte_size[fmt[-1]]
+    if len(fmt) == 1:
+        mult = 1
+    else:
+        mult = eval(fmt[0:len(fmt)-1])
+    pack_size = mult*byte_size[fmt[-1]]
     
     return struct.unpack(fmt, content[offset:offset+pack_size])
     
