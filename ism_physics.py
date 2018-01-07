@@ -18,7 +18,6 @@
 from load_ramses_data import get_binary_data
 import numpy as np
 import struct
-#from scipy import interpolate
 from scipy.interpolate import RegularGridInterpolator
 
 #===================================================================================
@@ -34,6 +33,8 @@ class EosTable():
 # Function to read in binary file containing EOS table
 #===================================================================================
 def read_eos_table(fname="tab_eos.dat"):
+    
+    print("Loading EOS table: "+fname)
     
     # Read binary EOS file
     with open(fname, mode='rb') as eos_file:
@@ -71,54 +72,31 @@ def read_eos_table(fname="tab_eos.dat"):
         nlines += 1
     
     del eosContent
-        
-    return theTable
+    
+    print("EOS table read successfully")
 
+    return theTable
 
 
 #===================================================================================
 # Function to read in binary file containing EOS table
 #===================================================================================
-def get_eos_variables(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"],log=True):
+def get_eos_variables(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
     
-    print holder.info["eos"]
-    if holder.info["eos"] == 1:
+    if holder.info["eos"] == 0:
+        print("Simulation data did not use a tabulated EOS. Exiting")
+        return
+    else:
         try:
             n = holder.eos_table.nRho
         except AttributeError:
             holder.eos_table = read_eos_table(fname=eos_fname)
-    
-    for i in range(len(variables)):
-        if holder.info["eos"] == 1:
-            if log:
-                #print np.shape(getattr(holder.eos_table,variables[i]))
-                #print np.shape(holder.eos_table.rho_eos[0,:])
-                #print np.shape(holder.eos_table.ener_eos[:,0])
-                
-                #interp_spline = RectBivariateSpline(np.log10(holder.eos_table.ener_eos[:,0]), np.log10(holder.eos_table.rho_eos[0,:]), np.log10(getattr(holder.eos_table,variables[i])))
-                
-                pts = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
-                print np.shape(pts[0])
-        
-                my_interpolating_function = RegularGridInterpolator(pts, np.log10(getattr(holder.eos_table,variables[i])))
-                
-                #func = interpolate.interp2d(np.log10(holder.eos_table.rho_eos[0,:]),np.log10(holder.eos_table.ener_eos[:,0]),np.log10(getattr(holder.eos_table,variables[i])),kind='linear')
-                #values = func(np.log10(holder.density.values),np.log10(getattr(holder,"passive_scalar_"+holder.info["npscal"]).values))
-                #values = func(np.log10(holder.density.values),np.log10(getattr(holder,"passive_scalar_4").values))
-                
-                pts = np.array([np.log10(holder.density.values), np.log10(holder.Eint.values)]).T
-                values = my_interpolating_function(pts)
-                #values = interp_spline(np.log10(holder.Eint.values),np.log10(holder.density.values))
-                print values
-                holder.new_field(name=variables[i],label=variables[i],values=values,verbose=False,norm=1.0)
-            
 
-#>>> xnew = np.arange(-5.01, 5.01, 1e-2)
-#>>> ynew = np.arange(-5.01, 5.01, 1e-2)
-#>>> znew = f(xnew, ynew)
-#>>> plt.plot(x, z[0, :], 'ro-', xnew, znew[0, :], 'b-')
-#>>> plt.show()
-        #values = 
-        
-    #return theTable
+        for i in range(len(variables)):
+            print("Interpolating "+variables[i])
+            grid = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
+            func = RegularGridInterpolator(grid, np.log10(getattr(holder.eos_table,variables[i])))
+            pts  = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values)]).T
+            holder.new_field(name=variables[i],label=variables[i],values=np.power(10.0,func(pts)),verbose=False,norm=1.0)
+
     return

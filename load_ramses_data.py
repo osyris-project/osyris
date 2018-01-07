@@ -128,24 +128,7 @@ class LoadRamsesData():
         
         # Read info file and create info dictionary
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
-        try:
-            with open(infofile) as f:
-                content = f.readlines()
-            f.close()
-        except IOError:
-            # Clean exit if the file was not found
-            print("Info file not found: "+infofile)
-            return 0
-        
-        if not update:
-            self.info = dict()
-        for line in content:
-            sp = line.split("=")
-            if len(sp) > 1:
-                try:
-                    self.info[sp[0].strip()] = eval(sp[1].strip())
-                except NameError:
-                    self.info[sp[0].strip()] = sp[1].strip()
+        self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
         # Add additional information
         self.info["center"   ] = center
         self.info["scale"    ] = scale
@@ -159,6 +142,10 @@ class LoadRamsesData():
         self.info["lmax"     ] = lmax
         self.info["variables"] = variables
         self.info["nout"     ] = nout
+        
+        # Read namelist file and create namelist dictionary
+        nmlfile = infile+"/namelist.txt"
+        self.read_parameter_file(fname=nmlfile,dict_name="namelist",evaluate=False)
         
         print(divider)
         
@@ -311,6 +298,14 @@ class LoadRamsesData():
                 nquadr = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 noutput = struct.unpack("i", amrContent[offset:offset+4])[0]
+                
+                # hydro gamma
+                ninteg = 5
+                nfloat = 0
+                nlines = 5
+                nstrin = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                self.info["gamma"] = struct.unpack("d", hydroContent[offset:offset+8])[0]
 
             # Read the number of grids
             ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
@@ -522,7 +517,37 @@ class LoadRamsesData():
         self.re_center()
 
         return 1
+    
+    #=======================================================================================
+    # Print information about the data that was loaded.
+    #=======================================================================================
+    def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False):
+    
+        # Read info file and create dictionary
+        try:
+            with open(fname) as f:
+                content = f.readlines()
+            f.close()
+        except IOError:
+            # Clean exit if the file was not found
+            if verbose:
+                print("File not found: "+infofile)
+            return
         
+        setattr(self,dict_name,dict())
+        for line in content:
+            sp = line.split("=")
+            if len(sp) > 1:
+                if evaluate:
+                    try:
+                        getattr(self,dict_name)[sp[0].strip()] = eval(sp[1].strip())
+                    except (NameError,SyntaxError):
+                        getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
+                else:
+                    getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
+
+        return
+    
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
