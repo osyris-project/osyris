@@ -30,6 +30,21 @@ class IsmTable():
                 
         return
 
+
+#===================================================================================
+# Generic function to interpolate simulation data onto opacity table
+#===================================================================================
+def ism_interpolate(table_container=None,values=[0],points=[0],in_log=False):
+    
+    func = RegularGridInterpolator(table_container.grid,values)
+    
+    if in_log:
+        return func(points)
+    else:
+        return np.power(10.0,func(points))
+    
+
+
 #===================================================================================
 # Function to read in binary file containing EOS table
 #===================================================================================
@@ -74,6 +89,8 @@ def read_eos_table(fname="tab_eos.dat"):
     
     del eosContent
     
+    theTable.grid = (np.log10(theTable.rho_eos[:,0]), np.log10(theTable.ener_eos[0,:]/theTable.rho_eos[0,:]))
+        
     print("EOS table read successfully")
 
     return theTable
@@ -82,7 +99,7 @@ def read_eos_table(fname="tab_eos.dat"):
 #===================================================================================
 # Function to interpolate simulation data onto EOS table
 #===================================================================================
-def get_eos_variables(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
+def get_eos(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
     
     if holder.info["eos"] == 0:
         print("Simulation data did not use a tabulated EOS. Exiting")
@@ -93,12 +110,16 @@ def get_eos_variables(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres
         except AttributeError:
             holder.eos_table = read_eos_table(fname=eos_fname)
 
-        for i in range(len(variables)):
-            print("Interpolating "+variables[i])
-            grid = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
-            func = RegularGridInterpolator(grid, np.log10(getattr(holder.eos_table,variables[i])))
+        for var in variables:
+            print("Interpolating "+var)
+            #grid = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
+            #func = RegularGridInterpolator(holder.eos_table.grid, np.log10(getattr(holder.eos_table,var)))
             pts  = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values)]).T
-            holder.new_field(name=variables[i],label=variables[i],values=np.power(10.0,func(pts)),verbose=False,norm=1.0)
+            
+            #pts  = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
+            vals = ism_interpolate(holder.eos_table,np.log10(getattr(holder.eos_table,var)),pts)
+            
+            holder.new_field(name=var,label=var,values=vals,verbose=False,norm=1.0)
 
     return
 
@@ -174,6 +195,14 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
                 ninteg=ninteg,nlines=nlines,nfloat=nfloat),[theTable.nx,theTable.ny,theTable.nz],order="F")
     
     del kappaContent
+    
+    theTable.grid = (theTable.dens,theTable.tgas,theTable.trad)
+    
+    #print theTable.dens
+    #print theTable.tgas
+    #print theTable.trad
+    
+    
     print("Opacity table read successfully")
     
     return theTable
@@ -190,14 +219,19 @@ def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=[
     except AttributeError:
         holder.opacity_table = read_opacity_table(fname=opacity_fname)
 
-    for i in range(len(variables)):
-        print("Interpolating "+variables[i])
-        grid = (holder.opacity_table.dens,holder.opacity_table.tgas,holder.opacity_table.trad)
-        func = RegularGridInterpolator(grid, getattr(holder.opacity_table,variables[i]))
+    for var in variables:
+        print("Interpolating "+var)
+        #grid = (holder.opacity_table.dens,holder.opacity_table.tgas,holder.opacity_table.trad)
+        #func = RegularGridInterpolator(holder.opacity_table.grid, getattr(holder.opacity_table,var))
         #print 'got to here'
         #print np.log10(holder.radiative_energy_1.values)
         pts  = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
-        holder.new_field(name=variables[i],label=variables[i],values=np.power(10.0,func(pts)),verbose=False,norm=1.0)
+        print np.shape(pts)
+        vals = ism_interpolate(holder.opacity_table,getattr(holder.opacity_table,var),pts)
+        
+        #vals = interpolate_opacities(holder.opacity_table
+        
+        holder.new_field(name=var,label=var,values=vals,verbose=False,norm=1.0)
 
     return
 
