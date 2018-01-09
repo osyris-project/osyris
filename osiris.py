@@ -961,9 +961,11 @@ def render_map(scalar=False,image=False,contour=False,vec=False,stream=False,x=0
         
         vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
                            "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
-        vec_args_plot = {"cmap":1,"pivot":"mid","scale":vec_args_osiris["vsize"]*vec_args_osiris["vscale"],"color":"w","norm":None}
+        vec_args_plot = {"cmap":1,"pivot":"mid","color":"w","norm":None}
         parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
         vskip = vec_args_osiris["vskip"]
+        if not "scale" in vec_args_plot.keys():
+            vec_args_plot["scale"] = vec_args_osiris["vsize"]*vec_args_osiris["vscale"]
         if vec_args_plot["cmap"]:
             vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
                                   w_vect[::vskip,::vskip],**vec_args_plot)

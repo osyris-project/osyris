@@ -306,6 +306,18 @@ class LoadRamsesData():
                 nstrin = 0
                 offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
                 self.info["gamma"] = struct.unpack("d", hydroContent[offset:offset+8])[0]
+                
+                # dtold, dtnew
+                ninteg = 12
+                nfloat = 2+2*noutput
+                nlines = 12
+                nstrin = 0
+                nquadr = 0
+                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
+                self.info["dtold"] = struct.unpack("%id"%(self.info["levelmax"]), amrContent[offset:offset+8*self.info["levelmax"]])
+                nfloat = 3+2*noutput+self.info["levelmax"]
+                nlines = 13
+                self.info["dtnew"] = struct.unpack("%id"%(self.info["levelmax"]), amrContent[offset:offset+8*self.info["levelmax"]])
 
             # Read the number of grids
             ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
