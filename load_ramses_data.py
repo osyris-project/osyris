@@ -566,7 +566,11 @@ class LoadRamsesData():
     def print_info(self):
         print("--------------------------------------------")
         for key in sorted(self.info.keys()):
-            print(key+": "+str(self.info[key]))
+            theShape = np.shape(self.info[key])
+            if (len(theShape) > 0) and (theShape[0] > 1):
+                print(key+": ["+str(np.amin(self.info[key]))+" , "+str(np.amax(self.info[key]))+"]")
+            else:
+                print(key+": "+str(self.info[key]))
         print("--------------------------------------------")
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = 0
         key_list = self.get_var_list()
