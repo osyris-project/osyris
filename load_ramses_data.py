@@ -27,7 +27,7 @@ divider = "============================================"
 class OsirisData():
     
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
-                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False):
+                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False,name=""):
         
         self.values = values
         self.unit = unit
@@ -37,6 +37,7 @@ class OsirisData():
         self.norm = norm
         self.kind = kind
         self.parent = parent
+        self.name = name
         if vec_x:
             self.x = vec_x
         if vec_y:
@@ -931,7 +932,7 @@ class LoadRamsesData():
                         theField.z = vec_z
             else:
                 dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                                       norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z)
+                                       norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z,name=name)
                 setattr(self, name, dataField)
             
         # Case where operation is required
@@ -949,7 +950,7 @@ class LoadRamsesData():
                         print("The attempted operation was: "+op_parsed)
                     return
                 dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                               norm=norm,kind=kind,parent=self)
+                               norm=norm,kind=kind,parent=self,name=name)
                 if hasattr(self,name) and verbose:
                     print("Warning: field "+name+" already exists and will be overwritten.")
                 setattr(self, name, dataField)
@@ -967,7 +968,7 @@ class LoadRamsesData():
                                 print("The attempted operation was: "+op_parsed)
                             return
                         dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                                       norm=norm,kind=kind,parent=self)
+                                       norm=norm,kind=kind,parent=self,name=name)
                         if hasattr(self,name+comps[n]) and verbose:
                             print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
                         setattr(self, name+comps[n], dataField)
@@ -977,6 +978,10 @@ class LoadRamsesData():
                 # Dealing with vector fields: then create vector container
                 self.vector_field(name=name,key=name)
         
+        # Case where both values and operation are empty
+        elif (len(operation) == 0) and (len(values) == 0):
+            dataField = OsirisData(unit=unit,label=label,parent=self,name=name)
+            setattr(self, name, dataField)
         # Case where both values and operation are required
         else:
             print("Both values and operation are defined. Please choose only one.")
