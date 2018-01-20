@@ -129,7 +129,11 @@ class LoadRamsesData():
         
         # Read info file and create info dictionary
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
-        self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
+        try:
+            self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
+        except IOError:
+            return 0
+
         # Add additional information
         self.info["center"   ] = center
         self.info["scale"    ] = scale
@@ -544,8 +548,8 @@ class LoadRamsesData():
         except IOError:
             # Clean exit if the file was not found
             if verbose:
-                print("File not found: "+infofile)
-            return
+                print("File not found: "+fname)
+            raise IOError
         
         setattr(self,dict_name,dict())
         for line in content:
