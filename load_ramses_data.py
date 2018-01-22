@@ -129,9 +129,8 @@ class LoadRamsesData():
         
         # Read info file and create info dictionary
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
-        try:
-            self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
-        except IOError:
+        status = self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
+        if status < 1:
             return 0
 
         # Add additional information
@@ -549,7 +548,10 @@ class LoadRamsesData():
             # Clean exit if the file was not found
             if verbose:
                 print("File not found: "+fname)
-            raise IOError
+            #if raise_error:
+                #raise IOError
+            #else:
+            return 0
         
         setattr(self,dict_name,dict())
         for line in content:
@@ -563,7 +565,7 @@ class LoadRamsesData():
                 else:
                     getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
 
-        return
+        return 1
     
     #=======================================================================================
     # Print information about the data that was loaded.
