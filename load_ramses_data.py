@@ -595,8 +595,14 @@ class LoadRamsesData():
                 print_list[key].append("--")
                 print_list[key].append("--")
             else:
-                print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                try:
+                    print_list[key].append(str(np.nanmin(getattr(self,key).values)))
+                except TypeError:
+                    print_list[key].append("--")
+                try:
+                    print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                except TypeError:
+                    print_list[key].append("--")
             maxlen4 = max(maxlen4,len(print_list[key][3]))
             maxlen5 = max(maxlen5,len(print_list[key][4]))
         print("The variables are:")

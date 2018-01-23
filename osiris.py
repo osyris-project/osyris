@@ -96,6 +96,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
     datay  = var_y.values
     xlabel = var_x.label+" ["+var_x.unit+"]"
     ylabel = var_y.label+" ["+var_y.unit+"]"
+    default_var = "histo_cell_density"
     
     # Define plotting range
     autoxmin = False
@@ -163,8 +164,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
                 with np.errstate(divide="ignore",invalid="ignore"):
                     z_scal = np.ma.masked_where(z0 == 0.0, z1/z0)
         except AttributeError:
-            holder.new_field(name="cell_density",unit="",label="Number of cells",verbose=True)
-            scalar = holder.cell_density
+            holder.new_field(name=default_var,unit="",label="Number of cells",verbose=True)
+            scalar = getattr(holder,default_var)
             z_scal = np.ma.masked_where(z0 == 0.0, z0)
         empty = False
     if image:
@@ -176,8 +177,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
                 with np.errstate(divide="ignore",invalid="ignore"):
                     z_imag = np.ma.masked_where(z0 == 0.0, z1/z0)
         except AttributeError:
-            holder.new_field(name="cell_density",unit="",label="Number of cells",verbose=True)
-            image = holder.cell_density
+            holder.new_field(name=default_var,unit="",label="Number of cells",verbose=True)
+            image = getattr(holder,default_var)
             z_imag = np.ma.masked_where(z0 == 0.0, z0)
         empty = False
     if contour:
@@ -189,8 +190,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
                 with np.errstate(divide="ignore",invalid="ignore"):
                     z_cont = np.ma.masked_where(z0 == 0.0, z1/z0)
         except AttributeError:
-            holder.new_field(name="cell_density",unit="",label="Number of cells",verbose=True)
-            contour = holder.cell_density
+            holder.new_field(name=default_var,unit="",label="Number of cells",verbose=True)
+            contour = getattr(holder,default_var)
             z_cont = np.ma.masked_where(z0 == 0.0, z0)
         empty = False
     if scatter:
@@ -198,8 +199,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
     
     # If no variable is requested for z/color dimension, store number of cells by default
     if empty:
-        holder.new_field(name="cell_density",unit="",label="Number of cells",verbose=True)
-        scalar = holder.cell_density
+        holder.new_field(name=default_var,unit="",label="Number of cells",verbose=True)
+        scalar = getattr(holder,default_var)
         z_scal = np.ma.masked_where(z0 == 0.0, z0)
         
     if outline:
@@ -212,6 +213,9 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
                    resolution=resolution,scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=var_x,y_raw=var_y,\
                    outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name)
+    
+    if hasattr(holder,default_var):
+        holder.delete_field(default_var)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,z_outl
