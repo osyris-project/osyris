@@ -212,7 +212,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
                    axes=axes,title=title,new_window=new_window,clear=clear,block=block,          \
                    resolution=resolution,scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=var_x,y_raw=var_y,\
-                   outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name)
+                   outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name,sinks=False)
     
     if hasattr(holder,default_var):
         holder.delete_field(default_var)

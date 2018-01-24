@@ -15,7 +15,7 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
-import osiris as pp
+import osiris
 import sys
 
 fname = ""
@@ -27,10 +27,10 @@ else:
     nout = -1
 
 # Load data
-mydata = pp.RamsesData(nout=nout,center="max:density",scale="au")
+mydata = osiris.RamsesData(nout=nout,center="max:density",scale="au")
 
 # Density vs T
 if(len(fname) > 0):
-    mydata.plot_histogram("log_rho","log_T",fname=fname,cmap="osiris_r,log")
+    osiris.plot_histogram(mydata.log_rho,mydata.log_T,fname=fname,scalar_args={"cmap":"osiris_r,log"},outline=True)
 else:
-    mydata.plot_histogram("log_rho","log_T",block=True,cmap="osiris_r,log")
+    osiris.plot_histogram(mydata.log_rho,mydata.log_T,block=True,scalar_args={"cmap":"osiris_r,log"},outline=True)

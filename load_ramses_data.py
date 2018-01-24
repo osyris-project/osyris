@@ -897,16 +897,14 @@ class LoadRamsesData():
         elif string == "temperature":
             return [1.0,"K"]
         else:
+            for key in conf.default_units.keys():
+                if string == key:
+                    new_string = conf.default_units[string][0].replace("unit_d","self.info[\"unit_d\"]")
+                    new_string = new_string.replace("unit_l","self.info[\"unit_l\"]")
+                    new_string = new_string.replace("unit_t","self.info[\"unit_t\"]")
+                    uu = eval(new_string)
+                    return [uu,conf.default_units[string][1]]
             return [1.0,""]
-
-
-
-
-
-
-
-
-
 
 
     #=======================================================================================

@@ -30,7 +30,7 @@ default_values = {
     "dy"          : 0.0  ,
     "dz"          : 0.0  ,
     "scale"       : "cm" ,
-    "time_unit"   : "s" ,
+    "time_unit"   : "s"  ,
     "verbose"     : False,
     "path"        : ""   ,
     "variables"   : []   ,
@@ -42,6 +42,15 @@ default_values = {
     "sink_format" : ["number","mass","dmf","x","y","z","vx","vy","vz","period",\
                      "lx","ly","lz","acc_rate","acc_lum","age","int_lum","Teff"],
     "colormap"    : "osiris"
+}
+
+#===================================================================================
+# Define default units for some selected variables. The syntax is:
+# "my_variable_name" : ["combination of unit_d, unit_l, unit_t" , "string to be displayed on grid axes"]
+#===================================================================================
+default_units = {
+    ## Example for internal energy
+    #"passive_scalar_4" : ["unit_d*((unit_l/unit_t)**2)" , "erg/cm3"],
 }
 
 #=======================================================================================
