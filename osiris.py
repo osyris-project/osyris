@@ -128,6 +128,22 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
         ymax = np.nanmax(datay)
         autoymax = True
     
+    # Protect against empty plots if xmin==xmax or ymin==ymax
+    if xmin == xmax:
+        if xmin == 0.0:
+            xmin = -0.1
+            xmax = 0.1
+        else:
+            xmin = xmin - 0.05*abs(xmin)
+            xmax = xmax + 0.05*abs(xmax)
+    if ymin == ymax:
+        if ymin == 0.0:
+            ymin = -0.1
+            ymax = 0.1
+        else:
+            ymin = ymin - 0.05*abs(ymin)
+            ymax = ymax + 0.05*abs(ymax)
+    
     dx = xmax-xmin
     dy = ymax-ymin
     if autoxmin:
