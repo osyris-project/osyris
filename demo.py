@@ -15,6 +15,12 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
+#=======================================================================================
+# This file is a short introduction on how to use the OSIRIS visualization package
+# For more demos, please see the wiki page at:
+#     https://bitbucket.org/nvaytet/osiris/wiki/Demos
+#=======================================================================================
+
 import matplotlib.pyplot as plt
 import osiris
 
@@ -52,9 +58,9 @@ osiris.plot_slice(scalar=mydata.log_rho,direction="z",vec=mydata.velocity,dx=100
 # x,y temperature slice with velocity vectors
 osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)})
 
-## Now update values with later snapshot
-#mydata.update_values(201)
-## Re-plot x,y density slice with velocity vectors in color
-#mydata.plot_slice("log_rho",direction="auto:top",vec="velocity",dx=100,axes=ax6)
+# Now update values with later snapshot
+mydata.update_values(201)
+# Re-plot x,y density slice with velocity vectors
+osiris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax6)
 
 fig.savefig("demo.pdf",bbox_inches="tight")

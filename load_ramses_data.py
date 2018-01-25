@@ -849,11 +849,12 @@ class LoadRamsesData():
         # depth key to determine which variables depend on others
         key_list = self.get_var_list()
         key_list = sorted(key_list,key=lambda x:getattr(self,x).depth)
-        for key in key_list:
-            dataField = getattr(self,key)
-            if len(dataField.operation) > 0:
-                print("Re-computing "+key)
-                dataField.values = eval(dataField.operation)
+        with np.errstate(divide="ignore"):
+            for key in key_list:
+                dataField = getattr(self,key)
+                if len(dataField.operation) > 0:
+                    print("Re-computing "+key)
+                    dataField.values = eval(dataField.operation)
         
         ## Re-center the mesh around chosen center
         #self.re_center()
