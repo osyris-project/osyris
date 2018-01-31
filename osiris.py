@@ -528,7 +528,8 @@ def perpendicular_vector(v):
 def parse_arguments(args,args_osiris,args_plot):
     
     # Save a copy so we can exclude these parameters specific to osiris from the ones
-    # to be sent to the matplotlib quiver routine.
+    # to be sent to the matplotlib routines.
+    args_osiris["cb_format"] = None
     ignore = set(args_osiris.keys())
     # Now we go through the arguments taken from the function call - scalar_args - and
     # add them to the osiris arguments.
@@ -537,13 +538,12 @@ def parse_arguments(args,args_osiris,args_plot):
     # Define colorbar scaling
     cmap = args_osiris["cmap"]
     norm = None
-    #if cmap:
-    #print args_osiris["vmin"],args_osiris["vmax"],args_osiris["nc"]
+    # Default contour levels
     try:
         clevels = np.linspace(args_osiris["vmin"],args_osiris["vmax"],args_osiris["nc"])
     except TypeError:
         clevels = [0.0,1.0]
-    args_osiris["cb_format"] = None
+    # Perform log normalization if it is required
     try:
         if cmap.startswith("log") or cmap.endswith("log"):
             #cmap_save = cmap

@@ -16,6 +16,7 @@
 #=======================================================================================
 
 from load_ramses_data import get_binary_data
+import config_osiris as conf
 import numpy as np
 import struct
 from scipy.interpolate import RegularGridInterpolator
@@ -218,19 +219,15 @@ def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=[
         n = holder.opacity_table.nx
     except AttributeError:
         holder.opacity_table = read_opacity_table(fname=opacity_fname)
+    
+    if not hasattr(holder,"radiative_temperature"):
+        print("Radiative temperature is not defined. Computing it now.")
+        holder.new_field(name="radiative_temperature",operation="(radiative_energy_1/"+str(conf.constants["a_r"])+")**0.25",label="Trad")
 
     for var in variables:
         print("Interpolating "+var)
-        #grid = (holder.opacity_table.dens,holder.opacity_table.tgas,holder.opacity_table.trad)
-        #func = RegularGridInterpolator(holder.opacity_table.grid, getattr(holder.opacity_table,var))
-        #print 'got to here'
-        #print np.log10(holder.radiative_energy_1.values)
         pts  = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
-        print np.shape(pts)
         vals = ism_interpolate(holder.opacity_table,getattr(holder.opacity_table,var),pts)
-        
-        #vals = interpolate_opacities(holder.opacity_table
-        
         holder.new_field(name=var,label=var,values=vals,verbose=False,norm=1.0)
 
     return
