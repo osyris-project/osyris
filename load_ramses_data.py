@@ -200,7 +200,7 @@ class LoadRamsesData():
             content.append("variable #"+str(ivar)+": grav_potential")
             for n in range(self.info["ndim"]):
                 ivar += 1
-                content.append("variable #"+str(ivar)+": grav_force_"+xyz_strings[n])
+                content.append("variable #"+str(ivar)+": grav_acceleration_"+xyz_strings[n])
             nv_count += 1+self.info["ndim"]
             
         # Now go through all the variables and check if they are to be read or skipped        
