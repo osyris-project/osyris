@@ -146,7 +146,10 @@ class LoadRamsesData():
         self.info["dz_load"  ] = dz
         self.info["lmax"     ] = lmax
         self.info["variables"] = variables
-        self.info["nout"     ] = infile.split("_")[-1]
+        if nout==-1:
+            self.info["nout" ] = int(infile.split("_")[-1])
+        else:
+            self.info["nout" ] = nout
         
         # Read namelist file and create namelist dictionary
         nmlfile = infile+"/namelist.txt"
