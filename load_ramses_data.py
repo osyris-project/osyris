@@ -27,7 +27,7 @@ divider = "============================================"
 class OsirisData():
     
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
-                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False,name=""):
+                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False,name="",vector_component=False):
         
         self.values = values
         self.unit = unit
@@ -44,6 +44,7 @@ class OsirisData():
             self.y = vec_y
         if vec_z:
             self.z = vec_z
+        self.vector_component = vector_component
         
         return
     
@@ -145,13 +146,23 @@ class LoadRamsesData():
         self.info["dz_load"  ] = dz
         self.info["lmax"     ] = lmax
         self.info["variables"] = variables
-        self.info["nout"     ] = nout
+        self.info["nout"     ] = infile.split("_")[-1]
         
         # Read namelist file and create namelist dictionary
         nmlfile = infile+"/namelist.txt"
         self.read_parameter_file(fname=nmlfile,dict_name="namelist",evaluate=False)
         
         print(divider)
+        
+        # Determine whether self-gravity was used and is to be read
+        grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
+        try:
+            with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
+                gravContent = grav_file.read()
+            grav_file.close()
+            gravity = True
+        except IOError:
+            gravity = False
         
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
@@ -167,16 +178,30 @@ class LoadRamsesData():
             ivar = 0
             for var in conf.default_values["var_names"]:
                 ivar = ivar + 1
-                content.append("variable #"+str(ivar)+" : "+var)
+                content.append("variable #"+str(ivar)+": "+var)
         # Read the total number of hydro variables
         for line in content:
             sp = line.split("=")
             if len(sp) > 1:
                 if sp[0].strip() == "nvar":
-                    self.info["nvar"] = int(sp[1].strip())
+                    self.info["nvar_hydro"] = int(sp[1].strip())
                     break
-        # Now go through all the variables and check if they are to be read or skipped
-        var_read = np.ones([self.info["nvar"]+5],dtype=np.bool)
+        
+        # Count variables
+        nv_count = self.info["nvar_hydro"]+6
+        
+        # Add gravity fields
+        if gravity:
+            xyz_strings = "xyz"
+            ivar = self.info["nvar_hydro"]+1
+            content.append("variable #"+str(ivar)+": grav_potential")
+            for n in range(self.info["ndim"]):
+                ivar += 1
+                content.append("variable #"+str(ivar)+": grav_force_"+xyz_strings[n])
+            nv_count += 1+self.info["ndim"]
+            
+        # Now go through all the variables and check if they are to be read or skipped        
+        var_read = np.ones([nv_count],dtype=np.bool)
         list_vars = []
         ivar = 0
         for line in content:
@@ -191,7 +216,6 @@ class LoadRamsesData():
                 ivar += 1
                 
         # Make sure we always read the coordinates
-        #var_read += "1 1 1 1 1 "
         list_vars.extend(("level","x","y","z","dx","cpu"))
         nvar_read = len(list_vars)
         
@@ -269,6 +293,13 @@ class LoadRamsesData():
             with open(hydro_fname, mode='rb') as hydro_file: # b is important -> binary
                 hydroContent = hydro_file.read()
             hydro_file.close()
+            
+            # Read binary GRAVITY file
+            if gravity:
+                grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=k+1)
+                with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
+                    gravContent = grav_file.read()
+                grav_file.close()
             
             # Need to extract info from the file header on the first loop
             if k == 0:
@@ -362,6 +393,13 @@ class LoadRamsesData():
             nfloat2 = 1
             nlines2 = 6
             nstrin2 = 0
+            
+            # Offset for GRAVITY
+            if gravity:
+                ninteg3 = 4
+                nfloat3 = 0
+                nlines3 = 4
+                nstrin3 = 0
                 
             # Loop over levels
             for ilevel in range(lmax):
@@ -388,6 +426,13 @@ class LoadRamsesData():
                 nfloat_hydro = nfloat2
                 nlines_hydro = nlines2
                 nstrin_hydro = nstrin2
+                
+                # Cumulative offsets in GRAVITY file
+                if gravity:
+                    ninteg_grav = ninteg3
+                    nfloat_grav = nfloat3
+                    nlines_grav = nlines3
+                    nstrin_grav = nstrin3
                                 
                 # Loop over domains
                 for j in range(nboundary+self.info["ncpu"]):
@@ -397,6 +442,9 @@ class LoadRamsesData():
                     # Skip two lines of integers
                     nlines_hydro += 2
                     ninteg_hydro += 2
+                    if gravity:
+                        nlines_grav += 2
+                        ninteg_grav += 2
                     
                     if ncache > 0:
                     
@@ -420,11 +468,19 @@ class LoadRamsesData():
                                 son[:ncache,ind] = struct.unpack("%ii"%(ncache), amrContent[offset:offset+4*ncache])
                                 # var: hydro variables
                                 jvar = 0
-                                for ivar in range(self.info["nvar"]):
+                                for ivar in range(self.info["nvar_hydro"]):
                                     if var_read[ivar]:
-                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar"]+ivar)*(ncache+1)) + nstrin_hydro + 4
+                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar_hydro"]+ivar)*(ncache+1)) + nstrin_hydro + 4
                                         var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
                                         jvar += 1
+                                # var: grav variables
+                                if gravity:
+                                    #jvar = 0
+                                    for ivar in range(self.info["ndim"]+1):
+                                        if var_read[ivar+self.info["nvar_hydro"]]:
+                                            offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*(self.info["ndim"]+1)+ivar)*(ncache+1)) + nstrin_grav + 4
+                                            var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
+                                            jvar += 1
                                 var[:ncache,ind,-6] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
@@ -470,8 +526,12 @@ class LoadRamsesData():
                         nfloat_amr += ncache*self.info["ndim"]
                         nlines_amr += 4 + 3*twotondim + 3*self.info["ndim"]
                         
-                        nfloat_hydro += ncache*twotondim*self.info["nvar"]
-                        nlines_hydro += twotondim*self.info["nvar"]
+                        nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
+                        nlines_hydro += twotondim*self.info["nvar_hydro"]
+                        
+                        if gravity:
+                            nfloat_grav += ncache*twotondim*(self.info["ndim"]+1)
+                            nlines_grav += twotondim*(self.info["ndim"]+1)
                 
                 # Now increment the offsets while looping through the levels
                 ninteg1 = ninteg_amr
@@ -483,6 +543,11 @@ class LoadRamsesData():
                 nfloat2 = nfloat_hydro
                 nlines2 = nlines_hydro
                 nstrin2 = nstrin_hydro
+                
+                ninteg3 = ninteg_grav
+                nfloat3 = nfloat_grav
+                nlines3 = nlines_grav
+                nstrin3 = nstrin_grav
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
@@ -518,14 +583,14 @@ class LoadRamsesData():
         
         # Hard coded additional data fields needed
         [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-        self.new_field(name="x_raw",operation="x",unit=uu,label="x_raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="y_raw",operation="y",unit=uu,label="y_raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="z_raw",operation="z",unit=uu,label="z_raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx_raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x_box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y_box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z_box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx_box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="x_raw",operation="x",unit=uu,label="x raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="y_raw",operation="y",unit=uu,label="y raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="z_raw",operation="z",unit=uu,label="z raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx raw",verbose=False,norm=norm,update=update)
+        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx box",verbose=False,norm=1.0,update=update)
 
         #self.print_info()
         
@@ -1154,15 +1219,30 @@ class LoadRamsesData():
     #=======================================================================================
     def vector_field(self,name="",key=""):
     
-        vec_z = False
+        v_x=getattr(self,key+"_x")
+        v_y=getattr(self,key+"_y")
+        v_x.vector_component = True
+        v_y.vector_component = True
+        v_z = False
         if self.info["ndim"] > 2:
-            vec_z=getattr(self,key+"_z")
-        self.new_field(name=name,values="--",label=name,vec_x=getattr(self,key+"_x"),vec_y=getattr(self,key+"_y"),vec_z=getattr(self,key+"_z"),kind="vector",unit=getattr(self,key+"_x").unit)
-    
+            v_z=getattr(self,key+"_z")
+            v_z.vector_component = True
+        self.new_field(name=name,values="--",label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit)
+        
         return
 
+#=======================================================================================
+#=======================================================================================
+# End of class LoadRamsesData()
+#=======================================================================================
+#=======================================================================================
 
 
+#=======================================================================================
+#=======================================================================================
+# USEFUL TOOLS
+#=======================================================================================
+#=======================================================================================
 
 #=======================================================================================
 # Determine binary offset when reading fortran binary files and return unpacked data
