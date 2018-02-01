@@ -553,11 +553,12 @@ class LoadRamsesData():
                 nfloat2 = nfloat_hydro
                 nlines2 = nlines_hydro
                 nstrin2 = nstrin_hydro
-                
-                ninteg3 = ninteg_grav
-                nfloat3 = nfloat_grav
-                nlines3 = nlines_grav
-                nstrin3 = nstrin_grav
+
+                if gravity:
+                    ninteg3 = ninteg_grav
+                    nfloat3 = nfloat_grav
+                    nlines3 = nlines_grav
+                    nstrin3 = nstrin_grav
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
