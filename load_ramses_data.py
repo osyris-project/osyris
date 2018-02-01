@@ -639,8 +639,11 @@ class LoadRamsesData():
         print("--------------------------------------------")
         for key in sorted(self.info.keys()):
             theShape = np.shape(self.info[key])
-            if (len(theShape) > 0) and (theShape[0] > 1):
-                print(key+": ["+str(np.amin(self.info[key]))+" , "+str(np.amax(self.info[key]))+"]")
+            if len(theShape) > 0:
+                try:
+                    print(key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]")
+                except IndexError:
+                    print(key+": "+str(self.info[key]))
             else:
                 print(key+": "+str(self.info[key]))
         print("--------------------------------------------")
