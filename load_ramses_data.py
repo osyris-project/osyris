@@ -125,7 +125,7 @@ class LoadRamsesData():
     def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
                     update=False,variables=[]):
         
-        # Generate filename from output number
+        # Generate directory name from output number
         infile = self.generate_fname(nout,path)
         
         # Read info file and create info dictionary
@@ -157,15 +157,11 @@ class LoadRamsesData():
         
         print(divider)
         
-        # Determine whether self-gravity was used and is to be read
-        grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
-        try:
-            with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
-                gravContent = grav_file.read()
-            grav_file.close()
-            gravity = True
-        except IOError:
-            gravity = False
+        # Now go through all the variables and check if they are to be read or skipped
+        list_vars = []
+        var_read = []
+        
+        # Start with hydro variables ==================================
         
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
@@ -190,36 +186,47 @@ class LoadRamsesData():
                     self.info["nvar_hydro"] = int(sp[1].strip())
                     break
         
-        # Count variables
-        nv_count = self.info["nvar_hydro"]+6
+        # Now add to the list of variables to be read
+        for line in content:
+            sp = line.split(":")
+            if len(sp) > 1:
+                if (len(variables) == 0) or (sp[1].strip() in variables) or ("hydro" in variables):
+                    var_read.append(True)
+                    list_vars.append(sp[1].strip())
+                else:
+                    var_read.append(False)
+
+        # Now for gravity ==================================
+        
+        # Check if self-gravity files exist
+        grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
+        try:
+            with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
+                gravContent = grav_file.read()
+            grav_file.close()
+            gravity = True
+        except IOError:
+            gravity = False
         
         # Add gravity fields
         if gravity:
             xyz_strings = "xyz"
-            ivar = self.info["nvar_hydro"]+1
-            content.append("variable #"+str(ivar)+": grav_potential")
+            content = ["grav_potential"]
             for n in range(self.info["ndim"]):
-                ivar += 1
-                content.append("variable #"+str(ivar)+": grav_acceleration_"+xyz_strings[n])
-            nv_count += 1+self.info["ndim"]
+                content.append("grav_acceleration_"+xyz_strings[n])
             
-        # Now go through all the variables and check if they are to be read or skipped        
-        var_read = np.ones([nv_count],dtype=np.bool)
-        list_vars = []
-        ivar = 0
-        for line in content:
-            sp = line.split(":")
-            if len(sp) > 1:
-                if (len(variables) == 0) or (variables.count(sp[1].strip()) > 0):
-                    #var_read += "1 "
-                    var_read[ivar] = True
-                    list_vars.append(sp[1].strip())
+            # Now add to the list of variables to be read
+            for line in content:
+                if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables):
+                    var_read.append(True)
+                    list_vars.append(line.strip())
                 else:
-                    var_read[ivar] = False
-                ivar += 1
+                    var_read.append(False)
                 
         # Make sure we always read the coordinates
         list_vars.extend(("level","x","y","z","dx","cpu"))
+        var_read.extend((True,True,True,True,True,True))
+        
         nvar_read = len(list_vars)
         
         # Load sink particles if any
