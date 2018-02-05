@@ -605,6 +605,14 @@ def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
     # Make it possible to call with only one size in the arguments
     if dy == 0.0:
         dy = dx
+
+    # Transform origin to coordinates if sink is requested
+    try:
+        if origin.startswith("sink"):
+            isink = holder.sinks["id"].index(origin)
+            origin = [holder.sinks["x"][isink],holder.sinks["y"][isink],holder.sinks["z"][isink]]
+    except AttributeError:
+        pass
     
     # Define x,y directions depending on the input direction
     if direction[0]=="[" and direction[-1]=="]":
@@ -625,15 +633,6 @@ def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
             sphere_rad = float(params[2])
         dir_x = "x"
         dir_y = "y"
-        # Get coordinates centered around origin
-        try:
-            if origin.startswith("sink"):
-                isink = holder.sinks["id"].index(origin)
-                origin = [holder.sinks["x"][isink],holder.sinks["y"][isink],holder.sinks["z"][isink]]
-            #else:
-                #new_orig = origin
-        except AttributeError:
-            pass #new_orig = origin
         x_loc = holder.get("x") - origin[0]
         y_loc = holder.get("y") - origin[1]
         z_loc = holder.get("z") - origin[2]
@@ -720,6 +719,9 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             plt.clf()
         plt.subplot(111)
         theAxes = plt.gca()
+
+    x += np.inner(origin,dir_vecs[1])
+    y += np.inner(origin,dir_vecs[2])
     
     # Plot scalar field
     if scalar:
@@ -857,7 +859,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             thickness = 0.5*dz
         dist = (thePlane[0]*holder.sinks["x"]+thePlane[1]*holder.sinks["y"]+thePlane[2]*holder.sinks["z"]+thePlane[3]) \
                / np.sqrt(thePlane[0]**2 + thePlane[1]**2 + thePlane[2]**2)
-        sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
+        sinkcoords = np.transpose([holder.sinks["x"],holder.sinks["y"],holder.sinks["z"]])
         sink_x = np.inner(sinkcoords,dir_vecs[1])
         sink_y = np.inner(sinkcoords,dir_vecs[2])
         subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
@@ -868,7 +870,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         if "colors" in sink_args.keys():
             try:
                 sink_colors = np.array(sink_args["colors"])[subset] + 0.0 # This is a custom array of numbers
-            except TypeError:
+            except (TypeError,IndexError):
                 sink_colors = holder.sinks[sink_args["colors"]][subset] # Go and find values in sinks dict
             sk_vmin = np.nanmin(sink_colors)
             sk_vmax = np.nanmax(sink_colors)
@@ -883,12 +885,14 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         sink_args_plot = {"facecolors":"w","edgecolors":"k","linewidths":2,"alpha":0.7,"cmap":1,"norm":1}
         parse_arguments(sink_args,sink_args_osiris,sink_args_plot)        
         coll = matplotlib.collections.PatchCollection(patches, **sink_args_plot)
-        if sink_args["colors"]:
+        if "colors" in sink_args.keys():
             coll.set_array(np.array(sink_colors))
-            coll.set_clim([sink_args["vmin"],sink_args["vmax"]])
+            coll.set_clim([sink_args_osiris["vmin"],sink_args_osiris["vmax"]])
         theAxes.add_collection(coll)
         if sink_args_osiris["cbar"]:
-            plt.colorbar(coll, ax=theAxes,cax=sink_args_osiris["cbax"])
+            skcb = plt.colorbar(coll, ax=theAxes,cax=sink_args_osiris["cbax"])
+            skcb.ax.set_ylabel("Sink "+sink_args["colors"])
+            skcb.ax.yaxis.set_label_coords(-1.1,0.5)
         
     try:
         title += ""
