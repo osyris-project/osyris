@@ -38,6 +38,9 @@ class OsirisData():
         self.kind = kind
         self.parent = parent
         self.name = name
+        self.x = False
+        self.y = False
+        self.z = False
         if vec_x:
             self.x = vec_x
         if vec_y:
@@ -45,8 +48,15 @@ class OsirisData():
         if vec_z:
             self.z = vec_z
         self.vector_component = vector_component
+        self._magnitude = None
         
-        return
+    @property
+    def magnitude(self):
+        if self.x and self.y and self.z:
+            return np.linalg.norm([self.x.values,self.y.values,self.z.values],axis=0)
+        else:
+            return None
+    
     
 
 
@@ -101,7 +111,7 @@ class LoadRamsesData():
     #=======================================================================================
     # Generate the file name
     #=======================================================================================
-    def generate_fname(self,nout,path="",ftype="",cpuid=1):
+    def generate_fname(self,nout,path="",ftype="",cpuid=1,ext=""):
         
         if len(path) > 0:
             if path[-1] != "/":
@@ -115,7 +125,12 @@ class LoadRamsesData():
 
         infile = path+"output_"+number
         if len(ftype) > 0:
-            infile = infile+"/"+ftype+"_"+number+".out"+str(cpuid).zfill(5)
+            infile += "/"+ftype+"_"+number
+            if cpuid >= 0:
+                infile += ".out"+str(cpuid).zfill(5)
+        
+        if len(ext) > 0:
+            infile += ext
             
         return infile
     
@@ -217,12 +232,31 @@ class LoadRamsesData():
             
             # Now add to the list of variables to be read
             for line in content:
-                if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables):
+                if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables) or ("grav" in variables):
                     var_read.append(True)
                     list_vars.append(line.strip())
                 else:
                     var_read.append(False)
-                
+        
+        # Now for particles ==================================
+        
+        # Read header file to get particle information
+        headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
+        with open(headerfile) as f:
+            dummy_string = f.readline()
+            npart_tot = int(f.readline())
+            dummy_string = f.readline()
+            npart_dm = int(f.readline())
+            dummy_string = f.readline()
+            npart_star = int(f.readline())
+            dummy_string = f.readline()
+            npart_sink = int(f.readline())
+            dummy_string = f.readline()
+            particle_fields = f.readline().split(' ')[:-1]
+        f.close()
+        particles = (npart_tot > 0)
+        
+        
         # Make sure we always read the coordinates
         list_vars.extend(("level","x","y","z","dx","cpu"))
         var_read.extend((True,True,True,True,True,True))
@@ -310,6 +344,14 @@ class LoadRamsesData():
                 with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
                     gravContent = grav_file.read()
                 grav_file.close()
+            
+            ## Read binary PARTICLE file
+            #if particles:
+                #part_fname = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
+                #with open(part_fname, mode='rb') as part_file: # b is important -> binary
+                    #partContent = part_file.read()
+                #part_file.close()
+            
             
             # Need to extract info from the file header on the first loop
             if k == 0:
@@ -410,7 +452,7 @@ class LoadRamsesData():
                 nfloat3 = 0
                 nlines3 = 4
                 nstrin3 = 0
-                
+            
             # Loop over levels
             for ilevel in range(lmax):
                 
@@ -559,6 +601,27 @@ class LoadRamsesData():
                     nfloat3 = nfloat_grav
                     nlines3 = nlines_grav
                     nstrin3 = nstrin_grav
+                    
+            ## Now read particles: they are not in the loop over levels, only the cpu loop
+            #if particles:
+                ## Get number of particles for this cpu
+                #ninteg = nlines = 2
+                #nfloat = nstrin = nquadr = 0
+                #[npart] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                ## Determine size of localseed array
+                #ninteg = nlines = 3
+                #[recordlength] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                #localseedsize = recordlength/4
+                ## Now set offsets
+                #nlines = 8
+                #ninteg = 5 + localseedsize
+                #nfloat = 2
+                ## List particle fields to be read
+                #part_read = []
+                #for field in particle_fields:
+                    #if field == 'pos':
+                        #part_read.append('part_x')
+    
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
@@ -613,7 +676,7 @@ class LoadRamsesData():
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
-    def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False):
+    def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False,delimiter="="):
     
         # Read info file and create dictionary
         try:
@@ -631,7 +694,7 @@ class LoadRamsesData():
         
         setattr(self,dict_name,dict())
         for line in content:
-            sp = line.split("=")
+            sp = line.split(delimiter)
             if len(sp) > 1:
                 if evaluate:
                     try:
@@ -659,34 +722,44 @@ class LoadRamsesData():
                 print(key+": "+str(self.info[key]))
         print("--------------------------------------------")
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = 0
-        key_list = self.get_var_list()
+        #key_list = self.get_var_list()
         print_list = dict()
         #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
-        for key in sorted(key_list):
-            print_list[key] = []
-            print_list[key].append(key)
-            maxlen1 = max(maxlen1,len(key))
-            print_list[key].append(getattr(self,key).kind)
-            maxlen2 = max(maxlen2,len(print_list[key][1]))
-            print_list[key].append(getattr(self,key).unit)
-            maxlen3 = max(maxlen3,len(print_list[key][2]))
-            if print_list[key][1] == 'vector':
-                print_list[key].append("--")
-                print_list[key].append("--")
-            else:
-                try:
+        for key in sorted(self.get_var_list()):
+            
+            if not getattr(self,key).vector_component:
+                print_list[key] = []
+                print_list[key].append(key)
+                maxlen1 = max(maxlen1,len(key))
+                print_list[key].append(getattr(self,key).kind)
+                maxlen2 = max(maxlen2,len(print_list[key][1]))
+                print_list[key].append(getattr(self,key).unit)
+                maxlen3 = max(maxlen3,len(print_list[key][2]))
+                if print_list[key][1] == 'vector':
+                    vmag = getattr(self,key).magnitude
+                    print_list[key].append(str(np.nanmin(vmag)))
+                    print_list[key].append(str(np.nanmax(vmag)))
+                else:
                     print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                except TypeError:
-                    print_list[key].append("--")
-                try:
                     print_list[key].append(str(np.nanmax(getattr(self,key).values)))
-                except TypeError:
-                    print_list[key].append("--")
-            maxlen4 = max(maxlen4,len(print_list[key][3]))
-            maxlen5 = max(maxlen5,len(print_list[key][4]))
+                
+                #if print_list[key][1] == 'vector':
+                    #print_list[key].append("--")
+                    #print_list[key].append("--")
+                #else:
+                    #try:
+                        #print_list[key].append(str(np.nanmin(getattr(self,key).values)))
+                    #except TypeError:
+                        #print_list[key].append("--")
+                    #try:
+                        #print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                    #except TypeError:
+                        #print_list[key].append("--")
+                maxlen4 = max(maxlen4,len(print_list[key][3]))
+                maxlen5 = max(maxlen5,len(print_list[key][4]))
         print("The variables are:")
         print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Unit".ljust(maxlen3)+"     Min".ljust(maxlen4)+"      Max".ljust(maxlen5))
-        for key in sorted(key_list):
+        for key in sorted(print_list.keys()):
             print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" ["+print_list[key][2].ljust(maxlen3)+"] "+\
                   print_list[key][3].ljust(maxlen4)+" "+print_list[key][4].ljust(maxlen5))
             #print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
@@ -1028,10 +1101,7 @@ class LoadRamsesData():
         # Case where operation is required
         elif (len(operation) > 0) and (len(values) == 0):
             [op_parsed,depth,status] = self.parse_operation(operation)
-            if status == 0:
-                print("Cannot combine scalar and vector fields.")
-                return
-            elif status == 1:
+            if status == 2: # Only scalar fields
                 try:
                     new_data = eval(op_parsed)
                 except NameError:
@@ -1044,7 +1114,7 @@ class LoadRamsesData():
                 if hasattr(self,name) and verbose:
                     print("Warning: field "+name+" already exists and will be overwritten.")
                 setattr(self, name, dataField)
-            elif status == 2:
+            elif status == 1: # Dealing with vector fields
                 # Dealing with vector fields: first create x,y,z components
                 comps = ["_x","_y","_z"]
                 for n in range(self.info["ndim"]):
@@ -1107,6 +1177,7 @@ class LoadRamsesData():
         # time
         hashkeys  = dict()
         hashcount = 0
+        mag_string = ".magnitude"
         found_scalar = False
         found_vector = False
         for key in key_list:
@@ -1126,16 +1197,27 @@ class LoadRamsesData():
                     bad_before = (char_before.isalpha() or (char_before == "_"))
                     bad_after = (char_after.isalpha() or (char_after == "_"))
                     hashcount += 1
+                    found_magnitude = False
                     if (not bad_before) and (not bad_after):
                         theHash = "#"+str(hashcount).zfill(5)+"#"
-                        # Store the data key in the hash table
-                        #hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
-                        hashkeys[theHash] = "self.get(\""+key+suffix+"\")"
+                        # Store the data key in the hash table:
+                        # Check if vector magnitudes are requested: they need to be replaced differently from the rest
+                        if (loc+len(key)+len(mag_string) <= len(expression)) and (expression[loc+len(key):loc+len(key)+len(mag_string)] == mag_string):
+                            thisKey = key
+                            hashkeys[theHash] = "self."+thisKey
+                            found_magnitude = True
+                        else:
+                            # No magnitude so replace with standard get function
+                            if getattr(self,key).kind == "vector":
+                                thisKey = key+suffix
+                            else:
+                                thisKey = key
+                            hashkeys[theHash] = "self.get(\""+thisKey+"\")"
                         expression = expression.replace(key,theHash,1)
-                        max_depth = max(max_depth,getattr(self,key+suffix).depth)
-                        if getattr(self,key+suffix).kind == "scalar":
+                        max_depth = max(max_depth,getattr(self,thisKey).depth)
+                        if getattr(self,thisKey).kind == "scalar" or found_magnitude:
                             found_scalar = True
-                        if getattr(self,key+suffix).kind == "vector":
+                        if getattr(self,thisKey).kind == "vector" and (not found_magnitude):
                             found_vector = True
                     else:
                         # Replace anyway to prevent from replacing "x" in "max("
@@ -1147,11 +1229,9 @@ class LoadRamsesData():
         for theHash in hashkeys.keys():
             expression = expression.replace(theHash,hashkeys[theHash])
         
-        if found_scalar and found_vector:
-            status = 0
-        elif found_scalar:
+        if found_vector:
             status = 1
-        elif found_vector:
+        elif found_scalar:
             status = 2
         else:
             status = 3
