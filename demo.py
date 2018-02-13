@@ -42,15 +42,11 @@ ax4 = fig.add_subplot(234)
 ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
-mydata.new_field(name="log_B",operation="np.log10(B.magnitude)",unit="G",label="log(B)",verbose=True)
-print mydata.log_B.values
-
 # Density vs B field with AMR level contours
 osiris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,scalar=True,scalar_args={"cmap":"log,YlGnBu"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20),"cbar":False})
 
 # Create new field with log of velocity
-#mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
-mydata.new_field(name="log_vel",operation="np.log10(velocity.magnitude)",unit="cm/s",label="log(Velocity)")
+mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
 # Density vs log_vel in scatter mode with a grey outline
 osiris.plot_histogram(mydata.log_rho,mydata.log_vel,axes=ax2,scatter=mydata.log_T,scatter_args={"iskip":100,"cmap":"gnuplot"},outline=True)

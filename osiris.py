@@ -689,7 +689,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
                clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
                stream_args={},scatter_args={},outline_args={},sink_args={},dz=0,\
-               thePlane=0,origin=[0,0,0],dir_vecs=0,x_raw=None,y_raw=None,equal_axes=True):
+               thePlane=0,origin=[0,0,0],dir_vecs=[[0,0,0],[0,0,0],[0,0,0]],x_raw=None,y_raw=None,equal_axes=True):
     
     # Find parent container of object to plot
     if scalar:

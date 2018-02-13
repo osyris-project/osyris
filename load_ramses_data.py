@@ -38,9 +38,9 @@ class OsirisData():
         self.kind = kind
         self.parent = parent
         self.name = name
-        self.x = False
-        self.y = False
-        self.z = False
+        #self.x = False
+        #self.y = False
+        #self.z = False
         if vec_x:
             self.x = vec_x
         if vec_y:
@@ -48,14 +48,14 @@ class OsirisData():
         if vec_z:
             self.z = vec_z
         self.vector_component = vector_component
-        self._magnitude = None
+        #self._magnitude = None
         
-    @property
-    def magnitude(self):
-        if self.x and self.y and self.z:
-            return np.linalg.norm([self.x.values,self.y.values,self.z.values],axis=0)
-        else:
-            return None
+    #@property
+    #def magnitude(self):
+        #if self.x and self.y and self.z:
+            #return np.linalg.norm([self.x.values,self.y.values,self.z.values],axis=0)
+        #else:
+            #return None
     
     
 
@@ -91,14 +91,17 @@ class LoadRamsesData():
         if status == 0:
             return
         
+        # Convert vector components to vector containers
+        self.create_vector_containers()
+        
         ## Re-center the mesh around chosen center
         #self.re_center()
         
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
         
-        # Convert vector components to vector containers
-        self.create_vector_containers()
+        ## Convert vector components to vector containers
+        #self.create_vector_containers()
         
         # Print exit message
         [var_list,typ_list] = self.get_var_list(types=True)
@@ -735,13 +738,13 @@ class LoadRamsesData():
                 maxlen2 = max(maxlen2,len(print_list[key][1]))
                 print_list[key].append(getattr(self,key).unit)
                 maxlen3 = max(maxlen3,len(print_list[key][2]))
-                if print_list[key][1] == 'vector':
-                    vmag = getattr(self,key).magnitude
-                    print_list[key].append(str(np.nanmin(vmag)))
-                    print_list[key].append(str(np.nanmax(vmag)))
-                else:
-                    print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                    print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                #if print_list[key][1] == 'vector':
+                    #vmag = getattr(self,key).magnitude
+                    #print_list[key].append(str(np.nanmin(vmag)))
+                    #print_list[key].append(str(np.nanmax(vmag)))
+                #else:
+                print_list[key].append(str(np.nanmin(getattr(self,key).values)))
+                print_list[key].append(str(np.nanmax(getattr(self,key).values)))
                 
                 #if print_list[key][1] == 'vector':
                     #print_list[key].append("--")
@@ -1119,7 +1122,8 @@ class LoadRamsesData():
                 comps = ["_x","_y","_z"]
                 for n in range(self.info["ndim"]):
                     [op_parsed,depth,stat_n] = self.parse_operation(operation,suffix=comps[n])
-                    if stat_n == 1:
+                    print operation,op_parsed,stat_n
+                    if stat_n == 2:
                         try:
                             new_data = eval(op_parsed)
                         except NameError:
@@ -1136,7 +1140,7 @@ class LoadRamsesData():
                         print("Error: failed to create vector field.")
                         return
                 # Dealing with vector fields: then create vector container
-                self.vector_field(name=name,key=name)
+                self.vector_field(name=name)
         
         # Case where both values and operation are empty
         elif (len(operation) == 0) and (len(values) == 0):
@@ -1301,27 +1305,48 @@ class LoadRamsesData():
                             ok = False
                     
                     if ok:
-                        vec_name = rawkey
-                        while hasattr(self,vec_name):
-                            vec_name += "_vec"
-                        self.vector_field(name=vec_name,key=rawkey)
+                        #vec_name = rawkey
+                        #while hasattr(self,vec_name):
+                            #vec_name += "_vec"
+                        self.vector_field(name=rawkey)
 
         return
 
     #=======================================================================================
     # Create vector field
     #=======================================================================================
-    def vector_field(self,name="",key=""):
+    def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit=""):
     
-        v_x=getattr(self,key+"_x")
-        v_y=getattr(self,key+"_y")
+        try:
+            values_x += 0.0
+            self.new_field(name+"_x",values=values_x,unit=unit,label=name+"_x",verbose=False)
+        except TypeError:
+            pass
+        try:
+            values_y += 0.0
+            self.new_field(name+"_y",values=values_y,unit=unit,label=name+"_y",verbose=False)
+        except TypeError:
+            pass
+        try:
+            values_z += 0.0
+            self.new_field(name+"_z",values=values_z,unit=unit,label=name+"_z",verbose=False)
+        except TypeError:
+            pass
+        
+        v_x=getattr(self,name+"_x")
+        v_y=getattr(self,name+"_y")
         v_x.vector_component = True
         v_y.vector_component = True
-        v_z = False
+        
         if self.info["ndim"] > 2:
-            v_z=getattr(self,key+"_z")
+            v_z=getattr(self,name+"_z")
             v_z.vector_component = True
-        self.new_field(name=name,values="--",label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit)
+            vals = np.linalg.norm([v_x.values,v_y.values,v_z.values],axis=0)
+        else:
+            v_z = False
+            vals = np.linalg.norm([v_x.values,v_y.values],axis=0)
+        
+        self.new_field(name=name,values=vals,label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit)
         
         return
 
