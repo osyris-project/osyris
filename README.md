@@ -46,14 +46,13 @@ ax5 = fig.add_subplot(235)
 ax6 = fig.add_subplot(236)
 
 # Density vs B field with AMR level contours
-osiris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,cmap="log,YlGnBu")
-osiris.plot_histogram(mydata.log_rho,mydata.log_B,var_z=mydata.level,contour=True,axes=ax1,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20)},cbar=False,zmin=6,zmax=16)
+osiris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,scalar=True,scalar_args={"cmap":"log,YlGnBu"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20),"cbar":False})
 
 # Create new field with log of velocity
 mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
 
-# Density vs log_vel
-osiris.plot_histogram(mydata.log_rho,mydata.log_vel,mydata.log_T,axes=ax2,cmap="gnuplot",scatter=True,outline=True,scatter_args={"iskip":100})
+# Density vs log_vel in scatter mode with a grey outline
+osiris.plot_histogram(mydata.log_rho,mydata.log_vel,axes=ax2,scatter=mydata.log_T,scatter_args={"iskip":100,"cmap":"gnuplot"},outline=True)
 
 #x,z density slice with B field streamlines
 osiris.plot_slice(mydata.density,direction="y",stream=mydata.B,dx=100,axes=ax3,scalar_args={"cmap":"log"})
@@ -61,6 +60,11 @@ osiris.plot_slice(mydata.density,direction="y",stream=mydata.B,dx=100,axes=ax3,s
 osiris.plot_slice(scalar=mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
 # x,y temperature slice with velocity vectors
 osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)})
+
+# Now update values with later snapshot
+mydata.update_values(201)
+# Re-plot x,y density slice with velocity vectors
+osiris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax6)
 
 fig.savefig("demo.pdf",bbox_inches="tight")
 ```
