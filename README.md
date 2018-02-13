@@ -79,3 +79,7 @@ Use the [Issue tracker](https://bitbucket.org/nvaytet/osiris/issues) on the Bitb
 ### License
 
 Osiris is distributed under the GPLv3 license.
+
+### Funding
+
+Neil Vaytet gratefully acknowledges support from the European Commission through the Horizon 2020 Marie Sklodowska-Curie Actions Individual Fellowship 2014 programme (Grant Agreement no. 659706).
