@@ -96,8 +96,7 @@ def additional_variables(holder):
     # Commonly used log quantities
     holder.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)",verbose=False)
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)",verbose=False)
-    #print "now log B"
-    holder.new_field(name="log_B",values=np.log10(holder.B.values),unit="G",label="log(B)",verbose=False)
+    holder.new_field(name="log_B",operation="np.log10(B.values)",unit="G",label="log(B)",verbose=False)
     holder.new_field(name="log_m",operation="np.log10(mass)",unit="Msun",label="log(Mass)",verbose=False)
     with np.errstate(divide="ignore"):
         holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)

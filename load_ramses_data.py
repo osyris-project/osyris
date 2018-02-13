@@ -1036,19 +1036,9 @@ class LoadRamsesData():
             return [ud*ul/ut,"g/cm2/s"]
         elif string.startswith("B_"):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-        elif string == "thermal_pressure":
+        elif string == ("thermal_pressure") or (string == "total_energy") or (string.startswith("radiative_energy")) or (string == "internal_energy"):
             return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string == "total_energy":
-            return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string.startswith("radiative_energy"):
-            return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string == "x":
-            return [ul,scale]
-        elif string == "y":
-            return [ul,scale]
-        elif string == "z":
-            return [ul,scale]
-        elif string == "dx":
+        elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
             return [ul,scale]
         elif string == "temperature":
             return [1.0,"K"]
@@ -1122,7 +1112,6 @@ class LoadRamsesData():
                 comps = ["_x","_y","_z"]
                 for n in range(self.info["ndim"]):
                     [op_parsed,depth,stat_n] = self.parse_operation(operation,suffix=comps[n])
-                    print operation,op_parsed,stat_n
                     if stat_n == 2:
                         try:
                             new_data = eval(op_parsed)
@@ -1181,11 +1170,21 @@ class LoadRamsesData():
         # time
         hashkeys  = dict()
         hashcount = 0
-        mag_string = ".magnitude"
         found_scalar = False
         found_vector = False
         for key in key_list:
-            # Search for all instances in string
+            
+            # First look if there are any ".values" in the operation, i.e. vector magnitudes
+            keyVal = key+".values"
+            if expression.count(keyVal) > 0:
+                hashcount += 1
+                theHash = "#"+str(hashcount).zfill(5)+"#"
+                hashkeys[theHash] = "self."+keyVal
+                expression = expression.replace(keyVal,theHash)
+                max_depth = max(max_depth,getattr(self,key).depth)
+                found_scalar = True
+            
+            # Now search for all instances of individual variables in string
             loop = True
             loc = 0
             while loop:
@@ -1201,27 +1200,19 @@ class LoadRamsesData():
                     bad_before = (char_before.isalpha() or (char_before == "_"))
                     bad_after = (char_after.isalpha() or (char_after == "_"))
                     hashcount += 1
-                    found_magnitude = False
                     if (not bad_before) and (not bad_after):
                         theHash = "#"+str(hashcount).zfill(5)+"#"
                         # Store the data key in the hash table:
-                        # Check if vector magnitudes are requested: they need to be replaced differently from the rest
-                        if (loc+len(key)+len(mag_string) <= len(expression)) and (expression[loc+len(key):loc+len(key)+len(mag_string)] == mag_string):
-                            thisKey = key
-                            hashkeys[theHash] = "self."+thisKey
-                            found_magnitude = True
+                        if getattr(self,key).kind == "vector":
+                            thisKey = key+suffix
                         else:
-                            # No magnitude so replace with standard get function
-                            if getattr(self,key).kind == "vector":
-                                thisKey = key+suffix
-                            else:
-                                thisKey = key
-                            hashkeys[theHash] = "self.get(\""+thisKey+"\")"
+                            thisKey = key
+                        hashkeys[theHash] = "self.get(\""+thisKey+"\")"
                         expression = expression.replace(key,theHash,1)
                         max_depth = max(max_depth,getattr(self,thisKey).depth)
-                        if getattr(self,thisKey).kind == "scalar" or found_magnitude:
+                        if getattr(self,thisKey).kind == "scalar": # or found_magnitude:
                             found_scalar = True
-                        if getattr(self,thisKey).kind == "vector" and (not found_magnitude):
+                        if getattr(self,thisKey).kind == "vector": # and (not found_magnitude):
                             found_vector = True
                     else:
                         # Replace anyway to prevent from replacing "x" in "max("
@@ -1305,9 +1296,6 @@ class LoadRamsesData():
                             ok = False
                     
                     if ok:
-                        #vec_name = rawkey
-                        #while hasattr(self,vec_name):
-                            #vec_name += "_vec"
                         self.vector_field(name=rawkey)
 
         return
@@ -1317,22 +1305,13 @@ class LoadRamsesData():
     #=======================================================================================
     def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit=""):
     
-        try:
-            values_x += 0.0
+        if len(np.shape(values_x)) > 0:
             self.new_field(name+"_x",values=values_x,unit=unit,label=name+"_x",verbose=False)
-        except TypeError:
-            pass
-        try:
-            values_y += 0.0
+        if len(np.shape(values_y)) > 0:
             self.new_field(name+"_y",values=values_y,unit=unit,label=name+"_y",verbose=False)
-        except TypeError:
-            pass
-        try:
-            values_z += 0.0
+        if len(np.shape(values_z)) > 0:
             self.new_field(name+"_z",values=values_z,unit=unit,label=name+"_z",verbose=False)
-        except TypeError:
-            pass
-        
+                
         v_x=getattr(self,name+"_x")
         v_y=getattr(self,name+"_y")
         v_x.vector_component = True
