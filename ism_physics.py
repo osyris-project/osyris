@@ -246,28 +246,24 @@ def read_resistivity_table(fname="resnh.bin"):
     print("Loading resistivity table: "+fname)
     
     # Read binary resistivity file
-    with open(fname, mode='rb') as eta_file:
-        etaContent = eta_file.read()
-    eta_file.close()
+    with open(fname, mode='rb') as res_file:
+        resContent = res_file.read()
+    res_file.close()
     
-    # Define data fields. Note that the order is important!
-    #data_fields = ["rho_eos","ener_eos","temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]
-
     # Create table container
     theTable = IsmTable()
     
     # Initialise offset counters and start reading data
     ninteg = nfloat = nlines = nstrin = nquadr = 0
     
-    #nx = struct.unpack("i", etaContent[0:4])
-    #print nx
-    
     # Get length of record on first line to determine number of dimensions in table
-    rec_size = get_binary_data(fmt="i",content=etaContent,correction=-4)
+    rec_size = get_binary_data(fmt="i",content=resContent,correction=-4)
     ndims = rec_size[0]/4
     
+    print "ndims",ndims
+    
     # Get table dimensions
-    theTable.nx = np.roll(np.array(get_binary_data(fmt="%ii"%ndims,content=etaContent)),1)
+    theTable.nx = np.roll(np.array(get_binary_data(fmt="%ii"%ndims,content=resContent)),1)
     print theTable.nx
     
     if ndims == 3:
@@ -278,11 +274,84 @@ def read_resistivity_table(fname="resnh.bin"):
     # Now read the bulk of the table in one go
     ninteg += ndims
     nlines += 1
-    theTable.res_chimie = np.reshape(get_binary_data(fmt="%id"%(np.prod(theTable.nx)),content=etaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
+    theTable.res_chimie = np.reshape(get_binary_data(fmt="%id"%(np.prod(theTable.nx)),content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
     
     print theTable.res_chimie[:,0,0]
     print np.shape(theTable.res_chimie)
     
+    
+    ## Compute grain distribution
+    #nbins_real = float(nvarchimie-nion,8)/3.0d0
+   #nbins_grains=floor(nbins_real)
+
+   #if (nbins_real.ne.real(nbins_grains,8)) then
+      #print*, 'issue in number of species'
+      #stop
+   #endif
+
+   #allocate(x_g(nbins_grains))
+   #allocate(r_g(nbins_grains))
+   #allocate(m_g(nbins_grains))
+   #allocate(q(nvarchimie))
+   #allocate(m(nvarchimie))
+   #allocate(sigma(nvarchimie))
+   #allocate(zetas(nvarchimie))
+   #allocate(phi(nvarchimie))
+   #allocate(tau_sn(nvarchimie))
+   #allocate(tau_gp(nvarchimie))
+   #allocate(tau_gm(nvarchimie))
+   #allocate(gamma_zeta(nvarchimie))
+   #allocate(gamma_omega(nvarchimie))
+   #allocate(omega(nvarchimie))
+   #allocate(omega_bar(nvarchimie))
+   #allocate(tau_inel(nvarchimie,nvarchimie))
+   
+   #Lp1=dble(lambda_pow+1)
+   #Lp3=dble(lambda_pow+3)
+   #Lp4=dble(lambda_pow+4)
+
+   #if  (nbins_grains==1) then
+     #r_g(1)=a_0
+   #else
+     #do  i=1,nbins_grains    ! cf Kunz & Mouschovias 2009
+       #r_g(i)=a_min*zeta**(-dble(i)/dble(nbins_grains)) * &
+            #& dsqrt( Lp1/Lp3* (1d0-zeta**(Lp3/dble(nbins_grains)))/(1d0-zeta**(Lp1/dble(nbins_grains))))
+     #end do
+   #end if
+
+
+   #!!!! pour les grains
+   #! (i) particule chargée + grain neutre
+   #q(:)=1.d0*e    ! cations
+   #q(1)=-1.d0*e   ! electron
+   #! i>7
+   #do  i=nion+1,Nvarchimie
+      #if (mod(i-nion,3)==1) q(i)=1.d0*e   ! g+
+      #if (mod(i-nion,3)==2) q(i)=-1.d0*e  ! g-
+      #if (mod(i-nion,3)==0) q(i)=0.d0     ! g0
+   #end do
+   #m(:)=0.d0
+   #m(1) = me           ! e-
+   #m(2) = 23.5d0*mp    ! ions metalliques
+   #m(3) = 29.d0*mp     ! ions moleculaires
+   #m(4) = 3*mp         ! H3+
+   #m(5) = mp           ! H+
+   #m(6) = 12.d0*mp     ! C+
+   #m(7) = 4.d0*mp      ! He+
+   #m(8) = 39.098*mp    ! K+
+   #m(9) = 22.99d0*mp ! Na+
+   #do  i=1,nbins_grains       ! masse des grains
+      #m_g(i)=4.d0/3.d0*pi*r_g(i)**3*rho_s
+      #m(nion+3*(i-1)+1:nion+3*i)=m_g(i)
+   #end do
+    
+    
+    
+    
+    
+    
+    
+    print("Resistivity table read successfully")
 
     return theTable
 
