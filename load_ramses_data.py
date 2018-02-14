@@ -22,8 +22,9 @@ import config_osiris as conf
 
 divider = "============================================"
 
-
-
+#=======================================================================================
+# This is the class which will holds a scalar or vector field.
+#=======================================================================================
 class OsirisData():
     
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
@@ -38,9 +39,6 @@ class OsirisData():
         self.kind = kind
         self.parent = parent
         self.name = name
-        #self.x = False
-        #self.y = False
-        #self.z = False
         if vec_x:
             self.x = vec_x
         if vec_y:
@@ -48,17 +46,8 @@ class OsirisData():
         if vec_z:
             self.z = vec_z
         self.vector_component = vector_component
-        #self._magnitude = None
         
-    #@property
-    #def magnitude(self):
-        #if self.x and self.y and self.z:
-            #return np.linalg.norm([self.x.values,self.y.values,self.z.values],axis=0)
-        #else:
-            #return None
-    
-    
-
+        return
 
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
@@ -110,6 +99,8 @@ class LoadRamsesData():
         if verbose:
             self.print_info()
         print(divider)
+        
+        return
     
     #=======================================================================================
     # Generate the file name
@@ -536,6 +527,7 @@ class LoadRamsesData():
                                             offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*(self.info["ndim"]+1)+ivar)*(ncache+1)) + nstrin_grav + 4
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
                                             jvar += 1
+                                # var: coordinates and cell sizes
                                 var[:ncache,ind,-6] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]

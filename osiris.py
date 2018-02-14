@@ -20,6 +20,7 @@ import config_osiris as conf
 import load_ramses_data
 import ism_physics
 # Python libraries
+import struct
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections
@@ -1049,7 +1050,6 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     print("Writing data to VTK file: "+fname)
     
     # Coordinates ot RAMSES cell centers
-    #print getattr(getattr( holder,'x'),'values')
     points = np.array([holder.get("x"),holder.get("y"),holder.get("z")]).T
     
     # Compute Delaunay tetrahedralization from cell nodes
@@ -1057,39 +1057,26 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     ncells = holder.info["ncells"]
     print("Computing Delaunay mesh with %i points." % ncells)
     print("This may take some time...")
-    tri = Delaunay(points)
+    tri = Delaunay(points,qhull_options="QJ Qx Qs Qv")
     ntetra = np.shape(tri.simplices)[0]
     nverts = ntetra*4
     print("Delaunay mesh with %i tetrahedra complete." % ntetra)
 
     # Create list of variables by grouping x,y,z components together
-    nvarmax = len(holder.data.keys())
-    n_components = [] #np.zeros([nvarmax],dtype=np.int32)
+    key_list = holder.get_var_list()
+    n_components = []
     varlist = []
-    varnames = []
-    for key in holder.data.keys():
-        if key.endswith("_x") or key.endswith("_y") or key.endswith("_z"):
-            rawkey = key[:-2]
-            try:
-                k = len(holder.get(rawkey+"_x"))+len(holder.get(rawkey+"_y"))+len(holder.get(rawkey+"_z"))
-                ok = True
-                for i in range(np.shape(varlist)[0]):
-                    for j in range(n_components[i]):
-                        if key == varlist[i][j]:
-                            ok = False
-                            break
-                if ok:
-                    varlist.append([rawkey+"_x",rawkey+"_y",rawkey+"_z"])
-                    n_components.append(3)
-                    varnames.append(rawkey+"_vec")
-            except KeyError:
-                varlist.append([key,"",""])
+    for key in key_list:
+        thisVar = getattr(holder,key)
+        if not thisVar.vector_component:
+            if thisVar.kind == "vector":
+                n_components.append(3)
+            elif thisVar.kind == "scalar":
                 n_components.append(1)
-                varnames.append(key)
-        else:
-            varlist.append([key,"",""])
-            n_components.append(1)
-            varnames.append(key)
+            else:
+                print("Unknown data type: "+thisVar.kind)
+                return
+            varlist.append(key)
     
     nvars = len(n_components)
 
@@ -1130,7 +1117,7 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     f.write('      </Cells>\n')
     f.write('      <PointData>\n')
     for i in range(nvars):
-        f.write('         <DataArray type=\"Float64\" Name=\"'+varnames[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
+        f.write('         <DataArray type=\"Float64\" Name=\"'+varlist[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
     f.write('      </PointData>\n')
     f.write('   </Piece>\n')
     f.write('   </UnstructuredGrid>\n')
@@ -1155,14 +1142,14 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     f.write(struct.pack('<i', *[nbytes_cellt]))
     f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
 
-    # Hydro variables
+    # Cell variables
     #ivar = 0
     for i in range(nvars):
     #for key in holder.data.keys():
         if n_components[i] == 3:
-            celldata = np.ravel(np.array([holder.get(varlist[i][0]),holder.get(varlist[i][1]),holder.get(varlist[i][2])]).T)
+            celldata = np.ravel(np.array([getattr(holder,varlist[i]).x.values,getattr(holder,varlist[i]).y.values,getattr(holder,varlist[i]).z.values]).T)
         else:
-            celldata = holder.get(varlist[i][0])
+            celldata = holder.get(varlist[i])
         f.write(struct.pack('<i', *[nbytes_vars[i]]))
         f.write(struct.pack('<%id'%(ncells*n_components[i]), *celldata))
 
