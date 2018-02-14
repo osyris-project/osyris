@@ -752,7 +752,7 @@ class LoadRamsesData():
             print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
                   print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
-        print(rule)
+        #print(rule)
         
         return
     
@@ -1021,7 +1021,7 @@ class LoadRamsesData():
             return [ud*ul/ut,"g/cm2/s"]
         elif string.startswith("B_"):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-        elif string == ("thermal_pressure") or (string == "total_energy") or (string.startswith("radiative_energy")) or (string == "internal_energy"):
+        elif string == ("thermal_pressure") or (string.count("energy") > 0):
             return [ud*((ul/ut)**2),"erg/cm3"]
         elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
             return [ul,scale]
