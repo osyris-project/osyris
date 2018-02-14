@@ -712,23 +712,11 @@ class LoadRamsesData():
     # Print information about the data that was loaded.
     #=======================================================================================
     def print_info(self):
-        print("--------------------------------------------")
-        for key in sorted(self.info.keys()):
-            theShape = np.shape(self.info[key])
-            if len(theShape) > 0:
-                try:
-                    print(key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]")
-                except IndexError:
-                    print(key+": "+str(self.info[key]))
-            else:
-                print(key+": "+str(self.info[key]))
-        print("--------------------------------------------")
+        
+        # First get maximum length
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = maxlen6 = 0
-        #key_list = self.get_var_list()
         print_list = dict()
-        #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
         for key in sorted(self.get_var_list()):
-            
             if not getattr(self,key).vector_component:
                 print_list[key] = []
                 print_list[key].append(key)
@@ -739,39 +727,33 @@ class LoadRamsesData():
                 maxlen3 = max(maxlen3,len(print_list[key][2]))
                 print_list[key].append(getattr(self,key).unit)
                 maxlen4 = max(maxlen4,len(print_list[key][3]))
-                #if print_list[key][1] == 'vector':
-                    #vmag = getattr(self,key).magnitude
-                    #print_list[key].append(str(np.nanmin(vmag)))
-                    #print_list[key].append(str(np.nanmax(vmag)))
-                #else:
                 print_list[key].append(str(np.nanmin(getattr(self,key).values)))
                 print_list[key].append(str(np.nanmax(getattr(self,key).values)))
-                
-                #if print_list[key][1] == 'vector':
-                    #print_list[key].append("--")
-                    #print_list[key].append("--")
-                #else:
-                    #try:
-                        #print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                    #except TypeError:
-                        #print_list[key].append("--")
-                    #try:
-                        #print_list[key].append(str(np.nanmax(getattr(self,key).values)))
-                    #except TypeError:
-                        #print_list[key].append("--")
                 maxlen5 = max(maxlen5,len(print_list[key][4]))
                 maxlen6 = max(maxlen6,len(print_list[key][5]))
+
+        # Now print to screen
+        rule = "-" * (maxlen1+maxlen2+maxlen3+maxlen4+maxlen5+maxlen6+7)
+        print(rule)
+        for key in sorted(self.info.keys()):
+            theShape = np.shape(self.info[key])
+            if len(theShape) > 0:
+                try:
+                    print(key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]")
+                except IndexError:
+                    print(key+": "+str(self.info[key]))
+            else:
+                print(key+": "+str(self.info[key]))
+        print(rule)
         print("The variables are:")
         print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
-              "  Unit".ljust(maxlen4)+"     Min".ljust(maxlen5)+"      Max".ljust(maxlen6))
+              " Unit".ljust(maxlen4)+"     Min".ljust(maxlen5)+"      Max".ljust(maxlen6))
         for key in sorted(print_list.keys()):
             print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
                   print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
-            #print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
-                  #" ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
-                  #str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
-                  #str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
+        print(rule)
+        
         return
     
     #=======================================================================================
