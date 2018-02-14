@@ -1037,7 +1037,7 @@ def interpolate(field,points):
 #=======================================================================================
 # Write RAMSES data to VTK file
 #=======================================================================================
-def to_vtk(holder,fname="osiris_data.vtu",variables=False):
+def to_vtk(holder,fname="osiris_data.vtu"):
     
     try:
         from scipy.spatial import Delaunay
@@ -1068,7 +1068,7 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     varlist = []
     for key in key_list:
         thisVar = getattr(holder,key)
-        if not thisVar.vector_component:
+        if (not thisVar.vector_component) and (thisVar.group != "amr"):
             if thisVar.kind == "vector":
                 n_components.append(3)
             elif thisVar.kind == "scalar":
