@@ -111,16 +111,11 @@ def get_eos(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_e
         except AttributeError:
             holder.eos_table = read_eos_table(fname=eos_fname)
 
+        pts = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values)]).T
         for var in variables:
             print("Interpolating "+var)
-            #grid = (np.log10(holder.eos_table.rho_eos[:,0]), np.log10(holder.eos_table.ener_eos[0,:]/holder.eos_table.rho_eos[0,:]))
-            #func = RegularGridInterpolator(holder.eos_table.grid, np.log10(getattr(holder.eos_table,var)))
-            pts  = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values)]).T
-            
-            #pts  = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
             vals = ism_interpolate(holder.eos_table,np.log10(getattr(holder.eos_table,var)),pts)
-            
-            holder.new_field(name=var,label=var,values=vals,verbose=False,norm=1.0)
+            holder.new_field(name=var,label=var,values=vals,verbose=False)
 
     return
 
@@ -200,8 +195,9 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
     theTable.grid = (theTable.dens,theTable.tgas,theTable.trad)
     
     #print theTable.dens
-    #print theTable.tgas
-    #print theTable.trad
+    #print np.shape(theTable.dens)
+    ##print theTable.tgas
+    ##print theTable.trad
     
     
     print("Opacity table read successfully")
@@ -214,7 +210,6 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
 #===================================================================================
 def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=["kappa_p","kappa_r"]):
     
-    
     try:
         n = holder.opacity_table.nx
     except AttributeError:
@@ -224,11 +219,11 @@ def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=[
         print("Radiative temperature is not defined. Computing it now.")
         holder.new_field(name="radiative_temperature",operation="(radiative_energy_1/"+str(conf.constants["a_r"])+")**0.25",label="Trad")
 
+    pts = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
     for var in variables:
         print("Interpolating "+var)
-        pts  = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
         vals = ism_interpolate(holder.opacity_table,getattr(holder.opacity_table,var),pts)
-        holder.new_field(name=var,label=var,values=vals,verbose=False,norm=1.0)
+        holder.new_field(name=var,label=var,values=vals,verbose=False)
 
     return
 
@@ -241,7 +236,7 @@ def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=[
 #===================================================================================
 # Function to read in binary file containing resistivity table
 #===================================================================================
-def read_resistivity_table(fname="resnh.bin"):
+def read_resistivity_table(fname="resistivities_masson2016.bin"):
     
     print("Loading resistivity table: "+fname)
     
@@ -258,334 +253,354 @@ def read_resistivity_table(fname="resnh.bin"):
     
     # Get length of record on first line to determine number of dimensions in table
     rec_size = get_binary_data(fmt="i",content=resContent,correction=-4)
-    ndims = rec_size[0]/4
-    
-    print "ndims",ndims
+    theTable.ndims = rec_size[0]/4
     
     # Get table dimensions
-    theTable.nx = np.roll(np.array(get_binary_data(fmt="%ii"%ndims,content=resContent)),1)
-    print theTable.nx
+    theTable.nx = np.array(get_binary_data(fmt="%ii"%theTable.ndims,content=resContent))
+    #print theTable.nx
     
-    nx_read = np.copy(theTable.nx)
+    # Read table coordinates:
     
-    if ndims == 3:
-        nx_read[0] += 2
-    elif ndims == 4:
-        nx_read[0] += 7
-    
-    # Now read the bulk of the table containing abundances in one go
-    ninteg += ndims
+    # 1: density
+    ninteg += theTable.ndims
     nlines += 1
-    resistivite_chimie_x = np.reshape(get_binary_data(fmt="%id"%(np.prod(nx_read)),content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat),nx_read,order="F")
+    theTable.dens = get_binary_data(fmt="%id"%theTable.nx[0],content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
-    print "kk",theTable.nx,nx_read
-    print resistivite_chimie_x[:,0,0]
-    print np.shape(resistivite_chimie_x)
+    # 2: gas temperature
+    nfloat += theTable.nx[0]
+    nlines += 1
+    theTable.tgas = get_binary_data(fmt="%id"%theTable.nx[1],content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
-    # Now we compute conductivities ==========================
+    if theTable.ndims == 4:
+        # 3: ionisation rate
+        nfloat += theTable.nx[1]
+        nlines += 1
+        theTable.ionx = get_binary_data(fmt="%id"%theTable.nx[2],content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
-    # Define some constants ==================================
+    # 4: magnetic field
+    nfloat += theTable.nx[-2]
+    nlines += 1
+    theTable.bmag = get_binary_data(fmt="%id"%theTable.nx[-1],content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
-    #pi=3.1415927410125732422d0
-    rg      = 0.1e-4       # grain radius 
-    mp      = 1.6726e-24   # proton mass
-    me      = 9.1094e-28   # electron mass
-    mg      = 1.2566e-14   # grain mass
-    e       = 4.803204e-10 # electron charge
-    mol_ion = 29.0*mp      # molecular ion mass
-    Met_ion = 23.5*mp      # atomic ion mass
-    kb      = 1.3807e-16   # Boltzmann
-    clight  = 2.9979250e+10
-    #real(kind=8), parameter ::mH      = 1.6600000d-24
-    #real(kind=8), parameter ::mu_gas = 2.31d0
-    #real(kind=8) :: scale_d = mu_gas*mH
-    rho_s      = 2.3
-    rho_n_tot  = 1.17e-21
-    a_0        = 0.0375e-4
-    a_min      = 0.0181e-4
-    a_max      = 0.9049e-4
-    zeta       = a_min/a_max
-    lambda_pow = -3.5
+    # Now read resistivities
+    array_size = np.prod(theTable.nx)
+    array_fmt  = "%id" % array_size
     
-    # Compute grain distribution =============================
+    # Ohmic resistivity
+    nfloat += theTable.nx[-1]
+    nlines += 1
+    theTable.eta_ohm = np.reshape(get_binary_data(fmt=array_fmt,content=resContent, \
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
     
-    if ndims == 3:
-        nbins_grains = (theTable.nx[0]-7)/3
-        nion = 7
-    elif ndims == 4:
-        nbins_grains = (theTable.nx[0]-9)/3
-        nion = 9
-    print 'nbins_grains',nbins_grains
+    # Ambipolar resistivity
+    nfloat += array_size
+    nlines += 1
+    theTable.eta_ad = np.reshape(get_binary_data(fmt=array_fmt,content=resContent, \
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
     
-    r_grains = np.zeros([nbins_grains])
+    # Hall resistivity
+    nfloat += array_size
+    nlines += 1
+    theTable.eta_hall = np.reshape(get_binary_data(fmt=array_fmt,content=resContent, \
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
+    
+    # Hall sign
+    nfloat += array_size
+    nlines += 1
+    theTable.eta_hsig = np.reshape(get_binary_data(fmt=array_fmt,content=resContent, \
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
+    
+    del resContent
+    
+    if theTable.ndims == 4:
+        theTable.grid = (theTable.dens,theTable.tgas,theTable.ionx,theTable.bmag)
+    elif theTable.ndims == 3:
+        theTable.grid = (theTable.dens,theTable.tgas,theTable.bmag)
+    
+    # Additional parameters
+    theTable.scale_dens = 0.844*2.0/(2.31*1.66e-24) # 2.0*H2_fraction/(mu*mH))
+    theTable.ionis_rate = 1.0e-17
+    
+    print("Resistivity table read successfully")
+    
+    return theTable
+
+
+#===================================================================================
+# Function to interpolate simulation data onto resistivity table
+#===================================================================================
+def get_resistivities(holder,resistivity_fname="resistivities_masson2016.bin",variables=["eta_ohm","eta_ad","eta_hall"]):
+    
+    try:
+        n = holder.resistivity_table.nx
+    except AttributeError:
+        holder.resistivity_table = read_resistivity_table(fname=resistivity_fname)
+    
+    if holder.resistivity_table.ndims == 4:
+        if not hasattr(holder,"ionisation_rate"):
+            holder.new_field(name="ionisation_rate",values=[holder.resistivity_table.ionis_rate]*holder.info["ncells"],label="Ionisation rate")
+        pts = np.array([np.log10(holder.density.values*holder.resistivity_table.scale_dens), \
+                        np.log10(holder.temperature.values),np.log10(holder.ionisation_rate.values), \
+                        np.log10(holder.B.values)]).T
+    elif holder.resistivity_table.ndims == 3:
+        pts = np.array([np.log10(holder.density.values*holder.resistivity_table.scale_dens), \
+                        np.log10(holder.temperature.values),np.log10(holder.B.values)]).T
+    
+    #print holder.density.values*holder.resistivity_table.scale_dens
+    
+    for var in variables:
+        print("Interpolating "+var)
+        vals = ism_interpolate(holder.resistivity_table,getattr(holder.resistivity_table,var),pts)
+        if var == "eta_hall":
+            hall_sign = np.sign(ism_interpolate(holder.resistivity_table,holder.resistivity_table.eta_hsig,pts,in_log=True))
+            holder.new_field(name=var,label=var,values=vals*hall_sign,verbose=False)
+        else:
+            holder.new_field(name=var,label=var,values=vals,verbose=False)
+
+    return
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    #print "ndims",ndims
+    
+    ## Get table dimensions
+    #theTable.nx = np.roll(np.array(get_binary_data(fmt="%ii"%ndims,content=resContent)),1)
+    #print theTable.nx
+    
+    #nx_read = np.copy(theTable.nx)
+    
+    #if ndims == 3:
+        #nx_read[0] += 2
+    #elif ndims == 4:
+        #nx_read[0] += 7
+    
+    ## Now read the bulk of the table containing abundances in one go
+    #ninteg += ndims
+    #nlines += 1
+    #resistivite_chimie_x = np.reshape(get_binary_data(fmt="%id"%(np.prod(nx_read)),content=resContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat),nx_read,order="F")
+    
+    #print "kk",theTable.nx,nx_read
+    #print resistivite_chimie_x[:,0,0]
+    #print np.shape(resistivite_chimie_x)
+    
+    ## Now we compute conductivities ==========================
+    
+    ## Define some constants ==================================
+    
+    ##pi=3.1415927410125732422d0
+    #rg      = 0.1e-4       # grain radius 
+    #mp      = 1.6726e-24   # proton mass
+    #me      = 9.1094e-28   # electron mass
+    #mg      = 1.2566e-14   # grain mass
+    #e       = 4.803204e-10 # electron charge
+    #mol_ion = 29.0*mp      # molecular ion mass
+    #Met_ion = 23.5*mp      # atomic ion mass
+    #kb      = 1.3807e-16   # Boltzmann
+    #clight  = 2.9979250e+10
+    ##real(kind=8), parameter ::mH      = 1.6600000d-24
+    ##real(kind=8), parameter ::mu_gas = 2.31d0
+    ##real(kind=8) :: scale_d = mu_gas*mH
+    #rho_s      = 2.3
+    #rho_n_tot  = 1.17e-21
+    #a_0        = 0.0375e-4
+    #a_min      = 0.0181e-4
+    #a_max      = 0.9049e-4
+    #zeta       = a_min/a_max
+    #lambda_pow = -3.5
+    
+    ## Compute grain distribution =============================
+    
+    #if ndims == 3:
+        #nbins_grains = (theTable.nx[0]-7)/3
+        #nion = 7
+    #elif ndims == 4:
+        #nbins_grains = (theTable.nx[0]-9)/3
+        #nion = 9
+    #print 'nbins_grains',nbins_grains
+    
+    #r_g = np.zeros([nbins_grains])
        
-    Lp1 = lambda_pow + 1.0
-    Lp3 = lambda_pow + 3.0
-    Lp4 = lambda_pow + 4.0
-    fnb = float(nbins_grains)
+    #Lp1 = lambda_pow + 1.0
+    #Lp3 = lambda_pow + 3.0
+    #Lp4 = lambda_pow + 4.0
+    #fnb = float(nbins_grains)
 
-    if nbins_grains == 1:
-         r_grains[0] = a_0
-    else:
-        for i in range(nbins_grains):
-            r_grains[i] = a_min*zeta**(-float(i+1)/fnb) * np.sqrt( Lp1/Lp3* (1.0-zeta**(Lp3/fnb))/(1.0-zeta**(Lp1/fnb)))
+    #if nbins_grains == 1:
+         #r_g[0] = a_0
+    #else:
+        #for i in range(nbins_grains):
+            #r_g[i] = a_min*zeta**(-float(i+1)/fnb) * np.sqrt( Lp1/Lp3* (1.0-zeta**(Lp3/fnb))/(1.0-zeta**(Lp1/fnb)))
 
 
-    q_res  = np.zeros([theTable.nx[0]])
-    m_res  = np.zeros([theTable.nx[0]])
-    mg_res = np.zeros([theTable.nx[0]])
+    #q   = np.zeros([theTable.nx[0]])
+    #m   = np.zeros([theTable.nx[0]])
+    #m_g = np.zeros([theTable.nx[0]])
     
-    q_res[:] = e
-    q_res[0] = -e
-    if ndims == 3:
-        qchrg = [e,-e,0.0]
-        for i in range(nion,theTable.nx[0]):
-            q_res[i] = qchrg[(i-7) % 3]               
-    elif ndims == 4:
-        qchrg = [0.0,e,-e]
-        for i in range(nion,theTable.nx[0]):
-            q_res[i] = qchrg[(i-8) % 3]               
+    #q[:] = e
+    #q[0] = -e
+    #if ndims == 3:
+        #qchrg = [e,-e,0.0]
+        #for i in range(nion,theTable.nx[0]):
+            #q[i] = qchrg[(i-7) % 3]               
+    #elif ndims == 4:
+        #qchrg = [0.0,e,-e]
+        #for i in range(nion,theTable.nx[0]):
+            #q[i] = qchrg[(i-8) % 3]               
 
-    m_res[0] = me        # e-
-    m_res[1] = 23.5*mp   # metallic ions
-    m_res[2] = 29.0*mp   # molecular ions
-    m_res[3] = 3.0*mp    # H3+
-    m_res[4] = mp        # H+
-    m_res[5] = 12.0*mp   # C+
-    m_res[6] = 4.0*mp    # He+
-    if ndims == 4:
-        m_res[7] = 39.098*mp # K+
-        m_res[8] = 22.990*mp # Na+
-    for i in range(nbins_grains):
-        mg_res[i] = 4.0/3.0*np.pi*r_grains[i]**3*rho_s
-        m_res[nion+1+3*i:nion+1+3*(i+1)] = mg_res[i]
+    #m[0] = me        # e-
+    #m[1] = 23.5*mp   # metallic ions
+    #m[2] = 29.0*mp   # molecular ions
+    #m[3] = 3.0*mp    # H3+
+    #m[4] = mp        # H+
+    #m[5] = 12.0*mp   # C+
+    #m[6] = 4.0*mp    # He+
+    #if ndims == 4:
+        #m[7] = 39.098*mp # K+
+        #m[8] = 22.990*mp # Na+
+    #for i in range(nbins_grains):
+        #m_g[i] = 4.0/3.0*np.pi*r_g[i]**3*rho_s
+        #m[nion+1+3*i:nion+1+3*(i+1)] = m_g[i]
     
     
-    print q_res
-    print '======================='
-    print m_res
+    #print q
+    #print '======================='
+    #print m
     
     
-    # Compute conductivities =============================
+    ## Compute conductivities =============================
     
-    # Define magnetic field range and resolution
-    bminchimie = 1.0e-10
-    bmaxchimie = 1.0e+10
-    bchimie = 150
-    #dbchimie=(np.log10(bmaxchimie)-np.log10(bminchimie))/float(bchimie-1)
-    Barray = np.linspace(np.log10(bminchimie),np.log10(bmaxchimie),bchimie)
+    ## Define magnetic field range and resolution
+    #bminchimie = 1.0e-10
+    #bmaxchimie = 1.0e+10
+    #bchimie = 150
+    ##dbchimie=(np.log10(bmaxchimie)-np.log10(bminchimie))/float(bchimie-1)
+    #Barray = np.linspace(np.log10(bminchimie),np.log10(bmaxchimie),bchimie)
     
-    nchimie = theTable.nx[1]
-    tchimie = theTable.nx[2]
-    if ndims == 3:
-        xichimie = 1
-        resistivite_chimie = np.zeros([4,nchimie,tchimie,bchimie])
-    elif ndims == 4:
-        xichimie = theTable.nx[3]
-        resistivite_chimie = np.zeros([4,nchimie,tchimie,xichimie,bchimie])
-    
+    #nchimie = theTable.nx[1]
+    #tchimie = theTable.nx[2]
+    #if ndims == 3:
+        #xichimie = 1
+        #theTable.eta_ohm  = np.zeros([nchimie,tchimie,bchimie])
+        #theTable.eta_ad   = np.zeros([nchimie,tchimie,bchimie])
+        #theTable.eta_hall = np.zeros([nchimie,tchimie,bchimie])
+        #theTable.eta_hsig = np.zeros([nchimie,tchimie,bchimie])
+    #elif ndims == 4:
+        #xichimie = theTable.nx[3]
+        #theTable.eta_ohm  = np.zeros([nchimie,tchimie,xichimie,bchimie])
+        #theTable.eta_ad   = np.zeros([nchimie,tchimie,xichimie,bchimie])
+        #theTable.eta_hall = np.zeros([nchimie,tchimie,xichimie,bchimie])
+        #theTable.eta_hsig = np.zeros([nchimie,tchimie,xichimie,bchimie])
 
-    tau_sn      = np.zeros([theTable.nx[0]])
-    omega       = np.zeros([theTable.nx[0]])
-    sigma       = np.zeros([theTable.nx[0]])
-    phi         = np.zeros([theTable.nx[0]])
-    zetas       = np.zeros([theTable.nx[0]])
-    gamma_zeta  = np.zeros([theTable.nx[0]])
-    gamma_omega = np.zeros([theTable.nx[0]])
-    omega_bar   = np.zeros([theTable.nx[0]])
-   
-    for iX in range(xichimie):
-        for iB in range(bchimie):
-            for iT in range(tchimie):
-                for iH in range(nchimie):
+    #tau_sn      = np.zeros([theTable.nx[0]])
+    #omega       = np.zeros([theTable.nx[0]])
+    #sigma       = np.zeros([theTable.nx[0]])
+    #phi         = np.zeros([theTable.nx[0]])
+    #zetas       = np.zeros([theTable.nx[0]])
+    #gamma_zeta  = np.zeros([theTable.nx[0]])
+    #gamma_omega = np.zeros([theTable.nx[0]])
+    #omega_bar   = np.zeros([theTable.nx[0]])
+    
+    #for iX in range(xichimie):
+        #for iB in range(bchimie):
+            #print iB,bchimie
+            #for iT in range(tchimie):
+                #for iH in range(nchimie):
 
-                    B = Barray[iB]
-                    if ndims == 3:
-                        nh = resistivite_chimie_x[0,iH,iT]  # density (.cc) of current point
-                        T  = resistivite_chimie_x[1,iH,iT]
-                    elif ndims == 4:
-                        nh = resistivite_chimie_x[0,iH,iT,iX]  # density (.cc) of current point
-                        T  = resistivite_chimie_x[1,iH,iT,iX]
-                        xi = resistivite_chimie_x[2,iH,iT,iX]
+                    #B = Barray[iB]
+                    #if ndims == 3:
+                        #nh = resistivite_chimie_x[0,iH,iT]  # density (.cc) of current point
+                        #T  = resistivite_chimie_x[1,iH,iT]
+                    #elif ndims == 4:
+                        #nh = resistivite_chimie_x[0,iH,iT,iX]  # density (.cc) of current point
+                        #T  = resistivite_chimie_x[1,iH,iT,iX]
+                        #xi = resistivite_chimie_x[2,iH,iT,iX]
       
-                    for i in range(nion):
-                        if  i==0 : # electron
-                            if ndims == 3:
-                                sigv = 1.3e-9
-                            elif ndims == 4:
-                                sigv = 3.16e-11 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*me*1.0e-3))*1.0e-3)**1.3
-                            tau_sn[i] = 1.0/1.16*(m_res[i]+2.0*mp)/(2.0*mp)*1.0/(nH/2.0*sigv)
+                    #for i in range(nion):
+                        #if  i==0 : # electron
+                            #if ndims == 3:
+                                #sigv = 1.3e-9
+                            #elif ndims == 4:
+                                #sigv = 3.16e-11 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*me*1.0e-3))*1.0e-3)**1.3
+                            #tau_sn[i] = 1.0/1.16*(m[i]+2.0*mp)/(2.0*mp)*1.0/(nh/2.0*sigv)
                         
-                        else: # ions   
-                        #elif (i>=1) and (i<nion): # ions
-                            if ndims == 3:
-                                sigv = 1.69e-9
-                            elif ndims == 4:
-                                muuu=m_res[i]*2.0*mp/(m_res[i]+2.0*mp)
-                                if (i==1) or (i==2):
-                                    sigv=2.4e-9 *(np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**0.6
-                                elif i==3:
-                                    sigv=2.0e-9 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**0.15
-                                elif i==4:
-                                    sigv=3.89e-9 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**(-0.02)
-                                else:
-                                    sigv=1.69e-9
-                            tau_sn[i] = 1.0/1.14*(m_res[i]+2.0*mp)/(2.0*mp)*1.0/(nH/2.0*sigv)
+                        #else: # ions   
+                        ##elif (i>=1) and (i<nion): # ions
+                            #if ndims == 3:
+                                #sigv = 1.69e-9
+                            #elif ndims == 4:
+                                #muuu=m[i]*2.0*mp/(m[i]+2.0*mp)
+                                #if (i==1) or (i==2):
+                                    #sigv=2.4e-9 *(np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**0.6
+                                #elif i==3:
+                                    #sigv=2.0e-9 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**0.15
+                                #elif i==4:
+                                    #sigv=3.89e-9 * (np.sqrt(8.0*kb*1.0e-7*T/(np.pi*muuu*1.0e-3))*1.0e-3)**(-0.02)
+                                #else:
+                                    #sigv=1.69e-9
+                            #tau_sn[i] = 1.0/1.14*(m[i]+2.0*mp)/(2.0*mp)*1.0/(nh/2.0*sigv)
                         
-                        omega[i] = q_res[i]*B/(m_res[i]*clight)
-                        if ndims == 3:
-                            sigma[i] = resistivite_chimie_x[i+2,iH,iT]*nH*(q_res[i])**2*tau_sn[i]/m_res[i]
-                        else:
-                            sigma[i] = resistivite_chimie_x[i+3,iH,iT,iX]*nH*(q_res[i])**2*tau_sn[i]/m_res[i]
-                        #phi[i] = 0.0
-                        #zetas[i] = 0.0
-                        gamma_zeta[i] = 1.0
-                        gamma_omega[i] = 1.0
-                        #omega_bar[i] = 0.0
+                        #omega[i] = q[i]*B/(m[i]*clight)
+                        #if ndims == 3:
+                            #sigma[i] = resistivite_chimie_x[i+2,iH,iT]*nh*(q[i])**2*tau_sn[i]/m[i]
+                        #elif ndims == 4:
+                            #sigma[i] = resistivite_chimie_x[i+3,iH,iT,iX]*nh*(q[i])**2*tau_sn[i]/m[i]
+                        ##phi[i] = 0.0
+                        ##zetas[i] = 0.0
+                        #gamma_zeta[i] = 1.0
+                        #gamma_omega[i] = 1.0
+                        ##omega_bar[i] = 0.0
                         
-                    ## STOPPED HERE ===================
+                    #for i in range(nbins_grains):
                         
-                    #for  i in range(nbins_grains):
+                        ## g+
+                        #tau_sn[nion+1+3*i] = 1.0/1.28*(m_g[i]+2.0*mp)/(2.0*mp)*1.0/(nh/2.0*(np.pi*r_g[i]**2*(8.0*kb*T/(np.pi*2.0*mp))**0.5))
+                        #omega [nion+1+3*i] = q[nion+1+3*i]*B/(m_g[i]*clight)
                         
-      
-        #tau_sn(nion+1+3*(i-1))= 1.d0/1.28d0*(m_g(i)+2.d0*mp)/(2.d0*mp)*1.d0/(nH/2.d0*(pi*r_g(i)**2*(8.d0*Kb*T/(pi*2.d0*mp))**0.5))
-        #omega(nion+1+3*(i-1)) = q(nion+1+3*(i-1))*B/(m_g(i)*c_l)
-        #sigma(nion+1+3*(i-1)) = resistivite_chimie_x(nion+1+3*(i-1),iH,iT,iX)*nH*(q(nion+1+3*(i-1)))**2*tau_sn(nion+1+3*(i-1))/m_g(i)
-      
-        #tau_sn(nion+2+3*(i-1))= tau_sn(nion+1+3*(i-1))
-        #omega(nion+2+3*(i-1)) = q(nion+2+3*(i-1))*B/(m_g(i)*c_l)
-        #sigma(nion+2+3*(i-1)) = resistivite_chimie_x(nion+2+3*(i-1),iH,iT,iX)*nH*(q(nion+2+3*(i-1)))**2*tau_sn(nion+2+3*(i-1))/m_g(i)
-      
-      #end do
-            
+                        ## g-
+                        #tau_sn[nion+2+3*i] = tau_sn[nion+1+3*i]
+                        #omega [nion+2+3*i] = q[nion+2+3*i]*B/(m_g[i]*clight)
+                        
+                        #if ndims == 3:
+                            #sigma[nion+1+3*i] = resistivite_chimie_x[nion+3+3*i,iH,iT]*nh*(q[nion+1+3*i]**2)*tau_sn[nion+1+3*i]/m_g[i]
+                            #sigma[nion+2+3*i] = resistivite_chimie_x[nion+4+3*i,iH,iT]*nh*(q[nion+2+3*i]**2)*tau_sn[nion+2+3*i]/m_g[i]
+                        #elif ndims == 4:
+                            #sigma[nion+1+3*i] = resistivite_chimie_x[nion+4+3*i,iH,iT,iX]*nh*(q[nion+1+3*i]**2)*tau_sn[nion+1+3*i]/m_g[i]
+                            #sigma[nion+2+3*i] = resistivite_chimie_x[nion+5+3*i,iH,iT,iX]*nh*(q[nion+2+3*i]**2)*tau_sn[nion+2+3*i]/m_g[i]
+                    
+                    #sigP =0.0
+                    #sigO =0.0
+                    #sigH =0.0
 
-      ###do i=1,nion
-        ###if  (i==1) then  ! electron
-          ###sigv=3.16d-11 * (dsqrt(8d0*kB*1d-7*T/(pi*me*1d-3))*1d-3)**1.3d0
-          ###tau_sn(i) = 1.d0/1.16d0*(m(i)+2.d0*mp)/(2.d0*mp)*1.d0/(nH/2.d0*sigv)
-        ###else if (i>=2 .and. i<=nion) then ! ions
-          ###muuu=m(i)*2d0*mp/(m(i)+2d0*mp)
-          ###if (i==2 .or. i==3) then
-            ###sigv=2.4d-9 *(dsqrt(8d0*kB*1d-7*T/(pi*muuu*1d-3))*1d-3)**0.6d0
-          ###else if (i==4) then
-            ###sigv=2d-9 * (dsqrt(8d0*kB*1d-7*T/(pi*muuu*1d-3))*1d-3)**0.15d0
-          ###else if (i==5) then
-            ###sigv=3.89d-9 * (dsqrt(8d0*kB*1d-7*T/(pi*muuu*1d-3))*1d-3)**(-0.02d0)
-          ###else
-            ###sigv=1.69d-9
-          ###end if
-          ###tau_sn(i) = 1.d0/1.14d0*(m(i)+2.d0*mp)/(2.d0*mp)*1.d0/(nH/2.d0*sigv)
-        ###end if
-        ###omega(i) = q(i)*B/(m(i)*c_l)
-        ###sigma(i) = resistivite_chimie_x(i,iH,iT,iX)*nH*(q(i))**2*tau_sn(i)/m(i)
-        ###phi(i) = 0.d0
-        ###zetas(i) = 0.d0
-        ###gamma_zeta(i) = 1.d0
-        ###gamma_omega(i) = 1.d0
-        ###omega_bar(i) = 0.d0
-      ###end do
-      
-      ##do  i=1,nbins_grains   ! grains
-      
-        ##tau_sn(nion+1+3*(i-1))= 1.d0/1.28d0*(m_g(i)+2.d0*mp)/(2.d0*mp)*1.d0/(nH/2.d0*(pi*r_g(i)**2*(8.d0*Kb*T/(pi*2.d0*mp))**0.5))
-        ##omega(nion+1+3*(i-1)) = q(nion+1+3*(i-1))*B/(m_g(i)*c_l)
-        ##sigma(nion+1+3*(i-1)) = resistivite_chimie_x(nion+1+3*(i-1),iH,iT,iX)*nH*(q(nion+1+3*(i-1)))**2*tau_sn(nion+1+3*(i-1))/m_g(i)
-      
-        ##tau_sn(nion+2+3*(i-1))= tau_sn(nion+1+3*(i-1))
-        ##omega(nion+2+3*(i-1)) = q(nion+2+3*(i-1))*B/(m_g(i)*c_l)
-        ##sigma(nion+2+3*(i-1)) = resistivite_chimie_x(nion+2+3*(i-1),iH,iT,iX)*nH*(q(nion+2+3*(i-1)))**2*tau_sn(nion+2+3*(i-1))/m_g(i)
-      
-      ##end do
+                    #for i in range(theTable.nx[0]):
+                        #sigP =sigP + sigma[i]
+                        #sigO =sigO + sigma[i]/(1.0+(omega[i]*tau_sn[i])**2)
+                        #sigH =sigH - sigma[i]*omega[i]*tau_sn[i]/(1.0+(omega[i]*tau_sn[i])**2)
+                    
+                    #if ndims == 3:
+                        #theTable.eta_ohm [iH,iT,iB] = np.log10(1.0/sigP)                        # Ohmic
+                        #theTable.eta_ad  [iH,iT,iB] = np.log10(sigO/(sigO**2+sigH**2)-1.0/sigP) # Ambipolar
+                        #theTable.eta_hall[iH,iT,iB] = np.log10(abs(sigH/(sigO**2+sigH**2)))     # Hall
+                        #theTable.eta_hsig[iH,iT,iB] = sigH / abs(sigH)                          # Hall sign
+                    #elif ndims == 4:
+                        #theTable.eta_ohm [iH,iT,iX,iB] = np.log10(1.0/sigP)                        # Ohmic
+                        #theTable.eta_ad  [iH,iT,iX,iB] = np.log10(sigO/(sigO**2+sigH**2)-1.0/sigP) # Ambipolar
+                        #theTable.eta_hall[iH,iT,iX,iB] = np.log10(abs(sigH/(sigO**2+sigH**2)))     # Hall
+                        #theTable.eta_hsig[iH,iT,iX,iB] = sigH / abs(sigH)                          # Hall sign
 
-      ##sigP=0.d0
-      ##sigO=0.d0
-      ##sigH=0.d0
-
-      ##do i=1,nvarchimie
-         ##sigP=sigP+sigma(i)
-         ##sigO=sigO+sigma(i)/(1.d0+(omega(i)*tau_sn(i))**2)
-         ##sigH=sigH-sigma(i)*omega(i)*tau_sn(i)/(1.d0+(omega(i)*tau_sn(i))**2)
-      ##end do
-
-      ##if(sigH==0d0) sigH=1d-30
-
-      ##resistivite_chimie(1,iH,iT,iX,iB)=log10(sigP)
-      ##resistivite_chimie(2,iH,iT,iX,iB)=log10(sigO)
-      ##resistivite_chimie(3,iH,iT,iX,iB)=log10(abs(sigH))
-      ##resistivite_chimie(0,iH,iT,iX,iB)=sign(1.0d0,sigH)
-##end do
-##end do
-##end do
-##end do
-
-    
-    
-    ##print("Resistivity table read successfully")
-
-    ##return theTable
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#open(42,file='resnh.dat', status='old')
-        #read(42,*) nchimie, tchimie, nvarchimie
-        #read(42,*)
-        #read(42,*)
-        #allocate(resistivite_chimie_x(-1:nvarchimie,nchimie,tchimie,1))
-        #do i=1,tchimie
-           #do j=1,nchimie
-              #read(42,*)resistivite_chimie_x(0:nvarchimie,j,i,1),dummy,dummy,dummy,dummy,resistivite_chimie_x(-1,j,i,1)
-#!              print *, resistivite_chimie_x(:,j,i)
-           #end do
-           #read(42,*)
-        #end do
-        #close(42)
-        #rho_threshold=max(rho_threshold,resistivite_chimie_x(0,1,1,1)*(mu_gas*mH)/scale_d) ! input in part/cc, output in code units
-        #nminchimie=(resistivite_chimie_x(0,1,1,1))
-        #dnchimie=(log10(resistivite_chimie_x(0,nchimie,1,1))-log10(resistivite_chimie_x(0,1,1,1)))/&
-                 #&(nchimie-1)
-#!                 print*, dnchimie,15.d0/50.d0
-        #tminchimie=(resistivite_chimie_x(-1,1,1,1))
-        #dtchimie=(log10(resistivite_chimie_x(-1,1,tchimie,1))-log10(resistivite_chimie_x(-1,1,1,1)))/&
-                 #&(tchimie-1)
-#!                 print*, dtchimie,3.d0/50.d0
-#!         close(333)
-        #call rq
-        #call nimhd_3dtable
-     #else if(use_x3d==1)then
-
-        #open(42,file='marchand2016_table.dat',form='unformatted')
-        #read(42) nchimie, tchimie, xichimie, nvarchimie
-        #allocate(resistivite_chimie_x(-2:nvarchimie+4,nchimie,tchimie,xichimie))
-        #read(42) resistivite_chimie_x
-        #close(42)
-
-        #rho_threshold=max(rho_threshold,resistivite_chimie_x(-2,1,1,1)*(mu_gas*mH)/scale_d) ! input in part/cc, output in code units
-        #nminchimie=(resistivite_chimie_x(-2,1,1,1))
-        #dnchimie=(log10(resistivite_chimie_x(-2,nchimie,1,1))-log10(resistivite_chimie_x(-2,1,1,1)))/&
-                 #&(nchimie-1)
-#!                 print*, dnchimie,15.d0/50.d0
-        #tminchimie=(resistivite_chimie_x(-1,1,1,1))
-        #dtchimie=(log10(resistivite_chimie_x(-1,1,tchimie,1))-log10(resistivite_chimie_x(-1,1,1,1)))/&
-                 #&(tchimie-1)
-#!                 print*, dtchimie,3.d0/50.d0
-        #ximinchimie=(resistivite_chimie_x(0,1,1,1))
-        #dxichimie=(log10(resistivite_chimie_x(0,1,1,xichimie))-log10(resistivite_chimie_x(0,1,1,1)))/&
-                 #&(xichimie-1)
-        #call rq_3d
-        #call nimhd_4dtable
-     #else
-        #print*, 'must choose an input for abundances or resistivities'
-        #stop
-     #endif
+    #print resistivite_chimie_x[0,:,:]
+    ##theTable.dens = resistivite_chimie_x
+    ##theTable.grid = (theTable.dens,theTable.tgas,theTable.trad)
