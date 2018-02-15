@@ -318,7 +318,7 @@ def read_resistivity_table(fname="resistivities_masson2016.bin"):
         theTable.grid = (theTable.dens,theTable.tgas,theTable.bmag)
     
     # Additional parameters
-    theTable.scale_dens = 0.844*2.0/(2.31*1.66e-24) # 2.0*H2_fraction/(mu*mH))
+    theTable.scale_dens = 0.844*2.0/1.66e-24 # 2.0*H2_fraction/mH
     theTable.ionis_rate = 1.0e-17
     
     print("Resistivity table read successfully")
@@ -336,17 +336,19 @@ def get_resistivities(holder,resistivity_fname="resistivities_masson2016.bin",va
     except AttributeError:
         holder.resistivity_table = read_resistivity_table(fname=resistivity_fname)
     
+    try:
+        rho_to_nH = holder.resistivity_table.scale_dens/holder.info["mu_gas"]
+    except KeyError:
+        rho_to_nH = holder.resistivity_table.scale_dens/2.31 # Default mean atomic weight
+    
     if holder.resistivity_table.ndims == 4:
         if not hasattr(holder,"ionisation_rate"):
             holder.new_field(name="ionisation_rate",values=[holder.resistivity_table.ionis_rate]*holder.info["ncells"],label="Ionisation rate")
-        pts = np.array([np.log10(holder.density.values*holder.resistivity_table.scale_dens), \
-                        np.log10(holder.temperature.values),np.log10(holder.ionisation_rate.values), \
-                        np.log10(holder.B.values)]).T
+        pts = np.array([np.log10(holder.density.values*rho_to_nH),np.log10(holder.temperature.values), \
+                        np.log10(holder.ionisation_rate.values),np.log10(holder.B.values)]).T
     elif holder.resistivity_table.ndims == 3:
-        pts = np.array([np.log10(holder.density.values*holder.resistivity_table.scale_dens), \
-                        np.log10(holder.temperature.values),np.log10(holder.B.values)]).T
-    
-    #print holder.density.values*holder.resistivity_table.scale_dens
+        pts = np.array([np.log10(holder.density.values*rho_to_nH),np.log10(holder.temperature.values), \
+                        np.log10(holder.B.values)]).T
     
     for var in variables:
         print("Interpolating "+var)
