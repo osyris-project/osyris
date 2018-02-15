@@ -22,12 +22,14 @@ import config_osiris as conf
 
 divider = "============================================"
 
-
-
+#=======================================================================================
+# This is the class which will holds a scalar or vector field.
+#=======================================================================================
 class OsirisData():
     
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
-                 parent=None,kind='scalar',vec_x=False,vec_y=False,vec_z=False,name="",vector_component=False):
+                 parent=None,kind="scalar",vec_x=False,vec_y=False,vec_z=False,name="",\
+                 vector_component=False,group="hydro"):
         
         self.values = values
         self.unit = unit
@@ -38,6 +40,7 @@ class OsirisData():
         self.kind = kind
         self.parent = parent
         self.name = name
+        self.group = group
         if vec_x:
             self.x = vec_x
         if vec_y:
@@ -47,8 +50,6 @@ class OsirisData():
         self.vector_component = vector_component
         
         return
-    
-
 
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
@@ -81,14 +82,17 @@ class LoadRamsesData():
         if status == 0:
             return
         
+        # Convert vector components to vector containers
+        self.create_vector_containers()
+        
         ## Re-center the mesh around chosen center
         #self.re_center()
         
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
         
-        # Convert vector components to vector containers
-        self.create_vector_containers()
+        ## Convert vector components to vector containers
+        #self.create_vector_containers()
         
         # Print exit message
         [var_list,typ_list] = self.get_var_list(types=True)
@@ -97,11 +101,13 @@ class LoadRamsesData():
         if verbose:
             self.print_info()
         print(divider)
+        
+        return
     
     #=======================================================================================
     # Generate the file name
     #=======================================================================================
-    def generate_fname(self,nout,path="",ftype="",cpuid=1):
+    def generate_fname(self,nout,path="",ftype="",cpuid=1,ext=""):
         
         if len(path) > 0:
             if path[-1] != "/":
@@ -115,7 +121,12 @@ class LoadRamsesData():
 
         infile = path+"output_"+number
         if len(ftype) > 0:
-            infile = infile+"/"+ftype+"_"+number+".out"+str(cpuid).zfill(5)
+            infile += "/"+ftype+"_"+number
+            if cpuid >= 0:
+                infile += ".out"+str(cpuid).zfill(5)
+        
+        if len(ext) > 0:
+            infile += ext
             
         return infile
     
@@ -159,7 +170,8 @@ class LoadRamsesData():
         
         # Now go through all the variables and check if they are to be read or skipped
         list_vars = []
-        var_read = []
+        var_read  = []
+        var_group = []
         
         # Start with hydro variables ==================================
         
@@ -193,6 +205,7 @@ class LoadRamsesData():
                 if (len(variables) == 0) or (sp[1].strip() in variables) or ("hydro" in variables):
                     var_read.append(True)
                     list_vars.append(sp[1].strip())
+                    var_group.append("hydro")
                 else:
                     var_read.append(False)
 
@@ -217,15 +230,36 @@ class LoadRamsesData():
             
             # Now add to the list of variables to be read
             for line in content:
-                if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables):
+                if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables) or ("grav" in variables):
                     var_read.append(True)
                     list_vars.append(line.strip())
+                    var_group.append("grav")
                 else:
                     var_read.append(False)
-                
+        
+        # Now for particles ==================================
+        
+        # Read header file to get particle information
+        headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
+        with open(headerfile) as f:
+            dummy_string = f.readline()
+            npart_tot = int(f.readline())
+            dummy_string = f.readline()
+            npart_dm = int(f.readline())
+            dummy_string = f.readline()
+            npart_star = int(f.readline())
+            dummy_string = f.readline()
+            npart_sink = int(f.readline())
+            dummy_string = f.readline()
+            particle_fields = f.readline().split(' ')[:-1]
+        f.close()
+        particles = (npart_tot > 0)
+        
+        
         # Make sure we always read the coordinates
         list_vars.extend(("level","x","y","z","dx","cpu"))
         var_read.extend((True,True,True,True,True,True))
+        var_group.extend(("amr","amr","amr","amr","amr","amr"))
         
         nvar_read = len(list_vars)
         
@@ -310,6 +344,14 @@ class LoadRamsesData():
                 with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
                     gravContent = grav_file.read()
                 grav_file.close()
+            
+            ## Read binary PARTICLE file
+            #if particles:
+                #part_fname = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
+                #with open(part_fname, mode='rb') as part_file: # b is important -> binary
+                    #partContent = part_file.read()
+                #part_file.close()
+            
             
             # Need to extract info from the file header on the first loop
             if k == 0:
@@ -410,7 +452,7 @@ class LoadRamsesData():
                 nfloat3 = 0
                 nlines3 = 4
                 nstrin3 = 0
-                
+            
             # Loop over levels
             for ilevel in range(lmax):
                 
@@ -491,6 +533,7 @@ class LoadRamsesData():
                                             offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*(self.info["ndim"]+1)+ivar)*(ncache+1)) + nstrin_grav + 4
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
                                             jvar += 1
+                                # var: coordinates and cell sizes
                                 var[:ncache,ind,-6] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
@@ -559,6 +602,27 @@ class LoadRamsesData():
                     nfloat3 = nfloat_grav
                     nlines3 = nlines_grav
                     nstrin3 = nstrin_grav
+                    
+            ## Now read particles: they are not in the loop over levels, only the cpu loop
+            #if particles:
+                ## Get number of particles for this cpu
+                #ninteg = nlines = 2
+                #nfloat = nstrin = nquadr = 0
+                #[npart] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                ## Determine size of localseed array
+                #ninteg = nlines = 3
+                #[recordlength] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                #localseedsize = recordlength/4
+                ## Now set offsets
+                #nlines = 8
+                #ninteg = 5 + localseedsize
+                #nfloat = 2
+                ## List particle fields to be read
+                #part_read = []
+                #for field in particle_fields:
+                    #if field == 'pos':
+                        #part_read.append('part_x')
+    
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
@@ -586,7 +650,8 @@ class LoadRamsesData():
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,verbose=False,norm=norm,update=update)
+            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,\
+                           verbose=False,norm=norm,update=update,group=var_group[i])
         
                         
                         
@@ -594,14 +659,14 @@ class LoadRamsesData():
         
         # Hard coded additional data fields needed
         [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-        self.new_field(name="x_raw",operation="x",unit=uu,label="x raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="y_raw",operation="y",unit=uu,label="y raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="z_raw",operation="z",unit=uu,label="z raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx raw",verbose=False,norm=norm,update=update)
-        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z box",verbose=False,norm=1.0,update=update)
-        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx box",verbose=False,norm=1.0,update=update)
+        self.new_field(name="x_raw",operation="x",unit=uu,label="x raw",verbose=False,norm=norm,update=update,group="amr")
+        self.new_field(name="y_raw",operation="y",unit=uu,label="y raw",verbose=False,norm=norm,update=update,group="amr")
+        self.new_field(name="z_raw",operation="z",unit=uu,label="z raw",verbose=False,norm=norm,update=update,group="amr")
+        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx raw",verbose=False,norm=norm,update=update,group="amr")
+        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x box",verbose=False,norm=1.0,update=update,group="amr")
+        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y box",verbose=False,norm=1.0,update=update,group="amr")
+        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z box",verbose=False,norm=1.0,update=update,group="amr")
+        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx box",verbose=False,norm=1.0,update=update,group="amr")
 
         #self.print_info()
         
@@ -613,7 +678,7 @@ class LoadRamsesData():
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
-    def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False):
+    def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False,delimiter="="):
     
         # Read info file and create dictionary
         try:
@@ -631,7 +696,7 @@ class LoadRamsesData():
         
         setattr(self,dict_name,dict())
         for line in content:
-            sp = line.split("=")
+            sp = line.split(delimiter)
             if len(sp) > 1:
                 if evaluate:
                     try:
@@ -647,7 +712,29 @@ class LoadRamsesData():
     # Print information about the data that was loaded.
     #=======================================================================================
     def print_info(self):
-        print("--------------------------------------------")
+        
+        # First get maximum length
+        maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = maxlen6 = 0
+        print_list = dict()
+        for key in sorted(self.get_var_list()):
+            if not getattr(self,key).vector_component:
+                print_list[key] = []
+                print_list[key].append(key)
+                maxlen1 = max(maxlen1,len(key))
+                print_list[key].append(getattr(self,key).kind)
+                maxlen2 = max(maxlen2,len(print_list[key][1]))
+                print_list[key].append(getattr(self,key).group)
+                maxlen3 = max(maxlen3,len(print_list[key][2]))
+                print_list[key].append(getattr(self,key).unit)
+                maxlen4 = max(maxlen4,len(print_list[key][3]))
+                print_list[key].append(str(np.nanmin(getattr(self,key).values)))
+                print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                maxlen5 = max(maxlen5,len(print_list[key][4]))
+                maxlen6 = max(maxlen6,len(print_list[key][5]))
+
+        # Now print to screen
+        rule = "-" * (maxlen1+maxlen2+maxlen3+maxlen4+maxlen5+maxlen6+7)
+        print(rule)
         for key in sorted(self.info.keys()):
             theShape = np.shape(self.info[key])
             if len(theShape) > 0:
@@ -657,42 +744,16 @@ class LoadRamsesData():
                     print(key+": "+str(self.info[key]))
             else:
                 print(key+": "+str(self.info[key]))
-        print("--------------------------------------------")
-        maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = 0
-        key_list = self.get_var_list()
-        print_list = dict()
-        #key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
-        for key in sorted(key_list):
-            print_list[key] = []
-            print_list[key].append(key)
-            maxlen1 = max(maxlen1,len(key))
-            print_list[key].append(getattr(self,key).kind)
-            maxlen2 = max(maxlen2,len(print_list[key][1]))
-            print_list[key].append(getattr(self,key).unit)
-            maxlen3 = max(maxlen3,len(print_list[key][2]))
-            if print_list[key][1] == 'vector':
-                print_list[key].append("--")
-                print_list[key].append("--")
-            else:
-                try:
-                    print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                except TypeError:
-                    print_list[key].append("--")
-                try:
-                    print_list[key].append(str(np.nanmax(getattr(self,key).values)))
-                except TypeError:
-                    print_list[key].append("--")
-            maxlen4 = max(maxlen4,len(print_list[key][3]))
-            maxlen5 = max(maxlen5,len(print_list[key][4]))
+        print(rule)
         print("The variables are:")
-        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Unit".ljust(maxlen3)+"     Min".ljust(maxlen4)+"      Max".ljust(maxlen5))
-        for key in sorted(key_list):
-            print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" ["+print_list[key][2].ljust(maxlen3)+"] "+\
-                  print_list[key][3].ljust(maxlen4)+" "+print_list[key][4].ljust(maxlen5))
-            #print(key.ljust(maxlen1)+" "+getattr(self,key).kind.ljust(maxlen2)+\
-                  #" ["+getattr(self,key).unit.ljust(maxlen3)+"] "+\
-                  #str(np.nanmin(getattr(self,key).values)).ljust(maxlen4)+" "+\
-                  #str(np.nanmax(getattr(self,key).values)).ljust(maxlen5))
+        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
+              " Unit".ljust(maxlen4)+"     Min".ljust(maxlen5)+"      Max".ljust(maxlen6))
+        for key in sorted(print_list.keys()):
+            print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
+                  print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
+                  print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
+        #print(rule)
+        
         return
     
     #=======================================================================================
@@ -796,7 +857,7 @@ class LoadRamsesData():
                     zc = self.z_raw.values[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
-                    [op_parsed,depth,status] = self.parse_operation(cvar)
+                    [op_parsed,depth,grp,status] = self.parse_operation(cvar)
                     select = eval("np.where("+op_parsed+")")
                     xc = np.average(self.x_raw.values[select])
                     yc = np.average(self.y_raw.values[select])
@@ -960,19 +1021,9 @@ class LoadRamsesData():
             return [ud*ul/ut,"g/cm2/s"]
         elif string.startswith("B_"):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
-        elif string == "thermal_pressure":
+        elif string == ("thermal_pressure") or (string.count("energy") > 0):
             return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string == "total_energy":
-            return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string.startswith("radiative_energy"):
-            return [ud*((ul/ut)**2),"erg/cm3"]
-        elif string == "x":
-            return [ul,scale]
-        elif string == "y":
-            return [ul,scale]
-        elif string == "z":
-            return [ul,scale]
-        elif string == "dx":
+        elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
             return [ul,scale]
         elif string == "temperature":
             return [1.0,"K"]
@@ -994,7 +1045,7 @@ class LoadRamsesData():
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
     def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar",\
-                  vec_x=False,vec_y=False,vec_z=False,update=False):
+                  vec_x=False,vec_y=False,vec_z=False,update=False,group=""):
         
         # Case where values are given and no operation is to be computed
         if (len(operation) == 0) and (len(values) > 0):
@@ -1021,17 +1072,18 @@ class LoadRamsesData():
                     if vec_z:
                         theField.z = vec_z
             else:
+                if len(group) == 0:
+                    group = "hydro"
                 dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                                       norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z,name=name)
+                                       norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z,name=name,group=group)
                 setattr(self, name, dataField)
             
         # Case where operation is required
         elif (len(operation) > 0) and (len(values) == 0):
-            [op_parsed,depth,status] = self.parse_operation(operation)
-            if status == 0:
-                print("Cannot combine scalar and vector fields.")
-                return
-            elif status == 1:
+            [op_parsed,depth,grp,status] = self.parse_operation(operation)
+            if len(group) == 0:
+                    group = grp
+            if status == 2: # Only scalar fields
                 try:
                     new_data = eval(op_parsed)
                 except NameError:
@@ -1040,16 +1092,16 @@ class LoadRamsesData():
                         print("The attempted operation was: "+op_parsed)
                     return
                 dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                               norm=norm,kind=kind,parent=self,name=name)
+                               norm=norm,kind=kind,parent=self,name=name,group=group)
                 if hasattr(self,name) and verbose:
                     print("Warning: field "+name+" already exists and will be overwritten.")
                 setattr(self, name, dataField)
-            elif status == 2:
+            elif status == 1: # Dealing with vector fields
                 # Dealing with vector fields: first create x,y,z components
                 comps = ["_x","_y","_z"]
                 for n in range(self.info["ndim"]):
-                    [op_parsed,depth,stat_n] = self.parse_operation(operation,suffix=comps[n])
-                    if stat_n == 1:
+                    [op_parsed,depth,grp,stat_n] = self.parse_operation(operation,suffix=comps[n])
+                    if stat_n == 2:
                         try:
                             new_data = eval(op_parsed)
                         except NameError:
@@ -1058,7 +1110,7 @@ class LoadRamsesData():
                                 print("The attempted operation was: "+op_parsed)
                             return
                         dataField = OsirisData(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                                       norm=norm,kind=kind,parent=self,name=name)
+                                       norm=norm,kind=kind,parent=self,name=name,group=group)
                         if hasattr(self,name+comps[n]) and verbose:
                             print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
                         setattr(self, name+comps[n], dataField)
@@ -1066,11 +1118,11 @@ class LoadRamsesData():
                         print("Error: failed to create vector field.")
                         return
                 # Dealing with vector fields: then create vector container
-                self.vector_field(name=name,key=name)
+                self.vector_field(name=name)
         
         # Case where both values and operation are empty
         elif (len(operation) == 0) and (len(values) == 0):
-            dataField = OsirisData(unit=unit,label=label,parent=self,name=name)
+            dataField = OsirisData(unit=unit,label=label,parent=self,name=name,group=group)
             setattr(self, name, dataField)
         # Case where both values and operation are required
         else:
@@ -1103,14 +1155,25 @@ class LoadRamsesData():
         # This guards against replacing 'B' inside 'logB' for example.
         key_list = self.get_var_list()
         key_list = sorted(key_list,key=lambda x:len(x),reverse=True)
-        # For replacing, we need to create a list of hash keys to replace on instance at a
-        # time
+        # For replacing, we need to create a list of hash keys to replace on instance at a time
         hashkeys  = dict()
         hashcount = 0
-        found_scalar = False
-        found_vector = False
+        types_found = {"scalar":False,"vector":False,"hydro":False,"amr":False,"grav":False}
+        
         for key in key_list:
-            # Search for all instances in string
+            
+            # First look if there are any ".values" in the operation, i.e. vector magnitudes
+            keyVal = key+".values"
+            if expression.count(keyVal) > 0:
+                hashcount += 1
+                theHash = "#"+str(hashcount).zfill(5)+"#"
+                hashkeys[theHash] = "self."+keyVal
+                expression = expression.replace(keyVal,theHash)
+                max_depth = max(max_depth,getattr(self,key).depth)
+                types_found["scalar"] = True
+                types_found[getattr(self,key).group] = True
+            
+            # Now search for all instances of individual variables in string
             loop = True
             loc = 0
             while loop:
@@ -1119,8 +1182,7 @@ class LoadRamsesData():
                     loop = False
                 else:
                     # Check character before and after. If they are either a letter or a '_'
-                    # then the instance is actually part of another variable or function
-                    # name.
+                    # then the instance is actually part of another variable or function name.
                     char_before = expression[loc-1]
                     char_after  = expression[loc+len(key)]
                     bad_before = (char_before.isalpha() or (char_before == "_"))
@@ -1128,15 +1190,16 @@ class LoadRamsesData():
                     hashcount += 1
                     if (not bad_before) and (not bad_after):
                         theHash = "#"+str(hashcount).zfill(5)+"#"
-                        # Store the data key in the hash table
-                        #hashkeys[theHash] = "self.data[\""+key+"\"][\"values\"]"
-                        hashkeys[theHash] = "self.get(\""+key+suffix+"\")"
+                        # Store the data key in the hash table:
+                        if getattr(self,key).kind == "vector":
+                            thisKey = key+suffix
+                        else:
+                            thisKey = key
+                        hashkeys[theHash] = "self.get(\""+thisKey+"\")"
                         expression = expression.replace(key,theHash,1)
-                        max_depth = max(max_depth,getattr(self,key+suffix).depth)
-                        if getattr(self,key+suffix).kind == "scalar":
-                            found_scalar = True
-                        if getattr(self,key+suffix).kind == "vector":
-                            found_vector = True
+                        max_depth = max(max_depth,getattr(self,thisKey).depth)
+                        types_found[getattr(self,thisKey).kind] = True
+                        types_found[getattr(self,thisKey).group] = True
                     else:
                         # Replace anyway to prevent from replacing "x" in "max("
                         theHash = "#"+str(hashcount).zfill(5)+"#"
@@ -1147,16 +1210,25 @@ class LoadRamsesData():
         for theHash in hashkeys.keys():
             expression = expression.replace(theHash,hashkeys[theHash])
         
-        if found_scalar and found_vector:
-            status = 0
-        elif found_scalar:
+        # Determine output group
+        if types_found["hydro"]:
+            group = "hydro"
+        elif types_found["grav"]:
+            group = "grav"
+        elif types_found["amr"]:
+            group = "amr"
+        else:
+            group = "hydro"
+        
+        # Determine exit status
+        if types_found["vector"]:
             status = 1
-        elif found_vector:
+        elif types_found["scalar"]:
             status = 2
         else:
             status = 3
         
-        return [expression,max_depth,status]
+        return [expression,max_depth,group,status]
     
     #=======================================================================================
     # The function get returns the values of the selected variable
@@ -1221,27 +1293,36 @@ class LoadRamsesData():
                             ok = False
                     
                     if ok:
-                        vec_name = rawkey
-                        while hasattr(self,vec_name):
-                            vec_name += "_vec"
-                        self.vector_field(name=vec_name,key=rawkey)
+                        self.vector_field(name=rawkey)
 
         return
 
     #=======================================================================================
     # Create vector field
     #=======================================================================================
-    def vector_field(self,name="",key=""):
+    def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit=""):
     
-        v_x=getattr(self,key+"_x")
-        v_y=getattr(self,key+"_y")
+        if len(np.shape(values_x)) > 0:
+            self.new_field(name+"_x",values=values_x,unit=unit,label=name+"_x",verbose=False)
+        if len(np.shape(values_y)) > 0:
+            self.new_field(name+"_y",values=values_y,unit=unit,label=name+"_y",verbose=False)
+        if len(np.shape(values_z)) > 0:
+            self.new_field(name+"_z",values=values_z,unit=unit,label=name+"_z",verbose=False)
+                
+        v_x=getattr(self,name+"_x")
+        v_y=getattr(self,name+"_y")
         v_x.vector_component = True
         v_y.vector_component = True
-        v_z = False
+        
         if self.info["ndim"] > 2:
-            v_z=getattr(self,key+"_z")
+            v_z=getattr(self,name+"_z")
             v_z.vector_component = True
-        self.new_field(name=name,values="--",label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit)
+            vals = np.linalg.norm([v_x.values,v_y.values,v_z.values],axis=0)
+        else:
+            v_z = False
+            vals = np.linalg.norm([v_x.values,v_y.values],axis=0)
+        
+        self.new_field(name=name,values=vals,label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
         
         return
 

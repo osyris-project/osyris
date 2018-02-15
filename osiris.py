@@ -20,6 +20,7 @@ import config_osiris as conf
 import load_ramses_data
 import ism_physics
 # Python libraries
+import struct
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections
@@ -256,7 +257,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None
 def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axes=None,\
                direction="z",dx=0.0,dy=0.0,fname=None,title=None,sinks=True,copy=False,\
                origin=[0,0,0],resolution=128,summed=False,new_window=False,update=None,\
-               clear=True,plot=True,block=False,interpolation='linear',\
+               clear=True,plot=True,block=False,interpolation='linear',sink_args={},\
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},outline=False,outline_args={}):
     
     # Find parent container of object to plot
@@ -286,7 +287,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         pass
     
     # Get slice extent and direction vectors
-    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)
+    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
     
     # Define equation of a plane
     a_plane = dir1[0]
@@ -359,7 +360,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
-                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,outline_args=outline_args)
+                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
+                   outline_args=outline_args,sink_args=sink_args)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -383,7 +385,8 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
                         interpolation="linear",verbose=False,outline=False,outline_args={},\
-                        scalar_args={},image_args={},contour_args={},vec_args={},stream_args={}):
+                        scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
+                        sink_args={}):
         
     # Find parent container of object to plot
     if scalar:
@@ -412,7 +415,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         pass
         
     # Get direction vectors
-    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y = get_slice_direction(holder,direction,dx,dy)
+    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
     
     if dz == 0.0:
         dz = max(dx,dy)
@@ -500,7 +503,8 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
-                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,outline_args=outline_args)
+                   contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
+                   outline_args=outline_args,sink_args=sink_args)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -538,9 +542,14 @@ def parse_arguments(args,args_osiris,args_plot):
     # Define colorbar scaling
     cmap = args_osiris["cmap"]
     norm = None
+    # Default number of contours
+    try:
+        nc = args_osiris["nc"]
+    except KeyError:
+        nc = 21
     # Default contour levels
     try:
-        clevels = np.linspace(args_osiris["vmin"],args_osiris["vmax"],args_osiris["nc"])
+        clevels = np.linspace(args_osiris["vmin"],args_osiris["vmax"],nc)
     except TypeError:
         clevels = [0.0,1.0]
     # Perform log normalization if it is required
@@ -555,7 +564,7 @@ def parse_arguments(args,args_osiris,args_plot):
                 cmap = conf.default_values["colormap"] # cmap_save
             #norm = LogNorm()
             norm = LogNorm(vmin=args_osiris["vmin"],vmax=args_osiris["vmax"])
-            clevels = np.logspace(np.log10(args_osiris["vmin"]),np.log10(args_osiris["vmax"]),args_osiris["nc"])
+            clevels = np.logspace(np.log10(args_osiris["vmin"]),np.log10(args_osiris["vmax"]),nc)
             args_osiris["cb_format"] = "%.1e"
     except AttributeError:
         pass
@@ -579,7 +588,7 @@ def parse_arguments(args,args_osiris,args_plot):
 #=======================================================================================
 # Find direction vectors for slice
 #=======================================================================================
-def get_slice_direction(holder,direction,dx,dy):
+def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
     
     # List of directions
     dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
@@ -597,6 +606,14 @@ def get_slice_direction(holder,direction,dx,dy):
     # Make it possible to call with only one size in the arguments
     if dy == 0.0:
         dy = dx
+
+    # Transform origin to coordinates if sink is requested
+    try:
+        if origin.startswith("sink"):
+            isink = holder.sinks["id"].index(origin)
+            origin = [holder.sinks["x"][isink],holder.sinks["y"][isink],holder.sinks["z"][isink]]
+    except AttributeError:
+        pass
     
     # Define x,y directions depending on the input direction
     if direction[0]=="[" and direction[-1]=="]":
@@ -617,9 +634,13 @@ def get_slice_direction(holder,direction,dx,dy):
             sphere_rad = float(params[2])
         dir_x = "x"
         dir_y = "y"
+        x_loc = holder.get("x") - origin[0]
+        y_loc = holder.get("y") - origin[1]
+        z_loc = holder.get("z") - origin[2]
+        r_loc = np.linalg.norm([x_loc,y_loc,z_loc],axis=0)
         # Compute angular momentum vector
-        sphere = np.where(holder.get("r") < sphere_rad)
-        pos    = np.vstack((holder.get("x")[sphere],holder.get("y")[sphere],holder.get("z")[sphere])*holder.get("mass")[sphere]).T
+        sphere = np.where(r_loc < sphere_rad)
+        pos    = np.vstack((x_loc[sphere],y_loc[sphere],z_loc[sphere])*holder.get("mass")[sphere]).T
         vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
         #vel    = holder.get("velocity")[sphere]
         AngMom = np.sum(np.cross(pos,vel),axis=0)
@@ -658,7 +679,7 @@ def get_slice_direction(holder,direction,dx,dy):
     
     box = [boxmin_x,boxmax_x,boxmin_y,boxmax_y]
 
-    return dx,dy,box,dir1,dir2,dir3,dir_x,dir_y
+    return dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin
 
 #=======================================================================================
 # Use matplotlib to plot histogram, slice or column density maps
@@ -668,8 +689,8 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
                w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
                clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
-               stream_args={},scatter_args={},outline_args={},dz=0,thePlane=0,origin=[0,0,0],\
-               dir_vecs=0,x_raw=None,y_raw=None,equal_axes=True):
+               stream_args={},scatter_args={},outline_args={},sink_args={},dz=0,\
+               thePlane=0,origin=[0,0,0],dir_vecs=[[0,0,0],[0,0,0],[0,0,0]],x_raw=None,y_raw=None,equal_axes=True):
     
     # Find parent container of object to plot
     if scalar:
@@ -699,7 +720,11 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             plt.clf()
         plt.subplot(111)
         theAxes = plt.gca()
+
+    x += np.inner(origin,dir_vecs[1])
+    y += np.inner(origin,dir_vecs[2])
     
+    # Plot scalar field
     if scalar:
         
         # Round off AMR levels to integers
@@ -714,7 +739,8 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
             scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
             scb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
+    
+    # Plot image
     if image:
         
         # Round off AMR levels to integers
@@ -730,7 +756,8 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
             icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
             icb.ax.yaxis.set_label_coords(-1.1,0.5)
-            
+    
+    # Plot contours
     if contour:
         
         # Round off AMR levels to integers
@@ -750,6 +777,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
             ccb.ax.yaxis.set_label_coords(-1.1,0.5)
     
+    # Plot scatter points
     if scatter:
         try:
             vmin = np.nanmin(scatter.values)
@@ -774,6 +802,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             rcb.ax.set_ylabel(scatter.label+(" ["+scatter.unit+"]" if len(scatter.unit) > 0 else ""))
             rcb.ax.yaxis.set_label_coords(-1.1,0.5)
     
+    # Draw outline
     if outline:        
         outline_args_plot = {"levels":[np.nanmin(z_outl)],"colors":"grey"}
         for key in outline_args.keys():
@@ -807,6 +836,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
                               unit_u),labelpos="E",labelcolor="k",coordinates="axes", color="k", \
                               zorder=100)
 
+    # Plot streamlines
     if stream:
         
         # Here we define a set of default parameters
@@ -821,7 +851,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
             scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
         
-    
+    # Plot sink particles
     if holder.info["nsinks"] > 0 and sinks:
         dx = xmax-xmin
         if dz == 0:
@@ -830,15 +860,40 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             thickness = 0.5*dz
         dist = (thePlane[0]*holder.sinks["x"]+thePlane[1]*holder.sinks["y"]+thePlane[2]*holder.sinks["z"]+thePlane[3]) \
                / np.sqrt(thePlane[0]**2 + thePlane[1]**2 + thePlane[2]**2)
-        sinkcoords = np.transpose([holder.sinks["x"]-origin[0],holder.sinks["y"]-origin[1],holder.sinks["z"]-origin[2]])
+        sinkcoords = np.transpose([holder.sinks["x"],holder.sinks["y"],holder.sinks["z"]])
         sink_x = np.inner(sinkcoords,dir_vecs[1])
         sink_y = np.inner(sinkcoords,dir_vecs[2])
         subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
         srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
         xy = np.array([sink_x[subset],sink_y[subset]]).T
         patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-        coll = matplotlib.collections.PatchCollection(patches, facecolors='w',edgecolors="k",linewidths=2,alpha=0.7)
+        
+        if "colors" in sink_args.keys():
+            try:
+                sink_colors = np.array(sink_args["colors"])[subset] + 0.0 # This is a custom array of numbers
+            except (TypeError,IndexError):
+                sink_colors = holder.sinks[sink_args["colors"]][subset] # Go and find values in sinks dict
+            sk_vmin = np.nanmin(sink_colors)
+            sk_vmax = np.nanmax(sink_colors)
+            sk_cmap = conf.default_values["colormap"]
+            sk_cbar = True
+        else:
+            sk_vmin = 0
+            sk_vmax = 1
+            sk_cmap = None
+            sk_cbar = False
+        sink_args_osiris = {"cbar":sk_cbar,"cbax":None,"vmin":sk_vmin,"vmax":sk_vmax,"cmap":sk_cmap,"colors":None}
+        sink_args_plot = {"facecolors":"w","edgecolors":"k","linewidths":2,"alpha":0.7,"cmap":1,"norm":1}
+        parse_arguments(sink_args,sink_args_osiris,sink_args_plot)        
+        coll = matplotlib.collections.PatchCollection(patches, **sink_args_plot)
+        if "colors" in sink_args.keys():
+            coll.set_array(np.array(sink_colors))
+            coll.set_clim([sink_args_osiris["vmin"],sink_args_osiris["vmax"]])
         theAxes.add_collection(coll)
+        if sink_args_osiris["cbar"]:
+            skcb = plt.colorbar(coll, ax=theAxes,cax=sink_args_osiris["cbax"])
+            skcb.ax.set_ylabel("Sink "+sink_args["colors"])
+            skcb.ax.yaxis.set_label_coords(-1.1,0.5)
         
     try:
         title += ""
@@ -982,7 +1037,7 @@ def interpolate(field,points):
 #=======================================================================================
 # Write RAMSES data to VTK file
 #=======================================================================================
-def to_vtk(holder,fname="osiris_data.vtu",variables=False):
+def to_vtk(holder,fname="osiris_data.vtu"):
     
     try:
         from scipy.spatial import Delaunay
@@ -995,7 +1050,6 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     print("Writing data to VTK file: "+fname)
     
     # Coordinates ot RAMSES cell centers
-    #print getattr(getattr( holder,'x'),'values')
     points = np.array([holder.get("x"),holder.get("y"),holder.get("z")]).T
     
     # Compute Delaunay tetrahedralization from cell nodes
@@ -1003,39 +1057,26 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     ncells = holder.info["ncells"]
     print("Computing Delaunay mesh with %i points." % ncells)
     print("This may take some time...")
-    tri = Delaunay(points)
+    tri = Delaunay(points,qhull_options="QJ Qx Qs Qv")
     ntetra = np.shape(tri.simplices)[0]
     nverts = ntetra*4
     print("Delaunay mesh with %i tetrahedra complete." % ntetra)
 
     # Create list of variables by grouping x,y,z components together
-    nvarmax = len(holder.data.keys())
-    n_components = [] #np.zeros([nvarmax],dtype=np.int32)
+    key_list = holder.get_var_list()
+    n_components = []
     varlist = []
-    varnames = []
-    for key in holder.data.keys():
-        if key.endswith("_x") or key.endswith("_y") or key.endswith("_z"):
-            rawkey = key[:-2]
-            try:
-                k = len(holder.get(rawkey+"_x"))+len(holder.get(rawkey+"_y"))+len(holder.get(rawkey+"_z"))
-                ok = True
-                for i in range(np.shape(varlist)[0]):
-                    for j in range(n_components[i]):
-                        if key == varlist[i][j]:
-                            ok = False
-                            break
-                if ok:
-                    varlist.append([rawkey+"_x",rawkey+"_y",rawkey+"_z"])
-                    n_components.append(3)
-                    varnames.append(rawkey+"_vec")
-            except KeyError:
-                varlist.append([key,"",""])
+    for key in key_list:
+        thisVar = getattr(holder,key)
+        if (not thisVar.vector_component) and (thisVar.group != "amr"):
+            if thisVar.kind == "vector":
+                n_components.append(3)
+            elif thisVar.kind == "scalar":
                 n_components.append(1)
-                varnames.append(key)
-        else:
-            varlist.append([key,"",""])
-            n_components.append(1)
-            varnames.append(key)
+            else:
+                print("Unknown data type: "+thisVar.kind)
+                return
+            varlist.append(key)
     
     nvars = len(n_components)
 
@@ -1076,7 +1117,7 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     f.write('      </Cells>\n')
     f.write('      <PointData>\n')
     for i in range(nvars):
-        f.write('         <DataArray type=\"Float64\" Name=\"'+varnames[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
+        f.write('         <DataArray type=\"Float64\" Name=\"'+varlist[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i],offsets[i+4]))
     f.write('      </PointData>\n')
     f.write('   </Piece>\n')
     f.write('   </UnstructuredGrid>\n')
@@ -1101,14 +1142,14 @@ def to_vtk(holder,fname="osiris_data.vtu",variables=False):
     f.write(struct.pack('<i', *[nbytes_cellt]))
     f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
 
-    # Hydro variables
+    # Cell variables
     #ivar = 0
     for i in range(nvars):
     #for key in holder.data.keys():
         if n_components[i] == 3:
-            celldata = np.ravel(np.array([holder.get(varlist[i][0]),holder.get(varlist[i][1]),holder.get(varlist[i][2])]).T)
+            celldata = np.ravel(np.array([getattr(holder,varlist[i]).x.values,getattr(holder,varlist[i]).y.values,getattr(holder,varlist[i]).z.values]).T)
         else:
-            celldata = holder.get(varlist[i][0])
+            celldata = holder.get(varlist[i])
         f.write(struct.pack('<i', *[nbytes_vars[i]]))
         f.write(struct.pack('<%id'%(ncells*n_components[i]), *celldata))
 

@@ -28,7 +28,7 @@ import osiris
 osiris.conf.default_values["time_unit"]="kyr"
 
 # Load data
-mydata = osiris.RamsesData(nout=71,center="max:density",scale="au")
+mydata = osiris.RamsesData(nout=71,center="max:density",scale="au",verbose=True)
 
 # Create figure
 fig = plt.figure()
