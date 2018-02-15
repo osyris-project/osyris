@@ -68,7 +68,7 @@ def read_eos_table(fname="tab_eos.dat"):
     ninteg = nfloat = nlines = nstrin = nquadr = 0
     
     # Get table dimensions
-    [theTable.nRho,theTable.nEner] = get_binary_data(fmt="2i",content=eosContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+    theTable.nx = np.array(get_binary_data(fmt="2i",content=eosContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat))
     
     # Get table limits
     ninteg += 2
@@ -76,7 +76,7 @@ def read_eos_table(fname="tab_eos.dat"):
     [theTable.rhomin,theTable.rhomax,theTable.emin,theTable.emax,theTable.yHe] = \
         get_binary_data(fmt="5d",content=eosContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
         
-    array_size = theTable.nRho*theTable.nEner
+    array_size = np.prod(theTable.nx)
     array_fmt  = "%id" % array_size
     nfloat += 5
     nlines += 1
@@ -84,14 +84,22 @@ def read_eos_table(fname="tab_eos.dat"):
     # Now loop through all the data fields
     for i in range(len(data_fields)):
         setattr(theTable,data_fields[i],np.reshape(get_binary_data(fmt=array_fmt,content=eosContent, \
-                ninteg=ninteg,nlines=nlines,nfloat=nfloat),[theTable.nRho,theTable.nEner],order="F"))
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F"))
         nfloat += array_size
         nlines += 1
     
     del eosContent
     
-    theTable.grid = (np.log10(theTable.rho_eos[:,0]), np.log10(theTable.ener_eos[0,:]/theTable.rho_eos[0,:]))
-        
+    #theTable.grid = (np.log10(theTable.rho_eos[:,0]), np.log10(theTable.ener_eos[0,:]/theTable.rho_eos[0,:]))
+    
+    Eint = theTable.ener_eos/theTable.rho_eos
+    theTable.grid = (np.log10(theTable.rho_eos[:,0]), np.log10(Eint[0,:]))
+    
+    #print theTable.rho_eos[:,0]
+    #print Eint[0,:]
+    #print theTable.ener_eos[0,:]
+    
+
     print("EOS table read successfully")
 
     return theTable
@@ -100,7 +108,7 @@ def read_eos_table(fname="tab_eos.dat"):
 #===================================================================================
 # Function to interpolate simulation data onto EOS table
 #===================================================================================
-def get_eos(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
+def get_eos(holder,fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
     
     if holder.info["eos"] == 0:
         print("Simulation data did not use a tabulated EOS. Exiting")
@@ -109,9 +117,9 @@ def get_eos(holder,eos_fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_e
         try:
             n = holder.eos_table.nRho
         except AttributeError:
-            holder.eos_table = read_eos_table(fname=eos_fname)
+            holder.eos_table = read_eos_table(fname=fname)
 
-        pts = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values)]).T
+        pts = np.array([np.log10(holder.density.values), np.log10(holder.internal_energy.values/holder.density.values)]).T
         for var in variables:
             print("Interpolating "+var)
             vals = ism_interpolate(holder.eos_table,np.log10(getattr(holder.eos_table,var)),pts)
@@ -148,11 +156,11 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
     ninteg = nfloat = nlines = nstrin = nquadr = 0
     
     # Get table dimensions
-    [theTable.nx,theTable.ny,theTable.nz] = get_binary_data(fmt="3i",content=kappaContent)
+    theTable.nx = np.array(get_binary_data(fmt="3i",content=kappaContent))
     
-    # Get table limits
-    [theTable.dx,theTable.dy,theTable.dz,theTable.xmin,theTable.xmax,theTable.ymin,theTable.ymax,theTable.zmin,theTable.zmax] = \
-        get_binary_data(fmt="9d",content=kappaContent,correction=12)
+    ## Get table limits
+    #[theTable.dx,theTable.dy,theTable.dz,theTable.xmin,theTable.xmax,theTable.ymin,theTable.ymax,theTable.zmin,theTable.zmax] = \
+        #get_binary_data(fmt="9d",content=kappaContent,correction=12)
     
     # Read table coordinates:
     
@@ -160,35 +168,35 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
     ninteg += 3
     nfloat += 9
     nlines += 1
-    theTable.dens = get_binary_data(fmt="%id"%theTable.nx,content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+    theTable.dens = get_binary_data(fmt="%id"%theTable.nx[0],content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
     # y: gas temperature
-    nfloat += theTable.nx
+    nfloat += theTable.nx[0]
     nlines += 1
-    theTable.tgas = get_binary_data(fmt="%id"%theTable.ny,content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+    theTable.tgas = get_binary_data(fmt="%id"%theTable.nx[1],content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
     # z: radiation temperature
-    nfloat += theTable.ny
+    nfloat += theTable.nx[1]
     nlines += 1
-    theTable.trad = get_binary_data(fmt="%id"%theTable.nz,content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+    theTable.trad = get_binary_data(fmt="%id"%theTable.nx[2],content=kappaContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
     
     # Now read opacities
-    array_size = theTable.nx*theTable.ny*theTable.nz
+    array_size = np.prod(theTable.nx)
     array_fmt  = "%id" % array_size
     
     #print theTable.nx,theTable.ny,theTable.nz
     
     # Planck mean
-    nfloat += theTable.nz
+    nfloat += theTable.nx[2]
     nlines += 1
     theTable.kappa_p = np.reshape(get_binary_data(fmt=array_fmt,content=kappaContent, \
-                ninteg=ninteg,nlines=nlines,nfloat=nfloat),[theTable.nx,theTable.ny,theTable.nz],order="F")
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
     
     # Rosseland mean
     nfloat += array_size
     nlines += 1
     theTable.kappa_r = np.reshape(get_binary_data(fmt=array_fmt,content=kappaContent, \
-                ninteg=ninteg,nlines=nlines,nfloat=nfloat),[theTable.nx,theTable.ny,theTable.nz],order="F")
+                ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable.nx,order="F")
     
     del kappaContent
     
@@ -208,12 +216,12 @@ def read_opacity_table(fname="vaytet_grey_opacities3D.bin"):
 #===================================================================================
 # Function to interpolate simulation data onto opacity table
 #===================================================================================
-def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=["kappa_p","kappa_r"]):
+def get_opacities(holder,fname="vaytet_grey_opacities3D.bin",variables=["kappa_p","kappa_r"]):
     
     try:
         n = holder.opacity_table.nx
     except AttributeError:
-        holder.opacity_table = read_opacity_table(fname=opacity_fname)
+        holder.opacity_table = read_opacity_table(fname=fname)
     
     if not hasattr(holder,"radiative_temperature"):
         print("Radiative temperature is not defined. Computing it now.")
@@ -223,7 +231,7 @@ def get_opacities(holder,opacity_fname="vaytet_grey_opacities3D.bin",variables=[
     for var in variables:
         print("Interpolating "+var)
         vals = ism_interpolate(holder.opacity_table,getattr(holder.opacity_table,var),pts)
-        holder.new_field(name=var,label=var,values=vals,verbose=False)
+        holder.new_field(name=var,label=var,values=vals,verbose=False,unit="cm2/g")
 
     return
 
@@ -329,12 +337,12 @@ def read_resistivity_table(fname="resistivities_masson2016.bin"):
 #===================================================================================
 # Function to interpolate simulation data onto resistivity table
 #===================================================================================
-def get_resistivities(holder,resistivity_fname="resistivities_masson2016.bin",variables=["eta_ohm","eta_ad","eta_hall"]):
+def get_resistivities(holder,fname="resistivities_masson2016.bin",variables=["eta_ohm","eta_ad","eta_hall"]):
     
     try:
         n = holder.resistivity_table.nx
     except AttributeError:
-        holder.resistivity_table = read_resistivity_table(fname=resistivity_fname)
+        holder.resistivity_table = read_resistivity_table(fname=fname)
     
     try:
         rho_to_nH = holder.resistivity_table.scale_dens/holder.info["mu_gas"]
@@ -355,9 +363,9 @@ def get_resistivities(holder,resistivity_fname="resistivities_masson2016.bin",va
         vals = ism_interpolate(holder.resistivity_table,getattr(holder.resistivity_table,var),pts)
         if var == "eta_hall":
             hall_sign = np.sign(ism_interpolate(holder.resistivity_table,holder.resistivity_table.eta_hsig,pts,in_log=True))
-            holder.new_field(name=var,label=var,values=vals*hall_sign,verbose=False)
+            holder.new_field(name=var,label=var,values=vals*hall_sign,verbose=False,unit="s")
         else:
-            holder.new_field(name=var,label=var,values=vals,verbose=False)
+            holder.new_field(name=var,label=var,values=vals,verbose=False,unit="s")
 
     return
     
