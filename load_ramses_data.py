@@ -169,9 +169,10 @@ class LoadRamsesData():
         print(divider)
         
         # Now go through all the variables and check if they are to be read or skipped
-        list_vars = []
-        var_read  = []
-        var_group = []
+        list_vars   = []
+        var_read    = []
+        var_group   = []
+        xyz_strings = "xyz"
         
         # Start with hydro variables ==================================
         
@@ -223,7 +224,6 @@ class LoadRamsesData():
         
         # Add gravity fields
         if gravity:
-            xyz_strings = "xyz"
             content = ["grav_potential"]
             for n in range(self.info["ndim"]):
                 content.append("grav_acceleration_"+xyz_strings[n])
@@ -237,13 +237,19 @@ class LoadRamsesData():
                 else:
                     var_read.append(False)
         
+        # Make sure we always read the coordinates
+        list_vars.extend(("level","x","y","z","dx","cpu"))
+        var_read.extend((True,True,True,True,True,True))
+        var_group.extend(("amr","amr","amr","amr","amr","amr"))
+        nvar_read = len(list_vars)
+
         # Now for particles ==================================
         
         # Read header file to get particle information
         headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
         with open(headerfile) as f:
             dummy_string = f.readline()
-            npart_tot = int(f.readline())
+            self.info["npart_tot"] = int(f.readline())
             dummy_string = f.readline()
             npart_dm = int(f.readline())
             dummy_string = f.readline()
@@ -253,15 +259,41 @@ class LoadRamsesData():
             dummy_string = f.readline()
             particle_fields = f.readline().split(' ')[:-1]
         f.close()
-        particles = (npart_tot > 0)
+        npart_fields = len(particle_fields)
+        particles = (self.info["npart_tot"] > 0)
+        npart_count = 0
+        if particles:
+            npart_dims = []
+            part_vars  = []
+            part_types = []
+            for field in particle_fields:
+                if field == "pos":
+                    for n in range(self.info["ndim"]):
+                        part_vars.append(xyz_strings[n]+"_part")
+                        part_types.append("d")
+                    npart_dims.append(self.info["ndim"])
+                elif field == "vel":
+                    for n in range(self.info["ndim"]):
+                        part_vars.append("part_velocity_"+xyz_strings[n])
+                        part_types.append("d")
+                    npart_dims.append(self.info["ndim"])
+                elif field == "tracer_b":
+                    for n in range(3):
+                        part_vars.append("part_"+field+"_"+xyz_strings[n])
+                        part_types.append("d")
+                    npart_dims.append(3)
+                else:
+                    part_vars.append("part_"+field)
+                    npart_dims.append(1)
+                    if field == "iord":
+                        part_types.append("q")
+                    elif field == "level":
+                        part_types.append("i")
+                    else:
+                        part_types.append("d")
+            #print sum(npart_dims)
+            part = np.zeros([self.info["npart_tot"],sum(npart_dims)],dtype=np.float64)
         
-        
-        # Make sure we always read the coordinates
-        list_vars.extend(("level","x","y","z","dx","cpu"))
-        var_read.extend((True,True,True,True,True,True))
-        var_group.extend(("amr","amr","amr","amr","amr","amr"))
-        
-        nvar_read = len(list_vars)
         
         # Load sink particles if any
         self.read_sinks()
@@ -303,6 +335,8 @@ class LoadRamsesData():
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
+        part_pieces = dict()
+        npieces_part = 0
         
         # Allocate work arrays
         twotondim = 2**self.info["ndim"]
@@ -344,14 +378,6 @@ class LoadRamsesData():
                 with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
                     gravContent = grav_file.read()
                 grav_file.close()
-            
-            ## Read binary PARTICLE file
-            #if particles:
-                #part_fname = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
-                #with open(part_fname, mode='rb') as part_file: # b is important -> binary
-                    #partContent = part_file.read()
-                #part_file.close()
-            
             
             # Need to extract info from the file header on the first loop
             if k == 0:
@@ -603,34 +629,65 @@ class LoadRamsesData():
                     nlines3 = nlines_grav
                     nstrin3 = nstrin_grav
                     
-            ## Now read particles: they are not in the loop over levels, only the cpu loop
-            #if particles:
-                ## Get number of particles for this cpu
-                #ninteg = nlines = 2
-                #nfloat = nstrin = nquadr = 0
-                #[npart] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-                ## Determine size of localseed array
-                #ninteg = nlines = 3
-                #[recordlength] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
-                #localseedsize = recordlength/4
-                ## Now set offsets
-                #nlines = 8
-                #ninteg = 5 + localseedsize
-                #nfloat = 2
-                ## List particle fields to be read
-                #part_read = []
-                #for field in particle_fields:
-                    #if field == 'pos':
-                        #part_read.append('part_x')
+            # Now read particles: they are not in the loop over levels, only the cpu loop
+            if particles:
+                # Read binary PARTICLE file
+                part_fname = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
+                with open(part_fname, mode='rb') as part_file: # b is important -> binary
+                    partContent = part_file.read()
+                part_file.close()
+                # Get number of particles for this cpu
+                ninteg = nlines = 2
+                nfloat = nstrin = nquadr = nlongi = 0
+                [npart] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                if npart > 0:
+                    npart_count += npart
+                    # Determine size of localseed array
+                    ninteg = nlines = 3
+                    [recordlength] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                    localseedsize = recordlength/4
+                    # Now set offsets
+                    nlines = 8
+                    ninteg = 5 + localseedsize
+                    nfloat = 2                    
+                    # Go through all the particle fields and unpack the data
+                    nshifts = {"i":[1,0,0] , "d":[0,1,0], "q":[0,0,1]} # Useful dict to increment floats and integers
+                    for n in range(len(part_vars)):
+                        # Determine size of long integer for ids
+                        if part_vars[n] == "part_iord":
+                            [recordlength] = get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                            longintsize = recordlength/npart
+                            if longintsize == 4:
+                                part_types[n] = "i"
+                            elif longintsize == 8:
+                                part_types[n] = "q"
+                        part[:npart,n] = get_binary_data(fmt=("%i"%npart)+part_types[n],content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nlongi=nlongi)
+                        nlines += 1
+                        ninteg += npart * nshifts[part_types[n]][0]
+                        nfloat += npart * nshifts[part_types[n]][1]
+                        nlongi += npart * nshifts[part_types[n]][2]
+                        
+                    # Add the cells in the master dictionary
+                    npieces_part += 1
+                    part_pieces["piece"+str(npieces_part)] = part[:npart,:]
     
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
+        if particles:
+            if npart_count != self.info["npart_tot"]:
+                print("Number of particles do not match: ",npart_count,self.info["npart_tot"])
+            else:
+                master_part_array = np.concatenate(list(part_pieces.values()), axis=0)
         
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
+        if particles:
+            del part_pieces,part
         
         print("Total number of cells loaded: %i" % ncells_tot)
+        if particles:
+            print("Total number of particles loaded: %i" % self.info["npart_tot"])
         if self.info["nsinks"] > 0:
             print("Read %i sink particles" % self.info["nsinks"])
         print("Generating data structure... please wait")
@@ -638,38 +695,31 @@ class LoadRamsesData():
         # Store the number of cells
         self.info["ncells"] = ncells_tot
         
-        # This is the master data dictionary. For each entry, the dict has 5 fields.
-        # It loops through the list of variables that it got from the file loader.
-        #if not update:
-            #self.data = dict()
+        # Finally we add one 'new_field' per variable we have read in =========================================
         for i in range(len(list_vars)):
             theKey = list_vars[i]
-            #if not update:
-                #self.data[theKey] = dict()
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,operation="",unit=uu,label=theLabel,values=master_data_array[:,i]*norm,\
+            self.new_field(name=theKey,unit=uu,label=theLabel,values=master_data_array[:,i]*norm,\
                            verbose=False,norm=norm,update=update,group=var_group[i])
         
-                        
-                        
-        #self.print_info()
-        
-        # Hard coded additional data fields needed
-        [norm,uu] = self.get_units("x",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-        self.new_field(name="x_raw",operation="x",unit=uu,label="x raw",verbose=False,norm=norm,update=update,group="amr")
-        self.new_field(name="y_raw",operation="y",unit=uu,label="y raw",verbose=False,norm=norm,update=update,group="amr")
-        self.new_field(name="z_raw",operation="z",unit=uu,label="z raw",verbose=False,norm=norm,update=update,group="amr")
-        self.new_field(name="dx_raw",operation="dx",unit=uu,label="dx raw",verbose=False,norm=norm,update=update,group="amr")
-        self.new_field(name="x_box",values=self.get("x")/norm/self.info["boxlen"],unit="",label="x box",verbose=False,norm=1.0,update=update,group="amr")
-        self.new_field(name="y_box",values=self.get("y")/norm/self.info["boxlen"],unit="",label="y box",verbose=False,norm=1.0,update=update,group="amr")
-        self.new_field(name="z_box",values=self.get("z")/norm/self.info["boxlen"],unit="",label="z box",verbose=False,norm=1.0,update=update,group="amr")
-        self.new_field(name="dx_box",values=self.get("dx")/norm/self.info["boxlen"],unit="",label="dx box",verbose=False,norm=1.0,update=update,group="amr")
-
-        #self.print_info()
-        
+        # Now add new field for particles =====================================================================
+        if particles:
+            for i in range(len(part_vars)):
+                theKey = part_vars[i]
+                [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+                # Replace "_" with " " to avoid error with latex when saving figures
+                theLabel = theKey.replace("_"," ")
+                # Use the 'new_field' function to create data field
+                self.new_field(name=theKey,unit=uu,label=theLabel,values=master_part_array[:,i]*norm,\
+                               verbose=False,norm=norm,update=update,group="part")
+            # Give the particles a `size'
+            [norm,uu] = self.get_units("dx",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
+            self.new_field(name="dx_part",unit=uu,label="dx part",values=[norm*np.nanmin(self.dx.values)]*self.info["npart_tot"],\
+                               verbose=False,norm=norm,update=update,group="part")
+                
         # Re-center the mesh around chosen center
         self.re_center()
 
@@ -793,35 +843,42 @@ class LoadRamsesData():
     #=======================================================================================
     def re_center(self,newcenter=None):
         
-        #try: # check if newcenter is defined
-            #lc = len(newcenter)
-            #self.data["x"]["values"] = (self.data["x"]["values"] + self.info["xc"])*conf.constants[self.info["scale"]]
-            #self.data["y"]["values"] = (self.data["y"]["values"] + self.info["yc"])*conf.constants[self.info["scale"]]
-            #if self.info["ndim"] > 2:
-                #self.data["z"]["values"] = (self.data["z"]["values"] + self.info["zc"])*conf.constants[self.info["scale"]]
-            
-            ## Re-scale the cell and box sizes
-            #self.data["dx"]["values"] = self.data["dx"]["values"]*conf.constants[self.info["scale"]]
-            #self.info["boxsize"] = self.info["boxsize"]*conf.constants[self.info["scale"]]
-            
-            ## Re-center sinks
-            #if self.info["nsinks"] > 0:
-                #self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                #self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                #self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                #self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
-            
-                ##for key in self.sinks.keys():
-                    ##self.sinks[key]["x"     ] = (self.sinks[key]["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
-                    ##self.sinks[key]["y"     ] = (self.sinks[key]["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
-                    ##self.sinks[key]["z"     ] = (self.sinks[key]["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
-                    ##self.sinks[key]["radius"] = self.sinks[key]["radius"]/self.info["boxsize"]
-            
-            #self.info["center"] = newcenter
-        
         try: # check if newcenter is defined
             lc = len(newcenter)
+            
+            # Find current center
+            xc = self.info["xc"] * conf.constants[self.info["scale"]]
+            yc = self.info["yc"] * conf.constants[self.info["scale"]]
+            zc = self.info["zc"] * conf.constants[self.info["scale"]]
+            
+            # Rescale the coordinates
+            self.x.values = self.x.values*conf.constants[self.info["scale"]] + xc
+            if self.info["ndim"] > 1:
+                self.y.values = self.y.values*conf.constants[self.info["scale"]] + yc
+            if self.info["ndim"] > 2:
+                self.z.values = self.z.values*conf.constants[self.info["scale"]] + zc
+            
+            # Re-scale the cell sizes
+            self.dx.values = self.dx.values*conf.constants[self.info["scale"]]
+                        
+            # Re-center sinks
+            if self.info["nsinks"] > 0:
+                self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
+                self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
+                self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
+                self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
+            
+            # Re-center particles
+            if self.info["npart_tot"] > 0:
+                self.x_part.values = self.x_part.values*conf.constants[self.info["scale"]] + xc
+                if self.info["ndim"] > 1:
+                    self.y_part.values = self.y_part.values*conf.constants[self.info["scale"]] + yc
+                if self.info["ndim"] > 2:
+                    self.z_part.values = self.z_part.values*conf.constants[self.info["scale"]] + zc
+
+            # Store new center in info            
             self.info["center"] = newcenter
+            
         except TypeError:
             pass
         
@@ -846,22 +903,22 @@ class LoadRamsesData():
                 elif self.info["center"].startswith("max"):
                     cvar=self.info["center"].split(":")[1]
                     maxloc = np.argmax(getattr(self,cvar).values)
-                    xc = self.x_raw.values[maxloc]
-                    yc = self.y_raw.values[maxloc]
-                    zc = self.z_raw.values[maxloc]
+                    xc = self.x.values[maxloc]
+                    yc = self.y.values[maxloc]
+                    zc = self.z.values[maxloc]
                 elif self.info["center"].startswith("min"):
                     cvar=self.info["center"].split(":")[1]
                     minloc = np.argmin(getattr(self,cvar).values)
-                    xc = self.x_raw.values[minloc]
-                    yc = self.y_raw.values[minloc]
-                    zc = self.z_raw.values[minloc]
+                    xc = self.x.values[minloc]
+                    yc = self.y.values[minloc]
+                    zc = self.z.values[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
                     [op_parsed,depth,grp,status] = self.parse_operation(cvar)
                     select = eval("np.where("+op_parsed+")")
-                    xc = np.average(self.x_raw.values[select])
-                    yc = np.average(self.y_raw.values[select])
-                    zc = np.average(self.z_raw.values[select])
+                    xc = np.average(self.x.values[select])
+                    yc = np.average(self.y.values[select])
+                    zc = np.average(self.z.values[select])
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
@@ -869,26 +926,33 @@ class LoadRamsesData():
         except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
 
-        self.x.values = (self.x_raw.values - xc)/conf.constants[self.info["scale"]]
+        self.x.values = (self.x.values - xc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 1:
-            self.y.values = (self.y_raw.values - yc)/conf.constants[self.info["scale"]]
+            self.y.values = (self.y.values - yc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 2:
-            self.z.values = (self.z_raw.values - zc)/conf.constants[self.info["scale"]]
+            self.z.values = (self.z.values - zc)/conf.constants[self.info["scale"]]
         self.info["xc"] = xc/conf.constants[self.info["scale"]]
         self.info["yc"] = yc/conf.constants[self.info["scale"]]
         self.info["zc"] = zc/conf.constants[self.info["scale"]]
         
         # Re-scale the cell and box sizes
-        self.dx.values = self.dx_raw.values/conf.constants[self.info["scale"]]
+        self.dx.values = self.dx.values/conf.constants[self.info["scale"]]
         self.info["boxsize_scaled"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
         
         # Re-center sinks
         if self.info["nsinks"] > 0:
-            #for key in self.sinks.keys():
             self.sinks["x"     ] = self.sinks["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
             self.sinks["y"     ] = self.sinks["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
             self.sinks["z"     ] = self.sinks["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
             self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]/conf.constants[self.info["scale"]]
+        
+        # Re-center particles
+        if self.info["npart_tot"] > 0:
+            self.x_part.values = (self.x_part.values - xc)/conf.constants[self.info["scale"]]
+            if self.info["ndim"] > 1:
+                self.y_part.values = (self.y_part.values - yc)/conf.constants[self.info["scale"]]
+            if self.info["ndim"] > 2:
+                self.z_part.values = (self.z_part.values - zc)/conf.constants[self.info["scale"]]
         
         return
         
@@ -1015,16 +1079,18 @@ class LoadRamsesData():
     def get_units(self,string,ud,ul,ut,scale="cm"):
         if string == "density":
             return [ud,"g/cm3"]
-        elif string.startswith("velocity"):
+        elif (string.startswith("velocity")) or (string.startswith("part_velocity")):
             return [ul/ut,"cm/s"]
         elif string.startswith("momentum"):
             return [ud*ul/ut,"g/cm2/s"]
-        elif string.startswith("B_"):
+        elif (string.startswith("B_")) or (string.startswith("part_tracer_b")):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
         elif string == ("thermal_pressure") or (string.count("energy") > 0):
             return [ud*((ul/ut)**2),"erg/cm3"]
         elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
             return [ul,scale]
+        elif (string == "x_part") or (string == "y_part") or (string == "z_part"):
+            return [ul*self.info["boxlen"],scale]
         elif string == "temperature":
             return [1.0,"K"]
         else:
@@ -1234,7 +1300,8 @@ class LoadRamsesData():
     # The function get returns the values of the selected variable
     #=======================================================================================
     def get(self,var):
-        return getattr(getattr(self,var),'values')
+        
+        return getattr(self,var).values
     
     #=======================================================================================
     # The function returns the list of variables
@@ -1261,9 +1328,9 @@ class LoadRamsesData():
         print("Building hash table")
         self.hash_table = dict()
         for icell in range(self.info["ncells"]):
-            igrid = int(self.x_box.values[icell]/self.dx_box.values[icell])
-            jgrid = int(self.y_box.values[icell]/self.dx_box.values[icell])
-            kgrid = int(self.z_box.values[icell]/self.dx_box.values[icell])
+            igrid = int(self.x.values[icell]/self.dx.values[icell])
+            jgrid = int(self.y.values[icell]/self.dx.values[icell])
+            kgrid = int(self.z.values[icell]/self.dx.values[icell])
             theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
             self.hash_table[theHash] = icell
 
@@ -1342,10 +1409,10 @@ class LoadRamsesData():
 #=======================================================================================
 # Determine binary offset when reading fortran binary files and return unpacked data
 #=======================================================================================
-def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,content=None,correction=0):
+def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,content=None,correction=0):
     
-    offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4 + correction
-    byte_size = {"i":4,"d":8}
+    offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
+    byte_size = {"i":4,"d":8,"q":8}
     if len(fmt) == 1:
         mult = 1
     else:
