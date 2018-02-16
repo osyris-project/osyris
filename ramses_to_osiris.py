@@ -343,86 +343,68 @@ class LoadRamsesData(engine_osiris.OsirisData):
                     gravContent = grav_file.read()
                 grav_file.close()
             
+            ninteg = nfloat = nlines = nstrin = nquadr = nlongi = 0
+            
             # Need to extract info from the file header on the first loop
             if k == 0:
             
                 # nx,ny,nz
                 ninteg = 2
-                nfloat = 0
                 nlines = 2
-                nstrin = 0
-                nquadr = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                [nx,ny,nz] = struct.unpack("3i", amrContent[offset:offset+12])
+                [nx,ny,nz] = engine_osiris.get_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ncoarse = nx*ny*nz
                 xbound = [float(int(nx/2)),float(int(ny/2)),float(int(nz/2))]
                 
                 # nboundary
                 ninteg = 7
-                nfloat = 0
                 nlines = 5
-                nstrin = 0
-                nquadr = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                nboundary = struct.unpack("i", amrContent[offset:offset+4])[0]
+                [nboundary] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ngridlevel = np.zeros([self.info["ncpu"]+nboundary,self.info["levelmax"]],dtype=np.int32)
                 
                 # noutput
                 ninteg = 9
                 nfloat = 1
                 nlines = 8
-                nstrin = 0
-                nquadr = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                noutput = struct.unpack("i", amrContent[offset:offset+4])[0]
-                
-                # hydro gamma
-                ninteg = 5
-                nfloat = 0
-                nlines = 5
-                nstrin = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                self.info["gamma"] = struct.unpack("d", hydroContent[offset:offset+8])[0]
+                [noutput] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
                 
                 # dtold, dtnew
                 ninteg = 12
                 nfloat = 2+2*noutput
                 nlines = 12
-                nstrin = 0
-                nquadr = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                self.info["dtold"] = struct.unpack("%id"%(self.info["levelmax"]), amrContent[offset:offset+8*self.info["levelmax"]])
-                nfloat = 3+2*noutput+self.info["levelmax"]
-                nlines = 13
-                self.info["dtnew"] = struct.unpack("%id"%(self.info["levelmax"]), amrContent[offset:offset+8*self.info["levelmax"]])
+                self.info["dtold"] = engine_osiris.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
+                                     content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                nfloat += 1+self.info["levelmax"]
+                nlines += 1
+                self.info["dtnew"] = engine_osiris.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
+                                     content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                
+                # hydro gamma
+                ninteg = 5
+                nfloat = 0
+                nlines = 5
+                [self.info["gamma"]] = engine_osiris.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
 
             # Read the number of grids
             ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines = 21
-            nstrin = 0
-            nquadr = 0
-            offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-            ngridlevel[:self.info["ncpu"],:] = np.asarray(struct.unpack("%ii"%(self.info["ncpu"]*self.info["levelmax"]), amrContent[offset:offset+4*self.info["ncpu"]*self.info["levelmax"]])).reshape(self.info["levelmax"],self.info["ncpu"]).T
+            ngridlevel[:self.info["ncpu"],:] = np.asarray(engine_osiris.get_binary_data(fmt="%ii"%(self.info["ncpu"]*self.info["levelmax"]),\
+                            content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],self.info["ncpu"]).T
             
             # Read boundary grids if any
             if nboundary > 0:
                 ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(2*nboundary*self.info["levelmax"])
                 nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
                 nlines = 25
-                nstrin = 0
-                nquadr = 0
-                offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16 + 4
-                ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(struct.unpack("%ii"%(nboundary*self.info["levelmax"]), amrContent[offset:offset+4*nboundary*self.info["levelmax"]])).reshape(self.info["levelmax"],nboundary).T
+                ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(engine_osiris.get_binary_data(fmt="%ii"%(nboundary*self.info["levelmax"]),\
+                    content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],nboundary).T
     
             # Determine bound key precision
             ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines = 21+2+3*min(1,nboundary)+1+1
             nstrin = 128
-            nquadr = 0
-            offset = 4*ninteg + 8*(nlines+nfloat) + nstrin + nquadr*16
-            key_size = struct.unpack("i", amrContent[offset:offset+4])[0]
+            [key_size] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
             
             # Offset for AMR
             ninteg1 = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5+3*ncoarse
