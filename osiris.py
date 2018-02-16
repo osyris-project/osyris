@@ -17,7 +17,7 @@
 
 # Osiris libraries
 import config_osiris as conf
-import load_ramses_data
+import ramses_to_osiris
 import ism_physics
 # Python libraries
 import struct
@@ -34,7 +34,7 @@ from scipy.interpolate import griddata
 #=======================================================================================
 
 # Ramses data format ===================================================================
-class RamsesData(load_ramses_data.LoadRamsesData):
+class RamsesData(ramses_to_osiris.LoadRamsesData):
  
     def __init__(self,nout=conf.default_values["nout"],lmax=conf.default_values["lmax"],\
                  center=conf.default_values["center"],dx=conf.default_values["dx"],\
@@ -42,7 +42,7 @@ class RamsesData(load_ramses_data.LoadRamsesData):
                  scale=conf.default_values["scale"],verbose=conf.default_values["verbose"],\
                  path=conf.default_values["path"],variables=conf.default_values["variables"]):
         
-        load_ramses_data.LoadRamsesData.__init__(self,nout=nout,lmax=lmax,center=center,\
+        ramses_to_osiris.LoadRamsesData.__init__(self,nout=nout,lmax=lmax,center=center,\
                  dx=dx,dy=dy,dz=dz,scale=scale,verbose=verbose,path=path,variables=variables)
         
         return

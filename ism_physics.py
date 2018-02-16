@@ -15,7 +15,7 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
-from load_ramses_data import get_binary_data
+from engine_osiris import get_binary_data
 import config_osiris as conf
 import numpy as np
 import struct
