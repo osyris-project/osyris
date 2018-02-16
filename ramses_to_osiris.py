@@ -19,14 +19,14 @@ import numpy as np
 import struct
 import glob
 import config_osiris as conf
-import engine_osiris
+import engine_osiris as eo
 
 divider = "============================================"
 
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
 #=======================================================================================
-class LoadRamsesData(engine_osiris.OsirisData):
+class LoadRamsesData(eo.OsirisData):
  
     #===================================================================================
     # The constructor reads in the data and fills the data structure which is a python
@@ -351,60 +351,60 @@ class LoadRamsesData(engine_osiris.OsirisData):
                 # nx,ny,nz
                 ninteg = 2
                 nlines = 2
-                [nx,ny,nz] = engine_osiris.get_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
+                [nx,ny,nz] = eo.get_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ncoarse = nx*ny*nz
                 xbound = [float(int(nx/2)),float(int(ny/2)),float(int(nz/2))]
                 
                 # nboundary
                 ninteg = 7
                 nlines = 5
-                [nboundary] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
+                [nboundary] = eo.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ngridlevel = np.zeros([self.info["ncpu"]+nboundary,self.info["levelmax"]],dtype=np.int32)
                 
                 # noutput
                 ninteg = 9
                 nfloat = 1
                 nlines = 8
-                [noutput] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                [noutput] = eo.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
                 
                 # dtold, dtnew
                 ninteg = 12
                 nfloat = 2+2*noutput
                 nlines = 12
-                self.info["dtold"] = engine_osiris.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
+                self.info["dtold"] = eo.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
                                      content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
                 nfloat += 1+self.info["levelmax"]
                 nlines += 1
-                self.info["dtnew"] = engine_osiris.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
+                self.info["dtnew"] = eo.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
                                      content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
                 
                 # hydro gamma
                 ninteg = 5
                 nfloat = 0
                 nlines = 5
-                [self.info["gamma"]] = engine_osiris.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
+                [self.info["gamma"]] = eo.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
 
             # Read the number of grids
             ninteg = 14+(2*self.info["ncpu"]*self.info["levelmax"])
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines = 21
-            ngridlevel[:self.info["ncpu"],:] = np.asarray(engine_osiris.get_binary_data(fmt="%ii"%(self.info["ncpu"]*self.info["levelmax"]),\
-                            content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],self.info["ncpu"]).T
+            ngridlevel[:self.info["ncpu"],:] = np.asarray(eo.get_binary_data(fmt="%ii"%(self.info["ncpu"]*self.info["levelmax"]),\
+                 content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],self.info["ncpu"]).T
             
             # Read boundary grids if any
             if nboundary > 0:
                 ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(2*nboundary*self.info["levelmax"])
                 nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
                 nlines = 25
-                ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(engine_osiris.get_binary_data(fmt="%ii"%(nboundary*self.info["levelmax"]),\
-                    content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],nboundary).T
+                ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(eo.get_binary_data(fmt="%ii"%(nboundary*self.info["levelmax"]),\
+                                                content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],nboundary).T
     
             # Determine bound key precision
             ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines = 21+2+3*min(1,nboundary)+1+1
             nstrin = 128
-            [key_size] = engine_osiris.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
+            [key_size] = eo.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
             
             # Offset for AMR
             ninteg1 = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5+3*ncoarse
@@ -585,12 +585,12 @@ class LoadRamsesData(engine_osiris.OsirisData):
                 # Get number of particles for this cpu
                 ninteg = nlines = 2
                 nfloat = nstrin = nquadr = nlongi = 0
-                [npart] = engine_osiris.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                [npart] = eo.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
                 if npart > 0:
                     npart_count += npart
                     # Determine size of localseed array
                     ninteg = nlines = 3
-                    [recordlength] = engine_osiris.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                    [recordlength] = eo.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
                     localseedsize = recordlength/4
                     # Now set offsets
                     nlines = 8
@@ -601,13 +601,13 @@ class LoadRamsesData(engine_osiris.OsirisData):
                     for n in range(len(part_vars)):
                         # Determine size of long integer for ids
                         if part_vars[n] == "part_iord":
-                            [recordlength] = engine_osiris.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
+                            [recordlength] = eo.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
                             longintsize = recordlength/npart
                             if longintsize == 4:
                                 part_types[n] = "i"
                             elif longintsize == 8:
                                 part_types[n] = "q"
-                        part[:npart,n] = engine_osiris.get_binary_data(fmt=("%i"%npart)+part_types[n],content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nlongi=nlongi)
+                        part[:npart,n] = eo.get_binary_data(fmt=("%i"%npart)+part_types[n],content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nlongi=nlongi)
                         nlines += 1
                         ninteg += npart * nshifts[part_types[n]][0]
                         nfloat += npart * nshifts[part_types[n]][1]
