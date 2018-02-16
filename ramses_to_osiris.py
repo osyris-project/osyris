@@ -26,7 +26,7 @@ divider = "============================================"
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
 #=======================================================================================
-class LoadRamsesData(eo.OsirisData):
+class RamsesData(eo.OsirisData):
  
     #===================================================================================
     # The constructor reads in the data and fills the data structure which is a python
@@ -42,9 +42,12 @@ class LoadRamsesData(eo.OsirisData):
     # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
     #           and "pc"
     #===================================================================================
-    def __init__(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=False,verbose=False,\
-                 path="",variables=[]):
-                
+    def __init__(self,nout=conf.default_values["nout"],lmax=conf.default_values["lmax"],\
+                 center=conf.default_values["center"],dx=conf.default_values["dx"],\
+                 dy=conf.default_values["dy"],dz=conf.default_values["dz"],\
+                 scale=conf.default_values["scale"],verbose=conf.default_values["verbose"],\
+                 path=conf.default_values["path"],variables=conf.default_values["variables"]):
+        
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
                  path=path,variables=variables)
@@ -616,7 +619,7 @@ class LoadRamsesData(eo.OsirisData):
                     # Add the cells in the master dictionary
                     npieces_part += 1
                     part_pieces["piece"+str(npieces_part)] = part[:npart,:]
-    
+            # End of reading particles ==================================================
         
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)

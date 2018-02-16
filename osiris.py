@@ -15,10 +15,6 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
-# Osiris libraries
-import config_osiris as conf
-import ramses_to_osiris
-import ism_physics
 # Python libraries
 import struct
 import numpy as np
@@ -27,36 +23,10 @@ import matplotlib.collections
 from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
 
-#=======================================================================================
-#=======================================================================================
-# TYPES OF CODE OUTPUTS: Define one class per type of snapshot to read
-#=======================================================================================
-#=======================================================================================
-
-# Ramses data format ===================================================================
-class RamsesData(ramses_to_osiris.LoadRamsesData):
- 
-    def __init__(self,nout=conf.default_values["nout"],lmax=conf.default_values["lmax"],\
-                 center=conf.default_values["center"],dx=conf.default_values["dx"],\
-                 dy=conf.default_values["dy"],dz=conf.default_values["dz"],\
-                 scale=conf.default_values["scale"],verbose=conf.default_values["verbose"],\
-                 path=conf.default_values["path"],variables=conf.default_values["variables"]):
-        
-        ramses_to_osiris.LoadRamsesData.__init__(self,nout=nout,lmax=lmax,center=center,\
-                 dx=dx,dy=dy,dz=dz,scale=scale,verbose=verbose,path=path,variables=variables)
-        
-        return
-#=======================================================================================
-
-# Heracles data format =================================================================
-#=======================================================================================
-
-
-#=======================================================================================
-#=======================================================================================
-# OSIRIS PLOTTING FUNCTIONS
-#=======================================================================================
-#=======================================================================================
+# Osiris libraries
+import config_osiris as conf
+from ramses_to_osiris import RamsesData
+import ism_physics
 
 #=======================================================================================
 # Plot a 2D histogram with two variables as input. This is used for instance to plot the

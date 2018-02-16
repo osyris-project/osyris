@@ -132,7 +132,7 @@ class OsirisData:
         print(rule)
         print("The variables are:")
         print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
-              " Unit".ljust(maxlen4)+"     Min".ljust(maxlen5)+"      Max".ljust(maxlen6))
+              " Unit".ljust(maxlen4)+"    Min".ljust(maxlen5)+"     Max".ljust(maxlen6))
         for key in sorted(print_list.keys()):
             print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\

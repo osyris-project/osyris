@@ -18,7 +18,6 @@
 from engine_osiris import get_binary_data
 import config_osiris as conf
 import numpy as np
-import struct
 from scipy.interpolate import RegularGridInterpolator
 
 #===================================================================================
@@ -43,7 +42,6 @@ def ism_interpolate(table_container=None,values=[0],points=[0],in_log=False):
         return func(points)
     else:
         return np.power(10.0,func(points))
-    
 
 
 #===================================================================================
@@ -126,11 +124,6 @@ def get_eos(holder,fname="tab_eos.dat",variables=["temp_eos","pres_eos","s_eos",
             holder.new_field(name=var,label=var,values=vals,verbose=False)
 
     return
-
-
-
-
-
 
 
 #===================================================================================
@@ -234,7 +227,6 @@ def get_opacities(holder,fname="vaytet_grey_opacities3D.bin",variables=["kappa_p
         holder.new_field(name=var,label=var,values=vals,verbose=False,unit="cm2/g")
 
     return
-
 
 
 #===================================================================================
