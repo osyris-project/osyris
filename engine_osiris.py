@@ -19,8 +19,6 @@ import numpy as np
 import struct
 import config_osiris as conf
 
-divider = "============================================"
-
 #=======================================================================================
 # This is the class which will holds a scalar or vector field.
 #=======================================================================================
