@@ -15,6 +15,8 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
+#@@@ SHORT DESCRIPTION @@@: Reading Ramses data
+
 import numpy as np
 import struct
 import glob
@@ -28,20 +30,42 @@ divider = "============================================"
 #=======================================================================================
 class RamsesData(eo.OsirisData):
  
-    #===================================================================================
-    # The constructor reads in the data and fills the data structure which is a python
-    # dictionary. The arguments are:
-    # - nout  : the number of the output. It can be -1 for the last output
-    # - lmax  : maximum AMR level to be read
-    # - center: used to re-centre the mesh coordinates around a given center. Possible
-    #           values are and array of 3 numbers between 0 and 1, e.g. [0.51,0.46,0.33]
-    #           or you can use center="auto" to automatically find the densest cell
-    # - dx    : size of the domain to be read in the x dimension, in units of scale
-    # - dy    : size of the domain to be read in the y dimension, in units of scale
-    # - dz    : size of the domain to be read in the z dimension, in units of scale
-    # - scale : spatial scale conversion for distances. Possible values are "cm", "au"
-    #           and "pc"
-    #===================================================================================
+    # This is the constructor which creates a `RamsesData` object.
+    #
+    # List of arguments and default values:
+    # 
+    # * `nout`: (*integer*) Number of output to be read. -1 means read in the last output
+    #  in the current directory. Default is `conf.default_values["nout"]`.
+    # 
+    # * `lmax`: (*integer*) Maximum level to read up to. Default is `conf.default_values["lmax"]`.
+    # 
+    # * `center`: (*array of 3 floats* **or** *string*) Use this to center the data coordinates
+    #  around a chosen point. Possible options are a set of 3D xyz coordinates (from 0 to 1),
+    #  e.g. `[0.5,0.4,0.6]`, around the density maximum `"max:density"`, around the barycentre
+    #  of all cells with temperature above 1000K `"av:temperature>1000"`, or around a sink
+    #  particle `"sink2"`. Default is `conf.default_values["center"]`.
+    # 
+    # * `dx`: (*float*) Size of the region in x around the center to be read in, in units of
+    #  `scale`. Default is `conf.default_values["dx"]`.
+    # 
+    # * `dy`: (*float*) Size of the region in y around the center to be read in, in units of
+    #  `scale`. Default is `conf.default_values["dy"]`.
+    # 
+    # * `dz`: (*float*) Size of the region in z around the center to be read in, in units of
+    #  `scale`. Default is `conf.default_values["dz"]`.
+    # 
+    # * `scale`: (*float*) Spatial scale to be used for coordinates and cell sizes. Possible
+    #  options are `"cm"`, `"au"` and `"pc"`. Default is `conf.default_values["scale"]`.
+    # 
+    # * `verbose`: (*logical*) Print information about data that was read in if `True`.
+    #  Default is `conf.default_values["verbose"]`.
+    # 
+    # * `path`: (*string*) Path to the directory where to read outputs from, if different
+    #  from the current directory. Default is `conf.default_values["path"]`.
+    # 
+    # * `variables`: (*array of strings*) List of variables to be read in. To read in only
+    #  the gas density and temperature, use `variables=["density","temperature"]`. Note that
+    #  xyz coordinates are always read in. Default is `conf.default_values["variables"]`.
     def __init__(self,nout=conf.default_values["nout"],lmax=conf.default_values["lmax"],\
                  center=conf.default_values["center"],dx=conf.default_values["dx"],\
                  dy=conf.default_values["dy"],dz=conf.default_values["dz"],\
@@ -72,8 +96,24 @@ class RamsesData(eo.OsirisData):
         return
     
     #=======================================================================================
-    # Generate the file name
-    #=======================================================================================
+
+    #This function creates various file names for Ramses data.
+    #
+    # List of arguments and default values:
+    #
+    #* `nout`: (*integer*) The output number to be read in. No default value.
+    #
+    #* `path`: (*string*) Path to the directory where file is to be read from. Default is empty.
+    #
+    #* `ftype`: (*string*) The type of file. This is usually the prefix to the file, such as `amr`, `hydro` or `grav`. Default is empty.
+    #
+    #* `cpuid`: (*integer*) The cpu number of the file. Default is 1.
+    #
+    #* `ext`: (*string*) Extension for the file which is added at the end of the file name. Default is empty.
+    #
+    # Returns:
+    #
+    #* `infile`: (*string*) A file name of the form: "path/output_00001/amr_00071.out00001"+ext
     def generate_fname(self,nout,path="",ftype="",cpuid=1,ext=""):
         
         if len(path) > 0:
@@ -98,8 +138,44 @@ class RamsesData(eo.OsirisData):
         return infile
     
     #=======================================================================================
-    # Load the data from fortran routine
-    #=======================================================================================
+    
+    #This function reads in the binary Ramses output.
+    #
+    #List of arguments and default values:
+    #
+    #* `nout`: (*integer*) The output number to be read in. Default is 1.
+    #
+    #* `lmax`: (*integer*) Maximum level to read up to. 0 means read everything. Default is 0.
+    #
+    #* `center`: (*array of 3 floats* **or** *string*) Use this to center the data coordinates around a chosen point. Possible
+    # options are a set of 3D xyz coordinates (from 0 to 1), e.g. `[0.5,0.4,0.6]`, around
+    # the density maximum `"max:density"`, around the barycentre of all cells with temperature
+    # above 1000K `"av:temperature>1000"`, or around a sink particle `"sink2"`. Default is None.
+    #
+    #* `dx`: (*float*) Size of the region in x around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `dy`: (*float*) Size of the region in y around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `dz`: (*float*) Size of the region in z around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `scale`: (*string*) Spatial scale to be used for coordinates and cell sizes. Possible options
+    # are `"cm"`, `"au"` and `"pc"`. Default is empty.
+    #
+    #* `path`: (*string*) Path to the directory where to read outputs from, if different from the
+    # current directory. Default is empty.
+    #
+    #* `variables`: (*array of strings*) List of variables to be read in. To read in only the gas density and
+    # temperature, use `variables=["density","temperature"]`. Note that xyz coordinates
+    # are always read in. Empty array means read everything. Default is empty.
+    #
+    #* `verbose`: (*logical*) Print information about data that was read in if `True` Default is False.
+    #
+    # Returns:
+    #
+    #* `status`: (*integer*) 1 is successful, 0 if not.
     def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
                     update=False,variables=[]):
         
@@ -675,8 +751,8 @@ class RamsesData(eo.OsirisData):
         return 1
     
     #=======================================================================================
-    # This function reads the sink particle data if present.
-    #=======================================================================================
+    
+    #Read in sink particle `.csv` file if present.
     def read_sinks(self):
         
         sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
@@ -719,9 +795,40 @@ class RamsesData(eo.OsirisData):
         return
             
     #=======================================================================================
-    # The update_values function reads in a new ramses output and updates the fields in an
-    # existing data structure. It also updates all the derived variables at the same time.
-    #=======================================================================================
+    
+    #This function updates all the fields of a RamsesData container with values from a new
+    # output number, including derived fields. List of arguments and default values:
+    #
+    #* `nout`: (*integer*) The output number to be read in. Default is 1.
+    #
+    #* `lmax`: (*integer*) Maximum level to read up to. 0 means read everything. Default is 0.
+    #
+    #* `center`: (*array of 3 floats* **or** *string*) Use this to center the data coordinates around a chosen point.
+    # Possible options are a set of 3D xyz coordinates (from 0 to 1), e.g. `[0.5,0.4,0.6]`,
+    # around the density maximum `"max:density"`, around the barycentre of all cells with
+    # temperature above 1000K `"av:temperature>1000"`, or around a sink particle `"sink2"`.
+    # Default is None.
+    #
+    #* `dx`: (*float*) Size of the region in x around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `dy`: (*float*) Size of the region in y around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `dz`: (*float*) Size of the region in z around the center to be read in, in units of `scale`.
+    # 0 means read everything. Default is 0.0.
+    #
+    #* `scale`: (*string*) Spatial scale to be used for coordinates and cell sizes. Possible options
+    # are `"cm"`, `"au"` and `"pc"`. Default is empty.
+    #
+    #* `path`: (*string*) Path to the directory where to read outputs from, if different from the
+    # current directory. Default is empty.
+    #
+    #* `variables`: (*array of strings*) List of variables to be read in. To read in only the gas density and
+    # temperature, use `variables=["density","temperature"]`. Note that xyz coordinates
+    # are always read in. Empty array means read everything. Default is empty.
+    #
+    #* `verbose`: (*logical*) Print information about data that was read in if `True` Default is False.
     def update_values(self,nout=-1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
                       path="",variables=[],verbose=False):
         
@@ -789,11 +896,28 @@ class RamsesData(eo.OsirisData):
         return
         
     #=======================================================================================
-    # The function get_units returns the appropriate scaling for a variable which was read
+    
+    # This function returns the appropriate scaling for a variable which was read
     # in code units by the data loader. It tries to identify if we are dealing with a
     # density or a pressure and returns the appropriate combination of ud, ul and ut. It
-    # also returns the unit as a string for plotting on the axes.
-    #=======================================================================================
+    # also returns the unit as a string for plotting on the axes. List of arguments and
+    # default values:
+    #
+    #* `string`: (*string*) Name of the variable. There is no default.
+    #
+    #* `ud`: (*float*) Denstiy scaling. There is no default.
+    #
+    #* `ul`: (*float*) Length scaling. There is no default.
+    #
+    #* `ut`: (*float*) Time scaling. There is no default.
+    #
+    #* `scale`: (*string*) String to be used for scaling units on axes. Default is `"cm"`.
+    #
+    # Returns:
+    #
+    #* `norm`: (*float*) A scaling factor to convert from code units to cgs.
+    #
+    #* `label`: (*string*) A string describing the units, to be used on axes. 
     def get_units(self,string,ud,ul,ut,scale="cm"):
         if string == "density":
             return [ud,"g/cm3"]

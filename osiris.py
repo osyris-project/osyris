@@ -15,6 +15,8 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
+#@@@ SHORT DESCRIPTION @@@: The main Osiris plotting routines
+
 # Python libraries
 import struct
 import numpy as np
@@ -29,18 +31,20 @@ from ramses_to_osiris import RamsesData
 import ism_physics
 
 #=======================================================================================
+
 # Plot a 2D histogram with two variables as input. This is used for instance to plot the
-# temperature as a function of density for every cell in the mesh. The input arguments
-# are:
-# - var_x: a string containing the key for the variable along the x axis, e.g. "log_rho"
-# - var_y: a string containing the key for the variable along the y axis, e.g. "log_T"
-# - var_z: a string containing the key for a 3rd variable whose contours as overlayed
-# - fname: if specified, the figure is saved to file
-# - logz : if True, the colormap is logarithmic
-# - axes : if specified, the data is plotted on the specified axes (see demo).
-# - cmap : the colormap
-# - resolution: the data is binned in a 2D matrix of size 'resolution' 
-#=======================================================================================
+# temperature as a function of density for every cell in the mesh.
+#
+# List of arguments and default values:
+#
+# * var_x: a string containing the key for the variable along the x axis, e.g. "log_rho"
+# * var_y: a string containing the key for the variable along the y axis, e.g. "log_T"
+# * var_z: a string containing the key for a 3rd variable whose contours as overlayed
+# * fname: if specified, the figure is saved to file
+# * logz : if True, the colormap is logarithmic
+# * axes : if specified, the data is plotted on the specified axes (see demo).
+# * cmap : the colormap
+# * resolution: the data is binned in a 2D matrix of size 'resolution' 
 def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None,axes=None,logz=False,\
                    resolution=256,copy=False,title=None,\
                    xmin=None,xmax=None,ymin=None,ymax=None,new_window=False,\
