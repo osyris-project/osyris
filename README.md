@@ -79,6 +79,7 @@ Use the [Issue tracker](https://bitbucket.org/nvaytet/osiris/issues) on the Bitb
 * Tommaso Grassi (StarPlan/NBI)
 * Matthias Gonzalez (CEA Saclay)
 * Troels Haugbolle (StarPlan/NBI)
+* Lucas Beeres
 
 ### License
 
