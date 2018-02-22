@@ -33,24 +33,109 @@ import ism_physics
 #=======================================================================================
 
 # Plot a 2D histogram with two variables as input. This is used for instance to plot the
-# temperature as a function of density for every cell in the mesh.
+# temperature as a function of density for every cell in the mesh. You can supply a third
+# variable for the colours. By default, if no variable for colour is supplied for either
+# scalar, scatter, contour or image, the colour is used for the number of cells in
+# each pixels.
 #
 # List of arguments and default values:
 #
-# * var_x: a string containing the key for the variable along the x axis, e.g. "log_rho"
-# * var_y: a string containing the key for the variable along the y axis, e.g. "log_T"
-# * var_z: a string containing the key for a 3rd variable whose contours as overlayed
-# * fname: if specified, the figure is saved to file
-# * logz : if True, the colormap is logarithmic
-# * axes : if specified, the data is plotted on the specified axes (see demo).
-# * cmap : the colormap
-# * resolution: the data is binned in a 2D matrix of size 'resolution' 
-def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,fname=None,axes=None,logz=False,\
-                   resolution=256,copy=False,title=None,\
-                   xmin=None,xmax=None,ymin=None,ymax=None,new_window=False,\
-                   update=None,cbar=True,outline=False,scatter=False,summed=False,\
-                   clear=True,plot=True,block=False,equal_axes=False,\
-                   scalar_args={},image_args={},contour_args={},scatter_args={},outline_args={}):
+#* `var_x`: (*OsirisField*) An Osiris data field containing the variable for the x
+# axis, e.g. mydata.log_rho. There is no default.
+#
+#* `var_y`: (*OsirisField*) An Osiris data field containing the variable for the y
+# axis, e.g. mydata.log_T. There is no default.
+#
+#* `scalar`: (*OsirisField*) An Osiris data field containing the variable for the
+# colors to be used in the filled contours. Default is `False`.
+#
+#* `image`: (*OsirisField*) An Osiris data field containing the variable for the
+# colors to be used by the imshow function. Default is `False`.
+#
+#* `contour`: (*OsirisField*) An Osiris data field containing the variable for the
+# colors to be used in the filled contours. Default is `False`.
+#
+#* `scatter`: (*OsirisField*) An Osiris data field containing the variable for the
+# colors to be used in the scatter function. Default is `False`. **Note:** 
+#
+#* `fname`: (*string*) If specified, the figure is saved to file. Default is `None`.
+#
+#* `axes`: (*MPL axes*) If specified, the data is plotted on the specified axes (see
+# demo). Default is `None`.
+#
+#* `resolution`: (*integer*) The data is binned in a 2D matrix of size `resolution`.
+# Default is 256.
+# 
+#* `copy`: (*logical*) If `True`, the function returns the data that was used to plot
+# the histogram. Default is `False`.
+#
+#* `title`: (*string*) The title for the figure/axes. Default is `None`. If no title
+# is specified, the simulation time will be used as a title. If you want no title on
+# the figure, use `title=""`.
+#
+#* `xmin`: (*float*) Lower limit for the x axis. Default is `None`, implying an
+# automatic search for the lowest x value in the supplied var_x data.
+#
+#* `xmax`: (*float*) Upper limit for the x axis. Default is `None`, implying an
+# automatic search for the highest x value in the supplied var_x data.
+#
+#* `ymin`: (*float*) Lower limit for the y axis. Default is `None`, implying an
+# automatic search for the lowest y value in the supplied var_x data.
+#
+#* `ymax`: (*float*) Upper limit for the y axis. Default is `None`, implying an
+# automatic search for the highest y value in the supplied var_x data.
+#
+#* `plot`: (*logical*) Do not plot the data on a figure if `False`. Default is
+# `True`.
+#
+#* `new_window`: (*logical*) Create a new plotting window if `True`. Default is
+# `False`.
+#
+#* `update`: (*integer*) Update the values of the current snapshot by reading a
+# new simulation output, specified by the output number `update=new_output_number`.
+# This saves the user from having to first run `mydata.update_values(new_output_number)`
+# before calling `plot_histogram` again, it can all be done in one line. Default
+# is `None`.
+#
+#* `cbar`: (*logical*) Make colorbar next to the plot if `True`. Default is `True`.
+#
+#* `outline`: (*logical*) Print a contour as an outline around all the data points
+# in the histogram. Default is `False`.
+#
+#* `summed`: (*logical*) If `True`, the data are summed in the histogram pixels,
+# rather than averaged. If no variable for colour is supplied for either
+# scalar, scatter, contour or image, the colour is used for the number of cells in
+# each pixels and `summed=True` is used. Otherwise, default is `False`.
+#
+#* `clear`: (*logical*) If `True` the figure is cleared. Default is `True`.
+#
+#* `block`: (*logical*) If `True` plotting the figure holds the terminal console
+# until it is closed. Default is `False`.
+#
+#* `equal_axes`: (*logical*) If `True` the aspect ratio is conserved between x and y
+# axes. Default is `False`.
+#
+#* `scalar_args`: (*dict*) A python dictionary to hold additional matplotlib arguments
+# to be passed to the `contourf` function. Default is empty.
+#
+#* `image_args`: (*dict*) A python dictionary to hold additional matplotlib arguments
+# to be passed to the `imshow` function. Default is empty.
+#
+#* `contour_args`: (*dict*) A python dictionary to hold additional matplotlib arguments
+# to be passed to the `contour` function. Default is empty.
+#
+#* `scatter_args`: (*dict*) A python dictionary to hold additional matplotlib arguments
+# to be passed to the `scatter` function. Default is empty.
+#
+#* `outline_args`: (*dict*) A python dictionary to hold additional matplotlib arguments
+# to be passed to the `contour` function. Default is empty.
+#
+def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=False,\
+                   fname=None,axes=None,resolution=256,copy=False,title=None,\
+                   xmin=None,xmax=None,ymin=None,ymax=None,plot=True,\
+                   new_window=False,update=None,cbar=True,outline=False,summed=False,\
+                   clear=True,block=False,equal_axes=False,scalar_args={},\
+                   image_args={},contour_args={},scatter_args={},outline_args={}):
 
     # Find parent container of object to plot
     holder = var_x.parent

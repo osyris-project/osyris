@@ -97,7 +97,7 @@ class RamsesData(eo.OsirisData):
     
     #=======================================================================================
 
-    #This function creates various file names for Ramses data.
+    # This function creates various file names for Ramses data.
     #
     # List of arguments and default values:
     #
@@ -139,9 +139,9 @@ class RamsesData(eo.OsirisData):
     
     #=======================================================================================
     
-    #This function reads in the binary Ramses output.
+    # This function reads in the binary Ramses output.
     #
-    #List of arguments and default values:
+    # List of arguments and default values:
     #
     #* `nout`: (*integer*) The output number to be read in. Default is 1.
     #
@@ -752,7 +752,7 @@ class RamsesData(eo.OsirisData):
     
     #=======================================================================================
     
-    #Read in sink particle `.csv` file if present.
+    # Read in sink particle `.csv` file if present.
     def read_sinks(self):
         
         sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
@@ -796,8 +796,10 @@ class RamsesData(eo.OsirisData):
             
     #=======================================================================================
     
-    #This function updates all the fields of a RamsesData container with values from a new
-    # output number, including derived fields. List of arguments and default values:
+    # This function updates all the fields of a RamsesData container with values from a new
+    # output number, including derived fields.
+    #
+    # List of arguments and default values:
     #
     #* `nout`: (*integer*) The output number to be read in. Default is 1.
     #
@@ -900,8 +902,9 @@ class RamsesData(eo.OsirisData):
     # This function returns the appropriate scaling for a variable which was read
     # in code units by the data loader. It tries to identify if we are dealing with a
     # density or a pressure and returns the appropriate combination of ud, ul and ut. It
-    # also returns the unit as a string for plotting on the axes. List of arguments and
-    # default values:
+    # also returns the unit as a string for plotting on the axes.
+    #
+    # List of arguments and default values:
     #
     #* `string`: (*string*) Name of the variable. There is no default.
     #
