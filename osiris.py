@@ -441,7 +441,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
 #=======================================================================================
 def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=False,          \
                         direction="z",dx=0.0,dy=0.0,dz=0.0,fname=None,axes=None,title=None,     \
-                        origin=[0,0,0],resolution=128,sinks=True,summed=False,copy=False,       \
+                        origin=[0,0,0],resolution=128,sinks=True,summed=True,copy=False,       \
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
                         interpolation="linear",verbose=False,outline=False,outline_args={},\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
@@ -505,7 +505,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     z = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
     grid_x, grid_y = np.meshgrid(x, y)
-    
+    mult = dpz*conf.constants[holder.info["scale"]]
     
     # We now create empty data arrays that will be filled by the cell data
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
@@ -515,6 +515,14 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         z_imag = np.zeros([ny,nx])
     if contour:
         z_cont = np.zeros([ny,nx])
+    if vec:
+        u_vect = np.zeros([ny,nx])
+        v_vect = np.zeros([ny,nx])
+        w_vect = np.zeros([ny,nx])
+    if stream:
+        u_strm = np.zeros([ny,nx])
+        v_strm = np.zeros([ny,nx])
+        w_strm = np.zeros([ny,nx])
 
     iprog = 1
     istep = 10
@@ -537,10 +545,6 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
         cube = np.where(np.logical_and(np.abs(dist1) <= 0.5000000001*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
-        #cube = np.where(np.abs(dist1) <= sqrt3*0.5*holder.get("dx"))
-        #ncells = np.shape(holder.get("dx")[cube])[0]
-        #print ncells
-        #celldx = holder.get("dx")[cube]
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = np.transpose([holder.get("x")[cube]-origin[0]-z[iz]*dir1[0],holder.get("y")[cube]-origin[1]-z[iz]*dir1[1],holder.get("z")[cube]-origin[2]-z[iz]*dir1[2]])
         datax = np.inner(coords,dir2)
@@ -548,11 +552,50 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         points = np.transpose([datax,datay])
         
         if scalar:
-            z_scal += griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_scal += griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)*mult
         if image:
-            z_imag += griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_imag += griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)*mult
         if contour:
-            z_cont += griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)*dpz*conf.constants[holder.info["scale"]]
+            z_cont += griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)*mult
+        if vec:
+            if holder.info["ndim"] < 3:
+                datau1 = vec.x.values[cube]
+                datav1 = vec.y.values[cube]
+            else:
+                vectors = np.transpose([vec.x.values[cube],vec.y.values[cube],vec.z.values[cube]])
+                datau1 = np.inner(vectors,dir2)
+                datav1 = np.inner(vectors,dir3)
+            u_vect += griddata(points,datau1,(grid_x,grid_y),method=interpolation)*mult
+            v_vect += griddata(points,datav1,(grid_x,grid_y),method=interpolation)*mult
+            w_vect += griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)*mult
+        if stream:
+            if holder.info["ndim"] < 3:
+                datau2 = stream.x.values[cube]
+                datav2 = stream.y.values[cube]
+            else:
+                streams = np.transpose([stream.x.values[cube],stream.y.values[cube],stream.z.values[cube]])
+                datau2 = np.inner(streams,dir2)
+                datav2 = np.inner(streams,dir3)
+            u_strm += griddata(points,datau2,(grid_x,grid_y),method=interpolation)*mult
+            v_strm += griddata(points,datav2,(grid_x,grid_y),method=interpolation)*mult
+            w_strm += griddata(points,np.sqrt(datau2**2+datav2**2),(grid_x,grid_y),method=interpolation)*mult
+    
+    if not summed:
+        div = nz*mult
+        if scalar:
+            z_scal = z_scal / div
+        if image:
+            z_imag = z_imag / div
+        if contour:
+            z_cont = z_cont / div
+        if vec:
+            u_vect = u_vect / div
+            v_vect = v_vect / div
+            w_vect = w_vect / div
+        if stream:
+            u_strm = u_strm / div
+            v_strm = v_strm / div
+            w_strm = w_strm / div
     
     # Render the map    
     if plot:

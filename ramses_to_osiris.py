@@ -288,54 +288,57 @@ class RamsesData(eo.OsirisData):
 
         # Now for particles ==================================
         
-        # Read header file to get particle information
-        headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
-        with open(headerfile) as f:
-            dummy_string = f.readline()
-            self.info["npart_tot"] = int(f.readline())
-            dummy_string = f.readline()
-            npart_dm = int(f.readline())
-            dummy_string = f.readline()
-            npart_star = int(f.readline())
-            dummy_string = f.readline()
-            npart_sink = int(f.readline())
-            dummy_string = f.readline()
-            particle_fields = f.readline().split(' ')[:-1]
-        f.close()
-        npart_fields = len(particle_fields)
-        particles = (self.info["npart_tot"] > 0)
-        npart_count = 0
-        if particles:
-            npart_dims = []
-            part_vars  = []
-            part_types = []
-            for field in particle_fields:
-                if field == "pos":
-                    for n in range(self.info["ndim"]):
-                        part_vars.append(xyz_strings[n]+"_part")
-                        part_types.append("d")
-                    npart_dims.append(self.info["ndim"])
-                elif field == "vel":
-                    for n in range(self.info["ndim"]):
-                        part_vars.append("part_velocity_"+xyz_strings[n])
-                        part_types.append("d")
-                    npart_dims.append(self.info["ndim"])
-                elif field == "tracer_b":
-                    for n in range(3):
-                        part_vars.append("part_"+field+"_"+xyz_strings[n])
-                        part_types.append("d")
-                    npart_dims.append(3)
-                else:
-                    part_vars.append("part_"+field)
-                    npart_dims.append(1)
-                    if field == "iord":
-                        part_types.append("q")
-                    elif field == "level":
-                        part_types.append("i")
+        particles = False
+        self.info["npart_tot"] = 0
+        if "part" in variables:
+            # Read header file to get particle information
+            headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
+            with open(headerfile) as f:
+                dummy_string = f.readline()
+                self.info["npart_tot"] = int(f.readline())
+                dummy_string = f.readline()
+                self.info["npart_dm"] = int(f.readline())
+                dummy_string = f.readline()
+                self.info["npart_star"] = int(f.readline())
+                dummy_string = f.readline()
+                self.info["npart_sink"] = int(f.readline())
+                dummy_string = f.readline()
+                particle_fields = f.readline().split(' ')[:-1]
+            f.close()
+            npart_fields = len(particle_fields)
+            particles = (self.info["npart_tot"] > 0)
+            npart_count = 0
+            if particles:
+                npart_dims = []
+                part_vars  = []
+                part_types = []
+                for field in particle_fields:
+                    if field == "pos":
+                        for n in range(self.info["ndim"]):
+                            part_vars.append(xyz_strings[n]+"_part")
+                            part_types.append("d")
+                        npart_dims.append(self.info["ndim"])
+                    elif field == "vel":
+                        for n in range(self.info["ndim"]):
+                            part_vars.append("part_velocity_"+xyz_strings[n])
+                            part_types.append("d")
+                        npart_dims.append(self.info["ndim"])
+                    elif field == "tracer_b":
+                        for n in range(3):
+                            part_vars.append("part_"+field+"_"+xyz_strings[n])
+                            part_types.append("d")
+                        npart_dims.append(3)
                     else:
-                        part_types.append("d")
-            #print sum(npart_dims)
-            part = np.zeros([self.info["npart_tot"],sum(npart_dims)],dtype=np.float64)
+                        part_vars.append("part_"+field)
+                        npart_dims.append(1)
+                        if field == "iord":
+                            part_types.append("q")
+                        elif field == "level":
+                            part_types.append("i")
+                        else:
+                            part_types.append("d")
+                #print sum(npart_dims)
+                part = np.zeros([self.info["npart_tot"],sum(npart_dims)],dtype=np.float64)
         
         
         # Load sink particles if any
