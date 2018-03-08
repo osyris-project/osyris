@@ -17,7 +17,7 @@ mydata = osiris.RamsesData(71,scale="au")
 osiris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
 ```
 
-### Demo ###
+### Demo (see more demos [here](https://bitbucket.org/nvaytet/osiris/wiki/Demos)) ###
 
 You can download the sample data [here](http://www.nbi.dk/~nvaytet/osiris/ramses_sample_data.tar.gz).
 
