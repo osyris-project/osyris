@@ -420,7 +420,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
-                   outline_args=outline_args,sink_args=sink_args)
+                   outline_args=outline_args,sink_args=sink_args,x_raw=datax,y_raw=datay)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -881,9 +881,11 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
     
     # Plot scatter points
     if scatter:
+        cube = np.where(np.logical_and(x_raw.values >= xmin,np.logical_and(x_raw.values <= xmax,\
+                        np.logical_and(y_raw.values >= ymin,y_raw.values <= ymax))))
         try:
-            vmin = np.nanmin(scatter.values)
-            vmax = np.nanmax(scatter.values)
+            vmin = np.nanmin(scatter.values[cube])
+            vmax = np.nanmax(scatter.values[cube])
             scbar = True
             scmap = conf.default_values["colormap"]
         except AttributeError:
@@ -895,10 +897,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         parse_arguments(scatter_args,scatter_args_osiris,scatter_args_plot)
         # Check if a variable is given as a color
         try:
-            scatter_args_plot["c"] = scatter.values[::scatter_args_osiris["iskip"]]
+            scatter_args_plot["c"] = scatter.values[cube][::scatter_args_osiris["iskip"]]
         except AttributeError:
             pass
-        scat = theAxes.scatter(x_raw.values[::scatter_args_osiris["iskip"]],y_raw.values[::scatter_args_osiris["iskip"]],**scatter_args_plot)
+        scat = theAxes.scatter(x_raw.values[cube][::scatter_args_osiris["iskip"]],y_raw.values[cube][::scatter_args_osiris["iskip"]],**scatter_args_plot)
         if scatter_args_osiris["cbar"]:
             rcb = plt.colorbar(scat,ax=theAxes,cax=scatter_args_osiris["cbax"],format=scatter_args_osiris["cb_format"])
             rcb.ax.set_ylabel(scatter.label+(" ["+scatter.unit+"]" if len(scatter.unit) > 0 else ""))
@@ -1003,13 +1005,19 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
     except TypeError:
         theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
     
-    #if clear:
-        #theAxes.set_xlim([xmin,xmax])
-        #theAxes.set_ylim([ymin,ymax])
-    #else:
-        #theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
-        #theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
-    
+    if axes:
+        pass
+    elif new_window:
+        theAxes.set_xlim([xmin,xmax])
+        theAxes.set_ylim([ymin,ymax])
+    else:
+        if clear:
+            theAxes.set_xlim([xmin,xmax])
+            theAxes.set_ylim([ymin,ymax])
+        else:
+            theAxes.set_xlim([min(theAxes.get_xlim()[0],xmin),max(theAxes.get_xlim()[1],xmax)])
+            theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
+
     # Define axes labels
     xlab = getattr(holder,dir_x).label
     if len(getattr(holder,dir_x).unit) > 0:
