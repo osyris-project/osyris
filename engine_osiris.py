@@ -361,7 +361,7 @@ class OsirisData:
                                 print("The attempted operation was: "+op_parsed)
                             return
                         dataField = OsirisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
-                                       norm=norm,kind=kind,parent=self,name=name,group=group)
+                                       norm=norm,kind=kind,parent=self,name=name+comps[n],group=group)
                         if hasattr(self,name+comps[n]) and verbose:
                             print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
                         setattr(self, name+comps[n], dataField)
@@ -369,7 +369,7 @@ class OsirisData:
                         print("Error: failed to create vector field.")
                         return
                 # Dealing with vector fields: then create vector container
-                self.vector_field(name=name)
+                self.vector_field(name=name,label=label)
         
         # Case where both values and operation are empty
         elif (len(operation) == 0) and (len(values) == 0):
@@ -545,14 +545,14 @@ class OsirisData:
                             ok = False
                     
                     if ok:
-                        self.vector_field(name=rawkey)
+                        self.vector_field(name=rawkey,label=rawkey)
 
         return
 
     #=======================================================================================
     # Create vector field
     #=======================================================================================
-    def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit=""):
+    def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit="",label=""):
     
         if len(np.shape(values_x)) > 0:
             self.new_field(name+"_x",values=values_x,unit=unit,label=name+"_x",verbose=False)
@@ -574,7 +574,7 @@ class OsirisData:
             v_z = False
             vals = np.linalg.norm([v_x.values,v_y.values],axis=0)
         
-        self.new_field(name=name,values=vals,label=name,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
+        self.new_field(name=name,values=vals,label=label,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
         
         return
 

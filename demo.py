@@ -60,6 +60,6 @@ osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5
 # Now update values with later snapshot
 mydata.update_values(201)
 # Re-plot x,y density slice with velocity vectors
-osiris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax6)
+osiris.plot_slice(mydata.log_rho,direction="auto",vec=mydata.velocity,dx=100,axes=ax6)
 
 fig.savefig("demo.pdf",bbox_inches="tight")
