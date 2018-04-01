@@ -398,7 +398,10 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
             datav1 = np.inner(vectors,dir3)
         u_vect = griddata(points,datau1,(grid_x,grid_y),method=interpolation)
         v_vect = griddata(points,datav1,(grid_x,grid_y),method=interpolation)
-        w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)
+        if "colors" in vec_args.keys():
+            w_vect = griddata(points,vec_args["colors"].values[cube],(grid_x,grid_y),method=interpolation)
+        else:
+            w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)
     if stream:
         if holder.info["ndim"] < 3:
             datau2 = stream.x.values[cube]
@@ -917,13 +920,24 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
     if vec:
         
         vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
-                           "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None}
+                           "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None,"colors":None,\
+                           "normalize_arrows":False}
         vec_args_plot = {"cmap":1,"pivot":"mid","color":"w","norm":None}
         parse_arguments(vec_args,vec_args_osiris,vec_args_plot)
         vskip = vec_args_osiris["vskip"]
         if not "scale" in vec_args_plot.keys():
             vec_args_plot["scale"] = vec_args_osiris["vsize"]*vec_args_osiris["vscale"]
-        if vec_args_plot["cmap"]:
+        if vec_args_osiris["normalize_arrows"]:
+            arrow_norm = np.sqrt(u_vect**2+v_vect**2)
+            u_vect = u_vect/arrow_norm
+            v_vect = v_vect/arrow_norm
+        if vec_args_osiris["colors"]:
+            vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
+                                  w_vect[::vskip,::vskip],**vec_args_plot)
+            if vec_args_osiris["cbar"]:
+                vcb = plt.colorbar(vect,ax=theAxes,cax=vec_args_osiris["cbax"],orientation="horizontal",format=vec_args_osiris["cb_format"])
+                vcb.ax.set_xlabel(vec_args_osiris["colors"].label+(" ["+vec_args_osiris["colors"].unit+"]" if len(vec_args_osiris["colors"].unit) > 0 else ""))
+        elif vec_args_plot["cmap"]:
             vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
                                   w_vect[::vskip,::vskip],**vec_args_plot)
             if vec_args_osiris["cbar"]:
@@ -932,6 +946,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         else:
             vect = theAxes.quiver(x[::vskip],y[::vskip],u_vect[::vskip,::vskip],v_vect[::vskip,::vskip],\
                                   **vec_args_plot)
+
         # Plot the scale of the vectors under the axes
         unit_u = vec.unit
         if vec_args_osiris["vkey"]:
