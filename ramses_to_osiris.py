@@ -280,6 +280,41 @@ class RamsesData(eo.OsirisData):
                 else:
                     var_read.append(False)
         
+        # Now for rt ==================================
+        
+        # Check if rt files exist
+        rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=1)
+        try:
+            with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
+                rtContent = rt_file.read()
+            rt_file.close()
+            rt = True
+        except IOError:
+            rt = False
+
+        # Read info_rt file and create info_rt dictionary
+        if rt:
+            infortfile = infile+"/info_rt_"+infile.split("_")[-1]+".txt"
+            status = self.read_parameter_file(fname=infortfile,dict_name="info_rt",verbose=True)
+            if status < 1:
+                return 0
+            
+        # Add rt fields
+        if rt:
+            for igrp in range(self.info_rt["nGroups"]):
+                content = ["photon_density_"+str(igrp+1)]
+                for n in range(self.info["ndim"]):
+                    content.append("photon_flux_"+str(igrp+1)+"_"+xyz_strings[n])
+            
+            # Now add to the list of variables to be read
+            for line in content:
+                if (len(variables) == 0) or (line.strip() in variables) or ("rt" in variables):
+                    var_read.append(True)
+                    list_vars.append(line.strip())
+                    var_group.append("rt")
+                else:
+                    var_read.append(False)
+
         # Make sure we always read the coordinates
         list_vars.extend(("level","x","y","z","dx","cpu"))
         var_read.extend((True,True,True,True,True,True))
@@ -425,6 +460,12 @@ class RamsesData(eo.OsirisData):
                     gravContent = grav_file.read()
                 grav_file.close()
             
+            # Read binary RT file
+            rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=k+1)
+            with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
+                rtContent = rt_file.read()
+            rt_file.close()
+            
             ninteg = nfloat = nlines = nstrin = nquadr = nlongi = 0
             
             # Need to extract info from the file header on the first loop
@@ -507,6 +548,13 @@ class RamsesData(eo.OsirisData):
                 nlines3 = 4
                 nstrin3 = 0
             
+            # Offset for RT
+            if rt:
+                ninteg4 = 5
+                nfloat4 = 1
+                nlines4 = 6
+                nstrin4 = 0
+            
             # Loop over levels
             for ilevel in range(lmax):
                 
@@ -540,6 +588,13 @@ class RamsesData(eo.OsirisData):
                     nlines_grav = nlines3
                     nstrin_grav = nstrin3
                                 
+                # Cumulative offsets in RT file
+                if rt:
+                    ninteg_rt = ninteg4
+                    nfloat_rt = nfloat4
+                    nlines_rt = nlines4
+                    nstrin_rt = nstrin4
+                                
                 # Loop over domains
                 for j in range(nboundary+self.info["ncpu"]):
                     
@@ -551,6 +606,9 @@ class RamsesData(eo.OsirisData):
                     if gravity:
                         nlines_grav += 2
                         ninteg_grav += 2
+                    if rt:
+                        nlines_rt += 2
+                        ninteg_rt += 2
                     
                     if ncache > 0:
                     
@@ -586,6 +644,13 @@ class RamsesData(eo.OsirisData):
                                         if var_read[ivar+self.info["nvar_hydro"]]:
                                             offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*(self.info["ndim"]+1)+ivar)*(ncache+1)) + nstrin_grav + 4
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
+                                            jvar += 1
+                                # var: rt variables
+                                if rt:
+                                    for ivar in range(self.info_rt["nRTvar"]):
+                                        if var_read[ivar+self.info["nvar_hydro"]+self.info["ndim"]+1]:
+                                            offset = 4*ninteg_rt + 8*(nlines_rt+nfloat_rt+(ind*self.info_rt["nRTvar"]+ivar)*(ncache+1)) + nstrin_rt + 4
+                                            var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), rtContent[offset:offset+8*ncache])
                                             jvar += 1
                                 # var: coordinates and cell sizes
                                 var[:ncache,ind,-6] = float(ilevel+1)
@@ -636,6 +701,10 @@ class RamsesData(eo.OsirisData):
                         nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
                         nlines_hydro += twotondim*self.info["nvar_hydro"]
                         
+                        if rt:
+                            nfloat_rt += ncache*twotondim*self.info_rt["nRTvar"]
+                            nlines_rt += twotondim*self.info_rt["nRTvar"]
+                                                    
                         if gravity:
                             nfloat_grav += ncache*twotondim*(self.info["ndim"]+1)
                             nlines_grav += twotondim*(self.info["ndim"]+1)
@@ -656,6 +725,12 @@ class RamsesData(eo.OsirisData):
                     nfloat3 = nfloat_grav
                     nlines3 = nlines_grav
                     nstrin3 = nstrin_grav
+
+                if rt:
+                    ninteg4 = ninteg_rt
+                    nfloat4 = nfloat_rt
+                    nlines4 = nlines_rt
+                    nstrin4 = nstrin_rt
                     
             # Now read particles: they are not in the loop over levels, only the cpu loop
             if particles:
