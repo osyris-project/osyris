@@ -64,7 +64,8 @@ constants = {
     "yr"  : 365.25*86400.0,
     "kyr" : 365.25*86400.0*1000.0,
     "msun": 1.9889e33,
-    "a_r" : 7.56591469318689378e-015
+    "a_r" : 7.56591469318689378e-015,
+    "c"   : 2.9979250e+10
 }
 
 #=======================================================================================
@@ -104,6 +105,11 @@ def additional_variables(holder):
     with np.errstate(divide="ignore"):
         holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
     
+    
+    # Photon density (in case conservative variables are not dumped)
+    if hasattr(holder,"photon_flux_density_1"):
+        for igrp in range(holder.info_rt["nGroups"]):
+            holder.new_field(name="photon_density_"+str(igrp+1),operation="photon_flux_density_"+str(igrp+1)+"/("+str(constants["c"]*holder.info_rt["rt_c_frac"])+")",unit="photons/cm3",label="photon density "+str(igrp+1),verbose=False)
     
     #========================== ADD YOUR VARIABLES HERE ============================
 

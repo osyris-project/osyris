@@ -302,7 +302,10 @@ class RamsesData(eo.OsirisData):
         # Add rt fields
         if rt:
             for igrp in range(self.info_rt["nGroups"]):
-                content = ["photon_density_"+str(igrp+1)]
+                if self.info["write_cons"]==1:
+                    content = ["photon_density_"+str(igrp+1)]
+                else:
+                    content = ["photon_flux_density_"+str(igrp+1)]
                 for n in range(self.info["ndim"]):
                     content.append("photon_flux_"+str(igrp+1)+"_"+xyz_strings[n])
             
@@ -1016,6 +1019,10 @@ class RamsesData(eo.OsirisData):
             return [ul*self.info["boxlen"],scale]
         elif string == "temperature":
             return [1.0,"K"]
+        elif string.startswith("photon_density"):
+            return [self.info_rt["unit_np"],"photons/cm3"]
+        elif string.startswith("photon_flux"):
+            return [self.info_rt["unit_pf"],"photons/cm2/s"]
         else:
             for key in conf.default_units.keys():
                 if string == key:
