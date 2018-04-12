@@ -464,10 +464,11 @@ class RamsesData(eo.OsirisData):
                 grav_file.close()
             
             # Read binary RT file
-            rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=k+1)
-            with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
-                rtContent = rt_file.read()
-            rt_file.close()
+            if rt:
+                rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=k+1)
+                with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
+                    rtContent = rt_file.read()
+                rt_file.close()
             
             ninteg = nfloat = nlines = nstrin = nquadr = nlongi = 0
             
