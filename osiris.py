@@ -316,8 +316,9 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
 def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axes=None,\
                direction="z",dx=0.0,dy=0.0,fname=None,title=None,sinks=True,copy=False,\
                origin=[0,0,0],resolution=128,summed=False,new_window=False,update=None,\
-               clear=True,plot=True,block=False,interpolation='linear',sink_args={},\
-               scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},outline=False,outline_args={}):
+               clear=True,plot=True,block=False,interpolation="linear",sink_args={},\
+               scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
+               outline=False,outline_args={}):
     
     # Find parent container of object to plot
     if scalar:
@@ -345,6 +346,19 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     except TypeError:
         pass
     
+    # Determine if interpolation is to be done in 2d or 3d
+    if (interpolation.count("3d") > 0) or (interpolation.count("3D")):
+        inter_3d = True
+        size_fact = np.sqrt(3.0)
+        chars = [",",":",";"," ","3d","3D"]
+        for ch in chars:
+            interpolation = interpolation.replace(ch,"")
+        if len(interpolation) == 0:
+            interpolation = "linear"
+    else:
+        inter_3d = False
+        size_fact = 1.0
+    
     # Get slice extent and direction vectors
     dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
     
@@ -353,14 +367,16 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     b_plane = dir1[1]
     c_plane = dir1[2]
     d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
-        
+    
+    # Distance to the plane
     dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
           / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
-      
+    # Distance from center
     dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - np.sqrt(3.0)*0.5*holder.get("dx")
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5000000001*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")*size_fact,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+    
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
     datax = np.inner(coords,dir2)
@@ -378,16 +394,25 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
     y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     grid_x, grid_y = np.meshgrid(x, y)
-    points = np.transpose([datax,datay])
+
+    # Doing different things depending on whether interpolation is 2D or 3D
+    if inter_3d:
+        dataz = np.inner(coords,dir1)
+        grid_z = np.zeros([nx,ny])
+        points = np.transpose([datax,datay,dataz])
+        grids = (grid_x,grid_y,grid_z)
+    else:
+        points = np.transpose([datax,datay])
+        grids = (grid_x,grid_y)
     
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
-        z_scal = griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)
+        z_scal = griddata(points,scalar.values[cube] ,grids,method=interpolation)
     if image:
-        z_imag = griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)
+        z_imag = griddata(points,image.values[cube]  ,grids,method=interpolation)
     if contour:
-        z_cont = griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)
+        z_cont = griddata(points,contour.values[cube],grids,method=interpolation)
     if vec:
         if holder.info["ndim"] < 3:
             datau1 = vec.x.values[cube]
@@ -396,12 +421,12 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
             vectors = np.transpose([vec.x.values[cube],vec.y.values[cube],vec.z.values[cube]])
             datau1 = np.inner(vectors,dir2)
             datav1 = np.inner(vectors,dir3)
-        u_vect = griddata(points,datau1,(grid_x,grid_y),method=interpolation)
-        v_vect = griddata(points,datav1,(grid_x,grid_y),method=interpolation)
+        u_vect = griddata(points,datau1,grids,method=interpolation)
+        v_vect = griddata(points,datav1,grids,method=interpolation)
         if "colors" in vec_args.keys():
-            w_vect = griddata(points,vec_args["colors"].values[cube],(grid_x,grid_y),method=interpolation)
+            w_vect = griddata(points,vec_args["colors"].values[cube],grids,method=interpolation)
         else:
-            w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)
+            w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),grids,method=interpolation)
     if stream:
         if holder.info["ndim"] < 3:
             datau2 = stream.x.values[cube]
@@ -410,9 +435,9 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
             streams = np.transpose([stream.x.values[cube],stream.y.values[cube],stream.z.values[cube]])
             datau2 = np.inner(streams,dir2)
             datav2 = np.inner(streams,dir3)
-        u_strm = griddata(points,datau2,(grid_x,grid_y),method=interpolation)
-        v_strm = griddata(points,datav2,(grid_x,grid_y),method=interpolation)
-        w_strm = griddata(points,np.sqrt(datau2**2+datav2**2),(grid_x,grid_y),method=interpolation)
+        u_strm = griddata(points,datau2,grids,method=interpolation)
+        v_strm = griddata(points,datav2,grids,method=interpolation)
+        w_strm = griddata(points,np.sqrt(datau2**2+datav2**2),grids,method=interpolation)
     
     # Render the map    
     if plot:
@@ -547,7 +572,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         (holder.get("z")-origin[2]-z[iz]*dir1[2])**2) - sqrt3*0.5*holder.get("dx")
 
         # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5000000001*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = np.transpose([holder.get("x")[cube]-origin[0]-z[iz]*dir1[0],holder.get("y")[cube]-origin[1]-z[iz]*dir1[1],holder.get("z")[cube]-origin[2]-z[iz]*dir1[2]])
         datax = np.inner(coords,dir2)
