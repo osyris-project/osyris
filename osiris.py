@@ -132,7 +132,7 @@ import ism_physics
 #
 def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=False,\
                    fname=None,axes=None,resolution=256,copy=False,title=None,\
-                   xmin=None,xmax=None,ymin=None,ymax=None,plot=True,\
+                   xmin=None,xmax=None,ymin=None,ymax=None,plot=True,only_leafs=True,\
                    new_window=False,update=None,cbar=True,outline=False,summed=False,\
                    clear=True,block=False,equal_axes=False,scalar_args={},\
                    image_args={},contour_args={},scatter_args={},outline_args={}):
@@ -152,8 +152,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
     ny = resolution+1
     
     # Get the data values and units
-    datax  = var_x.values
-    datay  = var_y.values
+    datax  = holder.get(var_x.name,only_leafs=only_leafs)
+    datay  = holder.get(var_y.name,only_leafs=only_leafs)
     xlabel = var_x.label+" ["+var_x.unit+"]"
     ylabel = var_y.label+" ["+var_y.unit+"]"
     default_var = "histo_cell_density"
@@ -233,7 +233,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
     empty = True
     if scalar:
         try:
-            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=scalar.values)
+            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=holder.get(scalar.name,only_leafs=only_leafs))
             if summed:
                 z_scal = np.ma.masked_where(z0 == 0.0, z1)
             else:
@@ -246,7 +246,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         empty = False
     if image:
         try:
-            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=image.values)
+            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=holder.get(image.name,only_leafs=only_leafs))
             if summed:
                 z_imag = np.ma.masked_where(z0 == 0.0, z1)
             else:
@@ -259,7 +259,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         empty = False
     if contour:
         try:
-            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=contour.values)
+            z1, yedges1, xedges1 = np.histogram2d(datay,datax,bins=(ye,xe),weights=holder.get(contour.name,only_leafs=only_leafs))
             if summed:
                 z_cont = np.ma.masked_where(z0 == 0.0, z1)
             else:
@@ -286,9 +286,9 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         render_map(scalar=scalar,image=image,contour=contour,scatter=scatter,x=x,y=y,z_scal=z_scal,    \
                    z_imag=z_imag,z_cont=z_cont,z_outl=z_outl,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
                    axes=axes,title=title,new_window=new_window,clear=clear,block=block,          \
-                   resolution=resolution,scalar_args=scalar_args,image_args=image_args,    \
-                   contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=var_x,y_raw=var_y,\
-                   outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name,sinks=False)
+                   resolution=resolution,scalar_args=scalar_args,image_args=image_args,holder=holder,    \
+                   contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=datax,y_raw=datay,\
+                   outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name,sinks=False,only_leafs=only_leafs)
     
     if hasattr(holder,default_var):
         holder.delete_field(default_var)
@@ -318,7 +318,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                origin=[0,0,0],resolution=128,summed=False,new_window=False,update=None,\
                clear=True,plot=True,block=False,interpolation="linear",sink_args={},\
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
-               outline=False,outline_args={}):
+               outline=False,outline_args={},lmax=0):
     
     # Find parent container of object to plot
     if scalar:
@@ -347,7 +347,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         pass
     
     # Determine if interpolation is to be done in 2d or 3d
-    if (interpolation.count("3d") > 0) or (interpolation.count("3D")):
+    if (interpolation.count("3d") > 0) or (interpolation.count("3D") > 0):
         inter_3d = True
         size_fact = np.sqrt(3.0)
         chars = [",",":",";"," ","3d","3D"]
@@ -359,8 +359,17 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         inter_3d = False
         size_fact = 1.0
     
+    
     # Get slice extent and direction vectors
     dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
+
+    # Try to automatically determine lmax to speedup process
+    if lmax == 0:
+        dxlmax = holder.info["boxsize_scaled"]*(0.5**holder.info["levelmax_active"])
+        target = min(dx,dy)/float(resolution)
+        lmax = round(np.log((min(dx,dy)/float(resolution))/holder.info["boxsize_scaled"])/(np.log(0.5)))
+    subset = np.where(np.logical_or(np.logical_and(holder.get("level",only_leafs=False) < lmax,\
+                      holder.get("leaf",only_leafs=False) > 0.0),holder.get("level",only_leafs=False) == lmax))
     
     # Define equation of a plane
     a_plane = dir1[0]
@@ -369,16 +378,24 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
     
     # Distance to the plane
-    dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
-          / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+    dist1 = (a_plane*holder.get("x",only_leafs=False)[subset] + \
+             b_plane*holder.get("y",only_leafs=False)[subset] + \
+             c_plane*holder.get("z",only_leafs=False)[subset] + \
+             d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
     # Distance from center
-    dist2 = np.sqrt((holder.get("x")-origin[0])**2+(holder.get("y")-origin[1])**2+(holder.get("z")-origin[2])**2) - np.sqrt(3.0)*0.5*holder.get("dx")
+    dist2 = np.sqrt((holder.get("x",only_leafs=False)[subset]-origin[0])**2  + \
+                    (holder.get("y",only_leafs=False)[subset]-origin[1])**2  + \
+                    (holder.get("z",only_leafs=False)[subset]-origin[2])**2) - \
+                    np.sqrt(3.0)*0.5*holder.get("dx",only_leafs=False)[subset]
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")*size_fact,np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx",only_leafs=False)[subset]*size_fact,\
+                                   np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
     
     # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = np.transpose([holder.get("x")[cube]-origin[0],holder.get("y")[cube]-origin[1],holder.get("z")[cube]-origin[2]])
+    coords = np.transpose([holder.get("x",only_leafs=False)[subset][cube]-origin[0],\
+                           holder.get("y",only_leafs=False)[subset][cube]-origin[1],\
+                           holder.get("z",only_leafs=False)[subset][cube]-origin[2]])
     datax = np.inner(coords,dir2)
     datay = np.inner(coords,dir3)
     
@@ -408,31 +425,31 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
-        z_scal = griddata(points,scalar.values[cube] ,grids,method=interpolation)
+        z_scal = griddata(points,scalar.values[subset][cube] ,grids,method=interpolation)
     if image:
-        z_imag = griddata(points,image.values[cube]  ,grids,method=interpolation)
+        z_imag = griddata(points,image.values[subset][cube]  ,grids,method=interpolation)
     if contour:
-        z_cont = griddata(points,contour.values[cube],grids,method=interpolation)
+        z_cont = griddata(points,contour.values[subset][cube],grids,method=interpolation)
     if vec:
         if holder.info["ndim"] < 3:
-            datau1 = vec.x.values[cube]
-            datav1 = vec.y.values[cube]
+            datau1 = vec.x.values[subset][cube]
+            datav1 = vec.y.values[subset][cube]
         else:
-            vectors = np.transpose([vec.x.values[cube],vec.y.values[cube],vec.z.values[cube]])
+            vectors = np.transpose([vec.x.values[subset][cube],vec.y.values[subset][cube],vec.z.values[subset][cube]])
             datau1 = np.inner(vectors,dir2)
             datav1 = np.inner(vectors,dir3)
         u_vect = griddata(points,datau1,grids,method=interpolation)
         v_vect = griddata(points,datav1,grids,method=interpolation)
         if "colors" in vec_args.keys():
-            w_vect = griddata(points,vec_args["colors"].values[cube],grids,method=interpolation)
+            w_vect = griddata(points,vec_args["colors"].values[subset][cube],grids,method=interpolation)
         else:
             w_vect = griddata(points,np.sqrt(datau1**2+datav1**2),grids,method=interpolation)
     if stream:
         if holder.info["ndim"] < 3:
-            datau2 = stream.x.values[cube]
-            datav2 = stream.y.values[cube]
+            datau2 = stream.x.values[subset][cube]
+            datav2 = stream.y.values[subset][cube]
         else:
-            streams = np.transpose([stream.x.values[cube],stream.y.values[cube],stream.z.values[cube]])
+            streams = np.transpose([stream.x.values[subset][cube],stream.y.values[subset][cube],stream.z.values[subset][cube]])
             datau2 = np.inner(streams,dir2)
             datav2 = np.inner(streams,dir3)
         u_strm = griddata(points,datau2,grids,method=interpolation)
@@ -448,7 +465,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
-                   outline_args=outline_args,sink_args=sink_args,x_raw=datax,y_raw=datay)
+                   outline_args=outline_args,sink_args=sink_args,x_raw=datax,y_raw=datay,holder=holder)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -634,7 +651,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
-                   outline_args=outline_args,sink_args=sink_args)
+                   outline_args=outline_args,sink_args=sink_args,holder=holder)
     
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
@@ -819,26 +836,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
                w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
                clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
-               stream_args={},scatter_args={},outline_args={},sink_args={},dz=0,\
-               thePlane=0,origin=[0,0,0],dir_vecs=[[0,0,0],[0,0,0],[0,0,0]],x_raw=None,y_raw=None,equal_axes=True):
-    
-    # Find parent container of object to plot
-    if scalar:
-        holder = scalar.parent
-    elif image:
-        holder = image.parent
-    elif contour:
-        holder = contour.parent
-    elif vec:
-        holder = vec.parent
-    elif stream:
-        holder = stream.parent
-    elif scatter:
-        holder = x_raw.parent
-    else:
-        print("Nothing to render.")
-        return
-    
+               stream_args={},scatter_args={},outline_args={},sink_args={},dz=0,holder=None,\
+               thePlane=0,origin=[0,0,0],dir_vecs=[[0,0,0],[0,0,0],[0,0,0]],x_raw=None,y_raw=None,equal_axes=True,\
+               only_leafs=True):
+
     if axes:
         theAxes = axes
     elif new_window:
@@ -909,11 +910,11 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
     
     # Plot scatter points
     if scatter:
-        cube = np.where(np.logical_and(x_raw.values >= xmin,np.logical_and(x_raw.values <= xmax,\
-                        np.logical_and(y_raw.values >= ymin,y_raw.values <= ymax))))
+        cube = np.where(np.logical_and(x_raw >= xmin,np.logical_and(x_raw <= xmax,\
+                        np.logical_and(y_raw >= ymin,y_raw <= ymax))))
         try:
-            vmin = np.nanmin(scatter.values[cube])
-            vmax = np.nanmax(scatter.values[cube])
+            vmin = np.nanmin(holder.get(scatter.name,only_leafs=only_leafs)[cube])
+            vmax = np.nanmax(holder.get(scatter.name,only_leafs=only_leafs)[cube])
             scbar = True
             scmap = conf.default_values["colormap"]
         except AttributeError:
@@ -925,10 +926,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         parse_arguments(scatter_args,scatter_args_osiris,scatter_args_plot)
         # Check if a variable is given as a color
         try:
-            scatter_args_plot["c"] = scatter.values[cube][::scatter_args_osiris["iskip"]]
+            scatter_args_plot["c"] = holder.get(scatter.name,only_leafs=only_leafs)[cube][::scatter_args_osiris["iskip"]]
         except AttributeError:
             pass
-        scat = theAxes.scatter(x_raw.values[cube][::scatter_args_osiris["iskip"]],y_raw.values[cube][::scatter_args_osiris["iskip"]],**scatter_args_plot)
+        scat = theAxes.scatter(x_raw[cube][::scatter_args_osiris["iskip"]],y_raw[cube][::scatter_args_osiris["iskip"]],**scatter_args_plot)
         if scatter_args_osiris["cbar"]:
             rcb = plt.colorbar(scat,ax=theAxes,cax=scatter_args_osiris["cbax"],format=scatter_args_osiris["cb_format"])
             rcb.ax.set_ylabel(scatter.label+(" ["+scatter.unit+"]" if len(scatter.unit) > 0 else ""))
@@ -1121,7 +1122,7 @@ def interpolate(field,points):
         cube = dict()
         dmax = 0.0
         cube[theHash] = dict()
-        cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+        cube[theHash]["vars"] = holder.get(field.name,only_leafs=True)[holder.hash_table[theHash]]
         cube[theHash]["dist"] = np.sqrt((points[ip,0]-((igrid+0.5)*dxcell))**2 + \
                                         (points[ip,1]-((jgrid+0.5)*dxcell))**2 + \
                                         (points[ip,2]-((kgrid+0.5)*dxcell))**2)
@@ -1139,7 +1140,7 @@ def interpolate(field,points):
                         try:
                             neighbour = holder.hash_table[theHash]
                             cube[theHash] = dict()
-                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                            cube[theHash]["vars"] = holder.get(field.name,only_leafs=True)[holder.hash_table[theHash]]
                             cube[theHash]["dist"] = np.sqrt((points[ip,0]-((ii+0.5)*dxcell))**2 + \
                                                             (points[ip,1]-((jj+0.5)*dxcell))**2 + \
                                                             (points[ip,2]-((kk+0.5)*dxcell))**2)
@@ -1153,7 +1154,7 @@ def interpolate(field,points):
                                         for k1 in range(2):
                                             theHash = str(2*ii+i1)+','+str(2*jj+j1)+','+str(2*kk+k1)+','+str(ilevl+1)
                                             cube[theHash] = dict()
-                                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                                            cube[theHash]["vars"] = holder.get(field.name,only_leafs=True)[holder.hash_table[theHash]]
                                             cube[theHash]["dist"] = np.sqrt((points[ip,0]-((2*ii+i1+0.5)*dxcell*0.5))**2 + \
                                                                             (points[ip,1]-((2*jj+j1+0.5)*dxcell*0.5))**2 + \
                                                                             (points[ip,2]-((2*kk+k1+0.5)*dxcell*0.5))**2)
@@ -1163,7 +1164,7 @@ def interpolate(field,points):
                                 try:
                                     neighbour = holder.hash_table[theHash]
                                     cube[theHash] = dict()
-                                    cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
+                                    cube[theHash]["vars"] = holder.get(field.name,only_leafs=True)[holder.hash_table[theHash]]
                                     cube[theHash]["dist"] = np.sqrt((points[ip,0]-((int(float(ii)/2.0)+0.5)*dxcell*2.0))**2 + \
                                                                     (points[ip,1]-((int(float(jj)/2.0)+0.5)*dxcell*2.0))**2 + \
                                                                     (points[ip,2]-((int(float(kk)/2.0)+0.5)*dxcell*2.0))**2)

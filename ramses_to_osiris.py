@@ -319,9 +319,9 @@ class RamsesData(eo.OsirisData):
                     var_read.append(False)
 
         # Make sure we always read the coordinates
-        list_vars.extend(("level","x","y","z","dx","cpu"))
-        var_read.extend((True,True,True,True,True,True))
-        var_group.extend(("amr","amr","amr","amr","amr","amr"))
+        list_vars.extend(("level","x","y","z","dx","cpu","leaf"))
+        var_read.extend((True,True,True,True,True,True,True))
+        var_group.extend(("amr","amr","amr","amr","amr","amr","amr"))
         nvar_read = len(list_vars)
 
         # Now for particles ==================================
@@ -657,34 +657,31 @@ class RamsesData(eo.OsirisData):
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), rtContent[offset:offset+8*ncache])
                                             jvar += 1
                                 # var: coordinates and cell sizes
-                                var[:ncache,ind,-6] = float(ilevel+1)
+                                var[:ncache,ind,-7] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-                                    var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
-                                var[:ncache,ind,-2] = dxcell*self.info["boxlen"]
-                                var[:ncache,ind,-1] = k+1
-                                # ref: True if the cell is unrefined
-                                ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax-1))
+                                    var[:ncache,ind,-6+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
+                                var[:ncache,ind,-3] = dxcell*self.info["boxlen"]
+                                var[:ncache,ind,-2] = k+1
+                                # leaf cells: True if the cell is unrefined
+                                var[:ncache,ind,-1] = 1.0 * np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax-1))
 
-                            # Select only the unrefined cells that are in the region of interest
+                            # Select only the cells that are in the region of interest
                             if self.info["ndim"] == 1:
-                                cube = np.where(np.logical_and(ref[:ncache,:], \
-                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                                               (xyz[:ncache,:,0]-dx2)<=xmax)))
+                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                               (xyz[:ncache,:,0]-dx2)<=xmax))
                             elif self.info["ndim"] == 2:
-                                cube = np.where(np.logical_and(ref[:ncache,:], \
-                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                 np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                                               (xyz[:ncache,:,1]-dx2)<=ymax)))))
+                                                               (xyz[:ncache,:,1]-dx2)<=ymax))))
                             elif self.info["ndim"] == 3:
-                                cube = np.where(np.logical_and(ref[:ncache,:], \
-                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                 np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
                                                 np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                 np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
-                                                               (xyz[:ncache,:,2]-dx2)<=zmax)))))))
+                                                               (xyz[:ncache,:,2]-dx2)<=zmax))))))
                             else:
                                 print("Bad number of dimensions")
                                 return 0
@@ -826,6 +823,10 @@ class RamsesData(eo.OsirisData):
             [norm,uu] = self.get_units("dx",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             self.new_field(name="dx_part",unit=uu,label="dx part",values=[norm*np.nanmin(self.dx.values)]*self.info["npart_tot"],\
                                verbose=False,norm=norm,update=update,group="part")
+        
+        # Finally, add some useful information to save compute time later
+        self.info["levelmax_active"] = np.nanmax(self.level.values)
+        self.info["leafs"] = np.where(self.leaf.values == 1.0)
                 
         # Re-center the mesh around chosen center
         self.re_center()

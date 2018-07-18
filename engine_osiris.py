@@ -110,8 +110,8 @@ class OsirisData:
                 maxlen3 = max(maxlen3,len(print_list[key][2]))
                 print_list[key].append(getattr(self,key).unit)
                 maxlen4 = max(maxlen4,len(print_list[key][3]))
-                print_list[key].append(str(np.nanmin(getattr(self,key).values)))
-                print_list[key].append(str(np.nanmax(getattr(self,key).values)))
+                print_list[key].append(str(np.nanmin(self.get(key))))
+                print_list[key].append(str(np.nanmax(self.get(key))))
                 maxlen5 = max(maxlen5,len(print_list[key][4]))
                 maxlen6 = max(maxlen6,len(print_list[key][5]))
 
@@ -235,23 +235,23 @@ class OsirisData:
                     zc = self.sinks["z"][isink]
                 elif self.info["center"].startswith("max"):
                     cvar=self.info["center"].split(":")[1]
-                    maxloc = np.argmax(getattr(self,cvar).values)
-                    xc = self.x.values[maxloc]
-                    yc = self.y.values[maxloc]
-                    zc = self.z.values[maxloc]
+                    maxloc = np.argmax(self.get(cvar))
+                    xc = self.get("x")[maxloc]
+                    yc = self.get("y")[maxloc]
+                    zc = self.get("z")[maxloc]
                 elif self.info["center"].startswith("min"):
                     cvar=self.info["center"].split(":")[1]
-                    minloc = np.argmin(getattr(self,cvar).values)
-                    xc = self.x.values[minloc]
-                    yc = self.y.values[minloc]
-                    zc = self.z.values[minloc]
+                    minloc = np.argmin(self.get(cvar))
+                    xc = self.get("x")[minloc]
+                    yc = self.get("y")[minloc]
+                    zc = self.get("z")[minloc]
                 elif self.info["center"].startswith("av"):
                     cvar=self.info["center"].split(":")[1]
-                    [op_parsed,depth,grp,status] = self.parse_operation(cvar)
+                    [op_parsed,depth,grp,status] = self.parse_operation(cvar,only_leafs=True)
                     select = eval("np.where("+op_parsed+")")
-                    xc = np.average(self.x.values[select])
-                    yc = np.average(self.y.values[select])
-                    zc = np.average(self.z.values[select])
+                    xc = np.average(self.get("x")[select])
+                    yc = np.average(self.get("y")[select])
+                    zc = np.average(self.get("z")[select])
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
@@ -393,10 +393,10 @@ class OsirisData:
     #=======================================================================================
     # The operation parser converts an operation string into an expression which contains
     # variables from the data dictionary. If a name from the variable list, e.g. "density",
-    # is found in the operation, it is replaced by self.density.values so that it
+    # is found in the operation, it is replaced by self.get("density") so that it
     # can be properly evaluated by the 'eval' function in the 'new_field' function.
     #=======================================================================================
-    def parse_operation(self,operation,suffix=""):
+    def parse_operation(self,operation,suffix="",only_leafs=False):
         
         max_depth = 0
         # Add space before and after to make it easier when searching for characters before
@@ -446,7 +446,7 @@ class OsirisData:
                             thisKey = key+suffix
                         else:
                             thisKey = key
-                        hashkeys[theHash] = "self.get(\""+thisKey+"\")"
+                        hashkeys[theHash] = "self.get(\""+thisKey+"\",only_leafs="+str(only_leafs)+")"
                         expression = expression.replace(key,theHash,1)
                         max_depth = max(max_depth,getattr(self,thisKey).depth)
                         types_found[getattr(self,thisKey).kind] = True
@@ -482,11 +482,18 @@ class OsirisData:
         return [expression,max_depth,group,status]
     
     #=======================================================================================
-    # The function get returns the values of the selected variable
+    # The function get returns the values of the selected variable.
+    # By default, it will only return the leaf cells, but you can choose to return
+    # all the cells in the tree by using the argument only_leafs=False.
     #=======================================================================================
-    def get(self,var):
+    def get(self,var,only_leafs=True):
         
-        return getattr(self,var).values
+        # Make sure that we don't use the "only_leafs" indices if we are trying to access
+        # particle fields
+        if only_leafs and (getattr(self,var).group != "part"):
+            return getattr(self,var).values[self.info["leafs"]]
+        else:
+            return getattr(self,var).values
     
     #=======================================================================================
     # The function returns the list of variables
@@ -513,10 +520,10 @@ class OsirisData:
         print("Building hash table")
         self.hash_table = dict()
         for icell in range(self.info["ncells"]):
-            igrid = int(self.x.values[icell]/self.dx.values[icell])
-            jgrid = int(self.y.values[icell]/self.dx.values[icell])
-            kgrid = int(self.z.values[icell]/self.dx.values[icell])
-            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.level.values[icell]))
+            igrid = int(self.get("x")[icell]/self.get("dx")[icell])
+            jgrid = int(self.get("y")[icell]/self.get("dx")[icell])
+            kgrid = int(self.get("z")[icell]/self.get("dx")[icell])
+            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.get("level")[icell]))
             self.hash_table[theHash] = icell
 
         return
@@ -569,10 +576,12 @@ class OsirisData:
         if self.info["ndim"] > 2:
             v_z=getattr(self,name+"_z")
             v_z.vector_component = True
-            vals = np.linalg.norm([v_x.values,v_y.values,v_z.values],axis=0)
+            vals = np.linalg.norm([self.get(name+"_x",only_leafs=False),\
+                                   self.get(name+"_y",only_leafs=False),\
+                                   self.get(name+"_z",only_leafs=False)],axis=0)
         else:
             v_z = False
-            vals = np.linalg.norm([v_x.values,v_y.values],axis=0)
+            vals = np.linalg.norm([self.get(name+"_x",only_leafs=False),self.get(name+"_y",only_leafs=False)],axis=0)
         
         self.new_field(name=name,values=vals,label=label,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
         
