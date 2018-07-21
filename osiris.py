@@ -315,10 +315,10 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
 #=======================================================================================
 def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axes=None,\
                direction="z",dx=0.0,dy=0.0,fname=None,title=None,sinks=True,copy=False,\
-               origin=[0,0,0],resolution=128,summed=False,new_window=False,update=None,\
+               origin=[0,0,0],resolution=128,new_window=False,update=None,\
                clear=True,plot=True,block=False,interpolation="linear",sink_args={},\
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
-               outline=False,outline_args={},lmax=0):
+               outline=False,outline_args={},lmax=0,slice_direction=None):
     
     # Find parent container of object to plot
     if scalar:
@@ -336,7 +336,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         return
         
     if holder.info["ndim"] < 2:
-        print("Cannot plot slice from 1D data. Exiting...")
+        print("plot_slice Error: Cannot plot slice from 1D data. Exiting...")
         return
     
     # Possibility of updating the data from inside the plotting routines
@@ -359,9 +359,11 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         inter_3d = False
         size_fact = 1.0
     
-    
     # Get slice extent and direction vectors
-    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
+    if slice_direction is not None:
+        [dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin] = slice_direction
+    else:
+        dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
 
     # Try to automatically determine lmax to speedup process
     if lmax == 0:
@@ -490,7 +492,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         new_window=False,update=None,clear=True,plot=True,block=False,nz=0,     \
                         interpolation="linear",verbose=False,outline=False,outline_args={},\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
-                        sink_args={}):
+                        sink_args={},lmax=0):
         
     # Find parent container of object to plot
     if scalar:
@@ -508,7 +510,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         return
         
     if holder.info["ndim"] < 2:
-        print("Cannot plot slice from 1D data. Exiting...")
+        print("plot_column_density Error: Cannot plot slice from 1D data. Exiting...")
         return
     
     # Possibility of updating the data from inside the plotting routines
@@ -518,39 +520,22 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     except TypeError:
         pass
         
-    # Get direction vectors
+    # Get direction vectors once and for all for the column_density.
+    # This should be computed here and not inside the plot_slice routine as the origin
+    # changes along the z direction inside the loop below.
     dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
-    
+
+    # Compute domain dimension for integration
     if dz == 0.0:
         dz = max(dx,dy)
-    
-    # Define equation of a plane
-    a_plane = dir1[0]
-    b_plane = dir1[1]
-    c_plane = dir1[2]
-    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
-    
-    sqrt3 = np.sqrt(3.0)
-    
-    # Define slice extent and resolution
-    xmin = max(-0.5*dx,box[0])
-    xmax = min(xmin+dx,box[1])
-    ymin = max(-0.5*dy,box[2])
-    ymax = min(ymin+dy,box[3])
     zmin = -0.5*dz
     zmax =  0.5*dz
     nx   = resolution
     ny   = resolution
     if nz == 0:
         nz = resolution
-    dpx = (xmax-xmin)/float(nx)
-    dpy = (ymax-ymin)/float(ny)
     dpz = (zmax-zmin)/float(nz)
-    x = np.linspace(xmin+0.5*dpx,xmax-0.5*dpx,nx)
-    y = np.linspace(ymin+0.5*dpy,ymax-0.5*dpy,ny)
     z = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
-    grid_x, grid_y = np.meshgrid(x, y)
-    mult = dpz*conf.constants[holder.info["scale"]]
     
     # We now create empty data arrays that will be filled by the cell data
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
@@ -569,90 +554,88 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         v_strm = np.zeros([ny,nx])
         w_strm = np.zeros([ny,nx])
 
+    # Define equation of a plane
+    a_plane = dir1[0]
+    b_plane = dir1[1]
+    c_plane = dir1[2]
+    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+
     iprog = 1
     istep = 10
     
+    # Begin loop over vertical direction, calling plot_slice with plot=False and copy=True
+    # to retrieve the slice data and create a sum
     for iz in range(nz):
-        
+
         # Print progress
         if verbose:
             percentage = int(float(iz)*100.0/float(nz))
             if percentage >= iprog*istep:
-                print("%3i%% done" % percentage)
+                print("Column density: %3i%% done" % percentage)
                 iprog += 1
     
-        dist1 = (a_plane*holder.get("x")+b_plane*holder.get("y")+c_plane*holder.get("z")+d_plane) \
-              / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2) - z[iz]
-          
-        dist2 = np.sqrt((holder.get("x")-origin[0]-z[iz]*dir1[0])**2 + \
-                        (holder.get("y")-origin[1]-z[iz]*dir1[1])**2 + \
-                        (holder.get("z")-origin[2]-z[iz]*dir1[2])**2) - sqrt3*0.5*holder.get("dx")
+        [x,y,z_scal_slice,z_imag_slice,z_cont_slice,u_vect_slice,v_vect_slice, \
+            w_vect_slice,u_strm_slice,v_strm_slice,w_strm_slice] = \
+            plot_slice(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,\
+                direction=direction,dx=dx,dy=dy,sinks=sinks,copy=True,resolution=resolution,\
+                origin=[origin[0],origin[1],origin[2]+z[iz]],plot=False,interpolation=interpolation,lmax=lmax,\
+                slice_direction=[dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,[origin[0],origin[1],origin[2]+z[iz]]])
 
-        # Select only the cells in contact with the slice., i.e. at a distance less than sqrt(3)*dx/2
-        cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx"),np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
-        # Project coordinates onto the plane by taking dot product with axes vectors
-        coords = np.transpose([holder.get("x")[cube]-origin[0]-z[iz]*dir1[0],holder.get("y")[cube]-origin[1]-z[iz]*dir1[1],holder.get("z")[cube]-origin[2]-z[iz]*dir1[2]])
-        datax = np.inner(coords,dir2)
-        datay = np.inner(coords,dir3)
-        points = np.transpose([datax,datay])
-        
+        # Increment the sum
         if scalar:
-            z_scal += griddata(points,scalar.values[cube] ,(grid_x,grid_y),method=interpolation)*mult
+            z_scal += z_scal_slice
         if image:
-            z_imag += griddata(points,image.values[cube]  ,(grid_x,grid_y),method=interpolation)*mult
+            z_imag += z_imag_slice
         if contour:
-            z_cont += griddata(points,contour.values[cube],(grid_x,grid_y),method=interpolation)*mult
+            z_cont += z_cont_slice
         if vec:
-            if holder.info["ndim"] < 3:
-                datau1 = vec.x.values[cube]
-                datav1 = vec.y.values[cube]
-            else:
-                vectors = np.transpose([vec.x.values[cube],vec.y.values[cube],vec.z.values[cube]])
-                datau1 = np.inner(vectors,dir2)
-                datav1 = np.inner(vectors,dir3)
-            u_vect += griddata(points,datau1,(grid_x,grid_y),method=interpolation)*mult
-            v_vect += griddata(points,datav1,(grid_x,grid_y),method=interpolation)*mult
-            w_vect += griddata(points,np.sqrt(datau1**2+datav1**2),(grid_x,grid_y),method=interpolation)*mult
+            u_vect += u_vect_slice
+            v_vect += v_vect_slice
+            w_vect += w_vect_slice
         if stream:
-            if holder.info["ndim"] < 3:
-                datau2 = stream.x.values[cube]
-                datav2 = stream.y.values[cube]
-            else:
-                streams = np.transpose([stream.x.values[cube],stream.y.values[cube],stream.z.values[cube]])
-                datau2 = np.inner(streams,dir2)
-                datav2 = np.inner(streams,dir3)
-            u_strm += griddata(points,datau2,(grid_x,grid_y),method=interpolation)*mult
-            v_strm += griddata(points,datav2,(grid_x,grid_y),method=interpolation)*mult
-            w_strm += griddata(points,np.sqrt(datau2**2+datav2**2),(grid_x,grid_y),method=interpolation)*mult
+            u_strm += u_strm_slice
+            v_strm += v_strm_slice
+            w_strm += w_strm_slice
     
-    if not summed:
-        div = nz*mult
-        if scalar:
-            z_scal = z_scal / div
-        if image:
-            z_imag = z_imag / div
-        if contour:
-            z_cont = z_cont / div
-        if vec:
-            u_vect = u_vect / div
-            v_vect = v_vect / div
-            w_vect = w_vect / div
-        if stream:
-            u_strm = u_strm / div
-            v_strm = v_strm / div
-            w_strm = w_strm / div
-    
-    # Render the map    
+    # If summed=True, this is a real column density.
+    # Else, only the average of the quantity is requested
+    if summed:
+        column = (zmax-zmin)*conf.constants[holder.info["scale"]]/float(nz)
+    else:
+        column = 1.0/float(nz)
+
+    if scalar:
+        z_scal *= column
+    if image:
+        z_imag *= column
+    if contour:
+        z_cont *= column
+    if vec:
+        u_vect *= column
+        v_vect *= column
+        w_vect *= column
+    if stream:
+        u_strm *= column
+        v_strm *= column
+        w_strm *= column
+
+    # Render the map
     if plot:
+        dpx = x[1] - x[0]
+        dpy = y[1] - y[0]
+        xmin = x[ 0] - 0.5*dpx
+        xmax = x[-1] + 0.5*dpx
+        ymin = y[ 0] - 0.5*dpy
+        ymax = y[-1] + 0.5*dpy
         render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,    \
                    z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
-                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
+                   v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,dz=dz,    \
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
                    dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
                    origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
                    outline_args=outline_args,sink_args=sink_args,holder=holder)
-    
+
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
     else:
