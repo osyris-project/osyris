@@ -1013,6 +1013,10 @@ class RamsesData(eo.OsirisData):
             return [ud*ul/ut,"g/cm2/s"]
         elif (string.startswith("B_")) or (string.startswith("part_tracer_b")):
             return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2),"G"]
+        elif (string.startswith("current_")):
+            return [np.sqrt(4.0*np.pi*ud*(ul/ut)**2)/(self.info["boxlen"]*ul),"G/cm"]
+        elif ("acceleration" in string):
+            return [ul/ut**2,"cm/s2"]
         elif string == ("thermal_pressure") or (string.count("energy") > 0):
             return [ud*((ul/ut)**2),"erg/cm3"]
         elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
