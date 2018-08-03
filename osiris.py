@@ -721,7 +721,7 @@ def parse_arguments(args,args_osiris,args_plot):
 def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
     
     # List of directions
-    dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
+    dir_list = {"x" : ["y","z"], "y" : ["z","x"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
     
     # Set dx to whole box if not specified
     boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
@@ -788,8 +788,8 @@ def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
     elif ((direction == "x") or (direction == "y") or (direction == "z")):
         [dir_x,dir_y] = dir_list[direction]
         dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
-        dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
-        dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
+        dir2 = [int(dir_x=="x"),int(dir_x=="y"),int(dir_x=="z")]
+        dir3 = [int(dir_y=="x"),int(dir_y=="y"),int(dir_y=="z")]
     elif holder.info["ndim"]==2:
         dir1 = [0,0,1]
         dir2 = [1,0,0]
