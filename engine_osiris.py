@@ -617,11 +617,11 @@ class OsirisData:
             return
     
         er,ephi,ez = self.get_cylindrical_basis(direction)
-        vec = np.vstack((getattr(self,variable+str("_x")).values,getattr(self,variable+str("_y")).values,getattr(self,variable+str("_z")).values)).T
+        vec = np.vstack((getattr(self,variable+"_x").values,getattr(self,variable+"_y").values,getattr(self,variable+"_z").values)).T
 
-        self.new_field(name=variable+"_cyl_r"  ,values=np.sum(vec*er  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+r"$_r$")
-        self.new_field(name=variable+"_cyl_phi",values=np.sum(vec*ephi,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+r"$_\phi$")
-        self.new_field(name=variable+"_cyl_z"  ,values=np.sum(vec*ez  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+r"$_z$")
+        self.new_field(name=variable+"_cyl_r"  ,values=np.sum(vec*er  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_r")
+        self.new_field(name=variable+"_cyl_phi",values=np.sum(vec*ephi,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_phi")
+        self.new_field(name=variable+"_cyl_z"  ,values=np.sum(vec*ez  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_z")
         
         del er,ephi,ez,vec
         return
