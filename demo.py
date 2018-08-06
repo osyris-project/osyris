@@ -51,11 +51,11 @@ mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+veloci
 osiris.plot_histogram(mydata.log_rho,mydata.log_vel,axes=ax2,scatter=mydata.log_T,scatter_args={"iskip":100,"cmap":"gnuplot"},outline=True)
 
 #x,z density slice with B field streamlines
-osiris.plot_slice(mydata.density,direction="y",stream=mydata.B,dx=100,axes=ax3,scalar_args={"cmap":"log"})
+osiris.plot_slice(mydata.density,direction="yxz",stream=mydata.B,dx=100,axes=ax3,scalar_args={"cmap":"log"})
 # x,y density slice with velocity vectors in color
 osiris.plot_slice(scalar=mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
 # x,y temperature slice with velocity vectors
-osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)})
+osiris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)},lmax=18)
 
 # Now update values with later snapshot
 mydata.update_values(201)

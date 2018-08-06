@@ -288,7 +288,8 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
                    axes=axes,title=title,new_window=new_window,clear=clear,block=block,          \
                    resolution=resolution,scalar_args=scalar_args,image_args=image_args,holder=holder,    \
                    contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=datax,y_raw=datay,\
-                   outline=outline,outline_args=outline_args,dir_x=var_x.name,dir_y=var_y.name,sinks=False,only_leafs=only_leafs)
+                   outline=outline,outline_args=outline_args,sinks=False,only_leafs=only_leafs,\
+                   dir_vecs=[["",[0,0,0]],[var_x.name,[0,0,0]],[var_y.name,[0,0,0]]])
     
     if hasattr(holder,default_var):
         holder.delete_field(default_var)
@@ -361,9 +362,9 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     
     # Get slice extent and direction vectors
     if slice_direction is not None:
-        [dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin] = slice_direction
+        [dx,dy,box,dir_vecs,origin] = slice_direction
     else:
-        dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
+        dx,dy,box,dir_vecs,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
 
     # Try to automatically determine lmax to speedup process
     if lmax == 0:
@@ -374,10 +375,10 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                       holder.get("leaf",only_leafs=False) > 0.0),holder.get("level",only_leafs=False) == lmax))
     
     # Define equation of a plane
-    a_plane = dir1[0]
-    b_plane = dir1[1]
-    c_plane = dir1[2]
-    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+    a_plane = dir_vecs[0][1][0]
+    b_plane = dir_vecs[0][1][1]
+    c_plane = dir_vecs[0][1][2]
+    d_plane = -dir_vecs[0][1][0]*origin[0]-dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
     
     # Distance to the plane
     dist1 = (a_plane*holder.get("x",only_leafs=False)[subset] + \
@@ -398,8 +399,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     coords = np.transpose([holder.get("x",only_leafs=False)[subset][cube]-origin[0],\
                            holder.get("y",only_leafs=False)[subset][cube]-origin[1],\
                            holder.get("z",only_leafs=False)[subset][cube]-origin[2]])
-    datax = np.inner(coords,dir2)
-    datay = np.inner(coords,dir3)
+    datax = np.inner(coords,dir_vecs[1][1])
+    datay = np.inner(coords,dir_vecs[2][1])
     
     # Define slice extent and resolution
     xmin = max(-0.5*dx,box[0])
@@ -416,7 +417,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
 
     # Doing different things depending on whether interpolation is 2D or 3D
     if inter_3d:
-        dataz = np.inner(coords,dir1)
+        dataz = np.inner(coords,dir_vecs[0][1])
         grid_z = np.zeros([nx,ny])
         points = np.transpose([datax,datay,dataz])
         grids = (grid_x,grid_y,grid_z)
@@ -438,8 +439,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
             datav1 = vec.y.values[subset][cube]
         else:
             vectors = np.transpose([vec.x.values[subset][cube],vec.y.values[subset][cube],vec.z.values[subset][cube]])
-            datau1 = np.inner(vectors,dir2)
-            datav1 = np.inner(vectors,dir3)
+            datau1 = np.inner(vectors,dir_vecs[1][1])
+            datav1 = np.inner(vectors,dir_vecs[2][1])
         u_vect = griddata(points,datau1,grids,method=interpolation)
         v_vect = griddata(points,datav1,grids,method=interpolation)
         if "colors" in vec_args.keys():
@@ -452,8 +453,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
             datav2 = stream.y.values[subset][cube]
         else:
             streams = np.transpose([stream.x.values[subset][cube],stream.y.values[subset][cube],stream.z.values[subset][cube]])
-            datau2 = np.inner(streams,dir2)
-            datav2 = np.inner(streams,dir3)
+            datau2 = np.inner(streams,dir_vecs[1][1])
+            datav2 = np.inner(streams,dir_vecs[2][1])
         u_strm = griddata(points,datau2,grids,method=interpolation)
         v_strm = griddata(points,datav2,grids,method=interpolation)
         w_strm = griddata(points,np.sqrt(datau2**2+datav2**2),grids,method=interpolation)
@@ -464,8 +465,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                    z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
                    v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
-                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
-                   origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
+                   resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
+                   origin=origin,dir_vecs=dir_vecs,scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
                    outline_args=outline_args,sink_args=sink_args,x_raw=datax,y_raw=datay,holder=holder)
     
@@ -523,7 +524,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     # Get direction vectors once and for all for the column_density.
     # This should be computed here and not inside the plot_slice routine as the origin
     # changes along the z direction inside the loop below.
-    dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
+    dx,dy,box,dir_vecs,origin = get_slice_direction(holder,direction,dx,dy,origin=origin)
 
     # Compute domain dimension for integration
     if dz == 0.0:
@@ -555,10 +556,10 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         w_strm = np.zeros([ny,nx])
 
     # Define equation of a plane
-    a_plane = dir1[0]
-    b_plane = dir1[1]
-    c_plane = dir1[2]
-    d_plane = -dir1[0]*origin[0]-dir1[1]*origin[1]-dir1[2]*origin[2]
+    a_plane = dir_vecs[0][1][0]
+    b_plane = dir_vecs[0][1][1]
+    c_plane = dir_vecs[0][1][2]
+    d_plane = -dir_vecs[0][1][0]*origin[0]-dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
 
     iprog = 1
     istep = 10
@@ -579,7 +580,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
             plot_slice(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,\
                 direction=direction,dx=dx,dy=dy,sinks=sinks,copy=True,resolution=resolution,\
                 origin=[origin[0],origin[1],origin[2]+z[iz]],plot=False,interpolation=interpolation,lmax=lmax,\
-                slice_direction=[dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,[origin[0],origin[1],origin[2]+z[iz]]])
+                slice_direction=[dx,dy,box,dir_vecs,[origin[0],origin[1],origin[2]+z[iz]]])
 
         # Increment the sum
         if scalar:
@@ -631,8 +632,8 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                    z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
                    v_strm=v_strm,w_strm=w_strm,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,dz=dz,    \
                    axes=axes,title=title,sinks=sinks,new_window=new_window,clear=clear,block=block,          \
-                   dir_x=dir_x,dir_y=dir_y,resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
-                   origin=origin,dir_vecs=[dir1,dir2,dir3],scalar_args=scalar_args,image_args=image_args,    \
+                   resolution=resolution,thePlane=[a_plane,b_plane,c_plane,d_plane], \
+                   origin=origin,dir_vecs=dir_vecs,scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
                    outline_args=outline_args,sink_args=sink_args,holder=holder)
 
@@ -718,21 +719,8 @@ def parse_arguments(args,args_osiris,args_plot):
 #=======================================================================================
 # Find direction vectors for slice
 #=======================================================================================
-def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
+def get_slice_direction(holder,direction,dx=0,dy=0,origin=[0,0,0]):
     
-    # List of directions
-    dir_list = {"x" : ["y","z"], "y" : ["x","z"], "z" : ["x","y"], "auto" : ["x","y"], "auto:top" : ["x","y"], "auto:side" : ["x","z"]}
-    
-    # Set dx to whole box if not specified
-    boxmin_x = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmax_x = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[0]))
-    boxmin_y = np.nanmin(holder.get(dir_list.get(direction,["x","y"])[1]))
-    boxmax_y = np.nanmax(holder.get(dir_list.get(direction,["x","y"])[1]))
-    if dx+dy == 0.0:
-        dx = boxmax_x - boxmin_x
-        dy = boxmax_y - boxmin_y
-    elif dx == 0.0:
-        dx = dy
     # Make it possible to call with only one size in the arguments
     if dy == 0.0:
         dy = dx
@@ -745,71 +733,84 @@ def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
     except AttributeError:
         pass
     
-    # Define x,y directions depending on the input direction
-    if direction[0]=="[" and direction[-1]=="]":
-        dir_x = "x"
-        dir_y = "y"
-        dir1 = eval(direction)
+    dir_list = {"x":[1,0,0],"y":[0,1,0],"z":[0,0,1]}
+    dir_type = len(np.shape(direction))
+
+    if dir_type == 0: # This is the case where direction contains just one character "x", "y" or "z"
+        if direction.startswith("auto"): # This is the case where direction = "auto"
+            params = direction.split(":")
+            if len(params) == 1:
+                view = "top"
+            else:
+                view = params[1]
+            if len(params) < 3:
+                sphere_rad = 0.5*((np.nanmax(holder.get("x"))-np.nanmin(holder.get("x"))) if dx == 0.0 else dx)
+            else:
+                sphere_rad = float(params[2])
+            x_loc = holder.get("x") - origin[0]
+            y_loc = holder.get("y") - origin[1]
+            z_loc = holder.get("z") - origin[2]
+            r_loc = np.linalg.norm([x_loc,y_loc,z_loc],axis=0)
+            # Compute angular momentum vector
+            sphere = np.where(r_loc < sphere_rad)
+            pos    = np.vstack((x_loc[sphere],y_loc[sphere],z_loc[sphere])*holder.get("mass")[sphere]).T
+            vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
+            #vel    = holder.get("velocity")[sphere]
+            AngMom = np.sum(np.cross(pos,vel),axis=0)
+            if view == "top":
+                dir1 = AngMom
+                dir2 = perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
+                dir3 = np.cross(dir1,dir2)
+            elif view == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                dir3 = AngMom
+                dir1 = perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
+                dir2 = np.cross(dir1,dir3)
+            else:
+                print("Unknown view direction")
+                return
+            norm1 = np.linalg.norm(dir1)
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
+            dir_vecs = [["z",dir1],["x",dir2],["y",dir3]]
+        elif len(direction) == 3: # This is the case where direction = "xyz"
+          dir_vecs = [ [direction[0],dir_list[direction[0]]], \
+                        [direction[1],dir_list[direction[1]]], \
+                        [direction[2],dir_list[direction[2]]] ]
+        elif direction == "x":
+            dir_vecs = [["x",dir_list["x"]],["y",dir_list["y"]],["z",dir_list["z"]]]
+        elif direction == "y":
+            dir_vecs = [["y",dir_list["y"]],["z",dir_list["z"]],["x",dir_list["x"]]]
+        elif direction == "z":
+            dir_vecs = [["z",dir_list["z"]],["x",dir_list["x"]],["y",dir_list["y"]]]
+    elif dir_type == 1: # This is the case where direction = [1,1,2] (i.e. is a vector with 3 numbers)
+        dir1 = direction
         dir2 = perpendicular_vector(dir1)
-        dir3 = np.cross(dir1,dir2)
-    elif direction.startswith("auto"):
-        params = direction.split(":")
-        if len(params) == 1:
-            view = "top"
-        else:
-            view = params[1]
-        if len(params) < 3:
-            sphere_rad = 0.5*((np.nanmax(holder.get("x"))-np.nanmin(holder.get("x"))) if dx == 0.0 else dx)
-        else:
-            sphere_rad = float(params[2])
-        dir_x = "x"
-        dir_y = "y"
-        x_loc = holder.get("x") - origin[0]
-        y_loc = holder.get("y") - origin[1]
-        z_loc = holder.get("z") - origin[2]
-        r_loc = np.linalg.norm([x_loc,y_loc,z_loc],axis=0)
-        # Compute angular momentum vector
-        sphere = np.where(r_loc < sphere_rad)
-        pos    = np.vstack((x_loc[sphere],y_loc[sphere],z_loc[sphere])*holder.get("mass")[sphere]).T
-        vel    = np.vstack((holder.get("velocity_x")[sphere],holder.get("velocity_y")[sphere],holder.get("velocity_z")[sphere])).T
-        #vel    = holder.get("velocity")[sphere]
-        AngMom = np.sum(np.cross(pos,vel),axis=0)
-        if view == "top":
-            dir1 = AngMom
-            dir2 = perpendicular_vector(dir1) # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
-            dir3 = np.cross(dir1,dir2)
-        elif view == "side":
-            # Choose a vector perpendicular to the angular momentum vector
-            dir3 = AngMom
-            dir1 = perpendicular_vector(dir3) # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
-            dir2 = np.cross(dir1,dir3)
-        norm1 = np.linalg.norm(dir1)
-        print("Normal slice vector: [%.5e,%.5e,%.5e]" % (dir1[0]/norm1,dir1[1]/norm1,dir1[2]/norm1))
-    elif ((direction == "x") or (direction == "y") or (direction == "z")):
-        [dir_x,dir_y] = dir_list[direction]
-        dir1 = [int(direction=="x"),int(direction=="y"),int(direction=="z")]
-        dir2 = [int(direction=="y" or direction=="z"),int(direction=="x"),0]
-        dir3 = [0,int(direction=="z"),int(direction=="x" or direction=="y")]
-    elif holder.info["ndim"]==2:
-        dir1 = [0,0,1]
-        dir2 = [1,0,0]
-        dir3 = [0,1,0]
-        dir_x = "x"
-        dir_y = "y"
+        dir3 = np.cross(dir1,dir2).tolist()
+        dir_vecs = [ ["z",dir1], ["x",dir2], ["y",dir3] ]
+    elif dir_type == 2: # This is the case where two vectors are specified: direction = [[1,0,1],[0,1,0]]
+        dir_vecs = [ ["z",direction[0]], \
+                     ["x",direction[1]], \
+                     ["y",np.cross(direction[0],direction[1]).tolist()] ]
     else:
-        print("Bad direction for slice")
+        print("Bad direction for slice: ",direction)
         return
     
-    norm1 = np.linalg.norm(dir1)
-    norm2 = np.linalg.norm(dir2)
-    norm3 = np.linalg.norm(dir3)
-    dir1 = dir1 / norm1
-    dir2 = dir2 / norm2
-    dir3 = dir3 / norm3
+    boxmin_x = np.nanmin(holder.get(dir_vecs[0][0]))
+    boxmax_x = np.nanmax(holder.get(dir_vecs[0][0]))
+    boxmin_y = np.nanmin(holder.get(dir_vecs[1][0]))
+    boxmax_y = np.nanmax(holder.get(dir_vecs[1][0]))
+    if dx+dy == 0.0:
+        dx = boxmax_x - boxmin_x
+        dy = boxmax_y - boxmin_y
+    elif dx == 0.0:
+        dx = dy
+
+    for i in range(3):
+        dir_vecs[i][1] /= np.linalg.norm(dir_vecs[i][1])
     
     box = [boxmin_x,boxmax_x,boxmin_y,boxmax_y]
 
-    return dx,dy,box,dir1,dir2,dir3,dir_x,dir_y,origin
+    return dx,dy,box,dir_vecs,origin
 
 #=======================================================================================
 # Use matplotlib to plot histogram, slice or column density maps
@@ -817,10 +818,10 @@ def get_slice_direction(holder,direction,dx,dy,origin=[0,0,0]):
 def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,stream=False,outline=False,x=0,y=0,  \
                z_scal=0,z_imag=0,z_cont=0,z_outl=0,u_vect=0,v_vect=0,w_vect=0,u_strm=0,v_strm=0,\
                w_strm=0,fname=None,axes=None,title=None,sinks=True,new_window=False,   \
-               clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0,dir_x="x",dir_y="y", \
+               clear=True,block=False,xmin=0,xmax=0,ymin=0,ymax=0, \
                resolution=128,scalar_args={},image_args={},contour_args={},vec_args={},\
                stream_args={},scatter_args={},outline_args={},sink_args={},dz=0,holder=None,\
-               thePlane=0,origin=[0,0,0],dir_vecs=[[0,0,0],[0,0,0],[0,0,0]],x_raw=None,y_raw=None,equal_axes=True,\
+               thePlane=0,origin=[0,0,0],dir_vecs=[["z",[0,0,0]],["x",[0,0,0]],["y",[0,0,0]]],x_raw=None,y_raw=None,equal_axes=True,\
                only_leafs=True):
 
     if axes:
@@ -835,8 +836,8 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         plt.subplot(111)
         theAxes = plt.gca()
 
-    x += np.inner(origin,dir_vecs[1])
-    y += np.inner(origin,dir_vecs[2])
+    x += np.inner(origin,dir_vecs[1][1])
+    y += np.inner(origin,dir_vecs[2][1])
     
     # Plot scalar field
     if scalar:
@@ -989,8 +990,8 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         dist = (thePlane[0]*holder.sinks["x"]+thePlane[1]*holder.sinks["y"]+thePlane[2]*holder.sinks["z"]+thePlane[3]) \
                / np.sqrt(thePlane[0]**2 + thePlane[1]**2 + thePlane[2]**2)
         sinkcoords = np.transpose([holder.sinks["x"],holder.sinks["y"],holder.sinks["z"]])
-        sink_x = np.inner(sinkcoords,dir_vecs[1])
-        sink_y = np.inner(sinkcoords,dir_vecs[2])
+        sink_x = np.inner(sinkcoords,dir_vecs[1][1])
+        sink_y = np.inner(sinkcoords,dir_vecs[2][1])
         subset = np.where(np.logical_and(dist <= thickness,np.logical_and(np.absolute(sink_x) <= 0.5*dx,np.absolute(sink_y) <= 0.5*dx)))
         srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
         xy = np.array([sink_x[subset],sink_y[subset]]).T
@@ -1043,12 +1044,12 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             theAxes.set_ylim([min(theAxes.get_ylim()[0],ymin),max(theAxes.get_ylim()[1],ymax)])
 
     # Define axes labels
-    xlab = getattr(holder,dir_x).label
-    if len(getattr(holder,dir_x).unit) > 0:
-        xlab += " ["+getattr(holder,dir_x).unit+"]"
-    ylab = getattr(holder,dir_y).label
-    if len(getattr(holder,dir_y).unit) > 0:
-        ylab += " ["+getattr(holder,dir_y).unit+"]"
+    xlab = getattr(holder,dir_vecs[1][0]).label
+    if len(getattr(holder,dir_vecs[1][0]).unit) > 0:
+        xlab += " ["+getattr(holder,dir_vecs[1][0]).unit+"]"
+    ylab = getattr(holder,dir_vecs[2][0]).label
+    if len(getattr(holder,dir_vecs[2][0]).unit) > 0:
+        ylab += " ["+getattr(holder,dir_vecs[2][0]).unit+"]"
     theAxes.set_xlabel(xlab)
     theAxes.set_ylabel(ylab)
     
