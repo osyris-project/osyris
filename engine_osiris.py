@@ -587,6 +587,45 @@ class OsirisData:
         
         return
 
+    #=======================================================================================
+    # Get cylindrical basis
+    #=======================================================================================
+    def get_cylindrical_basis(self,direction):
+
+        pos = np.vstack((self.x.values,self.y.values,self.z.values)).T
+        ez   = direction/np.linalg.norm(direction)
+        ephi = np.cross(ez,pos)
+        ephi_norm = np.linalg.norm(ephi,axis=1)
+        ephi = np.vstack((ephi[:,0]/ephi_norm,ephi[:,1]/ephi_norm,ephi[:,2]/ephi_norm)).T
+        er   = np.cross(ephi,ez)
+
+        del pos
+        return er,ephi,ez
+
+    #=======================================================================================
+    # Get cylindrical components of the vector field variable
+    #=======================================================================================
+    def get_cylindrical_components(self,variable,direction):
+        
+        if getattr(self,variable).kind != 'vector':
+            print("get_cylindrical_components must be applied to a vector field!")
+            return
+    
+        if hasattr(self,variable+"_cyl_r"):
+            print("****** Warning ****** : cylindrical components of "+variable+" already exist")
+            print("you should check if the vector direction was the good one and/or delete the previously computed components")
+            return
+    
+        er,ephi,ez = self.get_cylindrical_basis(direction)
+        vec = np.vstack((getattr(self,variable+"_x").values,getattr(self,variable+"_y").values,getattr(self,variable+"_z").values)).T
+
+        self.new_field(name=variable+"_cyl_r"  ,values=np.sum(vec*er  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_r")
+        self.new_field(name=variable+"_cyl_phi",values=np.sum(vec*ephi,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_phi")
+        self.new_field(name=variable+"_cyl_z"  ,values=np.sum(vec*ez  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_z")
+        
+        del er,ephi,ez,vec
+        return
+
 #=======================================================================================
 #=======================================================================================
 # End of class OsirisData()
