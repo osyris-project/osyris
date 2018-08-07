@@ -608,12 +608,12 @@ class OsirisData:
     def get_cylindrical_components(self,variable,direction):
         
         if getattr(self,variable).kind != 'vector':
-            print "get_cylindrical_components must be applied to a vector field!"
+            print("get_cylindrical_components must be applied to a vector field!")
             return
     
         if hasattr(self,variable+"_cyl_r"):
-            print "****** Warning ****** : cylindrical components of ",variable,"already exist"
-            print "you should check if the vector direction was the good one and/or delete the previously computed components"
+            print("****** Warning ****** : cylindrical components of "+variable+" already exist")
+            print("you should check if the vector direction was the good one and/or delete the previously computed components")
             return
     
         er,ephi,ez = self.get_cylindrical_basis(direction)
