@@ -1189,7 +1189,7 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     
     # Compute Delaunay tetrahedralization from cell nodes
     # Note that this step can take a lot of time!
-    ncells = holder.info["ncells"]
+    ncells = points.shape[0]
     print("Computing Delaunay mesh with %i points." % ncells)
     print("This may take some time...")
     tri = Delaunay(points,qhull_options="QJ Qx Qs Qv")
@@ -1278,11 +1278,11 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     f.write(struct.pack('<%ii'%ntetra, *np.full(ntetra, 10,dtype=np.int32)))
 
     # Cell variables
-    #ivar = 0
     for i in range(nvars):
-    #for key in holder.data.keys():
         if n_components[i] == 3:
-            celldata = np.ravel(np.array([getattr(holder,varlist[i]).x.values,getattr(holder,varlist[i]).y.values,getattr(holder,varlist[i]).z.values]).T)
+            celldata = np.ravel(np.array([holder.get(varlist[i]+"_x"),
+                                          holder.get(varlist[i]+"_y"),
+                                          holder.get(varlist[i]+"_z")]).T)
         else:
             celldata = holder.get(varlist[i])
         f.write(struct.pack('<i', *[nbytes_vars[i]]))
