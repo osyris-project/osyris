@@ -23,11 +23,11 @@ import config_osiris as conf
 # This is the class which will holds a scalar or vector field.
 #=======================================================================================
 class OsirisField():
-    
+
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
                  parent=None,kind="scalar",vec_x=False,vec_y=False,vec_z=False,name="",\
                  vector_component=False,group="hydro"):
-        
+
         self.values = values
         self.unit = unit
         self.label = label
@@ -45,24 +45,27 @@ class OsirisField():
         if vec_z:
             self.z = vec_z
         self.vector_component = vector_component
-        
+
         return
+
+    def get(self, only_leafs=True):
+        return self.parent.get(self.name, only_leafs=only_leafs)
 
 #=======================================================================================
 # This is a dummy class which gives access to common functions to the other
 # classes through inheritance.
 #=======================================================================================
 class OsirisData:
-     
+
     def __init__(self):
-                
+
         return
-    
+
     #=======================================================================================
     # Read a test file containing information and parameters
     #=======================================================================================
     def read_parameter_file(self,fname="",dict_name="",evaluate=True,verbose=False,delimiter="="):
-    
+
         # Read info file and create dictionary
         try:
             with open(fname) as f:
@@ -76,7 +79,7 @@ class OsirisData:
                 #raise IOError
             #else:
             return 0
-        
+
         setattr(self,dict_name,dict())
         for line in content:
             sp = line.split(delimiter)
@@ -90,12 +93,12 @@ class OsirisData:
                     getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
 
         return 1
-    
+
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
     def print_info(self):
-        
+
         # First get maximum length
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = maxlen6 = 0
         print_list = dict()
@@ -136,14 +139,14 @@ class OsirisData:
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
                   print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
         #print(rule)
-        
+
         return
-    
+
     #=======================================================================================
     # The find_center function finds the center in the mesh before loading the full data.
     #=======================================================================================
     def find_center(self,dx,dy,dz):
-        
+
         lc = False
         try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
             lc = len(self.info["center"])
@@ -167,40 +170,40 @@ class OsirisData:
                     zc = self.sinks["z"][isink]/self.info["boxlen"]/self.info["unit_l"]
                 else:
                     xc = yc = zc = 0.5
-                    
+
         return xc,yc,zc
-    
+
     #=======================================================================================
     # The re_center function shifts the coordinates axes around a center. If center="auto"
     # then the function find the cell with the highest density.
     #=======================================================================================
     def re_center(self,newcenter=None):
-        
+
         try: # check if newcenter is defined
             lc = len(newcenter)
-            
+
             # Find current center
             xc = self.info["xc"] * conf.constants[self.info["scale"]]
             yc = self.info["yc"] * conf.constants[self.info["scale"]]
             zc = self.info["zc"] * conf.constants[self.info["scale"]]
-            
+
             # Rescale the coordinates
             self.x.values = self.x.values*conf.constants[self.info["scale"]] + xc
             if self.info["ndim"] > 1:
                 self.y.values = self.y.values*conf.constants[self.info["scale"]] + yc
             if self.info["ndim"] > 2:
                 self.z.values = self.z.values*conf.constants[self.info["scale"]] + zc
-            
+
             # Re-scale the cell sizes
             self.dx.values = self.dx.values*conf.constants[self.info["scale"]]
-                        
+
             # Re-center sinks
             if self.info["nsinks"] > 0:
                 self.sinks["x"     ] = (self.sinks["x"]+self.info["xc"])*conf.constants[self.info["scale"]]
                 self.sinks["y"     ] = (self.sinks["y"]+self.info["yc"])*conf.constants[self.info["scale"]]
                 self.sinks["z"     ] = (self.sinks["z"]+self.info["zc"])*conf.constants[self.info["scale"]]
                 self.sinks["radius"] =  self.sinks["radius"]/self.info["boxsize"]
-            
+
             # Re-center particles
             if self.info["npart_tot"] > 0:
                 self.x_part.values = self.x_part.values*conf.constants[self.info["scale"]] + xc
@@ -209,12 +212,12 @@ class OsirisData:
                 if self.info["ndim"] > 2:
                     self.z_part.values = self.z_part.values*conf.constants[self.info["scale"]] + zc
 
-            # Store new center in info            
+            # Store new center in info
             self.info["center"] = newcenter
-            
+
         except TypeError:
             pass
-        
+
 
         try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
             lc = len(self.info["center"])
@@ -255,7 +258,7 @@ class OsirisData:
                 else:
                     print("Bad center value:"+str(self.info["center"]))
                     return
-                
+
         except TypeError: # No center defined: set to (0.5,0.5,0.5)
             xc = yc = zc = 0.5*self.info["boxsize"]
 
@@ -267,18 +270,18 @@ class OsirisData:
         self.info["xc"] = xc/conf.constants[self.info["scale"]]
         self.info["yc"] = yc/conf.constants[self.info["scale"]]
         self.info["zc"] = zc/conf.constants[self.info["scale"]]
-        
+
         # Re-scale the cell and box sizes
         self.dx.values = self.dx.values/conf.constants[self.info["scale"]]
         self.info["boxsize_scaled"] = self.info["boxsize"]/conf.constants[self.info["scale"]]
-        
+
         # Re-center sinks
         if self.info["nsinks"] > 0:
             self.sinks["x"     ] = self.sinks["x"]/conf.constants[self.info["scale"]]-self.info["xc"]
             self.sinks["y"     ] = self.sinks["y"]/conf.constants[self.info["scale"]]-self.info["yc"]
             self.sinks["z"     ] = self.sinks["z"]/conf.constants[self.info["scale"]]-self.info["zc"]
             self.sinks["radius"] = self.sinks["radius"]*self.info["boxsize"]/conf.constants[self.info["scale"]]
-        
+
         # Re-center particles
         if self.info["npart_tot"] > 0:
             self.x_part.values = (self.x_part.values - xc)/conf.constants[self.info["scale"]]
@@ -286,9 +289,9 @@ class OsirisData:
                 self.y_part.values = (self.y_part.values - yc)/conf.constants[self.info["scale"]]
             if self.info["ndim"] > 2:
                 self.z_part.values = (self.z_part.values - zc)/conf.constants[self.info["scale"]]
-        
+
         return
-        
+
     #=======================================================================================
     # The new field function is used to create a new data field. Say you want to take the
     # log of the density. You create a new field by calling:
@@ -297,7 +300,7 @@ class OsirisData:
     #=======================================================================================
     def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar",\
                   vec_x=False,vec_y=False,vec_z=False,update=False,group=""):
-        
+
         # Case where values are given and no operation is to be computed
         if (len(operation) == 0) and (len(values) > 0):
             new_data = values
@@ -328,7 +331,7 @@ class OsirisData:
                 dataField = OsirisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                        norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z,name=name,group=group)
                 setattr(self, name, dataField)
-            
+
         # Case where operation is required
         elif (len(operation) > 0) and (len(values) == 0):
             [op_parsed,depth,grp,status] = self.parse_operation(operation)
@@ -370,7 +373,7 @@ class OsirisData:
                         return
                 # Dealing with vector fields: then create vector container
                 self.vector_field(name=name,label=label)
-        
+
         # Case where both values and operation are empty
         elif (len(operation) == 0) and (len(values) == 0):
             dataField = OsirisField(unit=unit,label=label,parent=self,name=name,group=group)
@@ -378,18 +381,18 @@ class OsirisData:
         # Case where both values and operation are required
         else:
             print("Both values and operation are defined. Please choose only one.")
-        
+
         return
-    
+
     #=======================================================================================
     # Delete a variable field from the memory
     #=======================================================================================
     def delete_field(self,name):
-        
+
         delattr(self,name)
-        
+
         return
-    
+
     #=======================================================================================
     # The operation parser converts an operation string into an expression which contains
     # variables from the data dictionary. If a name from the variable list, e.g. "density",
@@ -397,7 +400,7 @@ class OsirisData:
     # can be properly evaluated by the 'eval' function in the 'new_field' function.
     #=======================================================================================
     def parse_operation(self,operation,suffix="",only_leafs=False):
-        
+
         max_depth = 0
         # Add space before and after to make it easier when searching for characters before
         # and after
@@ -410,9 +413,9 @@ class OsirisData:
         hashkeys  = dict()
         hashcount = 0
         types_found = {"scalar":False,"vector":False,"hydro":False,"amr":False,"grav":False}
-        
+
         for key in key_list:
-            
+
             # First look if there are any ".values" in the operation, i.e. vector magnitudes
             keyVal = key+".values"
             if expression.count(keyVal) > 0:
@@ -423,7 +426,7 @@ class OsirisData:
                 max_depth = max(max_depth,getattr(self,key).depth)
                 types_found["scalar"] = True
                 types_found[getattr(self,key).group] = True
-            
+
             # Now search for all instances of individual variables in string
             loop = True
             loc = 0
@@ -460,7 +463,7 @@ class OsirisData:
         # Now go through all the hashes in the table and build the final expression
         for theHash in hashkeys.keys():
             expression = expression.replace(theHash,hashkeys[theHash])
-        
+
         # Determine output group
         if types_found["hydro"]:
             group = "hydro"
@@ -470,7 +473,7 @@ class OsirisData:
             group = "amr"
         else:
             group = "hydro"
-        
+
         # Determine exit status
         if types_found["vector"]:
             status = 1
@@ -478,23 +481,23 @@ class OsirisData:
             status = 2
         else:
             status = 3
-        
+
         return [expression,max_depth,group,status]
-    
+
     #=======================================================================================
     # The function get returns the values of the selected variable.
     # By default, it will only return the leaf cells, but you can choose to return
     # all the cells in the tree by using the argument only_leafs=False.
     #=======================================================================================
     def get(self,var,only_leafs=True):
-        
+
         # Make sure that we don't use the "only_leafs" indices if we are trying to access
         # particle fields
         if only_leafs and (getattr(self,var).group != "part"):
             return getattr(self,var).values[self.info["leafs"]]
         else:
             return getattr(self,var).values
-    
+
     #=======================================================================================
     # The function returns the list of variables
     #=======================================================================================
@@ -511,12 +514,12 @@ class OsirisData:
             return [key_list,typ_list]
         else:
             return key_list
-    
+
     #=======================================================================================
     # Create a hash table for all the cells in the domain
     #=======================================================================================
     def create_hash_table(self):
-        
+
         print("Building hash table")
         self.hash_table = dict()
         for icell in range(self.info["ncells"]):
@@ -532,9 +535,9 @@ class OsirisData:
     # Create dummy variables containing the components of the vectors
     #=======================================================================================
     def create_vector_containers(self):
-    
+
         list_vars = self.get_var_list()
-    
+
         if self.info["ndim"] > 1:
             for i in range(len(list_vars)):
                 key = list_vars[i]
@@ -550,7 +553,7 @@ class OsirisData:
                             k2 = len(self.get(rawkey+"_z"))
                         except AttributeError:
                             ok = False
-                    
+
                     if ok:
                         self.vector_field(name=rawkey,label=rawkey)
 
@@ -560,19 +563,19 @@ class OsirisData:
     # Create vector field
     #=======================================================================================
     def vector_field(self,name="",values_x=None,values_y=None,values_z=None,unit="",label=""):
-    
+
         if len(np.shape(values_x)) > 0:
             self.new_field(name+"_x",values=values_x,unit=unit,label=name+"_x",verbose=False)
         if len(np.shape(values_y)) > 0:
             self.new_field(name+"_y",values=values_y,unit=unit,label=name+"_y",verbose=False)
         if len(np.shape(values_z)) > 0:
             self.new_field(name+"_z",values=values_z,unit=unit,label=name+"_z",verbose=False)
-                
+
         v_x=getattr(self,name+"_x")
         v_y=getattr(self,name+"_y")
         v_x.vector_component = True
         v_y.vector_component = True
-        
+
         if self.info["ndim"] > 2:
             v_z=getattr(self,name+"_z")
             v_z.vector_component = True
@@ -582,9 +585,9 @@ class OsirisData:
         else:
             v_z = False
             vals = np.linalg.norm([self.get(name+"_x",only_leafs=False),self.get(name+"_y",only_leafs=False)],axis=0)
-        
+
         self.new_field(name=name,values=vals,label=label,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
-        
+
         return
 
     #=======================================================================================
@@ -606,23 +609,23 @@ class OsirisData:
     # Get cylindrical components of the vector field variable
     #=======================================================================================
     def get_cylindrical_components(self,variable,direction):
-        
+
         if getattr(self,variable).kind != 'vector':
             print("get_cylindrical_components must be applied to a vector field!")
             return
-    
+
         if hasattr(self,variable+"_cyl_r"):
             print("****** Warning ****** : cylindrical components of "+variable+" already exist")
             print("you should check if the vector direction was the good one and/or delete the previously computed components")
             return
-    
+
         er,ephi,ez = self.get_cylindrical_basis(direction)
         vec = np.vstack((getattr(self,variable+"_x").values,getattr(self,variable+"_y").values,getattr(self,variable+"_z").values)).T
 
         self.new_field(name=variable+"_cyl_r"  ,values=np.sum(vec*er  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_r")
         self.new_field(name=variable+"_cyl_phi",values=np.sum(vec*ephi,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_phi")
         self.new_field(name=variable+"_cyl_z"  ,values=np.sum(vec*ez  ,axis=1),unit=getattr(self,variable).unit,label=getattr(self,variable).label+"_z")
-        
+
         del er,ephi,ez,vec
         return
 
@@ -643,7 +646,7 @@ class OsirisData:
 # Determine binary offset when reading fortran binary files and return unpacked data
 #=======================================================================================
 def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,content=None,correction=0):
-    
+
     offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
     byte_size = {"i":4,"d":8,"q":8}
     if len(fmt) == 1:
@@ -651,6 +654,5 @@ def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0
     else:
         mult = eval(fmt[0:len(fmt)-1])
     pack_size = mult*byte_size[fmt[-1]]
-    
+
     return struct.unpack(fmt, content[offset:offset+pack_size])
-    
