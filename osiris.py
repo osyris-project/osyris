@@ -56,7 +56,7 @@ import ism_physics
 # colors to be used in the filled contours. Default is `False`.
 #
 #* `scatter`: (*OsirisField*) An Osiris data field containing the variable for the
-# colors to be used in the scatter function. Default is `False`. **Note:** 
+# colors to be used in the scatter function. Default is `False`. **Note:**
 #
 #* `fname`: (*string*) If specified, the figure is saved to file. Default is `None`.
 #
@@ -65,7 +65,7 @@ import ism_physics
 #
 #* `resolution`: (*integer*) The data is binned in a 2D matrix of size `resolution`.
 # Default is 256.
-# 
+#
 #* `copy`: (*logical*) If `True`, the function returns the data that was used to plot
 # the histogram. Default is `False`.
 #
@@ -139,7 +139,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
 
     # Find parent container of object to plot
     holder = var_x.parent
-    
+
     # Possibility of updating the data from inside the plotting routines
     try:
         update += 0
@@ -150,14 +150,14 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
     # Parameters
     nx = resolution+1
     ny = resolution+1
-    
+
     # Get the data values and units
     datax  = holder.get(var_x.name,only_leafs=only_leafs)
     datay  = holder.get(var_y.name,only_leafs=only_leafs)
     xlabel = var_x.label+" ["+var_x.unit+"]"
     ylabel = var_y.label+" ["+var_y.unit+"]"
     default_var = "histo_cell_density"
-    
+
     # Define plotting range
     autoxmin = False
     autoxmax = False
@@ -187,7 +187,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         datay[np.isinf(datay)] = np.NINF
         ymax = np.nanmax(datay)
         autoymax = True
-    
+
     # Protect against empty plots if xmin==xmax or ymin==ymax
     if xmin == xmax:
         if xmin == 0.0:
@@ -203,7 +203,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         else:
             ymin = ymin - 0.05*abs(ymin)
             ymax = ymax + 0.05*abs(ymax)
-    
+
     dx = xmax-xmin
     dy = ymax-ymin
     if autoxmin:
@@ -214,7 +214,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         ymin = ymin - 0.05*dy
     if autoymax:
         ymax = ymax + 0.05*dy
-    
+
     # Construct some edge specifiers for the histogram2d function call
     xe = np.linspace(xmin,xmax,nx)
     ye = np.linspace(ymin,ymax,ny)
@@ -227,7 +227,7 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         x[i] = 0.5*(xe[i]+xe[i+1])
     for j in range(ny-1):
         y[j] = 0.5*(ye[j]+ye[j+1])
-    
+
     # Use numpy histogram2d function to make image
     z_scal = z_imag = z_cont = z_outl = False
     empty = True
@@ -272,16 +272,16 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
         empty = False
     if scatter:
         empty = False
-    
+
     # If no variable is requested for z/color dimension, store number of cells by default
     if empty:
         holder.new_field(name=default_var,unit="",label="Number of cells",verbose=True)
         scalar = getattr(holder,default_var)
         z_scal = np.ma.masked_where(z0 == 0.0, z0)
-        
+
     if outline:
         z_outl = z0
-        
+
     if plot:
         render_map(scalar=scalar,image=image,contour=contour,scatter=scatter,x=x,y=y,z_scal=z_scal,    \
                    z_imag=z_imag,z_cont=z_cont,z_outl=z_outl,xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax,fname=fname,          \
@@ -290,10 +290,10 @@ def plot_histogram(var_x,var_y,scalar=False,image=False,contour=False,scatter=Fa
                    contour_args=contour_args,scatter_args=scatter_args,equal_axes=equal_axes,x_raw=datax,y_raw=datay,\
                    outline=outline,outline_args=outline_args,sinks=False,only_leafs=only_leafs,\
                    dir_vecs=[["",[0,0,0]],[var_x.name,[0,0,0]],[var_y.name,[0,0,0]]])
-    
+
     if hasattr(holder,default_var):
         holder.delete_field(default_var)
-    
+
     if copy:
         return x,y,z_scal,z_imag,z_cont,z_outl
     else:
@@ -320,7 +320,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                clear=True,plot=True,block=False,interpolation="linear",sink_args={},\
                scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
                outline=False,outline_args={},lmax=0,slice_direction=None):
-    
+
     # Find parent container of object to plot
     if scalar:
         holder = scalar.parent
@@ -335,18 +335,18 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     else:
         print("Nothing to plot.")
         return
-        
+
     if holder.info["ndim"] < 2:
         print("plot_slice Error: Cannot plot slice from 1D data. Exiting...")
         return
-    
+
     # Possibility of updating the data from inside the plotting routines
     try:
         update += 0
         holder.update_values(nout=update)
     except TypeError:
         pass
-    
+
     # Determine if interpolation is to be done in 2d or 3d
     if (interpolation.count("3d") > 0) or (interpolation.count("3D") > 0):
         inter_3d = True
@@ -359,7 +359,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     else:
         inter_3d = False
         size_fact = 1.0
-    
+
     # Get slice extent and direction vectors
     if slice_direction is not None:
         [dx,dy,box,dir_vecs,origin] = slice_direction
@@ -373,13 +373,13 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         lmax = round(np.log((min(dx,dy)/float(resolution))/holder.info["boxsize_scaled"])/(np.log(0.5)))
     subset = np.where(np.logical_or(np.logical_and(holder.get("level",only_leafs=False) < lmax,\
                       holder.get("leaf",only_leafs=False) > 0.0),holder.get("level",only_leafs=False) == lmax))
-    
+
     # Define equation of a plane
     a_plane = dir_vecs[0][1][0]
     b_plane = dir_vecs[0][1][1]
     c_plane = dir_vecs[0][1][2]
     d_plane = -dir_vecs[0][1][0]*origin[0]-dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
-    
+
     # Distance to the plane
     dist1 = (a_plane*holder.get("x",only_leafs=False)[subset] + \
              b_plane*holder.get("y",only_leafs=False)[subset] + \
@@ -394,14 +394,14 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
     cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx",only_leafs=False)[subset]*size_fact,\
                                    np.abs(dist2) <= max(dx,dy)*0.5*np.sqrt(2.0)))
-    
+
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x",only_leafs=False)[subset][cube]-origin[0],\
                            holder.get("y",only_leafs=False)[subset][cube]-origin[1],\
                            holder.get("z",only_leafs=False)[subset][cube]-origin[2]])
     datax = np.inner(coords,dir_vecs[1][1])
     datay = np.inner(coords,dir_vecs[2][1])
-    
+
     # Define slice extent and resolution
     xmin = max(-0.5*dx,box[0])
     xmax = min(xmin+dx,box[1])
@@ -424,7 +424,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
     else:
         points = np.transpose([datax,datay])
         grids = (grid_x,grid_y)
-    
+
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
@@ -458,8 +458,8 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
         u_strm = griddata(points,datau2,grids,method=interpolation)
         v_strm = griddata(points,datav2,grids,method=interpolation)
         w_strm = griddata(points,np.sqrt(datau2**2+datav2**2),grids,method=interpolation)
-    
-    # Render the map    
+
+    # Render the map
     if plot:
         render_map(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,x=x,y=y,z_scal=z_scal,    \
                    z_imag=z_imag,z_cont=z_cont,u_vect=u_vect,v_vect=v_vect,w_vect=w_vect,u_strm=u_strm,      \
@@ -469,7 +469,7 @@ def plot_slice(scalar=False,image=False,contour=False,vec=False,stream=False,axe
                    origin=origin,dir_vecs=dir_vecs,scalar_args=scalar_args,image_args=image_args,    \
                    contour_args=contour_args,vec_args=vec_args,stream_args=stream_args,outline=outline,\
                    outline_args=outline_args,sink_args=sink_args,x_raw=datax,y_raw=datay,holder=holder)
-    
+
     if copy:
         return x,y,z_scal,z_imag,z_cont,u_vect,v_vect,w_vect,u_strm,v_strm,w_strm
     else:
@@ -494,7 +494,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
                         interpolation="linear",verbose=False,outline=False,outline_args={},\
                         scalar_args={},image_args={},contour_args={},vec_args={},stream_args={},\
                         sink_args={},lmax=0):
-        
+
     # Find parent container of object to plot
     if scalar:
         holder = scalar.parent
@@ -509,18 +509,18 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
     else:
         print("Nothing to plot.")
         return
-        
+
     if holder.info["ndim"] < 2:
         print("plot_column_density Error: Cannot plot slice from 1D data. Exiting...")
         return
-    
+
     # Possibility of updating the data from inside the plotting routines
     try:
         update += 0
         holder.update_values(nout=update)
     except TypeError:
         pass
-        
+
     # Get direction vectors once and for all for the column_density.
     # This should be computed here and not inside the plot_slice routine as the origin
     # changes along the z direction inside the loop below.
@@ -537,7 +537,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
         nz = resolution
     dpz = (zmax-zmin)/float(nz)
     z = np.linspace(zmin+0.5*dpz,zmax-0.5*dpz,nz)
-    
+
     # We now create empty data arrays that will be filled by the cell data
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
@@ -563,7 +563,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
 
     iprog = 1
     istep = 10
-    
+
     # Begin loop over vertical direction, calling plot_slice with plot=False and copy=True
     # to retrieve the slice data and create a sum
     for iz in range(nz):
@@ -574,7 +574,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
             if percentage >= iprog*istep:
                 print("Column density: %3i%% done" % percentage)
                 iprog += 1
-    
+
         [x,y,z_scal_slice,z_imag_slice,z_cont_slice,u_vect_slice,v_vect_slice, \
             w_vect_slice,u_strm_slice,v_strm_slice,w_strm_slice] = \
             plot_slice(scalar=scalar,image=image,contour=contour,vec=vec,stream=stream,\
@@ -597,7 +597,7 @@ def plot_column_density(scalar=False,image=False,contour=False,vec=False,stream=
             u_strm += u_strm_slice
             v_strm += v_strm_slice
             w_strm += w_strm_slice
-    
+
     # If summed=True, this is a real column density.
     # Else, only the average of the quantity is requested
     if summed:
@@ -650,7 +650,7 @@ def perpendicular_vector(v):
     # x = y = z = 0 is not an acceptable solution
     if v[0] == v[1] == v[2] == 0:
         raise ValueError("zero-vector")
-    
+
     if v[2] == 0:
         return [-v[1],v[0],0]
     else:
@@ -661,7 +661,7 @@ def perpendicular_vector(v):
 # Matplotlib arguments.
 #=======================================================================================
 def parse_arguments(args,args_osiris,args_plot):
-    
+
     # Save a copy so we can exclude these parameters specific to osiris from the ones
     # to be sent to the matplotlib routines.
     args_osiris["cb_format"] = None
@@ -699,7 +699,7 @@ def parse_arguments(args,args_osiris,args_plot):
             args_osiris["cb_format"] = "%.1e"
     except AttributeError:
         pass
-    
+
     # We now define default parameters for the matplotlib function
     keylist = args_plot.keys()
     if "levels" in keylist:
@@ -713,14 +713,14 @@ def parse_arguments(args,args_osiris,args_plot):
     keys = set(args.keys())
     for key in keys.difference(ignore):
         args_plot[key] = args[key]
-    
+
     return
 
 #=======================================================================================
 # Find direction vectors for slice
 #=======================================================================================
 def get_slice_direction(holder,direction,dx=0,dy=0,origin=[0,0,0]):
-    
+
     # Make it possible to call with only one size in the arguments
     if dy == 0.0:
         dy = dx
@@ -732,7 +732,7 @@ def get_slice_direction(holder,direction,dx=0,dy=0,origin=[0,0,0]):
             origin = [holder.sinks["x"][isink],holder.sinks["y"][isink],holder.sinks["z"][isink]]
     except AttributeError:
         pass
-    
+
     dir_list = {"x":[1,0,0],"y":[0,1,0],"z":[0,0,1]}
     dir_type = len(np.shape(direction))
 
@@ -794,11 +794,11 @@ def get_slice_direction(holder,direction,dx=0,dy=0,origin=[0,0,0]):
     else:
         print("Bad direction for slice: ",direction)
         return
-    
-    boxmin_x = np.nanmin(holder.get(dir_vecs[0][0]))
-    boxmax_x = np.nanmax(holder.get(dir_vecs[0][0]))
-    boxmin_y = np.nanmin(holder.get(dir_vecs[1][0]))
-    boxmax_y = np.nanmax(holder.get(dir_vecs[1][0]))
+
+    boxmin_x = np.nanmin(holder.get(dir_vecs[1][0]))
+    boxmax_x = np.nanmax(holder.get(dir_vecs[1][0]))
+    boxmin_y = np.nanmin(holder.get(dir_vecs[2][0]))
+    boxmax_y = np.nanmax(holder.get(dir_vecs[2][0]))
     if dx+dy == 0.0:
         dx = boxmax_x - boxmin_x
         dy = boxmax_y - boxmin_y
@@ -807,7 +807,7 @@ def get_slice_direction(holder,direction,dx=0,dy=0,origin=[0,0,0]):
 
     for i in range(3):
         dir_vecs[i][1] /= np.linalg.norm(dir_vecs[i][1])
-    
+
     box = [boxmin_x,boxmax_x,boxmin_y,boxmax_y]
 
     return dx,dy,box,dir_vecs,origin
@@ -838,10 +838,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
 
     x += np.inner(origin,dir_vecs[1][1])
     y += np.inner(origin,dir_vecs[2][1])
-    
+
     # Plot scalar field
     if scalar:
-        
+
         # Round off AMR levels to integers
         if scalar.label == "level" or scalar.label == "cpu":
             z_scal = np.around(z_scal)
@@ -854,10 +854,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             scb = plt.colorbar(contf,ax=theAxes,cax=scalar_args_osiris["cbax"],format=scalar_args_osiris["cb_format"])
             scb.ax.set_ylabel(scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
             scb.ax.yaxis.set_label_coords(-1.1,0.5)
-    
+
     # Plot image
     if image:
-        
+
         # Round off AMR levels to integers
         if image.label == "level" or image.label == "cpu":
             z_imag = np.around(z_imag)
@@ -871,10 +871,10 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             icb = plt.colorbar(img,ax=theAxes,cax=image_args_osiris["cbax"],format=image_args_osiris["cb_format"])
             icb.ax.set_ylabel(image.label+(" ["+image.unit+"]" if len(image.unit) > 0 else ""))
             icb.ax.yaxis.set_label_coords(-1.1,0.5)
-    
+
     # Plot contours
     if contour:
-        
+
         # Round off AMR levels to integers
         if contour.label == "level" or contour.label == "cpu":
             z_cont = np.around(z_cont)
@@ -891,7 +891,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             ccb = plt.colorbar(cont,ax=theAxes,cax=contour_args_osiris["cbax"],format=contour_args_osiris["cb_format"])
             ccb.ax.set_ylabel(contour.label+(" ["+contour.unit+"]" if len(contour.unit) > 0 else ""))
             ccb.ax.yaxis.set_label_coords(-1.1,0.5)
-    
+
     # Plot scatter points
     if scatter:
         cube = np.where(np.logical_and(x_raw >= xmin,np.logical_and(x_raw <= xmax,\
@@ -918,17 +918,17 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             rcb = plt.colorbar(scat,ax=theAxes,cax=scatter_args_osiris["cbax"],format=scatter_args_osiris["cb_format"])
             rcb.ax.set_ylabel(scatter.label+(" ["+scatter.unit+"]" if len(scatter.unit) > 0 else ""))
             rcb.ax.yaxis.set_label_coords(-1.1,0.5)
-    
+
     # Draw outline
-    if outline:        
+    if outline:
         outline_args_plot = {"levels":[np.nanmin(z_outl)],"colors":"grey"}
         for key in outline_args.keys():
             outline_args_plot[key] = outline_args[key]
         outl = theAxes.contour(x,y,z_outl, **outline_args_plot)
-    
+
     # Plot vector field
     if vec:
-        
+
         vec_args_osiris = {"vskip":int(0.047*resolution),"vscale":np.nanmax(w_vect),"vsize":15.0,"vkey":True,"vkey_pos":[0.70,-0.08],\
                            "cbar":False,"cbax":None,"vmin":np.nanmin(w_vect),"vmax":np.nanmax(w_vect),"nc":21,"cmap":None,"colors":None,\
                            "normalize_arrows":False}
@@ -967,7 +967,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
 
     # Plot streamlines
     if stream:
-        
+
         # Here we define a set of default parameters
         stream_args_osiris = {"cbar":False,"cbax":None,"sskip":1,"vmin":np.nanmin(w_strm),"vmax":np.nanmax(w_strm),"nc":21,"cmap":None}
         stream_args_plot = {"cmap":1,"color":"w","norm":None}
@@ -979,7 +979,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         if stream_args_osiris["cbar"]:
             scb = plt.colorbar(strm.lines,ax=theAxes,cax=stream_args_osiris["cbax"],orientation="horizontal",format=stream_args_osiris["cb_format"])
             scb.ax.set_xlabel(stream.label+(" ["+stream.unit+"]" if len(stream.unit) > 0 else ""))
-        
+
     # Plot sink particles
     if holder.info["nsinks"] > 0 and sinks:
         dx = xmax-xmin
@@ -996,7 +996,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         srad = np.maximum(holder.sinks["radius"][subset],np.full(len(subset),dx*0.01))
         xy = np.array([sink_x[subset],sink_y[subset]]).T
         patches = [plt.Circle(cent, size) for cent, size in zip(xy, srad)]
-        
+
         if "colors" in sink_args.keys():
             try:
                 sink_colors = np.array(sink_args["colors"])[subset] + 0.0 # This is a custom array of numbers
@@ -1013,7 +1013,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             sk_cbar = False
         sink_args_osiris = {"cbar":sk_cbar,"cbax":None,"vmin":sk_vmin,"vmax":sk_vmax,"cmap":sk_cmap,"colors":None}
         sink_args_plot = {"facecolors":"w","edgecolors":"k","linewidths":2,"alpha":0.7,"cmap":1,"norm":1}
-        parse_arguments(sink_args,sink_args_osiris,sink_args_plot)        
+        parse_arguments(sink_args,sink_args_osiris,sink_args_plot)
         coll = matplotlib.collections.PatchCollection(patches, **sink_args_plot)
         if "colors" in sink_args.keys():
             coll.set_array(np.array(sink_colors))
@@ -1023,13 +1023,13 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
             skcb = plt.colorbar(coll, ax=theAxes,cax=sink_args_osiris["cbax"])
             skcb.ax.set_ylabel("Sink "+sink_args["colors"])
             skcb.ax.yaxis.set_label_coords(-1.1,0.5)
-        
+
     try:
         title += ""
         theAxes.set_title(title)
     except TypeError:
         theAxes.set_title("Time = %.3f %s" % (holder.info["time"]/conf.constants[conf.default_values["time_unit"]],conf.default_values["time_unit"]))
-    
+
     if axes:
         pass
     elif new_window:
@@ -1052,7 +1052,7 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         ylab += " ["+getattr(holder,dir_vecs[2][0]).unit+"]"
     theAxes.set_xlabel(xlab)
     theAxes.set_ylabel(ylab)
-    
+
     if equal_axes:
         theAxes.set_aspect("equal")
 
@@ -1062,27 +1062,27 @@ def render_map(scalar=False,image=False,contour=False,scatter=False,vec=False,st
         pass
     else:
         plt.show(block=block)
-        
+
     return
 
 #=======================================================================================
 # Interpolate data at any given point in the whole 3D domain
 #=======================================================================================
 def interpolate(field,points):
-    
+
     holder = field.parent
-    
+
     try:
         hashTable = holder.hash_table
     except AttributeError:
         print("A hash table is needed to perform interpolations")
         holder.create_hash_table()
-    
+
     points[:,0] = ((points[:,0] + holder.info["xc"])/holder.info["boxsize_scaled"])
     points[:,1] = ((points[:,1] + holder.info["yc"])/holder.info["boxsize_scaled"])
     points[:,2] = ((points[:,2] + holder.info["zc"])/holder.info["boxsize_scaled"])
 
-    npoints = np.shape(points)[0]    
+    npoints = np.shape(points)[0]
     ilevl = holder.info["levelmax"]
     values = np.zeros([npoints])
     for ip in range(npoints):
@@ -1102,7 +1102,7 @@ def interpolate(field,points):
                 not_found = False
             except KeyError:
                 pass
-        
+
         cube = dict()
         dmax = 0.0
         cube[theHash] = dict()
@@ -1155,7 +1155,7 @@ def interpolate(field,points):
                                     dmax = max(dmax,cube[theHash]["dist"])
                                 except KeyError:
                                     print("Neighbour not found",igrid,jgrid,kgrid,i,j,k)
-                        
+
         # Compute inverse distance weighting
         result  = 0.0
         weights = 0.0
@@ -1164,7 +1164,7 @@ def interpolate(field,points):
             w = 1.0 / (np.exp(15.0*(cube[key]["dist"]/dmax-0.5)) + 1.0)
             weights += w
             result  += w*cube[key]["vars"]
-        
+
         values[ip] = result/weights
 
     return values
@@ -1173,7 +1173,7 @@ def interpolate(field,points):
 # Write RAMSES data to VTK file
 #=======================================================================================
 def to_vtk(holder,fname="osiris_data.vtu"):
-    
+
     try:
         from scipy.spatial import Delaunay
     except ImportError:
@@ -1183,10 +1183,10 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     if not fname.endswith(".vtu"):
         fname += ".vtu"
     print("Writing data to VTK file: "+fname)
-    
+
     # Coordinates ot RAMSES cell centers
     points = np.array([holder.get("x"),holder.get("y"),holder.get("z")]).T
-    
+
     # Compute Delaunay tetrahedralization from cell nodes
     # Note that this step can take a lot of time!
     ncells = points.shape[0]
@@ -1212,7 +1212,7 @@ def to_vtk(holder,fname="osiris_data.vtu"):
                 print("Unknown data type: "+thisVar.kind)
                 return
             varlist.append(key)
-    
+
     nvars = len(n_components)
 
     # Compute byte sizes
@@ -1233,7 +1233,7 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     offsets[4] = offsets[3] + 4 + nbytes_cellt # first hydro variable
     for i in range(nvars-1):
         offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i]
-        
+
     # Open file for binary output
     f = open(fname, "wb")
 
@@ -1260,7 +1260,7 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     f.write('_')
 
     # Now write data in binary. Every data field is preceded by its byte size.
-    
+
     # x,y,z coordinates of the points
     f.write(struct.pack('<i', *[nbytes_xyz]))
     f.write(struct.pack('<%id'%(ncells*3), *np.ravel(points)))
@@ -1292,7 +1292,7 @@ def to_vtk(holder,fname="osiris_data.vtu"):
     f.write('   </AppendedData>\n')
     f.write('</VTKFile>\n')
     f.close()
-    
+
     # File size
     fsize_raw = offsets[nvars+3] + nbytes_vars[nvars-1]
     if fsize_raw > 1000000000:
