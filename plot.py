@@ -26,9 +26,7 @@ from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
 
 # Osiris libraries
-import config_osiris as conf
-from ramses_to_osiris import RamsesData
-import ism_physics
+from osiris import config as conf
 
 #=======================================================================================
 

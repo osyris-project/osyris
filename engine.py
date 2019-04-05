@@ -17,7 +17,7 @@
 
 import numpy as np
 import struct
-import config_osiris as conf
+from osiris import config as conf
 
 #=======================================================================================
 # This is the class which will holds a scalar or vector field.

@@ -15,8 +15,8 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
-from engine_osiris import get_binary_data
-import config_osiris as conf
+from osiris.engine import get_binary_data
+from osiris import config as conf
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 

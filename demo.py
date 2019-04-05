@@ -22,15 +22,13 @@
 #=======================================================================================
 
 import osiris
-
-# Change default time unit to kyr
-osiris.conf.default_values["time_unit"]="kyr"
+import matplotlib.pyplot as plt
 
 # Load data
 mydata = osiris.RamsesData(nout=71,center="max:density",scale="au",verbose=True)
 
 # Create figure
-fig = osiris.plt.figure()
+fig = plt.figure()
 ratio = 0.5
 sizex = 20.0
 fig.set_size_inches(sizex,ratio*sizex)

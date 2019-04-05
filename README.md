@@ -26,9 +26,6 @@ You can download the sample data [here](http://www.nbi.dk/~nvaytet/osiris/ramses
 
 import osiris
 
-# Change default time unit to kyr
-osiris.conf.default_values["time_unit"]="kyr"
-
 # Load data
 mydata = osiris.RamsesData(nout=71,center="max:density",scale="au")
 
