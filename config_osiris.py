@@ -71,15 +71,19 @@ constants = {
 #=======================================================================================
 # Custom colormaps
 #=======================================================================================
-cmaps = []
-cmaps.append(LinearSegmentedColormap.from_list("osiris"  ,["#2b3c4e","#249593","#db6a6c","#ffffff"]))
-cmaps.append(LinearSegmentedColormap.from_list("osiris2" ,["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"]))
-cmaps.append(LinearSegmentedColormap.from_list("osiris_r",["#ffffff","#db6a6c","#249593","#2b3c4e"]))
-cmaps.append(LinearSegmentedColormap.from_list("osiris3",["#3d3d6b","#2a7b9b","#00baad","#57c785","#add45c","#ffc300","#ff8d1a","#ff5733","#c70039","#900c3f","#511849"]))
-cmaps.append(LinearSegmentedColormap.from_list("osiris4",["#525564","#74828F","#96C0CE","#FEF6EB","#C25B56"]))
+cmaps = {
+    "osiris"  : ["#2b3c4e","#249593","#db6a6c","#ffffff"],
+    "osiris2" : ["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"],
+    "osiris3" : ["#3d3d6b","#2a7b9b","#00baad","#57c785","#add45c","#ffc300","#ff8d1a","#ff5733","#c70039","#900c3f","#511849"],
+    "osiris4" : ["#000000","#ff5b00","#ffff00","#00ff00","#2bc184","#3d3d6b","#ffffff","#0000ff"],
+    "osiris5" : ["#ff0000","#ffff00","#00ff00","#00ffff","#0000ff","#000000","#ffffff"]
+}
 
-for cmap in cmaps:
+for key in cmaps.keys():
+    cmap = LinearSegmentedColormap.from_list(key, cmaps[key])
+    cmap_r = LinearSegmentedColormap.from_list(key+"_r", cmaps[key][::-1])
     plt.register_cmap(cmap=cmap)
+    plt.register_cmap(cmap=cmap_r)
 
 #===================================================================================
 # Here are some additional variables that are to be computed every time data is
