@@ -14,7 +14,7 @@ Using ``pip``
 Clone the source
 ----------------
 
-**Requirements**: you will need `matplotlib` installed on your system.
+**Requirements**: you will need ``matplotlib`` installed on your system.
 Clone the ``osyris`` repository from [Github](https://github.com/nvaytet/osyris)
 into your chosen directory. For this tutorial, the directory will be located
 at ``/home/user/software``:

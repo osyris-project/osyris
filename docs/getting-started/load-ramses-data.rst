@@ -3,19 +3,30 @@
 Reading a RAMSES output
 =======================
 
-Navigate to the directory containing the data of your simulation and open an `ipython` console:
-```
-$ cd /path/to/my/ramses/data
-ipython
-```
-Import the `osiris` library and load the output of your choice (this will be output number 71 in this example). **The data loader searches for a `hydro_file_descriptor.txt` inside the output directory to get the variable names, so make sure your version of RAMSES supports this. If it doesn't, you can edit the `"var_names` list in the `config_osiris.py` configuration file, under `default_values` to match your data structure. By default it will try to guess by itself which are the variables to read, but this will almost certainly fail without editing it!**
+Navigate to the directory containing the data of your simulation and open an
+``ipython`` console:
 
-(**Note:** you can download the sample data used in this tutorial [here](http://www.nbi.dk/~nvaytet/osiris/ramses_sample_data.tar.gz).)
+.. code-block:: sh
+   $ cd /path/to/my/ramses/data
+   ipython
+
+Import the ``osyris`` library and load the output of your choice (this will be
+output number 71 in this example).
+**The data loader searches for a ``hydro_file_descriptor.txt`` inside the output
+directory to get the variable names, so make sure your version of RAMSES
+supports this.
+If it doesn't, you can edit the ``var_names`` list in the `config.py`
+configuration file, under ``default_values`` to match your data structure.
+By default it will try to guess by itself which are the variables to read,
+but this will almost certainly fail without editing it!**
+
+(**Note:** you can download the sample data used in this tutorial
+[here](http://www.nbi.dk/~nvaytet/osyris/ramses_sample_data.tar.gz).)
 
 .. code-block:: python
 
-   In [1]: import osiris
-   In [2]: mydata = osiris.RamsesData(71,scale="au",verbose=True)
+   In [1]: import osyris
+   In [2]: mydata = osyris.RamsesData(71,scale="au",verbose=True)
    ============================================
    Processing 60 files in output_00071
     10% : read     369140 cells
@@ -115,5 +126,12 @@ Import the `osiris` library and load the output of your choice (this will be out
    z_raw              scalar amr   [au     ] 1.2895931974e+15  1.6377833607e+17
    ============================================
 
-In the call to `RamsesData`, the first argument is the output number. **Note:** you can use `-1` to select the last output in the directory. The second argument is the spatial scale you want to convert distances to. Possible choices are `"cm"`, `"au"` or `"pc"`.
-If you add `verbose=True` to the argument list, it will also print out some information about the data (the variables names, their minimum and maximum values, etc.). `osiris` tries to guess the units of each variable field according to its name. This is done by the `get_units()` function and can easily be modified if you have non-standard variables.
+In the call to ``RamsesData``, the first argument is the output number.
+**Note:** you can use ``-1`` to select the last output in the directory.
+The second argument is the spatial scale you want to convert distances to.
+Possible choices are ``"cm"``, ``"au"`` or ``"pc"``.
+If you add ``verbose=True`` to the argument list, it will also print out some
+information about the data (the variables names, their minimum and maximum
+values, etc.). ``osyris`` tries to guess the units of each variable field
+according to its name. This is done by the ``get_units()`` function and can
+easily be modified if you have non-standard variables.
