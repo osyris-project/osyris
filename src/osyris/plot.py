@@ -26,7 +26,7 @@ from matplotlib.colors import LogNorm
 from scipy.interpolate import griddata
 
 # Osiris libraries
-from osiris import config as conf
+from . import config as conf
 
 #=======================================================================================
 

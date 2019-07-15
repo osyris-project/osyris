@@ -15,13 +15,11 @@
 #along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
 #=======================================================================================
 
-#@@@ SHORT DESCRIPTION @@@: Reading Ramses data
-
 import numpy as np
 import struct
 import glob
-from osiris import config as conf
-from osiris import engine as eng
+from . import config as conf
+from . import engine as eng
 
 divider = "============================================"
 

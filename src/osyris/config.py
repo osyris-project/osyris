@@ -90,17 +90,17 @@ for key in cmaps.keys():
 # loaded.
 #===================================================================================
 def additional_variables(holder):
-    
+
     # Velocity field (in case conservative variables are dumped)
     holder.new_field(name="velocity",operation="momentum/density",unit="cm/s",label="velocity",verbose=False)
-    
+
     # Magnetic field
     holder.new_field(name="B",operation="0.5*(B_left+B_right)",unit="G",label="B",verbose=False)
-    
+
     # Mass and radius
     holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=holder.info["scale"],label="Radius",verbose=False)
     holder.new_field(name="mass",operation="density*((dx*"+str(constants[holder.info["scale"]])+")**3)/"+str(constants["msun"]),unit="Msun",label="Mass",verbose=False)
-    
+
     # Commonly used log quantities
     holder.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)",verbose=False)
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)",verbose=False)
@@ -108,13 +108,12 @@ def additional_variables(holder):
     holder.new_field(name="log_m",operation="np.log10(mass)",unit="Msun",label="log(Mass)",verbose=False)
     with np.errstate(divide="ignore"):
         holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
-    
-    
+
     # Photon density (in case conservative variables are not dumped)
     if hasattr(holder,"photon_flux_density_1"):
         for igrp in range(holder.info_rt["nGroups"]):
             holder.new_field(name="photon_density_"+str(igrp+1),operation="photon_flux_density_"+str(igrp+1)+"/("+str(constants["c"]*holder.info_rt["rt_c_frac"])+")",unit="photons/cm3",label="photon density "+str(igrp+1),verbose=False)
-    
+
     #========================== ADD YOUR VARIABLES HERE ============================
 
     return
