@@ -231,37 +231,63 @@ with ``"fmt":"%i"``.
 .. image:: images/demo008.png
    :width: 700px
 
+Demo 9 : Plot only a subset of cells belonging to a disk
+========================================================
 
-.. ---
+In this example, we select cells according to their density and plot only those.
+This is done by creating a new field and using the numpy ``where`` function.
+To combine more than one selection criteria, use the ``logical_and`` numpy
+function.
+**Note the argument ``only_leafs=False`` in ``get`` which is necessary here,
+when creating a new field using the ``values`` argument.
+This is useful for plotting disks around protostars, for example.
+Here we select the cells with a density in the range
+-12.5 < log(density) < -11.0.
+After plotting the disk, we use 2 different methods to compute the disk mass.
 
-.. ## Demo 9 : Plot only a subset of cells belonging to a disk ##
+.. code-block:: python
 
-.. In this example, we select cells according to their density and plot only those. This is done by creating a new field and using the numpy `where` function. To combine more than one selection criteria, use the `logical_and` numpy function. This is useful for plotting disks around protostars, for example. Here we select the cells with a density in the range -12.5 < log(density) < -11.0. After plotting the disk, we use 2 different methods to compute the disk mass.
+   import osyris
+   import numpy as np
 
-.. ```
-.. #!python
-.. import osyris
-.. import numpy as np
+   # Load data
+   mydata = osyris.RamsesData(nout=71, center="max:density",
+                              scale="au", dx=100.0, dy=100.0,
+                              dz=100.0)
 
-.. # Load data
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au",dx=100.0,dy=100.0,dz=100.0)
+   mydata.new_field(name="log_rho_disk",
+                    values=np.where(np.logical_and(
+                                    mydata.get("log_rho", only_leafs=False) > -12.5,
+                                    mydata.get("log_rho", only_leafs=False) < -11.0),
+                                    mydata.get("log_rho", only_leafs=False), np.NaN),
+                    label="Disk density")
 
-.. mydata.new_field(name="log_rho_disk",values=np.where(np.logical_and(mydata.get("log_rho") > -12.5,\
-..                  mydata.get("log_rho") < -11.0),mydata.get("log_rho"),np.NaN),label="Disk density")
+   osyris.plot_slice(mydata.log_rho_disk, direction="z", dx=50)
 
-.. osyris.plot_slice(mydata.log_rho_disk,direction="z",dx=50)
+   # Now print disk mass: 2 different ways
+   # Method 1:
+   cube = np.where(np.logical_and(
+                   mydata.get("log_rho") > -12.5,
+                   mydata.get("log_rho") < -11.0))
+   mcore1 = np.sum(mydata.get("mass")[cube])
+   # Method 2:
+   mydata.new_field(name="disk_mass",
+                    values=np.where(np.logical_and(
+                                    mydata.get("log_rho", only_leafs=False) > -12.5,
+                                    mydata.get("log_rho", only_leafs=False) < -11.0),
+                                    mydata.get("mass", only_leafs=False), np.NaN),
+                    label="Disk mass")
+   mcore2 = np.nansum(mydata.get("disk_mass"))
+   print("Disk mass: %.3e Msun ; %.3e Msun"%(mcore1, mcore2))
 
-.. # Now print disk mass: 2 different ways
-.. # Method 1:
-.. cube = np.where(np.logical_and(mydata.get("log_rho") > -12.5,mydata.get("log_rho") < -11.0))
-.. mcore1 = np.sum(mydata.mass.values[cube])
-.. # Method 2:
-.. mydata.new_field(name="disk_mass",values=np.where(np.logical_and(mydata.get("log_rho") > -12.5,\
-..                  mydata.get("log_rho") < -11.0),mydata.get("mass"),np.NaN),label="Disk mass")
-.. mcore2 = np.nansum(mydata.disk_mass.values)
-.. print("Disk mass: %.3e Msun ; %.3e Msun"%(mcore1,mcore2))
-.. ```
-.. ![figure_1-13.png](https://bitbucket.org/repo/jq5boX/images/2961028821-figure_1-13.png)
+This prints
+
+.. code-block:: sh
+
+   Disk mass: 2.010e-02 Msun ; 2.010e-02 Msun
+
+.. image:: images/demo009.png
+   :width: 700px
 
 .. ---
 
