@@ -3,17 +3,22 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to osyris's documentation!
-==================================
+********************
+Osyris documentation
+********************
 
 Osyris is a python visualization utility for RAMSES data. Its purpose is to
 plot quick diagnostics while a simulation is running, and also produce
 publication grade figures.
 
-Osiris was developed to provide a light-weight method to read and plot basic diagnostics on [RAMSES](https://bitbucket.org/rteyssie/ramses) simulation outputs using `python`. It currently only works with the native 'binary' data output format. It uses `numpy` for data manipulation and `matplotlib` for visualization.
+Osyris was developed to provide a light-weight method to read
+`RAMSES <https://bitbucket.org/rteyssie/ramses>`_ simulation outputs using
+``python``.
+It currently only works with the native ``binary`` data output format.
+It uses ``numpy`` for data manipulation and ``matplotlib`` for visualization.
 
-Documentation
-=============
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
@@ -27,6 +32,8 @@ Documentation
 .. toctree::
    :maxdepth: 2
    :caption: Demos:
+
+   demos
 
 .. toctree::
    :maxdepth: 2
