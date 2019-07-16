@@ -289,47 +289,56 @@ This prints
 .. image:: images/demo009.png
    :width: 700px
 
-.. ---
+Demo 10 : Difference between two snapshots
+==========================================
 
-.. ## Demo 10 : Difference between two snapshots ##
+Here, we want to make a map of the difference in density between two snapshots.
+Because we do not necessarily have the same number of cells at the same place,
+we first have to make uniform 2D maps using the ``plot_slice`` function,
+which we can then directly compare.
+This is done by calling ``plot_slice`` with the arguments ``plot=False`` to
+avoid making a plot, and ``copy=True`` to return the data to a variable.
 
-.. Here, we want to make a map of the difference in density between two snapshots. Because we do not necessarily have the same number of cells at the same place, we first have to make uniform 2D maps using the `plot_slice` function, which we can then directly compare. This is done by calling `plot_slice` with the arguments `plot=False` to avoid making a plot, and `copy=True` to return the data to a variable.
+.. code-block:: python
 
-.. ```
-.. #!python
-.. import osyris
-.. import numpy as np
+   import osyris
+   import numpy as np
+   import matplotlib.pyplot as plt
 
-.. # Read data from 2 snapshots
-.. mydata1 = osyris.RamsesData(71,scale="au")
-.. mydata2 = osyris.RamsesData(201,scale="au")
+   # Read data from 2 snapshots
+   mydata1 = osyris.RamsesData(71, scale="au")
+   mydata2 = osyris.RamsesData(201, scale="au")
 
-.. # Extract log(density) slices by copying data into structures
-.. slice1 = osyris.plot_slice(mydata1.log_rho,direction="z",dx=100,plot=False,copy=True)
-.. slice2 = osyris.plot_slice(mydata2.log_rho,direction="z",dx=100,plot=False,copy=True)
+   # Extract log(density) slices by copying data into structures
+   slice1 = osyris.plot_slice(mydata1.log_rho, direction="z",
+                              dx=100, plot=False, copy=True)
+   slice2 = osyris.plot_slice(mydata2.log_rho, direction="z",
+                              dx=100, plot=False, copy=True)
 
-.. # Get coordinates
-.. x = slice1[0]
-.. y = slice1[1]
+   # Get coordinates
+   x = slice1[0]
+   y = slice1[1]
 
-.. # Get densities
-.. rho1 = slice1[2]
-.. rho2 = slice2[2]
+   # Get densities
+   rho1 = slice1[2]
+   rho2 = slice2[2]
 
-.. # Density difference
-.. diff = (rho1-rho2)/rho2
+   # Density difference
+   diff = (rho1-rho2)/rho2
 
-.. # Create figure
-.. fig = osyris.plt.figure()
-.. ax1 = fig.add_subplot(111)
-.. im1 = ax1.contourf(x,y,diff,cmap='RdBu',levels=np.linspace(-0.12,0.12,31))
-.. ax1.set_aspect("equal")
-.. cb = osyris.plt.colorbar(im1,ax=ax1)
-.. cb.ax.set_ylabel('Relative difference')
+   # Create figure
+   fig = plt.figure()
+   ax1 = fig.add_subplot(111)
+   im1 = ax1.contourf(x, y , diff, cmap='RdBu',
+                      levels=np.linspace(-0.12,0.12,31))
+   ax1.set_aspect("equal")
+   cb = plt.colorbar(im1, ax=ax1)
+   cb.ax.set_ylabel("Relative difference")
 
-.. fig.savefig("diff.png")
-.. ```
-.. ![diff.png](https://bitbucket.org/repo/jq5boX/images/1580704180-diff.png)
+   fig.savefig("diff.png", bbox_inches="tight")
+
+.. image:: images/demo010.png
+   :width: 700px
 
 .. ---
 
