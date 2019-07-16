@@ -8,15 +8,13 @@ and also produce publication grade figures.
 
 ### Installation ###
 
-```
-#!sh
+```sh
 pip install osyris
 ```
 
 ### From within ipython ###
 
-```
-#!python
+```python
 import osyris
 mydata = osyris.RamsesData(71,scale="au")
 osyris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
@@ -26,9 +24,7 @@ osyris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
 
 You can download the sample data [here](http://www.nbi.dk/~nvaytet/osyris/ramses_sample_data.tar.gz).
 
-```
-#!python
-
+```python
 import osyris
 
 # Load data
