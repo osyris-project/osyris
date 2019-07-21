@@ -98,3 +98,7 @@ Submit an issue on [Github](https://github.com/nvaytet/osyris/issues).
 * Matthias Gonzalez (CEA Saclay)
 * Troels Haugbolle (StarPlan/NBI)
 * Lucas Beeres
+
+### Logo credit ###
+
+[Icon vector created by frimufilms - www.freepik.com](https://www.freepik.com/free-photos-vectors/icon)
