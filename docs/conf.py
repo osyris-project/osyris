@@ -51,9 +51,9 @@ master_doc = 'index'
 #
 html_theme = "sphinx_rtd_theme"
 
-html_theme_options = {
-    'logo_only': True
-}
+# html_theme_options = {
+#     'logo_only': True
+# }
 
 html_logo = "images/logo_osyris.png"
 
