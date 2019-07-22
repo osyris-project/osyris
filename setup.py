@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="osyris",
-    version="1.0.0",
+    version="1.0.1",
     author="Neil Vaytet",
     author_email="neil.vaytet@esss.se",
     description="A package to visualize AMR data from the RAMSES code",
