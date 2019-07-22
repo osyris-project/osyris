@@ -1,19 +1,6 @@
-#=======================================================================================
-#This file is part of OSIRIS.
-
-#OSIRIS is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-
-#OSIRIS is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-
-#You should have received a copy of the GNU General Public License
-#along with OSIRIS.  If not, see <http://www.gnu.org/licenses/>.
-#=======================================================================================
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
+# @author Neil Vaytet
 
 import numpy as np
 import struct
@@ -22,7 +9,7 @@ from . import config as conf
 #=======================================================================================
 # This is the class which will holds a scalar or vector field.
 #=======================================================================================
-class OsirisField():
+class OsyrisField():
 
     def __init__(self,values=None,unit=None,label=None,operation=None,depth=None,norm=1.0,\
                  parent=None,kind="scalar",vec_x=False,vec_y=False,vec_z=False,name="",\
@@ -55,7 +42,7 @@ class OsirisField():
 # This is a dummy class which gives access to common functions to the other
 # classes through inheritance.
 #=======================================================================================
-class OsirisData:
+class OsyrisData:
 
     def __init__(self):
 
@@ -328,7 +315,7 @@ class OsirisData:
             else:
                 if len(group) == 0:
                     group = "hydro"
-                dataField = OsirisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                dataField = OsyrisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                        norm=norm,kind=kind,parent=self,vec_x=vec_x,vec_y=vec_y,vec_z=vec_z,name=name,group=group)
                 setattr(self, name, dataField)
 
@@ -345,7 +332,7 @@ class OsirisData:
                         print("Error parsing operation when trying to create variable: "+name)
                         print("The attempted operation was: "+op_parsed)
                     return
-                dataField = OsirisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                dataField = OsyrisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                norm=norm,kind=kind,parent=self,name=name,group=group)
                 if hasattr(self,name) and verbose:
                     print("Warning: field "+name+" already exists and will be overwritten.")
@@ -363,7 +350,7 @@ class OsirisData:
                                 print("Error parsing operation when trying to create variable: "+name+comps[n])
                                 print("The attempted operation was: "+op_parsed)
                             return
-                        dataField = OsirisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
+                        dataField = OsyrisField(values=new_data,unit=unit,label=label,operation=op_parsed,depth=depth+1,\
                                        norm=norm,kind=kind,parent=self,name=name+comps[n],group=group)
                         if hasattr(self,name+comps[n]) and verbose:
                             print("Warning: field "+name+comps[n]+" already exists and will be overwritten.")
@@ -376,7 +363,7 @@ class OsirisData:
 
         # Case where both values and operation are empty
         elif (len(operation) == 0) and (len(values) == 0):
-            dataField = OsirisField(unit=unit,label=label,parent=self,name=name,group=group)
+            dataField = OsyrisField(unit=unit,label=label,parent=self,name=name,group=group)
             setattr(self, name, dataField)
         # Case where both values and operation are required
         else:
@@ -507,7 +494,7 @@ class OsirisData:
         att_list =  dir(self)
         for att in att_list:
             class_name = getattr(self,att).__class__.__name__
-            if class_name == 'OsirisField':
+            if class_name == 'OsyrisField':
                 key_list.append(att)
                 typ_list.append(getattr(self,att).kind)
         if types:
@@ -631,7 +618,7 @@ class OsirisData:
 
 #=======================================================================================
 #=======================================================================================
-# End of class OsirisData()
+# End of class OsyrisData()
 #=======================================================================================
 #=======================================================================================
 

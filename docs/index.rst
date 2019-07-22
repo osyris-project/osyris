@@ -17,31 +17,43 @@ Osyris was developed to provide a light-weight method to read
 It currently only works with the native ``binary`` data output format.
 It uses ``numpy`` for data manipulation and ``matplotlib`` for visualization.
 
-Contents
-========
+Installation
+============
 
 .. toctree::
    :maxdepth: 2
-   :caption: Getting started:
 
-   getting-started/installation
-   getting-started/load-ramses-data
-   getting-started/2d-histogram
-   getting-started/2d-slice
+   installation
+
+Getting started
+===============
 
 .. toctree::
    :maxdepth: 2
-   :caption: Demos:
+
+   getting-started
+
+Demos
+=====
+
+.. toctree::
+   :maxdepth: 2
 
    demos
 
-.. toctree::
-   :maxdepth: 2
-   :caption: API:
+API
+===
 
 .. toctree::
    :maxdepth: 2
-   :caption: Support:
+
+   api
+
+Support
+=======
+
+.. toctree::
+   :maxdepth: 2
 
 
 Indices and tables

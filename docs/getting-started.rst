@@ -1,28 +1,32 @@
-.. _load-ramses-data:
+.. _getting-started:
+
+Getting started
+===============
 
 Reading a RAMSES output
-=======================
+-----------------------
 
 Navigate to the directory containing the data of your simulation and open an
 ``ipython`` console:
 
 .. code-block:: sh
 
-   $ cd /path/to/my/ramses/data
+   cd /path/to/my/ramses/data
    ipython
 
 Import the ``osyris`` library and load the output of your choice (this will be
 output number 71 in this example).
-**The data loader searches for a ``hydro_file_descriptor.txt`` inside the output
-directory to get the variable names, so make sure your version of RAMSES
-supports this.
-If it doesn't, you can edit the ``var_names`` list in the `config.py`
+
+**IMPORTANT**: The data loader searches for a ``hydro_file_descriptor.txt``
+inside the output directory to get the variable names, so make sure your
+version of RAMSES supports this.
+If it doesn't, you can edit the ``var_names`` list in the ``config.py``
 configuration file, under ``default_values`` to match your data structure.
 By default it will try to guess by itself which are the variables to read,
-but this will almost certainly fail without editing it!**
+but this will almost certainly fail without editing it!
 
-(**Note:** you can download the sample data used in this tutorial
-[here](http://www.nbi.dk/~nvaytet/osyris/ramses_sample_data.tar.gz).)
+**Note:** you can download the sample data used in this tutorial
+`here <http://www.nbi.dk/~nvaytet/osyris/ramses_sample_data.tar.gz>`_.
 
 .. code-block:: python
 
@@ -133,3 +137,44 @@ information about the data (the variables names, their minimum and maximum
 values, etc.). ``osyris`` tries to guess the units of each variable field
 according to its name. This is done by the ``get_units()`` function and can
 easily be modified if you have non-standard variables.
+
+Creating a 2D histogram
+---------------------
+
+We now wish to plot a 2d histogram of the logarithm of density ``log_rho``
+versus logarithm of gas temperature ``log_T`` for all the cells inside the
+computational domain. We also use a logarithmic colormap which represents the
+cell density in the (rho,T) plane.
+
+.. code-block:: python
+
+   osiris.plot_histogram(mydata.log_rho, mydata.log_T, scalar_args={"cmap": "log"})
+
+This creates a figure which looks like
+
+.. image:: images/demo002.png
+   :width: 700px
+
+You can also save the figure to file directly by specifying the argument
+``fname="rho_T_histogram.pdf"`` in the call.
+
+Plotting a 2D slice
+-------------------
+
+To take a slice through the data, simply type
+
+.. code-block:: python
+
+   osiris.plot_slice(mydata.log_rho, direction="z", vec=mydata.velocity, dx=100)
+
+where the first argument is the variable to display, ``direction`` is the normal
+to the slice plane, ``vec`` is the (optional) variable to be used to plot
+vectors, and ``dx`` is the extent of the slice.
+
+**Note:** the units of ``dx`` are consistent with the ``scale`` specified when
+reading in the snapshot using ``RamsesOutput``.
+
+This should produce the following figure
+
+.. image:: images/demo001.png
+   :width: 700px

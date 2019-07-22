@@ -236,7 +236,7 @@ In this example, we select cells according to their density and plot only those.
 This is done by creating a new field and using the numpy ``where`` function.
 To combine more than one selection criteria, use the ``logical_and`` numpy
 function.
-**Note the argument ``only_leafs=False`` in ``get`` which is necessary here,
+**Note**: the argument ``only_leafs=False`` in ``get`` which is necessary here,
 when creating a new field using the ``values`` argument.
 This is useful for plotting disks around protostars, for example.
 Here we select the cells with a density in the range
