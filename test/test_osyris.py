@@ -148,5 +148,64 @@ def test_demo015():
     fig.savefig("demo015.png", bbox_inches="tight")
 
 
+def test_demo016():
+
+    mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+    mydata.new_field(name="vkms", operation="velocity/1.0e5",
+                     unit="km/s", label="Velocity")
+    osyris.plot_slice(scalar=mydata.log_rho, direction="yxz",
+                      vec=mydata.B, dx=100,
+                      scalar_args={"cmap": "Blues"},
+                      vec_args={"cmap":"YlOrRd", "colors": mydata.vkms,
+                                "normalize_arrows": True, "vkey": False,
+                                "scale": 25.0, "cbar": True, "width": 0.01,
+                                "headwidth": 1, "headlength":0},
+                      fname="demo016.png")
+
+
+def test_demo017():
+
+    # Load data
+    mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+
+    # Create figure
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+
+    # Make scatter plot as radial profile
+    osyris.plot_histogram(mydata.log_r, mydata.log_rho, scatter=True,
+                          scatter_args={"iskip": 100, "c": "grey"},
+                          axes=ax)
+
+    # Now overlay mean profile
+
+    # Define min and max range
+    rmin = -1.0
+    rmax = 4.0
+
+    # Number of points
+    nr = 200
+
+    # Radial bin edges and centers
+    re = np.linspace(rmin,rmax,nr+1)
+    log_r = np.zeros([nr])
+    for i in range(nr):
+        log_r[i] = 0.5*(re[i]+re[i+1])
+
+    # Modify r values so that the central cell is not "-inf"
+    r = np.where(np.isinf(mydata.log_r.values),-2.0,mydata.log_r.values)
+
+    # Bin the data in radial bins
+    z0, edges = np.histogram(r, bins=re)
+    z1, edges = np.histogram(r, bins=re, weights=mydata.density.values)
+    rho_mean = np.log10(z1 / z0)
+
+    # Overlay profile
+    ax.plot(log_r, rho_mean, color="r", lw=3, label="Mean profile")
+    ax.legend()
+
+    fig.savefig("demo017.png", bbox_inches='tight')
+
+
 if __name__ == '__main__':
-    test_demo015()
+    test_demo017()

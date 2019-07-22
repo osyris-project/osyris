@@ -526,85 +526,96 @@ We make six subplots.
 .. image:: images/demo015.png
    :width: 700px
 
-.. ---
+Demo 16 : Color slice vectors with custom field
+===============================================
 
-.. ## Demo 16 : Color slice vectors with custom field ##
+We plot a log10(Density) scalar field.
+We overlay vectors that represent the magnetic field direction but are coloured
+with the magnitude of the velocity instead of the B field.
+We first create a new field to represent the velocity in km/s ``mydata.vkms``.
+Then we set ``"colors":mydata.vkms`` in ``vec_args``.
+We remove the arrow heads by setting ``"headwidth":1,"headlength":0``.
+We want all vector segments to have the same length, so we normalize them with
+``"normalize_arrows":True``,
+and we make them a little thicker with ``"width":0.01``.
 
-.. We plot a log10(Density) scalar field. We overlay vectors that represent the magnetic field direction but are coloured with the magnitude of the velocity instead of the B field. We first create a new field to represent the velocity in km/s `mydata.vkms`. Then we set `"colors":mydata.vkms` in `vec_args`.
-.. We remove the arrow heads by setting `"headwidth":1,"headlength":0`. We want all vector segments to have the same length, so we normalize them with `"normalize_arrows":True`, and we make them a little thicker with `"width":0.01`.
-.. **Warning: in `vec_args`, `colors` is for a new field for the colormap, whereas `color` is a single color (e.g. `'white'`) for coloring the arrows.**
+**Warning**: in ``vec_args``, ``colors`` is for a new field for the colormap,
+whereas ``color`` is a single color (e.g. ``'white'``) for coloring the arrows.
 
-.. ```
-.. #!python
+.. code-block:: python
 
-.. import osyris
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+   mydata.new_field(name="vkms", operation="velocity/1.0e5",
+                    unit="km/s", label="Velocity")
+   osyris.plot_slice(scalar=mydata.log_rho, direction="yxz",
+                     vec=mydata.B, dx=100,
+                     scalar_args={"cmap": "Blues"},
+                     vec_args={"cmap":"YlOrRd", "colors": mydata.vkms,
+                               "normalize_arrows": True, "vkey": False,
+                               "scale": 25.0, "cbar": True, "width": 0.01,
+                               "headwidth": 1, "headlength":0},
+                     fname="demo016.png")
 
-.. # Change default time unit to kyr
-.. osyris.conf.default_values["time_unit"]="kyr"
+.. image:: images/demo016.png
+   :width: 700px
 
-.. # Load data
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au",verbose=True)
+Demo 17 : Radial profile
+========================
 
-.. mydata.new_field(name="vkms",operation="velocity/1.0e5",unit="km/s",label="Velocity")
+We can use the ``plot_histogram`` function to create a radial density profile.
+The radial coordinate ``r`` and its logarithm ``log_r`` are by default
+calculated when a ``RAMSES`` output is loaded.
+By plotting the density as a function of radius as a scatter plot in
+``plot_histogram``, we get the figure below (``iskip`` is used to plot 1 in
+every 100 points to limit the size of the figure).
+We also overlay the mean radial profile by binning the data radially and
+computing the mean density in each bin.
+This is drawn on the figure using the usual ``matplotlib`` plotting functions.
+**Note** that the mean profile uses the full data set,
+not just one in every 100 points.
 
-.. osyris.plot_slice(scalar=mydata.log_rho,direction="y",vec=mydata.B,dx=100,scalar_args={"cmap":"Blues"},\
-..     vec_args={"cmap":"YlOrRd","colors":mydata.vkms,"normalize_arrows":True,"vkey":False,"scale":25.0,"cbar":True,"width":0.01,"headwidth":1,"headlength":0})
-.. ```
-.. ![test.png](https://bitbucket.org/repo/jq5boX/images/2512621274-test.png)
+.. code-block:: python
 
-.. ---
+   # Load data
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
 
-.. ## Demo 17 : Radial profile ##
+   # Create figure
+   fig = plt.figure()
+   ax = fig.add_subplot(111)
 
-.. We can use the `plot_histogram` function to create a radial density profile. The radial coordinate `r` and its logarithm `log_r` are by default calculated when a Ramses output is loaded. By plotting the density as a function of radius as a scatter plot in `plot_histogram`, we get the figure below (`iskip` is used to plot 1 in every 100 points to limit the size of the figure). We also overlay the mean radial profile by binning the data radially and computing the mean density in each bin. This is drawn on the figure using the usual `matplotlib` plotting functions. Note that the mean profile uses the full data set, not just one in every 100 points.
+   # Make scatter plot as radial profile
+   osyris.plot_histogram(mydata.log_r, mydata.log_rho, scatter=True,
+                         scatter_args={"iskip": 100, "c": "grey"},
+                         axes=ax)
 
-.. ```
-.. #!python
+   # Now overlay mean profile
 
-.. import matplotlib.pyplot as plt
-.. import numpy as np
-.. import osyris
+   # Define min and max range
+   rmin = -1.0
+   rmax = 4.0
 
-.. # Change default time unit to kyr
-.. osyris.conf.default_values["time_unit"]="kyr"
+   # Number of points
+   nr = 200
 
-.. # Load data
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
+   # Radial bin edges and centers
+   re = np.linspace(rmin,rmax,nr+1)
+   log_r = np.zeros([nr])
+   for i in range(nr):
+       log_r[i] = 0.5*(re[i]+re[i+1])
 
-.. # Create figure
-.. fig = plt.figure()
-.. ax = fig.add_subplot(111)
+   # Modify r values so that the central cell is not "-inf"
+   r = np.where(np.isinf(mydata.log_r.values),-2.0,mydata.log_r.values)
 
-.. # Make scatter plot as radial profile
-.. osyris.plot_histogram(mydata.log_r,mydata.log_rho,scatter=True,scatter_args={"iskip":100,"c":"grey"},axes=ax)
+   # Bin the data in radial bins
+   z0, edges = np.histogram(r, bins=re)
+   z1, edges = np.histogram(r, bins=re, weights=mydata.density.values)
+   rho_mean = np.log10(z1 / z0)
 
-.. # Now overlay mean profile -----------
+   # Overlay profile
+   ax.plot(log_r, rho_mean, color="r", lw=3, label="Mean profile")
+   ax.legend()
 
-.. # Define min and max range
-.. rmin = -1.0
-.. rmax = 4.0
+   fig.savefig("demo017.png", bbox_inches='tight')
 
-.. # Number of points
-.. nr = 200
-
-.. # Radial bin edges and centers
-.. re = np.linspace(rmin,rmax,nr+1)
-.. log_r = np.zeros([nr])
-.. for i in range(nr):
-..     log_r[i] = 0.5*(re[i]+re[i+1])
-
-.. # Modify r values so that the central cell is not "-inf"
-.. r = np.where(np.isinf(mydata.log_r.values),-2.0,mydata.log_r.values)
-
-.. # Bin the data in radial bins
-.. z0, edges = np.histogram(r,bins=re)
-.. z1, edges = np.histogram(r,bins=re,weights=mydata.density.values)
-.. rho_mean = np.log10(z1/z0)
-
-.. #Overlay profile
-.. ax.plot(log_r,rho_mean,color='r',lw=3,label="Mean profile")
-.. ax.legend()
-
-.. fig.savefig("test.png",bbox_inches='tight')
-.. ```
-.. ![test.png](https://bitbucket.org/repo/jq5boX/images/1037106567-test.png)
+.. image:: images/demo017.png
+   :width: 700px
