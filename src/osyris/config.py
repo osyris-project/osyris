@@ -41,7 +41,7 @@ default_values = {
                      "temperature"],
     "sink_format" : ["number","mass","dmf","x","y","z","vx","vy","vz","period",\
                      "lx","ly","lz","acc_rate","acc_lum","age","int_lum","Teff"],
-    "colormap"    : "osiris"
+    "colormap"    : "osyris"
 }
 
 #===================================================================================
@@ -72,11 +72,11 @@ constants = {
 # Custom colormaps
 #=======================================================================================
 cmaps = {
-    "osiris"  : ["#2b3c4e","#249593","#db6a6c","#ffffff"],
-    "osiris2" : ["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"],
-    "osiris3" : ["#3d3d6b","#2a7b9b","#00baad","#57c785","#add45c","#ffc300","#ff8d1a","#ff5733","#c70039","#900c3f","#511849"],
-    "osiris4" : ["#000000","#ff5b00","#ffff00","#00ff00","#2bc184","#3d3d6b","#ffffff","#0000ff"],
-    "osiris5" : ["#ff0000","#ffff00","#00ff00","#00ffff","#0000ff","#000000","#ffffff"]
+    "osyris"  : ["#2b3c4e","#249593","#db6a6c","#ffffff"],
+    "osyris2" : ["#2b3c4e","#249593","#ffffff","#db6a6c","#9e4d4e"],
+    "osyris3" : ["#3d3d6b","#2a7b9b","#00baad","#57c785","#add45c","#ffc300","#ff8d1a","#ff5733","#c70039","#900c3f","#511849"],
+    "osyris4" : ["#000000","#ff5b00","#ffff00","#00ff00","#2bc184","#3d3d6b","#ffffff","#0000ff"],
+    "osyris5" : ["#ff0000","#ffff00","#00ff00","#00ffff","#0000ff","#000000","#ffffff"]
 }
 
 for key in cmaps.keys():

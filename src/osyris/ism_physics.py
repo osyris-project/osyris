@@ -252,11 +252,10 @@ def read_resistivity_table(fname="resistivities_masson2016.bin"):
 
     # Get length of record on first line to determine number of dimensions in table
     rec_size = get_binary_data(fmt="i",content=resContent,correction=-4)
-    theTable.ndims = rec_size[0]/4
+    theTable.ndims = int(rec_size[0]/4)
 
     # Get table dimensions
     theTable.nx = np.array(get_binary_data(fmt="%ii"%theTable.ndims,content=resContent))
-    #print theTable.nx
 
     # Read table coordinates:
 

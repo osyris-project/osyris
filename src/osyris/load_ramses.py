@@ -27,40 +27,40 @@ divider = "============================================"
 # This is the class which will hold the data that you read from the Ramses output
 #=======================================================================================
 class RamsesData(eng.OsirisData):
- 
+
     # This is the constructor which creates a `RamsesData` object.
     #
     # List of arguments and default values:
-    # 
+    #
     # * `nout`: (*integer*) Number of output to be read. -1 means read in the last output
     #  in the current directory. Default is `conf.default_values["nout"]`.
-    # 
+    #
     # * `lmax`: (*integer*) Maximum level to read up to. Default is `conf.default_values["lmax"]`.
-    # 
+    #
     # * `center`: (*array of 3 floats* **or** *string*) Use this to center the data coordinates
     #  around a chosen point. Possible options are a set of 3D xyz coordinates (from 0 to 1),
     #  e.g. `[0.5,0.4,0.6]`, around the density maximum `"max:density"`, around the barycentre
     #  of all cells with temperature above 1000K `"av:temperature>1000"`, or around a sink
     #  particle `"sink2"`. Default is `conf.default_values["center"]`.
-    # 
+    #
     # * `dx`: (*float*) Size of the region in x around the center to be read in, in units of
     #  `scale`. Default is `conf.default_values["dx"]`.
-    # 
+    #
     # * `dy`: (*float*) Size of the region in y around the center to be read in, in units of
     #  `scale`. Default is `conf.default_values["dy"]`.
-    # 
+    #
     # * `dz`: (*float*) Size of the region in z around the center to be read in, in units of
     #  `scale`. Default is `conf.default_values["dz"]`.
-    # 
+    #
     # * `scale`: (*float*) Spatial scale to be used for coordinates and cell sizes. Possible
     #  options are `"cm"`, `"au"` and `"pc"`. Default is `conf.default_values["scale"]`.
-    # 
+    #
     # * `verbose`: (*logical*) Print information about data that was read in if `True`.
     #  Default is `conf.default_values["verbose"]`.
-    # 
+    #
     # * `path`: (*string*) Path to the directory where to read outputs from, if different
     #  from the current directory. Default is `conf.default_values["path"]`.
-    # 
+    #
     # * `variables`: (*array of strings*) List of variables to be read in. To read in only
     #  the gas density and temperature, use `variables=["density","temperature"]`. Note that
     #  xyz coordinates are always read in. Default is `conf.default_values["variables"]`.
@@ -69,20 +69,20 @@ class RamsesData(eng.OsirisData):
                  dy=conf.default_values["dy"],dz=conf.default_values["dz"],\
                  scale=conf.default_values["scale"],verbose=conf.default_values["verbose"],\
                  path=conf.default_values["path"],variables=conf.default_values["variables"]):
-        
+
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
                  path=path,variables=variables)
-        
+
         if status == 0:
             return
-        
+
         # Convert vector components to vector containers
         self.create_vector_containers()
-        
+
         # Read in custom variables if any from the configuration file
         conf.additional_variables(self)
-        
+
         # Print exit message
         [var_list,typ_list] = self.get_var_list(types=True)
         print("Memory used: %.2f Mb" % (typ_list.count('scalar')*self.info["ncells"]*8.0/1.0e6))
@@ -90,9 +90,9 @@ class RamsesData(eng.OsirisData):
         if verbose:
             self.print_info()
         print(divider)
-        
+
         return
-    
+
     #=======================================================================================
 
     # This function creates various file names for Ramses data.
@@ -113,11 +113,11 @@ class RamsesData(eng.OsirisData):
     #
     #* `infile`: (*string*) A file name of the form: "path/output_00001/amr_00071.out00001"+ext
     def generate_fname(self,nout,path="",ftype="",cpuid=1,ext=""):
-        
+
         if len(path) > 0:
             if path[-1] != "/":
                 path=path+"/"
-        
+
         if nout == -1:
             filelist = sorted(glob.glob(path+"output*"))
             number = filelist[-1].split("_")[-1]
@@ -129,14 +129,14 @@ class RamsesData(eng.OsirisData):
             infile += "/"+ftype+"_"+number
             if cpuid >= 0:
                 infile += ".out"+str(cpuid).zfill(5)
-        
+
         if len(ext) > 0:
             infile += ext
-            
+
         return infile
-    
+
     #=======================================================================================
-    
+
     # This function reads in the binary Ramses output.
     #
     # List of arguments and default values:
@@ -176,10 +176,10 @@ class RamsesData(eng.OsirisData):
     #* `status`: (*integer*) 1 is successful, 0 if not.
     def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
                     update=False,variables=[]):
-        
+
         # Generate directory name from output number
         infile = self.generate_fname(nout,path)
-        
+
         # Read info file and create info dictionary
         infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
         status = self.read_parameter_file(fname=infofile,dict_name="info",verbose=True)
@@ -202,21 +202,21 @@ class RamsesData(eng.OsirisData):
             self.info["nout" ] = int(infile.split("_")[-1])
         else:
             self.info["nout" ] = nout
-        
+
         # Read namelist file and create namelist dictionary
         nmlfile = infile+"/namelist.txt"
         self.read_parameter_file(fname=nmlfile,dict_name="namelist",evaluate=False)
-        
+
         print(divider)
-        
+
         # Now go through all the variables and check if they are to be read or skipped
         list_vars   = []
         var_read    = []
         var_group   = []
         xyz_strings = "xyz"
-        
+
         # Start with hydro variables ==================================
-        
+
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         hydrofile = infile+"/hydro_file_descriptor.txt"
@@ -239,7 +239,7 @@ class RamsesData(eng.OsirisData):
                 if sp[0].strip() == "nvar":
                     self.info["nvar_hydro"] = int(sp[1].strip())
                     break
-        
+
         # Now add to the list of variables to be read
         for line in content:
             sp = line.split(":")
@@ -252,7 +252,7 @@ class RamsesData(eng.OsirisData):
                     var_read.append(False)
 
         # Now for gravity ==================================
-        
+
         # Check if self-gravity files exist
         grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
         try:
@@ -262,13 +262,13 @@ class RamsesData(eng.OsirisData):
             gravity = True
         except IOError:
             gravity = False
-        
+
         # Add gravity fields
         if gravity:
             content = ["grav_potential"]
             for n in range(self.info["ndim"]):
                 content.append("grav_acceleration_"+xyz_strings[n])
-            
+
             # Now add to the list of variables to be read
             for line in content:
                 if (len(variables) == 0) or (line.strip() in variables) or ("gravity" in variables) or ("grav" in variables):
@@ -277,9 +277,9 @@ class RamsesData(eng.OsirisData):
                     var_group.append("grav")
                 else:
                     var_read.append(False)
-        
+
         # Now for rt ==================================
-        
+
         # Check if rt files exist
         rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=1)
         try:
@@ -296,7 +296,7 @@ class RamsesData(eng.OsirisData):
             status = self.read_parameter_file(fname=infortfile,dict_name="info_rt",verbose=True)
             if status < 1:
                 return 0
-            
+
         # Add rt fields
         if rt:
             for igrp in range(self.info_rt["nGroups"]):
@@ -306,7 +306,7 @@ class RamsesData(eng.OsirisData):
                     content = ["photon_flux_density_"+str(igrp+1)]
                 for n in range(self.info["ndim"]):
                     content.append("photon_flux_"+str(igrp+1)+"_"+xyz_strings[n])
-            
+
             # Now add to the list of variables to be read
             for line in content:
                 if (len(variables) == 0) or (line.strip() in variables) or ("rt" in variables):
@@ -323,7 +323,7 @@ class RamsesData(eng.OsirisData):
         nvar_read = len(list_vars)
 
         # Now for particles ==================================
-        
+
         particles = False
         self.info["npart_tot"] = 0
         if "part" in variables:
@@ -375,20 +375,20 @@ class RamsesData(eng.OsirisData):
                             part_types.append("d")
                 #print sum(npart_dims)
                 part = np.zeros([self.info["npart_tot"],sum(npart_dims)],dtype=np.float64)
-        
-        
+
+
         # Load sink particles if any
         self.read_sinks()
-        
+
         # Find the center
         xc,yc,zc = self.find_center(dx,dy,dz)
-        
+
         # Now read the amr and hydro files =============================================
         # We have to open the files in binary format, and count all the bytes in the ===
         # file structure to extract just the data we need. =============================
         # See output_amr.f90 and output_hydro.f90 in the RAMSES source. ================
         print("Processing %i files in " % (self.info["ncpu"]) + infile)
-        
+
         # Define the size of the region to be read
         lconvert = conf.constants[scale]/(self.info["boxlen"]*self.info["unit_l"])
         if dx > 0.0:
@@ -409,17 +409,17 @@ class RamsesData(eng.OsirisData):
         else:
             zmin = 0.0
             zmax = 1.0
-        
+
         if lmax==0:
            lmax = self.info["levelmax"]
-        
+
         # We will store the cells in a dictionary which we build as we go along.
         # The final concatenation into a single array will be done once at the end.
         data_pieces = dict()
         npieces = 0
         part_pieces = dict()
         npieces_part = 0
-        
+
         # Allocate work arrays
         twotondim = 2**self.info["ndim"]
         xcent = np.zeros([8,3],dtype=np.float64)
@@ -428,70 +428,70 @@ class RamsesData(eng.OsirisData):
         var   = np.zeros([self.info["ngridmax"],twotondim,nvar_read],dtype=np.float64)
         xyz   = np.zeros([self.info["ngridmax"],twotondim,self.info["ndim"]],dtype=np.float64)
         ref   = np.zeros([self.info["ngridmax"],twotondim],dtype=np.bool)
-        
+
         iprog = 1
         istep = 10
         ncells_tot = 0
-        
+
         # Loop over the cpus and read the AMR and HYDRO files in binary format
         for k in range(self.info["ncpu"]):
-            
+
             # Print progress
             percentage = int(float(k)*100.0/float(self.info["ncpu"]))
             if percentage >= iprog*istep:
                 print("%3i%% : read %10i cells" % (percentage,ncells_tot))
                 iprog += 1
-            
+
             # Read binary AMR file
             amr_fname = self.generate_fname(nout,path,ftype="amr",cpuid=k+1)
             with open(amr_fname, mode='rb') as amr_file: # b is important -> binary
                 amrContent = amr_file.read()
             amr_file.close()
-            
+
             # Read binary HYDRO file
             hydro_fname = self.generate_fname(nout,path,ftype="hydro",cpuid=k+1)
             with open(hydro_fname, mode='rb') as hydro_file: # b is important -> binary
                 hydroContent = hydro_file.read()
             hydro_file.close()
-            
+
             # Read binary GRAVITY file
             if gravity:
                 grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=k+1)
                 with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
                     gravContent = grav_file.read()
                 grav_file.close()
-            
+
             # Read binary RT file
             if rt:
                 rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=k+1)
                 with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
                     rtContent = rt_file.read()
                 rt_file.close()
-            
+
             ninteg = nfloat = nlines = nstrin = nquadr = nlongi = 0
-            
+
             # Need to extract info from the file header on the first loop
             if k == 0:
-            
+
                 # nx,ny,nz
                 ninteg = 2
                 nlines = 2
                 [nx,ny,nz] = eng.get_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ncoarse = nx*ny*nz
                 xbound = [float(int(nx/2)),float(int(ny/2)),float(int(nz/2))]
-                
+
                 # nboundary
                 ninteg = 7
                 nlines = 5
                 [nboundary] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
                 ngridlevel = np.zeros([self.info["ncpu"]+nboundary,self.info["levelmax"]],dtype=np.int32)
-                
+
                 # noutput
                 ninteg = 9
                 nfloat = 1
                 nlines = 8
                 [noutput] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-                
+
                 # dtold, dtnew
                 ninteg = 12
                 nfloat = 2+2*noutput
@@ -502,7 +502,7 @@ class RamsesData(eng.OsirisData):
                 nlines += 1
                 self.info["dtnew"] = eng.get_binary_data(fmt="%id"%(self.info["levelmax"]),\
                                      content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-                
+
                 # hydro gamma
                 ninteg = 5
                 nfloat = 0
@@ -515,7 +515,7 @@ class RamsesData(eng.OsirisData):
             nlines = 21
             ngridlevel[:self.info["ncpu"],:] = np.asarray(eng.get_binary_data(fmt="%ii"%(self.info["ncpu"]*self.info["levelmax"]),\
                  content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],self.info["ncpu"]).T
-            
+
             # Read boundary grids if any
             if nboundary > 0:
                 ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(2*nboundary*self.info["levelmax"])
@@ -523,43 +523,43 @@ class RamsesData(eng.OsirisData):
                 nlines = 25
                 ngridlevel[self.info["ncpu"]:self.info["ncpu"]+nboundary,:] = np.asarray(eng.get_binary_data(fmt="%ii"%(nboundary*self.info["levelmax"]),\
                                                 content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(self.info["levelmax"],nboundary).T
-    
+
             # Determine bound key precision
             ninteg = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5
             nfloat = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines = 21+2+3*min(1,nboundary)+1+1
             nstrin = 128
             [key_size] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
-            
+
             # Offset for AMR
             ninteg1 = 14+(3*self.info["ncpu"]*self.info["levelmax"])+(10*self.info["levelmax"])+(3*nboundary*self.info["levelmax"])+5+3*ncoarse
             nfloat1 = 18+(2*noutput)+(2*self.info["levelmax"])
             nlines1 = 21+2+3*min(1,nboundary)+1+1+1+3
             nstrin1 = 128 + key_size
-            
+
             # Offset for HYDRO
             ninteg2 = 5
             nfloat2 = 1
             nlines2 = 6
             nstrin2 = 0
-            
+
             # Offset for GRAVITY
             if gravity:
                 ninteg3 = 4
                 nfloat3 = 0
                 nlines3 = 4
                 nstrin3 = 0
-            
+
             # Offset for RT
             if rt:
                 ninteg4 = 5
                 nfloat4 = 1
                 nlines4 = 6
                 nstrin4 = 0
-            
+
             # Loop over levels
             for ilevel in range(lmax):
-                
+
                 # Geometry
                 dxcell=0.5**(ilevel+1)
                 dx2=0.5*dxcell
@@ -570,38 +570,38 @@ class RamsesData(eng.OsirisData):
                     xcent[ind,0]=(float(ix)-0.5)*dxcell
                     xcent[ind,1]=(float(iy)-0.5)*dxcell
                     xcent[ind,2]=(float(iz)-0.5)*dxcell
-                
+
                 # Cumulative offsets in AMR file
                 ninteg_amr = ninteg1
                 nfloat_amr = nfloat1
                 nlines_amr = nlines1
                 nstrin_amr = nstrin1
-                
+
                 # Cumulative offsets in HYDRO file
                 ninteg_hydro = ninteg2
                 nfloat_hydro = nfloat2
                 nlines_hydro = nlines2
                 nstrin_hydro = nstrin2
-                
+
                 # Cumulative offsets in GRAVITY file
                 if gravity:
                     ninteg_grav = ninteg3
                     nfloat_grav = nfloat3
                     nlines_grav = nlines3
                     nstrin_grav = nstrin3
-                                
+
                 # Cumulative offsets in RT file
                 if rt:
                     ninteg_rt = ninteg4
                     nfloat_rt = nfloat4
                     nlines_rt = nlines4
                     nstrin_rt = nstrin4
-                                
+
                 # Loop over domains
                 for j in range(nboundary+self.info["ncpu"]):
-                    
+
                     ncache = ngridlevel[j,ilevel]
-                    
+
                     # Skip two lines of integers
                     nlines_hydro += 2
                     ninteg_hydro += 2
@@ -611,9 +611,9 @@ class RamsesData(eng.OsirisData):
                     if rt:
                         nlines_rt += 2
                         ninteg_rt += 2
-                    
+
                     if ncache > 0:
-                    
+
                         if j == k:
                             # xg: grid coordinates
                             ninteg = ninteg_amr + ncache*3
@@ -623,7 +623,7 @@ class RamsesData(eng.OsirisData):
                             for n in range(self.info["ndim"]):
                                 offset = 4*ninteg + 8*(nlines+nfloat+n*(ncache+1)) + nstrin + 4
                                 xg[:ncache,n] = struct.unpack("%id"%(ncache), amrContent[offset:offset+8*ncache])
-                                
+
                             # son indices
                             ninteg = ninteg_amr + ncache*(4+2*self.info["ndim"])
                             nfloat = nfloat_amr + ncache*self.info["ndim"]
@@ -683,7 +683,7 @@ class RamsesData(eng.OsirisData):
                             else:
                                 print("Bad number of dimensions")
                                 return 0
-                            
+
                             cells = var[cube]
                             ncells = np.shape(cells)[0]
                             if ncells > 0:
@@ -691,29 +691,29 @@ class RamsesData(eng.OsirisData):
                                 npieces += 1
                                 # Add the cells in the master dictionary
                                 data_pieces["piece"+str(npieces)] = cells
-                                
+
                         # Now increment the offsets while looping through the domains
                         ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
                         nfloat_amr += ncache*self.info["ndim"]
                         nlines_amr += 4 + 3*twotondim + 3*self.info["ndim"]
-                        
+
                         nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
                         nlines_hydro += twotondim*self.info["nvar_hydro"]
-                        
+
                         if rt:
                             nfloat_rt += ncache*twotondim*self.info_rt["nRTvar"]
                             nlines_rt += twotondim*self.info_rt["nRTvar"]
-                                                    
+
                         if gravity:
                             nfloat_grav += ncache*twotondim*(self.info["ndim"]+1)
                             nlines_grav += twotondim*(self.info["ndim"]+1)
-                
+
                 # Now increment the offsets while looping through the levels
                 ninteg1 = ninteg_amr
                 nfloat1 = nfloat_amr
                 nlines1 = nlines_amr
                 nstrin1 = nstrin_amr
-                
+
                 ninteg2 = ninteg_hydro
                 nfloat2 = nfloat_hydro
                 nlines2 = nlines_hydro
@@ -730,7 +730,7 @@ class RamsesData(eng.OsirisData):
                     nfloat4 = nfloat_rt
                     nlines4 = nlines_rt
                     nstrin4 = nstrin_rt
-                    
+
             # Now read particles: they are not in the loop over levels, only the cpu loop
             if particles:
                 # Read binary PARTICLE file
@@ -751,7 +751,7 @@ class RamsesData(eng.OsirisData):
                     # Now set offsets
                     nlines = 8
                     ninteg = 5 + localseedsize
-                    nfloat = 2                    
+                    nfloat = 2
                     # Go through all the particle fields and unpack the data
                     nshifts = {"i":[1,0,0] , "d":[0,1,0], "q":[0,0,1]} # Useful dict to increment floats and integers
                     for n in range(len(part_vars)):
@@ -768,12 +768,12 @@ class RamsesData(eng.OsirisData):
                         ninteg += npart * nshifts[part_types[n]][0]
                         nfloat += npart * nshifts[part_types[n]][1]
                         nlongi += npart * nshifts[part_types[n]][2]
-                        
+
                     # Add the cells in the master dictionary
                     npieces_part += 1
                     part_pieces["piece"+str(npieces_part)] = part[:npart,:]
             # End of reading particles ==================================================
-        
+
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
         if particles:
@@ -781,22 +781,22 @@ class RamsesData(eng.OsirisData):
                 print("Number of particles do not match: ",npart_count,self.info["npart_tot"])
             else:
                 master_part_array = np.concatenate(list(part_pieces.values()), axis=0)
-        
+
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
         if particles:
             del part_pieces,part
-        
+
         print("Total number of cells loaded: %i" % ncells_tot)
         if particles:
             print("Total number of particles loaded: %i" % self.info["npart_tot"])
         if self.info["nsinks"] > 0:
             print("Read %i sink particles" % self.info["nsinks"])
         print("Generating data structure... please wait")
-        
+
         # Store the number of cells
         self.info["ncells"] = ncells_tot
-        
+
         # Finally we add one 'new_field' per variable we have read in =========================================
         for i in range(len(list_vars)):
             theKey = list_vars[i]
@@ -806,7 +806,7 @@ class RamsesData(eng.OsirisData):
             # Use the 'new_field' function to create data field
             self.new_field(name=theKey,unit=uu,label=theLabel,values=master_data_array[:,i]*norm,\
                            verbose=False,norm=norm,update=update,group=var_group[i])
-        
+
         # Now add new field for particles =====================================================================
         if particles:
             for i in range(len(part_vars)):
@@ -821,21 +821,21 @@ class RamsesData(eng.OsirisData):
             [norm,uu] = self.get_units("dx",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             self.new_field(name="dx_part",unit=uu,label="dx part",values=[norm*np.nanmin(self.dx.values)]*self.info["npart_tot"],\
                                verbose=False,norm=norm,update=update,group="part")
-        
+
         # Finally, add some useful information to save compute time later
         self.info["levelmax_active"] = np.nanmax(self.level.values)
         self.info["leafs"] = np.where(self.leaf.values == 1.0)
-                
+
         # Re-center the mesh around chosen center
         self.re_center()
 
         return 1
-    
+
     #=======================================================================================
-    
+
     # Read in sink particle `.csv` file if present.
     def read_sinks(self):
-        
+
         sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
         try:
             sinklist = np.loadtxt(sinkfile,delimiter=",")
@@ -872,11 +872,11 @@ class RamsesData(eng.OsirisData):
                 ids.append("sink"+str(int(self.sinks["number"][i])))
             self.sinks["id"] = ids
             #print("Read %i sink particles" % self.info["nsinks"])
-            
+
         return
-            
+
     #=======================================================================================
-    
+
     # This function updates all the fields of a RamsesData container with values from a new
     # output number, including derived fields.
     #
@@ -914,29 +914,29 @@ class RamsesData(eng.OsirisData):
     #* `verbose`: (*logical*) Print information about data that was read in if `True` Default is False.
     def update_values(self,nout=-1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="",\
                       path="",variables=[],verbose=False):
-        
+
         ## Check if new output number is requested. If not, use same nout as before
         #if nout == "none":
             #nout = self.info["nout"]
-        
+
         # Check if new lmax is requested. If not, use same lmax as before
         if lmax == 0:
             lmax = self.info["lmax"]
-        
+
         # Check if a new center is requested. If not, use same center as before
         try:
             dummy = len(center)
         except TypeError:
             center = self.info["center"]
-        
+
         # Check if new scale is requested. If not, use same scale as before
         if len(scale) == 0:
             scale = self.info["scale"]
-        
+
         # Check if new path is requested. If not, use same path as before
         if len(path) == 0:
             path = self.info["path"]
-        
+
         # Check if new dx,dy,dz are requested. If not, use same as before
         if dx == 0.0:
             dx = self.info["dx_load"]
@@ -944,18 +944,18 @@ class RamsesData(eng.OsirisData):
             dy = self.info["dy_load"]
         if dz == 0.0:
             dz = self.info["dz_load"]
-        
+
         # Check if new list of variables is requested. If not, use same list as before
         if len(variables) == 0:
             variables = self.info["variables"]
-                
+
         # Load the Ramses data using the loader function
         status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
                                   path=path,variables=variables,update=True)
-        
+
         if status == 0:
             return
-        
+
         # Now go through the fields and update the values of fields that have an operation
         # attached to them. IMPORTANT!: this needs to be done in the right order: use the
         # depth key to determine which variables depend on others
@@ -967,19 +967,19 @@ class RamsesData(eng.OsirisData):
                 if len(dataField.operation) > 0:
                     print("Re-computing "+key)
                     dataField.values = eval(dataField.operation)
-        
+
         ## Re-center the mesh around chosen center
         #self.re_center()
-        
+
         print("Data successfully updated with values from "+self.info["infile"])
         if verbose:
             self.print_info()
         print(divider)
-        
+
         return
-        
+
     #=======================================================================================
-    
+
     # This function returns the appropriate scaling for a variable which was read
     # in code units by the data loader. It tries to identify if we are dealing with a
     # density or a pressure and returns the appropriate combination of ud, ul and ut. It
@@ -1001,7 +1001,7 @@ class RamsesData(eng.OsirisData):
     #
     #* `norm`: (*float*) A scaling factor to convert from code units to cgs.
     #
-    #* `label`: (*string*) A string describing the units, to be used on axes. 
+    #* `label`: (*string*) A string describing the units, to be used on axes.
     def get_units(self,string,ud,ul,ut,scale="cm"):
         if string == "density":
             return [ud,"g/cm3"]

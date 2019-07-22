@@ -340,51 +340,77 @@ avoid making a plot, and ``copy=True`` to return the data to a variable.
 .. image:: images/demo010.png
    :width: 700px
 
-.. ---
 
-.. ## Demo 11 : ISM tables for equation of state (EOS), opacities and resistivities ##
+Demo 11 : ISM tables for equation of state (EOS), opacities and resistivities
+=============================================================================
 
-.. We load the EOS, opacities and resistivities tables and plot them as a function of gas density.
+We load the EOS, opacities and resistivities tables and plot them as a function
+of gas density.
 
-.. ```
-.. #!python
-.. import osyris
-.. import numpy as np
+.. code-block:: python
 
-.. # Create figure
-.. fig = osyris.plt.figure()
-.. ratio = 0.25
-.. sizex = 20.0
-.. fig.set_size_inches(sizex,ratio*sizex)
-.. ax1 = fig.add_subplot(131)
-.. ax2 = fig.add_subplot(132)
-.. ax3 = fig.add_subplot(133)
+   import osyris
+   import numpy as np
+   import matplotlib.pyplot as plt
 
-.. # Load data
-.. mydata = osyris.RamsesData(nout=50,scale="au",verbose=True)
+   # Create figure
+   fig = plt.figure(figsize=(20, 5))
+   ax1 = fig.add_subplot(131)
+   ax2 = fig.add_subplot(132)
+   ax3 = fig.add_subplot(133)
 
-.. # Read EOS table and plot sound speed histogram
-.. osyris.ism_physics.get_eos(mydata,fname="SCvH_eos.dat")
-.. mydata.new_field(name="log_cs",operation="np.log10(cs_eos)",label="log(cs)",unit="cm/s")
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_cs,scalar_args={"cmap":"log,Greens","cbar":False},outline=True,axes=ax1,title="Equation of state")
+   # Load data
+   mydata = osyris.RamsesData(nout=71, scale="au",
+                              verbose=True)
 
-.. # Read opacity table and plot Rosseland mean opacity
-.. osyris.ism_physics.get_opacities(mydata)
-.. mydata.new_field(name="log_kr",operation="np.log10(kappa_r)",label="log(Kr)",unit="cm2/g")
-.. osyris.plot_histogram(mydata.log_T,mydata.log_kr,scalar_args={"cmap":"log,Blues","cbar":False},outline=True,axes=ax2,title="Opacities")
+   # Create a properly dimensioned field for internal energy
+   conv = (mydata.info["unit_l"] / mydata.info["unit_t"])**2
+   mydata.new_field(name="internal_energy",
+                    operation="passive_scalar_4*density*" + str(conv),
+                    unit="erg/cm3",
+                    label="Internal energy")
 
-.. # Read resistivity table and plot Ohmic and Ambipolar
-.. osyris.ism_physics.get_resistivities(mydata)
-.. mydata.new_field(name="log_etaO",operation="np.log10(eta_ohm)",label="log(etaO)")
-.. mydata.new_field(name="log_etaA",operation="np.log10(eta_ad)",label="log(etaA)")
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_etaO,scalar_args={"cmap":"log,Greys","cbar":False},outline=True,axes=ax3,title="")
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_etaA,scalar_args={"cmap":"log,Reds","cbar":False},outline=True,axes=ax3,title="Resistivities")
-.. ax3.set_ylabel("log(eta) [s]")
-.. ax3.text(-16.0,0.0,"Ambipolar",va="center",ha="center")
-.. ax3.text(-12.0,-4.0,"Ohmic",va="center",ha="center")
+   # Read EOS table and plot sound speed histogram
+   osyris.ism_physics.get_eos(mydata, fname="SCvH_eos.dat")
+   mydata.new_field(name="log_cs", operation="np.log10(cs_eos)",
+                    label="log(cs)", unit="cm/s")
+   osyris.plot_histogram(mydata.log_rho, mydata.log_cs,
+                         scalar_args={"cmap": "log,Greens",
+                                      "cbar": False},
+                         outline=True, axes=ax1,
+                         title="Equation of state")
 
-.. fig.savefig('ism_tables.png')
-.. ```
+   # Read opacity table and plot Rosseland mean opacity
+   osyris.ism_physics.get_opacities(mydata)
+   mydata.new_field(name="log_kr", operation="np.log10(kappa_r)",
+                    label="log(Kr)", unit="cm2/g")
+   osyris.plot_histogram(mydata.log_T, mydata.log_kr,
+                         scalar_args={"cmap": "log,Blues",
+                                      "cbar": False},
+                         outline=True, axes=ax2,
+                         title="Opacities")
+
+   # Read resistivity table and plot Ohmic and Ambipolar
+   osyris.ism_physics.get_resistivities(mydata)
+   mydata.new_field(name="log_etaO", operation="np.log10(eta_ohm)",
+                    label="log(etaO)")
+   mydata.new_field(name="log_etaA", operation="np.log10(eta_ad)",
+                    label="log(etaA)")
+   osyris.plot_histogram(mydata.log_rho, mydata.log_etaO,
+                         scalar_args={"cmap": "log,Greys",
+                                      "cbar": False},
+                         outline=True, axes=ax3, title="")
+   osyris.plot_histogram(mydata.log_rho, mydata.log_etaA,
+                         scalar_args={"cmap": "log,Reds",
+                                      "cbar": False},
+                         outline=True, axes=ax3,
+                         title="Resistivities")
+   ax3.set_ylabel("log(eta) [s]")
+   ax3.text(-16.0,0.0, "Ambipolar", va="center", ha="center")
+   ax3.text(-12.0,-4.0, "Ohmic", va="center", ha="center")
+
+   fig.savefig("ism_tables.png", bbox_inches="tight")
+
 .. ![ism_tables.png](https://bitbucket.org/repo/jq5boX/images/1254933282-ism_tables.png)
 
 .. ---
