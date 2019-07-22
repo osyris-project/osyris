@@ -4,6 +4,14 @@
 Demos
 *****
 
+You will need the following imports for the demos listed below:
+
+.. code-block:: python
+
+   import osyris
+   import numpy as np
+   import matplotlib.pyplot as plt
+
 
 Demo 1 : Simple 2D slice
 ========================
@@ -14,7 +22,6 @@ with velocity vectors.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(71, scale="au")
    osyris.plot_slice(mydata.log_rho, direction="z",
                      vec=mydata.velocity, dx=100)
@@ -30,7 +37,6 @@ log(density)-log(T) plane.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(71)
    osyris.plot_histogram(mydata.log_rho, mydata.log_T,
                          scalar_args={"cmap": "log"})
@@ -48,7 +54,6 @@ and include a grey outline around all the data points.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(nout=71, center=[0.5,0.5,0.5], scale="au")
    mydata.new_field(name="log_vel",
                     operation="np.log10(np.sqrt(velocity_x**2 +"
@@ -73,7 +78,6 @@ Set the time unit to yr.
 
 .. code-block:: python
 
-   import osyris
    osyris.config.default_values["time_unit"] = "yr"
    mydata = osyris.RamsesData(nout=71, center="max:density",
                               scale="au")
@@ -97,7 +101,6 @@ Finally add a colorbar for vectors.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(nout=71, center="max:density",
                               scale="au")
    mydata.new_field(name="vkms", operation="velocity/1.0e5",
@@ -121,7 +124,6 @@ Use the ``"auto:top"`` direction for the slice to view the disk from above.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(nout=71, center="max:density",
                               scale="au")
    osyris.plot_slice(mydata.log_rho, direction="auto:top",
@@ -138,7 +140,6 @@ view the disk from the side.
 
 .. code-block:: python
 
-   import osyris
    mydata = osyris.RamsesData(nout=71, center="max:density",
                               scale="au")
    osyris.plot_slice(mydata.log_rho, direction="auto:side",
@@ -174,9 +175,6 @@ We label the contours with ``"label":True`` and set the format to integers
 with ``"fmt":"%i"``.
 
 .. code-block:: python
-
-   import matplotlib.pyplot as plt
-   import osyris
 
    # Create figure
    fig = plt.figure(figsize=(15, 5.25))
@@ -247,9 +245,6 @@ After plotting the disk, we use 2 different methods to compute the disk mass.
 
 .. code-block:: python
 
-   import osyris
-   import numpy as np
-
    # Load data
    mydata = osyris.RamsesData(nout=71, center="max:density",
                               scale="au", dx=100.0, dy=100.0,
@@ -301,10 +296,6 @@ avoid making a plot, and ``copy=True`` to return the data to a variable.
 
 .. code-block:: python
 
-   import osyris
-   import numpy as np
-   import matplotlib.pyplot as plt
-
    # Read data from 2 snapshots
    mydata1 = osyris.RamsesData(71, scale="au")
    mydata2 = osyris.RamsesData(201, scale="au")
@@ -348,10 +339,6 @@ We load the EOS, opacities and resistivities tables and plot them as a function
 of gas density.
 
 .. code-block:: python
-
-   import osyris
-   import numpy as np
-   import matplotlib.pyplot as plt
 
    # Create figure
    fig = plt.figure(figsize=(20, 5))
@@ -411,104 +398,133 @@ of gas density.
 
    fig.savefig("ism_tables.png", bbox_inches="tight")
 
-.. ![ism_tables.png](https://bitbucket.org/repo/jq5boX/images/1254933282-ism_tables.png)
+.. image:: images/demo011.png
+   :width: 700px
 
-.. ---
+Demo 12 : Make a thick slice
+============================
 
-.. ## Demo 12 : Make a thick slice ##
+We want to plot the average value of density inside a slice with a thickness of
+20 AU.
+For this, we use the ``plot_column_density`` function with the ``summed=False``
+option.
+We also set the number of samples along the slice thickness direction to 5
+using ``nz=5`` to speed up the process (by default ``nz`` equals the resolution
+in x and y).
+We also plot velocity vectors which are the average of the velocity field along
+the line of sight.
+**Remember** to check for convergence by increasing ``nz`` to make sure you
+have similar results with a lower ``nz``.
 
-.. We want to plot the average value of density inside a slice with a thickness of 20 AU. For this, we use the `plot_column_density` function with the `summed=False` option. We also set the number of samples along the slice thickness direction to 5 using `nz=5` to speed up the process (by default `nz` equals the resolution in x and y). We also plot velocity vectors which are the average of the velocity field along the line of sight. **Remember** to check for convergence by increasing `nz` to make sure you have similar results with a lower `nz`.
+.. code-block:: python
 
-.. ```
-.. #!python
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+   osyris.plot_column_density(scalar=mydata.density,
+                              direction="z", vec=mydata.velocity,
+                              dx=100, dz=20,
+                              scalar_args={"cmap": "log"},
+                              nz=5, summed=False)
 
-.. import osyris
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
-.. osyris.plot_column_density(scalar=mydata.density,direction="z",vec=mydata.velocity,dx=100,dz=20,scalar_args={"cmap":"log"},nz=5,summed=False)
-.. ```
-.. ![thick_slice.png](https://bitbucket.org/repo/jq5boX/images/160563044-thick_slice.png)
+.. image:: images/demo012.png
+   :width: 700px
 
-.. ---
+Demo 13 : Slice above the origin
+================================
 
-.. ## Demo 13 : Slice above the origin ##
+We want to plot a slice of density but through a point which is 5 AU above the
+centre of the domain, defined as the cell with the highest density.
+This is done by setting the ``origin`` coordinate to ``[0,0,5]``.
 
-.. We want to plot a slice of density but through a point which is 5 AU above the centre of the domain, defined as the cell with the highest density. This is done by setting the `origin` coordinate to `[0,0,5]`.
+.. code-block:: python
 
-.. ```
-.. #!python
-.. import osyris
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
-.. osyris.plot_slice(scalar=mydata.density,direction="z",vec=mydata.velocity,dx=100,origin=[0,0,5],scalar_args={"cmap":"log"})
-.. ```
-.. ![test.png](https://bitbucket.org/repo/jq5boX/images/3975856811-test.png)
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+   osyris.plot_slice(scalar=mydata.density, direction="z",
+                     vec=mydata.velocity, dx=100, origin=[0,0,5],
+                     scalar_args={"cmap": "log"}, fname="demo013.png")
 
-.. ---
+.. image:: images/demo013.png
+   :width: 700px
 
-.. ## Demo 14 : Make a histogram with mass colormap ##
+Demo 14 : Make a histogram with mass colormap
+=============================================
 
-.. Here we create a histogram of log(density) vs log(temperature) using the mass contained in each pixel as the colormap. We want to sum the mass in each pixel, so we use the option `summed=True`.
+Here we create a histogram of log(density) vs log(temperature) using the mass
+contained in each pixel as the colormap.
+We want to sum the mass in each pixel, so we use the option ``summed=True``.
 
-.. ```
-.. #!python
-.. import osyris
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_T,mydata.mass,summed=True,scalar_args={"cmap":"magma_r,log"})
-.. ```
-.. ![mass_histo.png](https://bitbucket.org/repo/jq5boX/images/1967865780-mass_histo.png)
+.. code-block:: python
 
-.. ---
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
+   osyris.plot_histogram(mydata.log_rho, mydata.log_T, mydata.mass,
+                         summed=True, scalar_args={"cmap": "magma_r,log"},
+                         outline=True, fname="demo014.png")
 
-.. ## Demo 15 : Demo from the README with histogram and slice subplots ##
+.. image:: images/demo014.png
+   :width: 700px
 
-.. We make six subplots.
+Demo 15 : Demo from the README with histogram and slice subplots
+================================================================
 
-.. ```
-.. #!python
+We make six subplots.
 
-.. import osyris
+.. code-block:: python
 
-.. # Change default time unit to kyr
-.. osyris.conf.default_values["time_unit"]="kyr"
+   # Load data
+   mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
 
-.. # Load data
-.. mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
+   # Create figure
+   fig = plt.figure(figsize=(20, 10))
+   ax1 = fig.add_subplot(231)
+   ax2 = fig.add_subplot(232)
+   ax3 = fig.add_subplot(233)
+   ax4 = fig.add_subplot(234)
+   ax5 = fig.add_subplot(235)
+   ax6 = fig.add_subplot(236)
 
-.. # Create figure
-.. fig = osyris.plt.figure()
-.. ratio = 0.5
-.. sizex = 20.0
-.. fig.set_size_inches(sizex,ratio*sizex)
-.. ax1 = fig.add_subplot(231)
-.. ax2 = fig.add_subplot(232)
-.. ax3 = fig.add_subplot(233)
-.. ax4 = fig.add_subplot(234)
-.. ax5 = fig.add_subplot(235)
-.. ax6 = fig.add_subplot(236)
+   # Density vs B field with AMR level contours
+   osyris.plot_histogram(mydata.log_rho, mydata.log_B, axes=ax1,
+                         scalar=True, scalar_args={"cmap": "log,YlGnBu"},
+                         contour=mydata.level,
+                         contour_args={"fmt": "%i", "label": True,
+                                       "colors": "k", "cmap": None,
+                                       "levels": range(5,20), "cbar": False})
 
-.. # Density vs B field with AMR level contours
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_B,axes=ax1,scalar=True,scalar_args={"cmap":"log,YlGnBu"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"k","cmap":None,"levels":range(5,20),"cbar":False})
+   # Create new field with log of velocity
+   mydata.new_field(name="log_vel",
+                    operation="np.log10(np.sqrt("
+                              "velocity_x**2+velocity_y**2+velocity_z**2))",
+                    unit="cm/s", label="log(Velocity)")
 
-.. # Create new field with log of velocity
-.. mydata.new_field(name="log_vel",operation="np.log10(np.sqrt(velocity_x**2+velocity_y**2+velocity_z**2))",unit="cm/s",label="log(Velocity)")
+   # Density vs log_vel in scatter mode with a grey outline
+   osyris.plot_histogram(mydata.log_rho, mydata.log_vel, axes=ax2,
+                         scatter=mydata.log_T, outline=True,
+                         scatter_args={"iskip": 100, "cmap": "gnuplot"})
 
-.. # Density vs log_vel in scatter mode with a grey outline
-.. osyris.plot_histogram(mydata.log_rho,mydata.log_vel,axes=ax2,scatter=mydata.log_T,scatter_args={"iskip":100,"cmap":"gnuplot"},outline=True)
+   #x,z density slice with B field streamlines
+   osyris.plot_slice(mydata.density, direction="yxz", stream=mydata.B,
+                     dx=100, axes=ax3, scalar_args={"cmap": "log"})
+   # x,y density slice with velocity vectors in color
+   osyris.plot_slice(scalar=mydata.log_rho, direction="z",
+                     vec=mydata.velocity, dx=100, axes=ax4,
+                     vec_args={"cmap": "seismic", "vskip": 4})
+   # x,y temperature slice with velocity vectors
+   osyris.plot_slice(mydata.log_T, direction="z", vec=mydata.velocity,
+                     dx=100, axes=ax5, scalar_args={"cmap":"hot"},
+                     contour=mydata.level,
+                     contour_args={"fmt": "%i", "label": True,
+                                   "colors": "w", "cmap": None,
+                                   "levels": range(9,17)})
 
-.. #x,z density slice with B field streamlines
-.. osyris.plot_slice(mydata.density,direction="y",stream=mydata.B,dx=100,axes=ax3,scalar_args={"cmap":"log"})
-.. # x,y density slice with velocity vectors in color
-.. osyris.plot_slice(scalar=mydata.log_rho,direction="z",vec=mydata.velocity,dx=100,axes=ax4,vec_args={"cmap":"seismic","vskip":4})
-.. # x,y temperature slice with velocity vectors
-.. osyris.plot_slice(mydata.log_T,direction="z",vec=mydata.velocity,dx=100,axes=ax5,scalar_args={"cmap":"hot"},contour=mydata.level,contour_args={"fmt":"%i","label":True,"colors":"w","cmap":None,"levels":range(9,17)})
+   # Now update values with later snapshot
+   mydata.update_values(201)
+   # Re-plot x,y density slice with velocity vectors
+   osyris.plot_slice(mydata.log_rho, direction="auto:top",
+                     vec=mydata.velocity, dx=100, axes=ax6)
 
-.. # Now update values with later snapshot
-.. mydata.update_values(201)
-.. # Re-plot x,y density slice with velocity vectors
-.. osyris.plot_slice(mydata.log_rho,direction="auto:top",vec=mydata.velocity,dx=100,axes=ax6)
+   fig.savefig("demo015.png", bbox_inches="tight")
 
-.. fig.savefig("demo.pdf",bbox_inches="tight")
-.. ```
-.. ![demo015.png](https://bitbucket.org/repo/jq5boX/images/668553417-demo015.png)
+.. image:: images/demo015.png
+   :width: 700px
 
 .. ---
 
