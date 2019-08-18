@@ -2,11 +2,10 @@
 # Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
 # @author Neil Vaytet
 
-import struct
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, Normalize
 from scipy.interpolate import griddata
 from . import config as conf
 
@@ -478,10 +477,14 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     datay = np.inner(coords, dir_vecs[2][1])
 
     # Define slice extent and resolution
-    xmin = max(-0.5*dx, box[0])
-    xmax = min(xmin+dx, box[1])
-    ymin = max(-0.5*dy, box[2])
-    ymax = min(ymin+dy, box[3])
+    # xmin = max(-0.5*dx, box[0])
+    # xmax = min(xmin+dx, box[1])
+    # ymin = max(-0.5*dy, box[2])
+    # ymax = min(ymin+dy, box[3])
+    xmin = -0.5 * dx
+    xmax = xmin + dx
+    ymin = -0.5 * dy
+    ymax = ymin + dy
     nx = resolution
     ny = resolution
     dpx = (xmax-xmin)/float(nx)
@@ -765,12 +768,16 @@ def parse_arguments(args, args_osyris, args_plot):
         args_osyris[key] = args[key]
     # Define colorbar scaling
     cmap = args_osyris["cmap"]
-    norm = None
+    # norm = None
     # Default number of contours
     try:
         nc = args_osyris["nc"]
     except KeyError:
         nc = 21
+    if args_osyris["vmin"] == args_osyris["vmax"]:
+        args_osyris["vmin"] /= 1.1
+        args_osyris["vmax"] *= 1.1
+    norm = Normalize(vmin=args_osyris["vmin"], vmax=args_osyris["vmax"])
     # Default contour levels
     try:
         clevels = np.linspace(args_osyris["vmin"], args_osyris["vmax"], nc)
@@ -824,7 +831,7 @@ def get_slice_direction(holder, direction, dx=0, dy=0, origin=[0, 0, 0]):
     # Transform origin to coordinates if sink is requested
     try:
         if origin.startswith("sink"):
-            isink = holder.sinks["id"].index(origin)
+            isink = np.where(holder.sinks["id"] == int(origin.split(":")[1]))[0][0]
             origin = [holder.sinks["x"][isink], holder.sinks["y"]
                       [isink], holder.sinks["z"][isink]]
     except AttributeError:
@@ -1213,277 +1220,5 @@ def render_map(scalar=False, image=False, contour=False, scatter=False, vec=Fals
         pass
     else:
         plt.show(block=block)
-
-    return
-
-# =======================================================================================
-# Interpolate data at any given point in the whole 3D domain
-# =======================================================================================
-
-
-def interpolate(field, points):
-
-    holder = field.parent
-
-    try:
-        hashTable = holder.hash_table
-    except AttributeError:
-        print("A hash table is needed to perform interpolations")
-        holder.create_hash_table()
-
-    points[:, 0] = ((points[:, 0] + holder.info["xc"]) /
-                    holder.info["boxsize_scaled"])
-    points[:, 1] = ((points[:, 1] + holder.info["yc"]) /
-                    holder.info["boxsize_scaled"])
-    points[:, 2] = ((points[:, 2] + holder.info["zc"]) /
-                    holder.info["boxsize_scaled"])
-
-    npoints = np.shape(points)[0]
-    ilevl = holder.info["levelmax"]
-    values = np.zeros([npoints])
-    for ip in range(npoints):
-        not_found = True
-        loop_count = 0
-        while not_found:
-            l = max(min(ilevl+((-1)**loop_count) *
-                        int((loop_count+1)/2), holder.info["levelmax"]), 0)
-            loop_count += 1
-            dxcell = 0.5**l
-            igrid = int(points[ip, 0]/dxcell)
-            jgrid = int(points[ip, 1]/dxcell)
-            kgrid = int(points[ip, 2]/dxcell)
-            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(l)
-            try:
-                icell = holder.hash_table[theHash]
-                ilevl = l
-                not_found = False
-            except KeyError:
-                pass
-
-        cube = dict()
-        dmax = 0.0
-        cube[theHash] = dict()
-        cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-            holder.hash_table[theHash]]
-        cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((igrid+0.5)*dxcell))**2 +
-                                        (points[ip, 1]-((jgrid+0.5)*dxcell))**2 +
-                                        (points[ip, 2]-((kgrid+0.5)*dxcell))**2)
-        dmax = max(dmax, cube[theHash]["dist"])
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
-                    if i == j == k == 1:
-                        pass
-                    else:
-                        ii = igrid-1+i
-                        jj = jgrid-1+j
-                        kk = kgrid-1+k
-                        theHash = str(ii)+','+str(jj)+',' + \
-                            str(kk)+','+str(ilevl)
-                        try:
-                            neighbour = holder.hash_table[theHash]
-                            cube[theHash] = dict()
-                            cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                holder.hash_table[theHash]]
-                            cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((ii+0.5)*dxcell))**2 +
-                                                            (points[ip, 1]-((jj+0.5)*dxcell))**2 +
-                                                            (points[ip, 2]-((kk+0.5)*dxcell))**2)
-                            dmax = max(dmax, cube[theHash]["dist"])
-                        except KeyError:
-                            theHash = str(2*ii)+','+str(2*jj) + \
-                                ','+str(2*kk)+','+str(ilevl+1)
-                            try:
-                                neighbour = holder.hash_table[theHash]
-                                for i1 in range(2):
-                                    for j1 in range(2):
-                                        for k1 in range(2):
-                                            theHash = str(
-                                                2*ii+i1)+','+str(2*jj+j1)+','+str(2*kk+k1)+','+str(ilevl+1)
-                                            cube[theHash] = dict()
-                                            cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                                holder.hash_table[theHash]]
-                                            cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((2*ii+i1+0.5)*dxcell*0.5))**2 +
-                                                                            (points[ip, 1]-((2*jj+j1+0.5)*dxcell*0.5))**2 +
-                                                                            (points[ip, 2]-((2*kk+k1+0.5)*dxcell*0.5))**2)
-                                            dmax = max(
-                                                dmax, cube[theHash]["dist"])
-                            except KeyError:
-                                theHash = str(int(float(
-                                    ii)/2.0))+','+str(int(float(jj)/2.0))+','+str(int(float(kk)/2.0))+','+str(ilevl-1)
-                                try:
-                                    neighbour = holder.hash_table[theHash]
-                                    cube[theHash] = dict()
-                                    cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                        holder.hash_table[theHash]]
-                                    cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((int(float(ii)/2.0)+0.5)*dxcell*2.0))**2 +
-                                                                    (points[ip, 1]-((int(float(jj)/2.0)+0.5)*dxcell*2.0))**2 +
-                                                                    (points[ip, 2]-((int(float(kk)/2.0)+0.5)*dxcell*2.0))**2)
-                                    dmax = max(dmax, cube[theHash]["dist"])
-                                except KeyError:
-                                    print("Neighbour not found",
-                                          igrid, jgrid, kgrid, i, j, k)
-
-        # Compute inverse distance weighting
-        result = 0.0
-        weights = 0.0
-        for key in cube.keys():
-            #w = (0.1-1.0)/dmax * cube[key]["dist"] + 1.0
-            w = 1.0 / (np.exp(15.0*(cube[key]["dist"]/dmax-0.5)) + 1.0)
-            weights += w
-            result += w*cube[key]["vars"]
-
-        values[ip] = result/weights
-
-    return values
-
-# =======================================================================================
-# Write RAMSES data to VTK file
-# =======================================================================================
-
-
-def to_vtk(holder, fname="osyris_data.vtu"):
-
-    try:
-        from scipy.spatial import Delaunay
-    except ImportError:
-        print("Scipy Delaunay library not found. This is needed for VTK output. Exiting.")
-
-    # Print status
-    if not fname.endswith(".vtu"):
-        fname += ".vtu"
-    print("Writing data to VTK file: "+fname)
-
-    # Coordinates ot RAMSES cell centers
-    points = np.array([holder.get("x"), holder.get("y"), holder.get("z")]).T
-
-    # Compute Delaunay tetrahedralization from cell nodes
-    # Note that this step can take a lot of time!
-    ncells = points.shape[0]
-    print("Computing Delaunay mesh with %i points." % ncells)
-    print("This may take some time...")
-    tri = Delaunay(points, qhull_options="QJ Qx Qs Qv")
-    ntetra = np.shape(tri.simplices)[0]
-    nverts = ntetra*4
-    print("Delaunay mesh with %i tetrahedra complete." % ntetra)
-
-    # Create list of variables by grouping x,y,z components together
-    key_list = holder.get_var_list()
-    n_components = []
-    varlist = []
-    for key in key_list:
-        thisVar = getattr(holder, key)
-        if (not thisVar.vector_component) and (thisVar.group != "amr"):
-            if thisVar.kind == "vector":
-                n_components.append(3)
-            elif thisVar.kind == "scalar":
-                n_components.append(1)
-            else:
-                print("Unknown data type: "+thisVar.kind)
-                return
-            varlist.append(key)
-
-    nvars = len(n_components)
-
-    # Compute byte sizes
-    nbytes_xyz = 3 * ncells * 8
-    nbytes_cellc = nverts * 4
-    nbytes_cello = ntetra * 4
-    nbytes_cellt = ntetra * 4
-    nbytes_vars = np.zeros([nvars], dtype=np.int32)
-    for i in range(nvars):
-        nbytes_vars[i] = n_components[i] * ncells * 8
-
-    # Compute byte offsets
-    offsets = np.zeros([nvars+4], dtype=np.int64)
-    offsets[0] = 0                             # xyz coordinates
-    offsets[1] = offsets[0] + 4 + nbytes_xyz   # cell connectivity
-    offsets[2] = offsets[1] + 4 + nbytes_cellc  # cell offsets
-    offsets[3] = offsets[2] + 4 + nbytes_cello  # cell types
-    offsets[4] = offsets[3] + 4 + nbytes_cellt  # first hydro variable
-    for i in range(nvars-1):
-        offsets[i+5] = offsets[i+4] + 4 + nbytes_vars[i]
-
-    # Open file for binary output
-    f = open(fname, "wb")
-
-    # Write VTK file header
-    f.write('<?xml version=\"1.0\"?>\n')
-    f.write('<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n')
-    f.write('   <UnstructuredGrid>\n')
-    f.write('   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n' %
-            (ncells, ntetra))
-    f.write('      <Points>\n')
-    f.write(
-        '         <DataArray type=\"Float64\" Name=\"Coordinates\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%i\" />\n' % offsets[0])
-    f.write('      </Points>\n')
-    f.write('      <Cells>\n')
-    f.write(
-        '         <DataArray type=\"Int32\" Name=\"connectivity\" format=\"appended\" offset=\"%i\" />\n' % offsets[1])
-    f.write(
-        '         <DataArray type=\"Int32\" Name=\"offsets\" format=\"appended\" offset=\"%i\" />\n' % offsets[2])
-    f.write(
-        '         <DataArray type=\"Int32\" Name=\"types\" format=\"appended\" offset=\"%i\" />\n' % offsets[3])
-    f.write('      </Cells>\n')
-    f.write('      <PointData>\n')
-    for i in range(nvars):
-        f.write('         <DataArray type=\"Float64\" Name=\"' +
-                varlist[i]+'\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />\n' % (n_components[i], offsets[i+4]))
-    f.write('      </PointData>\n')
-    f.write('   </Piece>\n')
-    f.write('   </UnstructuredGrid>\n')
-    f.write('   <AppendedData encoding=\"raw\">\n')
-    f.write('_')
-
-    # Now write data in binary. Every data field is preceded by its byte size.
-
-    # x,y,z coordinates of the points
-    f.write(struct.pack('<i', *[nbytes_xyz]))
-    f.write(struct.pack('<%id' % (ncells*3), *np.ravel(points)))
-
-    # Cell connectivity
-    f.write(struct.pack('<i', *[nbytes_cellc]))
-    f.write(struct.pack('<%ii' % nverts, *np.ravel(tri.simplices)))
-
-    # Cell offsets
-    f.write(struct.pack('<i', *[nbytes_cello]))
-    f.write(struct.pack('<%ii' % ntetra, *range(4, ntetra*4+1, 4)))
-
-    # Cell types: number 10 is tetrahedron in VTK file format
-    f.write(struct.pack('<i', *[nbytes_cellt]))
-    f.write(struct.pack('<%ii' % ntetra, *np.full(ntetra, 10, dtype=np.int32)))
-
-    # Cell variables
-    for i in range(nvars):
-        if n_components[i] == 3:
-            celldata = np.ravel(np.array([holder.get(varlist[i]+"_x"),
-                                          holder.get(varlist[i]+"_y"),
-                                          holder.get(varlist[i]+"_z")]).T)
-        else:
-            celldata = holder.get(varlist[i])
-        f.write(struct.pack('<i', *[nbytes_vars[i]]))
-        f.write(struct.pack('<%id' % (ncells*n_components[i]), *celldata))
-
-    # Close file
-    f.write('   </AppendedData>\n')
-    f.write('</VTKFile>\n')
-    f.close()
-
-    # File size
-    fsize_raw = offsets[nvars+3] + nbytes_vars[nvars-1]
-    if fsize_raw > 1000000000:
-        fsize = float(fsize_raw)/1.0e9
-        funit = "Gb"
-    elif fsize_raw > 1000000:
-        fsize = float(fsize_raw)/1.0e6
-        funit = "Mb"
-    elif fsize_raw > 1000:
-        fsize = float(fsize_raw)/1.0e3
-        funit = "kb"
-    else:
-        fsize = float(fsize_raw)
-        funit = "b"
-
-    print("File "+fname+(" of size %.1f" %
-                         fsize)+funit+" succesfully written.")
 
     return

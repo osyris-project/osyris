@@ -149,9 +149,9 @@ class OsyrisData:
                 else:
                     print("Bad center format: must have 3 numbers as input.")
                     return
-            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+            except TypeError: # if not it should have the format 'sink:1', or 'max:density'
                 if self.info["center"].startswith("sink"):
-                    isink = self.sinks["id"].index(self.info["center"])
+                    isink = np.where(self.sinks["id"] == int(self.info["center"].split(":")[1]))[0][0]
                     xc = self.sinks["x"][isink]/self.info["boxlen"]/self.info["unit_l"]
                     yc = self.sinks["y"][isink]/self.info["boxlen"]/self.info["unit_l"]
                     zc = self.sinks["z"][isink]/self.info["boxlen"]/self.info["unit_l"]
@@ -193,11 +193,11 @@ class OsyrisData:
 
             # Re-center particles
             if self.info["npart_tot"] > 0:
-                self.x_part.values = self.x_part.values*conf.constants[self.info["scale"]] + xc
+                self.part_position_x.values = self.part_position_x.values*conf.constants[self.info["scale"]] + xc
                 if self.info["ndim"] > 1:
-                    self.y_part.values = self.y_part.values*conf.constants[self.info["scale"]] + yc
+                    self.part_position_y.values = self.part_position_y.values*conf.constants[self.info["scale"]] + yc
                 if self.info["ndim"] > 2:
-                    self.z_part.values = self.z_part.values*conf.constants[self.info["scale"]] + zc
+                    self.part_position_z.values = self.part_position_z.values*conf.constants[self.info["scale"]] + zc
 
             # Store new center in info
             self.info["center"] = newcenter
@@ -217,26 +217,27 @@ class OsyrisData:
                 else:
                     print("Bad center format: must have 3 numbers as input.")
                     return
-            except TypeError: # if not it should have the format 'sink1', or 'max:density'
+            except TypeError: # if not it should have the format 'sink:1', or 'max:density'
+                cvar=self.info["center"].split(":")[1]
                 if self.info["center"].startswith("sink"):
-                    isink = self.sinks["id"].index(self.info["center"])
+                    isink = np.where(self.sinks["id"] == int(cvar))[0][0]
                     xc = self.sinks["x"][isink]
                     yc = self.sinks["y"][isink]
                     zc = self.sinks["z"][isink]
                 elif self.info["center"].startswith("max"):
-                    cvar=self.info["center"].split(":")[1]
+                    # cvar=self.info["center"].split(":")[1]
                     maxloc = np.argmax(self.get(cvar))
                     xc = self.get("x")[maxloc]
                     yc = self.get("y")[maxloc]
                     zc = self.get("z")[maxloc]
                 elif self.info["center"].startswith("min"):
-                    cvar=self.info["center"].split(":")[1]
+                    # cvar=self.info["center"].split(":")[1]
                     minloc = np.argmin(self.get(cvar))
                     xc = self.get("x")[minloc]
                     yc = self.get("y")[minloc]
                     zc = self.get("z")[minloc]
                 elif self.info["center"].startswith("av"):
-                    cvar=self.info["center"].split(":")[1]
+                    # cvar=self.info["center"].split(":")[1]
                     [op_parsed,depth,grp,status] = self.parse_operation(cvar,only_leafs=True)
                     select = eval("np.where("+op_parsed+")")
                     xc = np.average(self.get("x")[select])
@@ -271,11 +272,11 @@ class OsyrisData:
 
         # Re-center particles
         if self.info["npart_tot"] > 0:
-            self.x_part.values = (self.x_part.values - xc)/conf.constants[self.info["scale"]]
+            self.part_position_x.values = (self.part_position_x.values - xc)/conf.constants[self.info["scale"]]
             if self.info["ndim"] > 1:
-                self.y_part.values = (self.y_part.values - yc)/conf.constants[self.info["scale"]]
+                self.part_position_y.values = (self.part_position_y.values - yc)/conf.constants[self.info["scale"]]
             if self.info["ndim"] > 2:
-                self.z_part.values = (self.z_part.values - zc)/conf.constants[self.info["scale"]]
+                self.part_position_z.values = (self.part_position_z.values - zc)/conf.constants[self.info["scale"]]
 
         return
 
@@ -326,7 +327,8 @@ class OsyrisData:
                     group = grp
             if status == 2: # Only scalar fields
                 try:
-                    new_data = eval(op_parsed)
+                    with np.errstate(divide="ignore", invalid="ignore"):
+                        new_data = eval(op_parsed)
                 except NameError:
                     if verbose:
                         print("Error parsing operation when trying to create variable: "+name)
@@ -344,7 +346,8 @@ class OsyrisData:
                     [op_parsed,depth,grp,stat_n] = self.parse_operation(operation,suffix=comps[n])
                     if stat_n == 2:
                         try:
-                            new_data = eval(op_parsed)
+                            with np.errstate(divide="ignore", invalid="ignore"):
+                                new_data = eval(op_parsed)
                         except NameError:
                             if verbose:
                                 print("Error parsing operation when trying to create variable: "+name+comps[n])
@@ -503,22 +506,6 @@ class OsyrisData:
             return key_list
 
     #=======================================================================================
-    # Create a hash table for all the cells in the domain
-    #=======================================================================================
-    def create_hash_table(self):
-
-        print("Building hash table")
-        self.hash_table = dict()
-        for icell in range(self.info["ncells"]):
-            igrid = int(self.get("x")[icell]/self.get("dx")[icell])
-            jgrid = int(self.get("y")[icell]/self.get("dx")[icell])
-            kgrid = int(self.get("z")[icell]/self.get("dx")[icell])
-            theHash = str(igrid)+','+str(jgrid)+','+str(kgrid)+','+str(int(self.get("level")[icell]))
-            self.hash_table[theHash] = icell
-
-        return
-
-    #=======================================================================================
     # Create dummy variables containing the components of the vectors
     #=======================================================================================
     def create_vector_containers(self):
@@ -632,10 +619,12 @@ class OsyrisData:
 #=======================================================================================
 # Determine binary offset when reading fortran binary files and return unpacked data
 #=======================================================================================
-def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,content=None,correction=0):
+def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,offset=None,content=None,correction=0):
 
-    offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
-    byte_size = {"i":4,"d":8,"q":8}
+    if offset is None:
+        offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16
+    offset += 4 + correction
+    byte_size = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
     if len(fmt) == 1:
         mult = 1
     else:

@@ -72,7 +72,7 @@ class RamsesData(eng.OsyrisData):
 
         # Print exit message
         [var_list,typ_list] = self.get_var_list(types=True)
-        print("Memory used: %.2f Mb" % (typ_list.count('scalar')*self.info["ncells"]*8.0/1.0e6))
+        print("Memory used: %.2f MB" % (typ_list.count('scalar')*self.info["ncells"]*8.0/1.0e6))
         print(self.info["infile"]+" successfully loaded")
         if verbose:
             self.print_info()
@@ -200,6 +200,7 @@ class RamsesData(eng.OsyrisData):
         list_vars   = []
         var_read    = []
         var_group   = []
+        var_type    = []
         xyz_strings = "xyz"
 
         # Start with hydro variables ==================================
@@ -207,34 +208,26 @@ class RamsesData(eng.OsyrisData):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         hydrofile = infile+"/hydro_file_descriptor.txt"
+        hydro = True
+        self.info["nvar_hydro"] = 0
         try:
             with open(hydrofile) as f:
                 content = f.readlines()
-            f.close()
         except IOError:
-            # If hydro_file_descriptor.txt does not exist, mimic the
-            # content by using the default names from the config file
-            content = ["nvar = "+str(len(conf.default_values["var_names"]))]
-            ivar = 0
-            for var in conf.default_values["var_names"]:
-                ivar = ivar + 1
-                content.append("variable #"+str(ivar)+": "+var)
-        # Read the total number of hydro variables
-        for line in content:
-            sp = line.split("=")
-            if len(sp) > 1:
-                if sp[0].strip() == "nvar":
-                    self.info["nvar_hydro"] = int(sp[1].strip())
-                    break
-
-        # Now add to the list of variables to be read
-        for line in content:
-            sp = line.split(":")
-            if len(sp) > 1:
-                if (len(variables) == 0) or (sp[1].strip() in variables) or ("hydro" in variables):
+            hydro = False
+        if hydro:
+            # Store the total number of hydro variables
+            self.info["nvar_hydro"] = len(content) - 2
+            # Now add to the list of variables to be read
+            for line in content[2:]:
+                sp = line.split(",")
+                v = sp[1].strip()
+                t = sp[2].strip()
+                if (len(variables) == 0) or (v in variables) or ("hydro" in variables):
                     var_read.append(True)
-                    list_vars.append(sp[1].strip())
+                    list_vars.append(v)
                     var_group.append("hydro")
+                    var_type.append(t)
                 else:
                     var_read.append(False)
 
@@ -242,16 +235,17 @@ class RamsesData(eng.OsyrisData):
 
         # Check if self-gravity files exist
         grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
+        gravity = True
+        self.info["nvar_grav"] = 0
         try:
-            with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
+            with open(grav_fname, mode='rb') as grav_file:
                 gravContent = grav_file.read()
-            grav_file.close()
-            gravity = True
         except IOError:
             gravity = False
 
         # Add gravity fields
         if gravity:
+            self.info["nvar_grav"] = 4
             content = ["grav_potential"]
             for n in range(self.info["ndim"]):
                 content.append("grav_acceleration_"+xyz_strings[n])
@@ -267,102 +261,68 @@ class RamsesData(eng.OsyrisData):
 
         # Now for rt ==================================
 
-        # Check if rt files exist
-        rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=1)
+        rtfile = infile+"/rt_file_descriptor.txt"
+        rt = True
+        self.info["nvar_rt"] = 0
         try:
-            with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
-                rtContent = rt_file.read()
-            rt_file.close()
-            rt = True
+            with open(rtfile) as f:
+                content = f.readlines()
+            # f.close()
         except IOError:
             rt = False
-
-        # Read info_rt file and create info_rt dictionary
         if rt:
-            infortfile = infile+"/info_rt_"+infile.split("_")[-1]+".txt"
-            status = self.read_parameter_file(fname=infortfile,dict_name="info_rt",verbose=True)
-            if status < 1:
-                return 0
-
-        # Add rt fields
-        if rt:
-            for igrp in range(self.info_rt["nGroups"]):
-                if self.info["write_cons"]==1:
-                    content = ["photon_density_"+str(igrp+1)]
-                else:
-                    content = ["photon_flux_density_"+str(igrp+1)]
-                for n in range(self.info["ndim"]):
-                    content.append("photon_flux_"+str(igrp+1)+"_"+xyz_strings[n])
-
+            # Store the total number of rt variables
+            self.info["nvar_rt"] = len(content) - 2
             # Now add to the list of variables to be read
-            for line in content:
-                if (len(variables) == 0) or (line.strip() in variables) or ("rt" in variables):
+            for line in content[2:]:
+                sp = line.split(",")
+                v = sp[1].strip()
+                t = sp[2].strip()
+                if (len(variables) == 0) or (v in variables) or ("rt" in variables):
                     var_read.append(True)
-                    list_vars.append(line.strip())
+                    list_vars.append(v)
                     var_group.append("rt")
+                    var_type.append(t)
                 else:
                     var_read.append(False)
 
         # Make sure we always read the coordinates
-        list_vars.extend(("level","x","y","z","dx","cpu","leaf"))
-        var_read.extend((True,True,True,True,True,True,True))
-        var_group.extend(("amr","amr","amr","amr","amr","amr","amr"))
+        var_amr = ["level","x","y","z","dx","cpu","leaf"]
+        list_vars.extend(var_amr)
+        var_read.extend([True] * len(var_amr))
+        var_group.extend(["amr"] * len(var_amr))
         nvar_read = len(list_vars)
 
         # Now for particles ==================================
 
-        particles = False
-        self.info["npart_tot"] = 0
-        if "part" in variables:
-            # Read header file to get particle information
-            headerfile = self.generate_fname(nout,path,ftype="header",cpuid=-1,ext=".txt")
-            with open(headerfile) as f:
-                dummy_string = f.readline()
-                self.info["npart_tot"] = int(f.readline())
-                dummy_string = f.readline()
-                self.info["npart_dm"] = int(f.readline())
-                dummy_string = f.readline()
-                self.info["npart_star"] = int(f.readline())
-                dummy_string = f.readline()
-                self.info["npart_sink"] = int(f.readline())
-                dummy_string = f.readline()
-                particle_fields = f.readline().split(' ')[:-1]
-            f.close()
-            npart_fields = len(particle_fields)
-            particles = (self.info["npart_tot"] > 0)
-            npart_count = 0
-            if particles:
-                npart_dims = []
-                part_vars  = []
-                part_types = []
-                for field in particle_fields:
-                    if field == "pos":
-                        for n in range(self.info["ndim"]):
-                            part_vars.append(xyz_strings[n]+"_part")
-                            part_types.append("d")
-                        npart_dims.append(self.info["ndim"])
-                    elif field == "vel":
-                        for n in range(self.info["ndim"]):
-                            part_vars.append("part_velocity_"+xyz_strings[n])
-                            part_types.append("d")
-                        npart_dims.append(self.info["ndim"])
-                    elif field == "tracer_b":
-                        for n in range(3):
-                            part_vars.append("part_"+field+"_"+xyz_strings[n])
-                            part_types.append("d")
-                        npart_dims.append(3)
-                    else:
-                        part_vars.append("part_"+field)
-                        npart_dims.append(1)
-                        if field == "iord":
-                            part_types.append("q")
-                        elif field == "level":
-                            part_types.append("i")
-                        else:
-                            part_types.append("d")
-                #print sum(npart_dims)
-                part = np.zeros([self.info["npart_tot"],sum(npart_dims)],dtype=np.float64)
+        # TODO: refactor this code to use the same function for reading hydro,
+        # rt, and part file descriptors
 
+        particles = True
+        partfile = infile+"/part_file_descriptor.txt"
+        try:
+            with open(partfile) as f:
+                content = f.readlines()
+            # f.close()
+        except IOError:
+            particles = False
+        if particles:
+            part_read = []
+            part_vars = []
+            part_type = []
+            # Store the total number of part variables
+            self.info["nvar_part"] = len(content) - 2
+            # Now add to the list of variables to be read
+            for line in content[2:]:
+                sp = line.split(",")
+                v = "part_" + sp[1].strip()
+                t = sp[2].strip()
+                if (len(variables) == 0) or (v in variables) or ("part" in variables):
+                    part_read.append(True)
+                    part_vars.append(v)
+                    part_type.append(t)
+                else:
+                    part_read.append(False)
 
         # Load sink particles if any
         self.read_sinks()
@@ -406,6 +366,7 @@ class RamsesData(eng.OsyrisData):
         npieces = 0
         part_pieces = dict()
         npieces_part = 0
+        npart_count = 0
 
         # Allocate work arrays
         twotondim = 2**self.info["ndim"]
@@ -431,29 +392,25 @@ class RamsesData(eng.OsyrisData):
 
             # Read binary AMR file
             amr_fname = self.generate_fname(nout,path,ftype="amr",cpuid=k+1)
-            with open(amr_fname, mode='rb') as amr_file: # b is important -> binary
+            with open(amr_fname, mode='rb') as amr_file:
                 amrContent = amr_file.read()
-            amr_file.close()
 
             # Read binary HYDRO file
             hydro_fname = self.generate_fname(nout,path,ftype="hydro",cpuid=k+1)
-            with open(hydro_fname, mode='rb') as hydro_file: # b is important -> binary
+            with open(hydro_fname, mode='rb') as hydro_file:
                 hydroContent = hydro_file.read()
-            hydro_file.close()
 
             # Read binary GRAVITY file
             if gravity:
                 grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=k+1)
-                with open(grav_fname, mode='rb') as grav_file: # b is important -> binary
+                with open(grav_fname, mode='rb') as grav_file:
                     gravContent = grav_file.read()
-                grav_file.close()
 
             # Read binary RT file
             if rt:
                 rt_fname = self.generate_fname(nout,path,ftype="rt",cpuid=k+1)
-                with open(rt_fname, mode='rb') as rt_file: # b is important -> binary
+                with open(rt_fname, mode='rb') as rt_file:
                     rtContent = rt_file.read()
-                rt_file.close()
 
             ninteg = nfloat = nlines = nstrin = nquadr = nlongi = 0
 
@@ -525,10 +482,11 @@ class RamsesData(eng.OsyrisData):
             nstrin1 = 128 + key_size
 
             # Offset for HYDRO
-            ninteg2 = 5
-            nfloat2 = 1
-            nlines2 = 6
-            nstrin2 = 0
+            if hydro:
+                ninteg2 = 5
+                nfloat2 = 1
+                nlines2 = 6
+                nstrin2 = 0
 
             # Offset for GRAVITY
             if gravity:
@@ -565,10 +523,11 @@ class RamsesData(eng.OsyrisData):
                 nstrin_amr = nstrin1
 
                 # Cumulative offsets in HYDRO file
-                ninteg_hydro = ninteg2
-                nfloat_hydro = nfloat2
-                nlines_hydro = nlines2
-                nstrin_hydro = nstrin2
+                if hydro:
+                    ninteg_hydro = ninteg2
+                    nfloat_hydro = nfloat2
+                    nlines_hydro = nlines2
+                    nstrin_hydro = nstrin2
 
                 # Cumulative offsets in GRAVITY file
                 if gravity:
@@ -590,8 +549,9 @@ class RamsesData(eng.OsyrisData):
                     ncache = ngridlevel[j,ilevel]
 
                     # Skip two lines of integers
-                    nlines_hydro += 2
-                    ninteg_hydro += 2
+                    if hydro:
+                        nlines_hydro += 2
+                        ninteg_hydro += 2
                     if gravity:
                         nlines_grav += 2
                         ninteg_grav += 2
@@ -621,23 +581,23 @@ class RamsesData(eng.OsyrisData):
                                 son[:ncache,ind] = struct.unpack("%ii"%(ncache), amrContent[offset:offset+4*ncache])
                                 # var: hydro variables
                                 jvar = 0
-                                for ivar in range(self.info["nvar_hydro"]):
-                                    if var_read[ivar]:
-                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar_hydro"]+ivar)*(ncache+1)) + nstrin_hydro + 4
-                                        var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
-                                        jvar += 1
+                                if hydro:
+                                    for ivar in range(self.info["nvar_hydro"]):
+                                        if var_read[ivar]:
+                                            offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*self.info["nvar_hydro"]+ivar)*(ncache+1)) + nstrin_hydro + 4
+                                            var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
+                                            jvar += 1
                                 # var: grav variables
                                 if gravity:
-                                    #jvar = 0
-                                    for ivar in range(self.info["ndim"]+1):
+                                    for ivar in range(self.info["nvar_grav"]):
                                         if var_read[ivar+self.info["nvar_hydro"]]:
-                                            offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*(self.info["ndim"]+1)+ivar)*(ncache+1)) + nstrin_grav + 4
+                                            offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*self.info["nvar_grav"]+ivar)*(ncache+1)) + nstrin_grav + 4
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
                                             jvar += 1
                                 # var: rt variables
                                 if rt:
-                                    for ivar in range(self.info_rt["nRTvar"]):
-                                        if var_read[ivar+self.info["nvar_hydro"]+self.info["ndim"]+1]:
+                                    for ivar in range(self.info_rt["nvar_rt"]):
+                                        if var_read[ivar+self.info["nvar_hydro"]+self.info["nvar_grav"]]:
                                             offset = 4*ninteg_rt + 8*(nlines_rt+nfloat_rt+(ind*self.info_rt["nRTvar"]+ivar)*(ncache+1)) + nstrin_rt + 4
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), rtContent[offset:offset+8*ncache])
                                             jvar += 1
@@ -684,16 +644,17 @@ class RamsesData(eng.OsyrisData):
                         nfloat_amr += ncache*self.info["ndim"]
                         nlines_amr += 4 + 3*twotondim + 3*self.info["ndim"]
 
-                        nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
-                        nlines_hydro += twotondim*self.info["nvar_hydro"]
-
-                        if rt:
-                            nfloat_rt += ncache*twotondim*self.info_rt["nRTvar"]
-                            nlines_rt += twotondim*self.info_rt["nRTvar"]
+                        if hydro:
+                            nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
+                            nlines_hydro += twotondim*self.info["nvar_hydro"]
 
                         if gravity:
-                            nfloat_grav += ncache*twotondim*(self.info["ndim"]+1)
-                            nlines_grav += twotondim*(self.info["ndim"]+1)
+                            nfloat_grav += ncache*twotondim*(self.info["nvar_grav"])
+                            nlines_grav += twotondim*(self.info["nvar_grav"])
+
+                        if rt:
+                            nfloat_rt += ncache*twotondim*self.info_rt["nvar_rt"]
+                            nlines_rt += twotondim*self.info_rt["nvar_rt"]
 
                 # Now increment the offsets while looping through the levels
                 ninteg1 = ninteg_amr
@@ -701,10 +662,11 @@ class RamsesData(eng.OsyrisData):
                 nlines1 = nlines_amr
                 nstrin1 = nstrin_amr
 
-                ninteg2 = ninteg_hydro
-                nfloat2 = nfloat_hydro
-                nlines2 = nlines_hydro
-                nstrin2 = nstrin_hydro
+                if hydro:
+                    ninteg2 = ninteg_hydro
+                    nfloat2 = nfloat_hydro
+                    nlines2 = nlines_hydro
+                    nstrin2 = nstrin_hydro
 
                 if gravity:
                     ninteg3 = ninteg_grav
@@ -720,54 +682,38 @@ class RamsesData(eng.OsyrisData):
 
             # Now read particles: they are not in the loop over levels, only the cpu loop
             if particles:
+                fmt_to_bytes = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
                 # Read binary PARTICLE file
                 part_fname = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
-                with open(part_fname, mode='rb') as part_file: # b is important -> binary
+                with open(part_fname, mode='rb') as part_file:
                     partContent = part_file.read()
-                part_file.close()
                 # Get number of particles for this cpu
-                ninteg = nlines = 2
-                nfloat = nstrin = nquadr = nlongi = 0
-                [npart] = eng.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+                offset = (fmt_to_bytes["i"] + fmt_to_bytes["e"]) * 2
+                [npart] = eng.get_binary_data(fmt="i",content=partContent,offset=offset)
                 if npart > 0:
                     npart_count += npart
+                    part = np.zeros([npart, len(part_vars)],dtype=np.float64)
                     # Determine size of localseed array
-                    ninteg = nlines = 3
-                    [recordlength] = eng.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
-                    localseedsize = recordlength/4
+                    offset = (fmt_to_bytes["i"] + fmt_to_bytes["e"]) * 3
+                    [recordlength] = eng.get_binary_data(fmt="i",content=partContent,offset=offset,correction=-4)
+                    localseedsize = recordlength//4
                     # Now set offsets
-                    nlines = 8
-                    ninteg = 5 + localseedsize
-                    nfloat = 2
+                    offset = fmt_to_bytes["i"]*(5+localseedsize) + fmt_to_bytes["e"]*8 + fmt_to_bytes["d"]*2
                     # Go through all the particle fields and unpack the data
-                    nshifts = {"i":[1,0,0] , "d":[0,1,0], "q":[0,0,1]} # Useful dict to increment floats and integers
                     for n in range(len(part_vars)):
-                        # Determine size of long integer for ids
-                        if part_vars[n] == "part_iord":
-                            [recordlength] = eng.get_binary_data(fmt="i",content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,correction=-4)
-                            longintsize = recordlength/npart
-                            if longintsize == 4:
-                                part_types[n] = "i"
-                            elif longintsize == 8:
-                                part_types[n] = "q"
-                        part[:npart,n] = eng.get_binary_data(fmt=("%i"%npart)+part_types[n],content=partContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nlongi=nlongi)
-                        nlines += 1
-                        ninteg += npart * nshifts[part_types[n]][0]
-                        nfloat += npart * nshifts[part_types[n]][1]
-                        nlongi += npart * nshifts[part_types[n]][2]
+                        part[:, n] = eng.get_binary_data(fmt=("%i"%npart)+part_type[n],content=partContent,offset=offset)
+                        offset += fmt_to_bytes["e"] + npart*fmt_to_bytes[part_type[n]]
 
                     # Add the cells in the master dictionary
                     npieces_part += 1
-                    part_pieces["piece"+str(npieces_part)] = part[:npart,:]
+                    part_pieces["piece"+str(npieces_part)] = part
             # End of reading particles ==================================================
 
         # Merge all the data pieces into the master data array
         master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
         if particles:
-            if npart_count != self.info["npart_tot"]:
-                print("Number of particles do not match: ",npart_count,self.info["npart_tot"])
-            else:
-                master_part_array = np.concatenate(list(part_pieces.values()), axis=0)
+            self.info["npart_tot"] = npart_count
+            master_part_array = np.concatenate(list(part_pieces.values()), axis=0)
 
         # Free memory
         del data_pieces,xcent,xg,son,var,xyz,ref
@@ -778,7 +724,7 @@ class RamsesData(eng.OsyrisData):
         if particles:
             print("Total number of particles loaded: %i" % self.info["npart_tot"])
         if self.info["nsinks"] > 0:
-            print("Read %i sink particles" % self.info["nsinks"])
+            print(("Read %i sink particle" % self.info["nsinks"]) + ("s" if self.info["nsinks"] > 1 else ""))
         print("Generating data structure... please wait")
 
         # Store the number of cells
@@ -804,10 +750,6 @@ class RamsesData(eng.OsyrisData):
                 # Use the 'new_field' function to create data field
                 self.new_field(name=theKey,unit=uu,label=theLabel,values=master_part_array[:,i]*norm,\
                                verbose=False,norm=norm,update=update,group="part")
-            # Give the particles a `size'
-            [norm,uu] = self.get_units("dx",self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
-            self.new_field(name="dx_part",unit=uu,label="dx part",values=[norm*np.nanmin(self.dx.values)]*self.info["npart_tot"],\
-                               verbose=False,norm=norm,update=update,group="part")
 
         # Finally, add some useful information to save compute time later
         self.info["levelmax_active"] = np.nanmax(self.level.values)
@@ -825,40 +767,29 @@ class RamsesData(eng.OsyrisData):
 
         sinkfile = self.info["infile"]+"/sink_"+self.info["infile"].split("_")[-1]+".csv"
         try:
-            sinklist = np.loadtxt(sinkfile,delimiter=",")
+            with open(sinkfile) as f:
+                content = f.readlines()
         except IOError:
             self.info["nsinks"] = 0
             return
-        if np.shape(sinklist)[0] == 0:
-            self.info["nsinks"] = 0
-        else:
-            list_shape = np.shape(np.shape(sinklist))[0]
-            if list_shape == 1:
-                sinklist = np.reshape(sinklist, (1, np.shape(sinklist)[0]))
-                self.info["nsinks"] = 1
-            else:
-                self.info["nsinks"] = np.shape(sinklist)[0]
-            try:
-                r_sink = self.info["ir_cloud"]/(2.0**self.info["levelmax"])
-            except KeyError:
-                try:
-                    r_sink = self.info["ncell_racc"]/(2.0**self.info["levelmax"])
-                except KeyError:
-                    r_sink = 4.0/(2.0**self.info["levelmax"])
+        # Read the file header to get information on fields
+        sink_vars = content[0].rstrip().replace(" # ", "").split(",")
+        sink_units = content[1].rstrip().replace(" # ", "").split(",")
+        self.info["nsinks"] = len(content) - 2
+        if self.info["nsinks"] > 0:
             self.sinks = dict()
-            j = 0
-            for entry in conf.default_values["sink_format"]:
-                self.sinks[entry] = sinklist[:,j]
-                j += 1
+            for entry in sink_vars:
+                self.sinks[entry] = np.zeros(self.info["nsinks"], dtype=np.float64)
+            for i in range(self.info["nsinks"]):
+                line = np.asarray(content[i+2].rstrip().split(","), dtype=np.float64)
+                for j, entry in enumerate(sink_vars):
+                    self.sinks[entry][i] = np.float64(line[j])
             self.sinks["x"] *= self.info["unit_l"]
             self.sinks["y"] *= self.info["unit_l"]
             self.sinks["z"] *= self.info["unit_l"]
-            self.sinks["radius"] = np.full(self.info["nsinks"],r_sink)
-            ids = []
-            for i in range(self.info["nsinks"]):
-                ids.append("sink"+str(int(self.sinks["number"][i])))
-            self.sinks["id"] = ids
-            #print("Read %i sink particles" % self.info["nsinks"])
+            self.sinks["id"] = np.int32(self.sinks["id"])
+            self.sinks["level"] = np.int32(self.sinks["level"])
+            self.sinks["radius"] = 4.0/(2.0**self.sinks["level"])
 
         return
 
@@ -1006,7 +937,7 @@ class RamsesData(eng.OsyrisData):
             return [ud*((ul/ut)**2),"erg/cm3"]
         elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
             return [ul,scale]
-        elif (string == "x_part") or (string == "y_part") or (string == "z_part"):
+        elif string.startswith("part_position"):
             return [ul*self.info["boxlen"],scale]
         elif string == "temperature":
             return [1.0,"K"]

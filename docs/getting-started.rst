@@ -139,7 +139,7 @@ according to its name. This is done by the ``get_units()`` function and can
 easily be modified if you have non-standard variables.
 
 Creating a 2D histogram
----------------------
+-----------------------
 
 We now wish to plot a 2d histogram of the logarithm of density ``log_rho``
 versus logarithm of gas temperature ``log_T`` for all the cells inside the
