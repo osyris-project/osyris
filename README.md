@@ -1,10 +1,16 @@
-![demo.png](https://bitbucket.org/repo/jq5boX/images/2936418214-demo.png)
 
-# Osyris #
+
+<table><tr>
+  <td>
+    <h1>Osyris</h1>
 
 A python visualization utility for RAMSES data.
 Its purpose is to plot quick diagnostics while a simulation is running,
 and also produce publication grade figures.
+  </td>
+  <td><img src="docs/images/logo_osyris.png" width="200" /></td>
+  </tr>
+</table>
 
 ### Documentation ###
 
@@ -84,6 +90,7 @@ osyris.plot_slice(mydata.log_rho, direction="z", vec=mydata.velocity,
 
 fig.savefig("demo.pdf", bbox_inches="tight")
 ```
+![logo](docs/images/demo015.png)
 
 ### Have a problem or need a new feature? ###
 
