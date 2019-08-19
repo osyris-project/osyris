@@ -6,6 +6,10 @@ A python visualization utility for RAMSES data.
 Its purpose is to plot quick diagnostics while a simulation is running,
 and also produce publication grade figures.
 
+### Documentation ###
+
+The documentation for `osyris` is hosted on [Readthedocs](https://osyris.readthedocs.io/en/latest/index.html).
+
 ### Installation ###
 
 ```sh
@@ -22,7 +26,7 @@ osyris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
 
 ### Demo ###
 
-You can download the sample data [here](http://www.nbi.dk/~nvaytet/osyris/ramses_sample_data.tar.gz).
+You can download the sample data [here](http://project.esss.dk/owncloud/index.php/s/biNBruU0wDOybsb/download).
 
 ```python
 import osyris
@@ -82,10 +86,6 @@ osyris.plot_slice(mydata.log_rho, direction="z", vec=mydata.velocity,
 
 fig.savefig("demo.pdf", bbox_inches="tight")
 ```
-
-### Documentation ###
-
-The documentation for `osyris` is hosted on [Readthedocs](https://osyris.readthedocs.io/en/latest/index.html).
 
 ### Have a problem or need a new feature? ###
 

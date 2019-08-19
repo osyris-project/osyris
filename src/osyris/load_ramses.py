@@ -300,6 +300,7 @@ class RamsesData(eng.OsyrisData):
 
         particles = True
         partfile = infile+"/part_file_descriptor.txt"
+        self.info["npart_tot"] = 0
         try:
             with open(partfile) as f:
                 content = f.readlines()
