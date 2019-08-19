@@ -16,12 +16,12 @@ The documentation for `osyris` is hosted on [Readthedocs](https://osyris.readthe
 pip install osyris
 ```
 
-### From within ipython ###
+### A short example ###
 
 ```python
 import osyris
-mydata = osyris.RamsesData(71,scale="au")
-osyris.plot_slice(mydata.log_rho,direction="z",vec=mydata.velocity,dx=100)
+mydata = osyris.RamsesData(71, scale="au")
+osyris.plot_slice(mydata.log_rho, direction="z", vec=mydata.velocity, dx=100)
 ```
 
 ### Demo ###
@@ -30,15 +30,13 @@ You can download the sample data [here](http://project.esss.dk/owncloud/index.ph
 
 ```python
 import osyris
+import matplotlib.pyplot as plt
 
 # Load data
-mydata = osyris.RamsesData(nout=71,center="max:density",scale="au")
+mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
 
 # Create figure
-fig = osyris.plt.figure()
-ratio = 0.5
-sizex = 20.0
-fig.set_size_inches(sizex,ratio*sizex)
+fig = plt.figure(figsize=(20, 10))
 ax1 = fig.add_subplot(231)
 ax2 = fig.add_subplot(232)
 ax3 = fig.add_subplot(233)
@@ -67,7 +65,7 @@ osyris.plot_histogram(mydata.log_rho ,mydata.log_vel, axes=ax2,
                       outline=True)
 
 #x,z density slice with B field streamlines
-osyris.plot_slice(mydata.density, direction="y", stream=mydata.B, dx=100,
+osyris.plot_slice(mydata.density, direction="yxz", stream=mydata.B, dx=100,
                   axes=ax3, scalar_args={"cmap": "log"})
 # x,y density slice with velocity vectors in color
 osyris.plot_slice(scalar=mydata.log_rho, direction="z", vec=mydata.velocity,
