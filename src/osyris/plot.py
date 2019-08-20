@@ -774,7 +774,7 @@ def parse_arguments(args, args_osyris, args_plot):
         nc = args_osyris["nc"]
     except KeyError:
         nc = 21
-    if args_osyris["vmin"] == args_osyris["vmax"]:
+    if (args_osyris["vmin"] is not None) and (args_osyris["vmin"] == args_osyris["vmax"]):
         args_osyris["vmin"] /= 1.1
         args_osyris["vmax"] *= 1.1
     norm = Normalize(vmin=args_osyris["vmin"], vmax=args_osyris["vmax"])
@@ -1059,7 +1059,7 @@ def render_map(scalar=False, image=False, contour=False, scatter=False, vec=Fals
 
     # Draw outline
     if outline:
-        outline_args_plot = {"levels": [np.nanmin(z_outl)], "colors": "grey"}
+        outline_args_plot = {"levels": [1.0], "colors": "grey"}
         for key in outline_args.keys():
             outline_args_plot[key] = outline_args[key]
         outl = theAxes.contour(x, y, z_outl, **outline_args_plot)

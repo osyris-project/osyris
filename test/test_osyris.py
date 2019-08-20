@@ -1,3 +1,4 @@
+import pytest
 import osyris
 import numpy as np
 import matplotlib.pyplot as plt
@@ -272,7 +273,7 @@ def test_slice_above_the_origin():
 def test_histogram_with_mass_colormap():
 
     mydata = osyris.RamsesData(nout=71, center="max:density", scale="au")
-    osyris.plot_histogram(mydata.log_rho, mydata.log_T, mydata.mass,
+    osyris.plot_histogram(mydata.log_rho, mydata.log_T, scalar=mydata.mass,
                          summed=True, scalar_args={"cmap": "magma_r,log"},
                          outline=True, fname="demo014.png")
 
@@ -384,7 +385,8 @@ def test_radial_profile():
     # Bin the data in radial bins
     z0, edges = np.histogram(r, bins=re)
     z1, edges = np.histogram(r, bins=re, weights=mydata.density.values)
-    rho_mean = np.log10(z1 / z0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        rho_mean = np.log10(z1 / z0)
 
     # Overlay profile
     ax.plot(log_r, rho_mean, color="r", lw=3, label="Mean profile")
