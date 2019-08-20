@@ -4,7 +4,6 @@
 
 import numpy as np
 from .plot import render_map
-from .plot import render_map
 
 
 def plot_histogram(var_x,
