@@ -306,7 +306,7 @@ class OsyrisData:
                     theField.depth = depth
                     theField.norm = norm
                     theField.kind = kind
-                    theField.parent = parent
+                    theField.parent = self
                     if vec_x:
                         theField.x = vec_x
                     if vec_y:
