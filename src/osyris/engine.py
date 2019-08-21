@@ -134,29 +134,20 @@ class OsyrisData:
     #=======================================================================================
     def find_center(self,dx,dy,dz):
 
-        lc = False
-        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
-            lc = len(self.info["center"])
-        except TypeError: # No center defined: set to (0.5,0.5,0.5)
-            xc = yc = zc = 0.5
-        if lc:
-            try: # check if center contains numbers
-                self.info["center"][0] += 0
-                if lc == 3:
-                    xc = self.info["center"][0]
-                    yc = self.info["center"][1]
-                    zc = self.info["center"][2]
-                else:
-                    print("Bad center format: must have 3 numbers as input.")
-                    return
-            except TypeError: # if not it should have the format 'sink:1', or 'max:density'
+        xc = yc = zc = 0.5
+        if self.info["center"] is not None:
+            if type(self.info["center"]) is str:
                 if self.info["center"].startswith("sink"):
                     isink = np.where(self.sinks["id"] == int(self.info["center"].split(":")[1]))[0][0]
                     xc = self.sinks["x"][isink]/self.info["boxlen"]/self.info["unit_l"]
                     yc = self.sinks["y"][isink]/self.info["boxlen"]/self.info["unit_l"]
                     zc = self.sinks["z"][isink]/self.info["boxlen"]/self.info["unit_l"]
-                else:
-                    xc = yc = zc = 0.5
+            elif len(self.info["center"]) == 3:
+                xc = self.info["center"][0]
+                yc = self.info["center"][1]
+                zc = self.info["center"][2]
+            else:
+                raise RuntimeError("Bad center format: must have 3 numbers as input.")
 
         return xc,yc,zc
 
@@ -166,7 +157,8 @@ class OsyrisData:
     #=======================================================================================
     def re_center(self,newcenter=None):
 
-        try: # check if newcenter is defined
+        # check if newcenter is defined
+        if newcenter is not None:
             lc = len(newcenter)
 
             # Find current center
@@ -202,53 +194,43 @@ class OsyrisData:
             # Store new center in info
             self.info["center"] = newcenter
 
-        except TypeError:
-            pass
 
-
-        try: # check if center is defined at all, if not set to (0.5,0.5,0.5)
-            lc = len(self.info["center"])
-            try: # check if center contains numbers
-                self.info["center"][0] += 0
-                if lc == 3:
-                    xc = self.info["center"][0]*self.info["boxsize"]
-                    yc = self.info["center"][1]*self.info["boxsize"]
-                    zc = self.info["center"][2]*self.info["boxsize"]
-                else:
-                    print("Bad center format: must have 3 numbers as input.")
-                    return
-            except TypeError: # if not it should have the format 'sink:1', or 'max:density'
-                cvar=self.info["center"].split(":")[1]
-                if self.info["center"].startswith("sink"):
-                    isink = np.where(self.sinks["id"] == int(cvar))[0][0]
-                    xc = self.sinks["x"][isink]
-                    yc = self.sinks["y"][isink]
-                    zc = self.sinks["z"][isink]
-                elif self.info["center"].startswith("max"):
-                    # cvar=self.info["center"].split(":")[1]
-                    maxloc = np.argmax(self.get(cvar))
-                    xc = self.get("x")[maxloc]
-                    yc = self.get("y")[maxloc]
-                    zc = self.get("z")[maxloc]
-                elif self.info["center"].startswith("min"):
-                    # cvar=self.info["center"].split(":")[1]
-                    minloc = np.argmin(self.get(cvar))
-                    xc = self.get("x")[minloc]
-                    yc = self.get("y")[minloc]
-                    zc = self.get("z")[minloc]
-                elif self.info["center"].startswith("av"):
-                    # cvar=self.info["center"].split(":")[1]
-                    [op_parsed,depth,grp,status] = self.parse_operation(cvar,only_leafs=True)
-                    select = eval("np.where("+op_parsed+")")
-                    xc = np.average(self.get("x")[select])
-                    yc = np.average(self.get("y")[select])
-                    zc = np.average(self.get("z")[select])
-                else:
-                    print("Bad center value:"+str(self.info["center"]))
-                    return
-
-        except TypeError: # No center defined: set to (0.5,0.5,0.5)
+        if self.info["center"] is None:
             xc = yc = zc = 0.5*self.info["boxsize"]
+        elif type(self.info["center"]) is str:
+            cvar=self.info["center"].split(":")[1]
+            if self.info["center"].startswith("sink"):
+                isink = np.where(self.sinks["id"] == int(cvar))[0][0]
+                xc = self.sinks["x"][isink]
+                yc = self.sinks["y"][isink]
+                zc = self.sinks["z"][isink]
+            elif self.info["center"].startswith("max"):
+                # cvar=self.info["center"].split(":")[1]
+                maxloc = np.argmax(self.get(cvar))
+                xc = self.get("x")[maxloc]
+                yc = self.get("y")[maxloc]
+                zc = self.get("z")[maxloc]
+            elif self.info["center"].startswith("min"):
+                # cvar=self.info["center"].split(":")[1]
+                minloc = np.argmin(self.get(cvar))
+                xc = self.get("x")[minloc]
+                yc = self.get("y")[minloc]
+                zc = self.get("z")[minloc]
+            elif self.info["center"].startswith("av"):
+                # cvar=self.info["center"].split(":")[1]
+                [op_parsed,depth,grp,status] = self.parse_operation(cvar,only_leafs=True)
+                select = eval("np.where("+op_parsed+")")
+                xc = np.average(self.get("x")[select])
+                yc = np.average(self.get("y")[select])
+                zc = np.average(self.get("z")[select])
+            else:
+                raise RuntimeError("Bad center value:"+str(self.info["center"]))
+        elif len(self.info["center"]) == 3:
+                xc = self.info["center"][0]*self.info["boxsize"]
+                yc = self.info["center"][1]*self.info["boxsize"]
+                zc = self.info["center"][2]*self.info["boxsize"]
+        else:
+            raise RuntimeError("Bad center value:"+str(self.info["center"]))
 
         self.x.values = (self.x.values - xc)/conf.constants[self.info["scale"]]
         if self.info["ndim"] > 1:
@@ -278,6 +260,11 @@ class OsyrisData:
             if self.info["ndim"] > 2:
                 self.part_position_z.values = (self.part_position_z.values - zc)/conf.constants[self.info["scale"]]
 
+        # Update radius
+        self.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=self.info["scale"],label="Radius",verbose=False)
+        with np.errstate(divide="ignore"):
+            self.new_field(name="log_r",operation="np.log10(r)",unit=self.info["scale"],label="log(Radius)",verbose=False)
+
         return
 
     #=======================================================================================
@@ -286,11 +273,11 @@ class OsyrisData:
     # mydata.new_field(name="log_rho",operation="np.log10(density)",unit="g/cm3",label="log(Density)")
     # The operation string is then evaluated using the 'eval' function.
     #=======================================================================================
-    def new_field(self,name,operation="",unit="",label="",verbose=True,values=[],norm=1.0,kind="scalar",\
+    def new_field(self,name,operation="",unit="",label="",verbose=True,values=None,norm=1.0,kind="scalar",\
                   vec_x=False,vec_y=False,vec_z=False,update=False,group=""):
 
         # Case where values are given and no operation is to be computed
-        if (len(operation) == 0) and (len(values) > 0):
+        if (len(operation) == 0) and (values is not None):
             new_data = values
             op_parsed = operation
             depth = -1
@@ -321,7 +308,7 @@ class OsyrisData:
                 setattr(self, name, dataField)
 
         # Case where operation is required
-        elif (len(operation) > 0) and (len(values) == 0):
+        elif (len(operation) > 0) and (values is None):
             [op_parsed,depth,grp,status] = self.parse_operation(operation)
             if len(group) == 0:
                     group = grp
@@ -365,7 +352,7 @@ class OsyrisData:
                 self.vector_field(name=name,label=label)
 
         # Case where both values and operation are empty
-        elif (len(operation) == 0) and (len(values) == 0):
+        elif (len(operation) == 0) and (values is None):
             dataField = OsyrisField(unit=unit,label=label,parent=self,name=name,group=group)
             setattr(self, name, dataField)
         # Case where both values and operation are required

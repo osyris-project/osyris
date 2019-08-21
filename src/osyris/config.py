@@ -77,8 +77,7 @@ def additional_variables(holder):
     # Magnetic field
     holder.new_field(name="B",operation="0.5*(B_left+B_right)",unit="G",label="B",verbose=False)
 
-    # Mass and radius
-    holder.new_field(name="r",operation="np.sqrt(x**2 + y**2 + z**2)",unit=holder.info["scale"],label="Radius",verbose=False)
+    # Mass
     holder.new_field(name="mass",operation="density*((dx*"+str(constants[holder.info["scale"]])+")**3)/"+str(constants["msun"]),unit="Msun",label="Mass",verbose=False)
 
     # Commonly used log quantities
@@ -86,8 +85,6 @@ def additional_variables(holder):
     holder.new_field(name="log_T",operation="np.log10(temperature)",unit="K",label="log(T)",verbose=False)
     holder.new_field(name="log_B",operation="np.log10(B.values)",unit="G",label="log(B)",verbose=False)
     holder.new_field(name="log_m",operation="np.log10(mass)",unit="Msun",label="log(Mass)",verbose=False)
-    with np.errstate(divide="ignore"):
-        holder.new_field(name="log_r",operation="np.log10(r)",unit=holder.info["scale"],label="log(Radius)",verbose=False)
 
     # Photon density (in case conservative variables are not dumped)
     if hasattr(holder,"photon_flux_density_1"):
