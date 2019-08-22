@@ -287,7 +287,7 @@ class RamsesData(eng.OsyrisData):
                     var_read.append(False)
 
         # Make sure we always read the coordinates
-        var_amr = ["level","x","y","z","dx","cpu","leaf"]
+        var_amr = ["level","x","y","z","dx","cpu"]
         list_vars.extend(var_amr)
         var_read.extend([True] * len(var_amr))
         var_group.extend(["amr"] * len(var_amr))
@@ -603,31 +603,34 @@ class RamsesData(eng.OsyrisData):
                                             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), rtContent[offset:offset+8*ncache])
                                             jvar += 1
                                 # var: coordinates and cell sizes
-                                var[:ncache,ind,-7] = float(ilevel+1)
+                                var[:ncache,ind,-6] = float(ilevel+1)
                                 for n in range(self.info["ndim"]):
                                     xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-                                    var[:ncache,ind,-6+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
-                                var[:ncache,ind,-3] = dxcell*self.info["boxlen"]
-                                var[:ncache,ind,-2] = k+1
-                                # leaf cells: True if the cell is unrefined
-                                var[:ncache,ind,-1] = 1.0 * np.logical_not(np.logical_and(son[:ncache,ind] > 0,ilevel < lmax-1))
+                                    var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*self.info["boxlen"]
+                                var[:ncache,ind,-2] = dxcell*self.info["boxlen"]
+                                var[:ncache,ind,-1] = k+1
+                                # ref: True if the cell is unrefined
+                                ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < lmax-1))
 
                             # Select only the cells that are in the region of interest
                             if self.info["ndim"] == 1:
-                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                                               (xyz[:ncache,:,0]-dx2)<=xmax))
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                                               (xyz[:ncache,:,0]-dx2)<=xmax)))
                             elif self.info["ndim"] == 2:
-                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                 np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                                               (xyz[:ncache,:,1]-dx2)<=ymax))))
+                                                               (xyz[:ncache,:,1]-dx2)<=ymax)))))
                             elif self.info["ndim"] == 3:
-                                cube = np.where(np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                                cube = np.where(np.logical_and(ref[:ncache,:], \
+                                                np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                 np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
                                                 np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
                                                 np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                 np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
-                                                               (xyz[:ncache,:,2]-dx2)<=zmax))))))
+                                                               (xyz[:ncache,:,2]-dx2)<=zmax)))))))
                             else:
                                 print("Bad number of dimensions")
                                 return 0
@@ -731,14 +734,22 @@ class RamsesData(eng.OsyrisData):
         # Store the number of cells
         self.info["ncells"] = ncells_tot
 
-        # Finally we add one 'new_field' per variable we have read in =========================================
+        # We will sort the data according to AMR level.
+        # This will be useful for plotting slices, etc.
+        sort = np.argsort(master_data_array[:, list_vars.index("level")])
+        print(list_vars.index("level"))
+        print(list_vars)
+        print(master_data_array[:,-6])
+
+        # We load the master array into the data structure adding one
+        # 'new_field' per variable we have read in.
         for i in range(len(list_vars)):
             theKey = list_vars[i]
             [norm,uu] = self.get_units(theKey,self.info["unit_d"],self.info["unit_l"],self.info["unit_t"],self.info["scale"])
             # Replace "_" with " " to avoid error with latex when saving figures
             theLabel = theKey.replace("_"," ")
             # Use the 'new_field' function to create data field
-            self.new_field(name=theKey,unit=uu,label=theLabel,values=master_data_array[:,i]*norm,\
+            self.new_field(name=theKey,unit=uu,label=theLabel,values=(master_data_array[:,i][sort])*norm,\
                            verbose=False,norm=norm,update=update,group=var_group[i])
 
         # Now add new field for particles =====================================================================
@@ -752,9 +763,11 @@ class RamsesData(eng.OsyrisData):
                 self.new_field(name=theKey,unit=uu,label=theLabel,values=master_part_array[:,i]*norm,\
                                verbose=False,norm=norm,update=update,group="part")
 
-        # Finally, add some useful information to save compute time later
+        # Finally, useful information on active levels and levels index thresholds
         self.info["levelmax_active"] = np.nanmax(self.level.values)
-        self.info["leafs"] = np.where(self.leaf.values == 1.0)
+        print(self.info["levelmax_active"])
+        self.info["level_indices"] = [ np.argmax(self.level.values > i) for i in np.arange(self.info["levelmax_active"]) ]
+        print(self.info["level_indices"])
 
         # Re-center the mesh around chosen center
         self.re_center()

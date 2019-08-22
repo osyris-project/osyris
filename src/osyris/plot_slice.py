@@ -77,13 +77,23 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
 
     # Try to automatically determine lmax to speedup process
     if lmax == 0:
-        dxlmax = holder.info["boxsize_scaled"] * \
-            (0.5**holder.info["levelmax_active"])
-        target = min(dx, dy)/float(resolution)
-        lmax = round(np.log((min(dx, dy)/float(resolution)) /
-                            holder.info["boxsize_scaled"])/(np.log(0.5)))
-    subset = np.where(np.logical_or(np.logical_and(holder.get("level", only_leafs=False) < lmax,
-                                                   holder.get("leaf", only_leafs=False) > 0.0), holder.get("level", only_leafs=False) == lmax))
+        # dxlmax = holder.info["boxsize_scaled"] * \
+        #     (0.5**holder.info["levelmax_active"])
+        # target = min(dx, dy)/float(resolution)
+        lmax = int(round(np.log((min(dx, dy)/float(resolution)) /
+                                holder.info["boxsize_scaled"])/(np.log(0.5)))) + 2
+        # subset = np.where(holder.get("level") <= lmax)
+        # print(lmax)
+        # nmax = holder.info["level_indices"][int(lmax)]
+        # print(nmax)
+    # else:
+    #     lmax = holder.info["levelmax_active"]
+    # print(lmax, int(lmax))
+    if lmax >= int(holder.info["levelmax_active"]):
+        nmax = holder.info["ncells"] + 1
+    else:
+        nmax = holder.info["level_indices"][int(lmax)]
+    print(lmax, nmax)
 
     # Define equation of a plane
     a_plane = dir_vecs[0][1][0]
@@ -93,27 +103,27 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
 
     # Distance to the plane
-    dist1 = (a_plane*holder.get("x", only_leafs=False)[subset] +
-             b_plane*holder.get("y", only_leafs=False)[subset] +
-             c_plane*holder.get("z", only_leafs=False)[subset] +
+    dist1 = (a_plane*holder.get("x")[:nmax] +
+             b_plane*holder.get("y")[:nmax] +
+             c_plane*holder.get("z")[:nmax] +
              d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
     # Distance from center
-    dist2 = np.sqrt((holder.get("x", only_leafs=False)[subset]-origin[0])**2 +
-                    (holder.get("y", only_leafs=False)[subset]-origin[1])**2 +
-                    (holder.get("z", only_leafs=False)[subset]-origin[2])**2) - \
-        np.sqrt(3.0)*0.5*holder.get("dx", only_leafs=False)[subset]
+    dist2 = np.sqrt((holder.get("x")[:nmax]-origin[0])**2 +
+                    (holder.get("y")[:nmax]-origin[1])**2 +
+                    (holder.get("z")[:nmax]-origin[2])**2) - \
+        np.sqrt(3.0)*0.5*holder.get("dx")[:nmax]
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx", only_leafs=False)[subset]*size_fact,
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")[:nmax]*size_fact,
                                    np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0)))
 
     # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = np.transpose([holder.get("x", only_leafs=False)[subset][cube]-origin[0],
-                           holder.get("y", only_leafs=False)[
-        subset][cube]-origin[1],
-        holder.get("z", only_leafs=False)[subset][cube]-origin[2]])
+    coords = np.transpose([holder.get("x")[:nmax][cube]-origin[0],
+                           holder.get("y")[:nmax][cube]-origin[1],
+                           holder.get("z")[:nmax][cube]-origin[2]])
     datax = np.inner(coords, dir_vecs[1][1])
     datay = np.inner(coords, dir_vecs[2][1])
+    print(len(holder.get("x")[:nmax][cube]))
 
     # Define slice extent and resolution
     # xmin = max(-0.5*dx, box[0])
@@ -146,37 +156,37 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
         z_scal = griddata(
-            points, scalar.values[subset][cube], grids, method=interpolation)
+            points, scalar.values[:nmax][cube], grids, method=interpolation)
     if image:
         z_imag = griddata(
-            points, image.values[subset][cube], grids, method=interpolation)
+            points, image.values[:nmax][cube], grids, method=interpolation)
     if contour:
         z_cont = griddata(
-            points, contour.values[subset][cube], grids, method=interpolation)
+            points, contour.values[:nmax][cube], grids, method=interpolation)
     if vec:
         if holder.info["ndim"] < 3:
-            datau1 = vec.x.values[subset][cube]
-            datav1 = vec.y.values[subset][cube]
+            datau1 = vec.x.values[:nmax][cube]
+            datav1 = vec.y.values[:nmax][cube]
         else:
             vectors = np.transpose(
-                [vec.x.values[subset][cube], vec.y.values[subset][cube], vec.z.values[subset][cube]])
+                [vec.x.values[:nmax][cube], vec.y.values[:nmax][cube], vec.z.values[:nmax][cube]])
             datau1 = np.inner(vectors, dir_vecs[1][1])
             datav1 = np.inner(vectors, dir_vecs[2][1])
         u_vect = griddata(points, datau1, grids, method=interpolation)
         v_vect = griddata(points, datav1, grids, method=interpolation)
         if "colors" in vec_args.keys():
             w_vect = griddata(
-                points, vec_args["colors"].values[subset][cube], grids, method=interpolation)
+                points, vec_args["colors"].values[:nmax][cube], grids, method=interpolation)
         else:
             w_vect = griddata(points, np.sqrt(
                 datau1**2+datav1**2), grids, method=interpolation)
     if stream:
         if holder.info["ndim"] < 3:
-            datau2 = stream.x.values[subset][cube]
-            datav2 = stream.y.values[subset][cube]
+            datau2 = stream.x.values[:nmax][cube]
+            datav2 = stream.y.values[:nmax][cube]
         else:
             streams = np.transpose(
-                [stream.x.values[subset][cube], stream.y.values[subset][cube], stream.z.values[subset][cube]])
+                [stream.x.values[:nmax][cube], stream.y.values[:nmax][cube], stream.z.values[:nmax][cube]])
             datau2 = np.inner(streams, dir_vecs[1][1])
             datav2 = np.inner(streams, dir_vecs[2][1])
         u_strm = griddata(points, datau2, grids, method=interpolation)
