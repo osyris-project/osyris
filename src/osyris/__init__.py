@@ -12,12 +12,12 @@ except ImportError:
     this_dir = os.path.dirname(os.path.abspath(__file__))
     if not os.path.exists(conf_dir):
         os.mkdir(conf_dir)
-    copyfile(os.path.join(this_dir, "config_osyris.py"),
+    copyfile(os.path.join(this_dir, "config.py"),
              os.path.join(conf_dir, "config_osyris.py"))
     try:
-        import config
+        import config_osyris as config
     except ImportError:
-        from . import config_osyris as config
+        from . import config
 
 from .load_ramses import RamsesData
 from .plot_histogram import plot_histogram
