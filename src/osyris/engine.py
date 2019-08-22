@@ -45,8 +45,11 @@ class OsyrisField():
 class OsyrisData:
 
     def __init__(self):
-
         return
+
+    def __repr__(self):
+        return self.print_info(as_string=True)
+
 
     #=======================================================================================
     # Read a test file containing information and parameters
@@ -84,7 +87,7 @@ class OsyrisData:
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
-    def print_info(self):
+    def print_info(self, as_string=False):
 
         # First get maximum length
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = maxlen6 = 0
@@ -107,26 +110,27 @@ class OsyrisData:
 
         # Now print to screen
         rule = "-" * (maxlen1+maxlen2+maxlen3+maxlen4+maxlen5+maxlen6+7)
-        print(rule)
+        output = ""
         for key in sorted(self.info.keys()):
             theShape = np.shape(self.info[key])
             if len(theShape) > 0:
                 try:
-                    print(key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]")
+                    output += key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]\n"
                 except IndexError:
-                    print(key+": "+str(self.info[key]))
+                    output += key+": "+str(self.info[key])+"\n"
             else:
-                print(key+": "+str(self.info[key]))
-        print(rule)
-        print("The variables are:")
-        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
-              " Unit".ljust(maxlen4)+"    Min".ljust(maxlen5)+"     Max".ljust(maxlen6))
+                output += key+": "+str(self.info[key])+"\n"
+        output += "\nThe variables are:\n"
+        output += "Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
+              " Unit".ljust(maxlen4)+"    Min".ljust(maxlen5)+"     Max".ljust(maxlen6)+"\n"
         for key in sorted(print_list.keys()):
-            print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
+            output += print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
-                  print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
-        #print(rule)
-
+                  print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6)+"\n"
+        if as_string:
+            return output
+        else:
+            print(output)
         return
 
     #=======================================================================================
