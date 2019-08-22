@@ -45,8 +45,11 @@ class OsyrisField():
 class OsyrisData:
 
     def __init__(self):
-
         return
+
+    def __repr__(self):
+        return self.print_info(as_string=True, full=False)
+
 
     #=======================================================================================
     # Read a test file containing information and parameters
@@ -84,7 +87,7 @@ class OsyrisData:
     #=======================================================================================
     # Print information about the data that was loaded.
     #=======================================================================================
-    def print_info(self):
+    def print_info(self, as_string=False, full=True):
 
         # First get maximum length
         maxlen1 = maxlen2 = maxlen3 = maxlen4 = maxlen5 = maxlen6 = 0
@@ -100,33 +103,36 @@ class OsyrisData:
                 maxlen3 = max(maxlen3,len(print_list[key][2]))
                 print_list[key].append(getattr(self,key).unit)
                 maxlen4 = max(maxlen4,len(print_list[key][3]))
-                print_list[key].append(str(np.nanmin(self.get(key))))
-                print_list[key].append(str(np.nanmax(self.get(key))))
+                print_list[key].append(value_to_string(np.nanmin(self.get(key))))
+                print_list[key].append(value_to_string(np.nanmax(self.get(key))))
                 maxlen5 = max(maxlen5,len(print_list[key][4]))
                 maxlen6 = max(maxlen6,len(print_list[key][5]))
 
         # Now print to screen
         rule = "-" * (maxlen1+maxlen2+maxlen3+maxlen4+maxlen5+maxlen6+7)
-        print(rule)
-        for key in sorted(self.info.keys()):
-            theShape = np.shape(self.info[key])
-            if len(theShape) > 0:
-                try:
-                    print(key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]")
-                except IndexError:
-                    print(key+": "+str(self.info[key]))
-            else:
-                print(key+": "+str(self.info[key]))
-        print(rule)
-        print("The variables are:")
-        print("Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
-              " Unit".ljust(maxlen4)+"    Min".ljust(maxlen5)+"     Max".ljust(maxlen6))
+        output = ""
+        if full:
+            for key in sorted(self.info.keys()):
+                theShape = np.shape(self.info[key])
+                if len(theShape) > 0:
+                    try:
+                        output += key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]\n"
+                    except IndexError:
+                        output += key+": "+str(self.info[key])+"\n"
+                else:
+                    output += key+": "+str(self.info[key])+"\n"
+            output += "\n"
+        output += "The variables are:\n"
+        output += "Name".ljust(maxlen1)+" Type".ljust(maxlen2)+"  Group".ljust(maxlen3)+\
+              " Unit".ljust(maxlen4)+"    Min".ljust(maxlen5)+"     Max".ljust(maxlen6)+"\n"
         for key in sorted(print_list.keys()):
-            print(print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
+            output += print_list[key][0].ljust(maxlen1)+" "+print_list[key][1].ljust(maxlen2)+" "+\
                   print_list[key][2].ljust(maxlen3)+" ["+print_list[key][3].ljust(maxlen4)+"] "+\
-                  print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6))
-        #print(rule)
-
+                  print_list[key][4].ljust(maxlen5)+" "+print_list[key][5].ljust(maxlen6)+"\n"
+        if as_string:
+            return output
+        else:
+            print(output)
         return
 
     #=======================================================================================
@@ -619,3 +625,16 @@ def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0
     pack_size = mult*byte_size[fmt[-1]]
 
     return struct.unpack(fmt, content[offset:offset+pack_size])
+
+
+def value_to_string(val, precision=3):
+    if (not isinstance(val, float)) or (val == 0):
+        text = str(val)
+    elif (abs(val) >= 10.0**(precision+1)) or \
+         (abs(val) <= 10.0**(-precision-1)):
+        text = "{val:.{prec}e}".format(val=val, prec=precision)
+    else:
+        text = "{}".format(val)
+        if len(text) > precision + 2 + (text[0] == '-'):
+            text = "{val:.{prec}f}".format(val=val, prec=precision)
+    return text
