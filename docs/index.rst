@@ -33,7 +33,7 @@ Getting started
 
    getting-started
 
-Configutation
+Configuration
 =============
 
 .. toctree::
