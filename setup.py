@@ -26,5 +26,4 @@ setuptools.setup(
         "scipy>=0.1.0",
         "ipyvolume>=0.5",
     ],
-    data_files=[('~/.osiris', ['src/osyris/config.py'])],
 )

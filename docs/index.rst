@@ -33,6 +33,14 @@ Getting started
 
    getting-started
 
+Configuration
+=============
+
+.. toctree::
+   :maxdepth: 2
+
+   configuration
+
 Demos
 =====
 
