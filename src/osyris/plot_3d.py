@@ -5,10 +5,10 @@
 import numpy as np
 try:
     import ipyvolume as ipv
-    3d_disabled = False
+    no_3d = False
 except ImportError:
     print("Warning: 3d plots are disabled because ipyvolume was not found.")
-    3d_disabled = True
+    no_3d = True
 
 
 def plot_volume(field=False, dx=0.0, dy=0.0, dz=0.0, fname=None, title=None,
@@ -17,7 +17,7 @@ def plot_volume(field=False, dx=0.0, dy=0.0, dz=0.0, fname=None, title=None,
     Plot volume redering of 3D data cube.
     """
 
-    if 3d_disabled:
+    if no_3d:
         print("plot_volume is disabled because ipyvolume is not installed.")
         return
 
@@ -50,7 +50,7 @@ def plot_volume(field=False, dx=0.0, dy=0.0, dz=0.0, fname=None, title=None,
 def plot_quiver(field=False, iskip=1, dx=0.0, dy=0.0, dz=0.0, fname=None,
                 title=None, sinks=True, size=1, **kwargs):
 
-    if 3d_disabled:
+    if no_3d:
         print("plot_quiver is disabled because ipyvolume is not installed.")
         return
 
