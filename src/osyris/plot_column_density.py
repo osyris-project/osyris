@@ -109,12 +109,14 @@ def plot_column_density(scalar=False, image=False, contour=False, vec=False, str
                 print("Column density: %3i%% done" % percentage)
                 iprog += 1
 
+        this_origin = [origin[i] + dir_vecs[0][1][i] * z[iz] for i in range(3)]
+
         [x, y, z_scal_slice, z_imag_slice, z_cont_slice, u_vect_slice, v_vect_slice,
             w_vect_slice, u_strm_slice, v_strm_slice, w_strm_slice] = \
             plot_slice(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream,
                        direction=direction, dx=dx, dy=dy, sinks=sinks, copy=True, resolution=resolution,
-                       origin=[origin[0], origin[1], origin[2]+z[iz]], plot=False, interpolation=interpolation, lmax=lmax,
-                       slice_direction=[dx, dy, box, dir_vecs, [origin[0], origin[1], origin[2]+z[iz]]])
+                       origin=this_origin, plot=False, interpolation=interpolation, lmax=lmax,
+                       slice_direction=[dx, dy, box, dir_vecs, this_origin])
 
         # Increment the sum
         if scalar:
