@@ -111,13 +111,13 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     dist2 = np.sqrt((holder.get("x")-origin[0])**2 +
                     (holder.get("y")-origin[1])**2 +
                     (holder.get("z")-origin[2])**2) - \
-        np.sqrt(3.5)*0.5*holder.get("dx")
+        np.sqrt(3.0)*0.5*holder.get("dx")
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
     # cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")*size_fact,
     #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0)))
-    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")*size_fact,
-                                   np.abs(dist2) <= max(dx, dy)))
+    cube = np.where(np.logical_and(np.abs(dist1) <= 0.5001*holder.get("dx")*size_fact,
+                                   np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0)))
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],
@@ -146,8 +146,11 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
 
     # xe = np.linspace(xmin, xmax, nx*2 + 1)
     # ye = np.linspace(ymin, ymax, ny*2 + 1)
-    xe = np.linspace(xmin, xmax, nx + 1)
-    ye = np.linspace(ymin, ymax, ny + 1)
+    # xe = np.linspace(xmin, xmax, nx + 1)
+    # ye = np.linspace(ymin, ymax, ny + 1)
+    xe = np.linspace(xmin-0.1*dx, xmax+0.1*dx, 1.5*nx)
+    ye = np.linspace(ymin-0.1*dy, ymax+0.1*dy, 1.5*ny)
+
     xc = 0.5 * (xe[:-1] + xe[1:])
     yc = 0.5 * (ye[:-1] + ye[1:])
     grid_x2, grid_y2 = np.meshgrid(xc, yc)
@@ -159,23 +162,35 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         points = np.transpose([datax, datay, dataz])
         grids = (grid_x, grid_y, grid_z)
     else:
-        # points = np.transpose([datax, datay])
-        points = np.transpose([grid_x2.flatten(), grid_y2.flatten()])
+        points = np.transpose([datax, datay])
+        # points = np.transpose([grid_x2.flatten(), grid_y2.flatten()])
         grids = (grid_x, grid_y)
+
+    nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
+    nums = nums.flatten()
+    subs = np.where(nums > 0)
+    points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
 
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
     if scalar:
-        vals, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye), weights=scalar.values[cube])
-        nums, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye))
+        # vals, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye), weights=scalar.values[cube])
+        # nums, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye))
+        vals, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=scalar.values[cube])
         print(len(points), len(vals.flatten()))
-        nums = nums.flatten()
-        vals = vals.flatten()
-        subs = np.where(nums > 0)
+        # vals = vals.flatten()
+        # subs = np.where(nums > 0)
         print(len(nums[subs]))
-        points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
         z_scal = griddata(
-            points, vals.flatten()[subs]/nums.flatten()[subs], grids, method=interpolation)
+            points, vals.flatten()[subs]/nums[subs], grids, method=interpolation)
+
+        # z_scal = griddata(
+        #     np.transpose([datax, datay]), scalar.values[cube], grids, method=interpolation)
+        
+
+        # axes.scatter(points[:, 0], points[:, 1])
+        # return
+
     if image:
         z_imag = griddata(
             points, image.values[cube], grids, method=interpolation)
@@ -191,14 +206,32 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
                 [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
             datau1 = np.inner(vectors, dir_vecs[1][1])
             datav1 = np.inner(vectors, dir_vecs[2][1])
-        u_vect = griddata(points, datau1, grids, method=interpolation)
-        v_vect = griddata(points, datav1, grids, method=interpolation)
-        if "colors" in vec_args.keys():
-            w_vect = griddata(
-                points, vec_args["colors"].values[cube], grids, method=interpolation)
-        else:
-            w_vect = griddata(points, np.sqrt(
-                datau1**2+datav1**2), grids, method=interpolation)
+
+        # u_vect = griddata(points, datau1, grids, method=interpolation)
+        # v_vect = griddata(points, datav1, grids, method=interpolation)
+        # if "colors" in vec_args.keys():
+        #     w_vect = griddata(
+        #         points, vec_args["colors"].values[cube], grids, method=interpolation)
+        # else:
+        #     w_vect = griddata(points, np.sqrt(
+        #         datau1**2+datav1**2), grids, method=interpolation)
+
+        vals_u, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datau1)
+        vals_v, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datav1)
+        vals_w, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=np.sqrt(datau1**2+datav1**2))
+        # vals_u = vals_u.flatten()
+        # vals_v = vals_v.flatten()
+        # subs = np.where(nums > 0)
+        print(len(nums[subs]))
+        u_vect = griddata(
+            points, vals_u.flatten()[subs]/nums[subs], grids, method=interpolation)
+        v_vect = griddata(
+            points, vals_v.flatten()[subs]/nums[subs], grids, method=interpolation)
+        w_vect = griddata(
+            points, vals_w.flatten()[subs]/nums[subs], grids, method=interpolation)
+
+
+
     if stream:
         if holder.info["ndim"] < 3:
             datau2 = stream.x.values[cube]
