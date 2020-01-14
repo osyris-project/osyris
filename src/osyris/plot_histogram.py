@@ -4,6 +4,7 @@
 
 import numpy as np
 from .plot import render_map
+from scipy.stats import binned_statistic_2d
 
 
 def plot_histogram(var_x,
@@ -29,7 +30,7 @@ def plot_histogram(var_x,
                    scalar_args={},
                    scatter=False,
                    scatter_args={},
-                   summed=False,
+                   operation="count",
                    title=None,
                    update=None,
                    xmin=None,
@@ -208,8 +209,8 @@ def plot_histogram(var_x,
     ny = resolution+1
 
     # Get the data values and units
-    datax = holder.get(var_x.name, only_leafs=only_leafs)
-    datay = holder.get(var_y.name, only_leafs=only_leafs)
+    datax = holder.get(var_x.name)
+    datay = holder.get(var_y.name)
     xlabel = var_x.label+" ["+var_x.unit+"]"
     ylabel = var_y.label+" ["+var_y.unit+"]"
     default_var = "histo_cell_density"
@@ -275,7 +276,7 @@ def plot_histogram(var_x,
     xe = np.linspace(xmin, xmax, nx)
     ye = np.linspace(ymin, ymax, ny)
     # Call the numpy histogram2d function
-    z0, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(ye, xe))
+    # z0, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(ye, xe))
     # In the contour plots, x and y are the centers of the cells, instead of the edges.
     x = np.zeros([nx-1])
     y = np.zeros([ny-1])
@@ -286,6 +287,12 @@ def plot_histogram(var_x,
 
     # Use numpy histogram2d function to make image
     z_scal = z_imag = z_cont = z_outl = False
+
+    to_render = {"scalar": None, "image": None, "contour": None,
+                 "outline": None, "scatter": None}
+
+    to_process = {}
+
     empty = True
     if scalar:
         try:

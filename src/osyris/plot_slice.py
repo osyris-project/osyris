@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy.interpolate import griddata
+from scipy.stats import binned_statistic_2d
 from .plot import get_slice_direction, render_map
 
 
@@ -166,37 +167,50 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         # points = np.transpose([grid_x2.flatten(), grid_y2.flatten()])
         grids = (grid_x, grid_y)
 
-    nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
-    nums = nums.flatten()
-    subs = np.where(nums > 0)
-    points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
+    # nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
+    # nums = nums.flatten()
+    # subs = np.where(nums > 0)
+    # points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
 
     # Use scipy interpolation function to make image
     z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
-    if scalar:
-        # vals, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye), weights=scalar.values[cube])
-        # nums, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye))
-        vals, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=scalar.values[cube])
-        print(len(points), len(vals.flatten()))
-        # vals = vals.flatten()
-        # subs = np.where(nums > 0)
-        print(len(nums[subs]))
-        z_scal = griddata(
-            points, vals.flatten()[subs]/nums[subs], grids, method=interpolation)
 
+    to_render = {"scalar": None, "image": None, "contour": None,
+                 "u_vect": None, "v_vect": None, "w_vect": None,
+                 "u_strm": None, "v_strm": None, "w_strm": None}
+
+
+    to_process = {}
+
+
+
+    if scalar:
+        to_process["scalar"] = scalar.values[cube]
+        # # vals, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye), weights=scalar.values[cube])
+        # # nums, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye))
+        # vals, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=scalar.values[cube])
+        # print(len(points), len(vals.flatten()))
+        # # vals = vals.flatten()
+        # # subs = np.where(nums > 0)
+        # print(len(nums[subs]))
         # z_scal = griddata(
-        #     np.transpose([datax, datay]), scalar.values[cube], grids, method=interpolation)
+        #     points, vals.flatten()[subs]/nums[subs], grids, method=interpolation)
+
+        # # z_scal = griddata(
+        # #     np.transpose([datax, datay]), scalar.values[cube], grids, method=interpolation)
         
 
         # axes.scatter(points[:, 0], points[:, 1])
         # return
 
     if image:
-        z_imag = griddata(
-            points, image.values[cube], grids, method=interpolation)
+        # z_imag = griddata(
+        #     points, image.values[cube], grids, method=interpolation)
+        to_process["image"] = image.values[cube]
     if contour:
-        z_cont = griddata(
-            points, contour.values[cube], grids, method=interpolation)
+        to_process["contour"] = contour.values[cube]
+        # z_cont = griddata(
+        #     points, contour.values[cube], grids, method=interpolation)
     if vec:
         if holder.info["ndim"] < 3:
             datau1 = vec.x.values[cube]
@@ -207,28 +221,35 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
             datau1 = np.inner(vectors, dir_vecs[1][1])
             datav1 = np.inner(vectors, dir_vecs[2][1])
 
-        # u_vect = griddata(points, datau1, grids, method=interpolation)
-        # v_vect = griddata(points, datav1, grids, method=interpolation)
-        # if "colors" in vec_args.keys():
-        #     w_vect = griddata(
-        #         points, vec_args["colors"].values[cube], grids, method=interpolation)
-        # else:
-        #     w_vect = griddata(points, np.sqrt(
-        #         datau1**2+datav1**2), grids, method=interpolation)
+        to_process["u_vect"] = datau1
+        to_process["v_vect"] = datav1
+        to_process["w_vect"] = np.sqrt(datau1**2+datav1**2)
 
-        vals_u, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datau1)
-        vals_v, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datav1)
-        vals_w, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=np.sqrt(datau1**2+datav1**2))
-        # vals_u = vals_u.flatten()
-        # vals_v = vals_v.flatten()
-        # subs = np.where(nums > 0)
-        print(len(nums[subs]))
-        u_vect = griddata(
-            points, vals_u.flatten()[subs]/nums[subs], grids, method=interpolation)
-        v_vect = griddata(
-            points, vals_v.flatten()[subs]/nums[subs], grids, method=interpolation)
-        w_vect = griddata(
-            points, vals_w.flatten()[subs]/nums[subs], grids, method=interpolation)
+        # # u_vect = griddata(points, datau1, grids, method=interpolation)
+        # # v_vect = griddata(points, datav1, grids, method=interpolation)
+        # # if "colors" in vec_args.keys():
+        # #     w_vect = griddata(
+        # #         points, vec_args["colors"].values[cube], grids, method=interpolation)
+        # # else:
+        # #     w_vect = griddata(points, np.sqrt(
+        # #         datau1**2+datav1**2), grids, method=interpolation)
+
+        # ### should use binned_statistic !!!####
+
+
+        # vals_u, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datau1)
+        # vals_v, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datav1)
+        # vals_w, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=np.sqrt(datau1**2+datav1**2))
+        # # vals_u = vals_u.flatten()
+        # # vals_v = vals_v.flatten()
+        # # subs = np.where(nums > 0)
+        # print(len(nums[subs]))
+        # u_vect = griddata(
+        #     points, vals_u.flatten()[subs]/nums[subs], grids, method=interpolation)
+        # v_vect = griddata(
+        #     points, vals_v.flatten()[subs]/nums[subs], grids, method=interpolation)
+        # w_vect = griddata(
+        #     points, vals_w.flatten()[subs]/nums[subs], grids, method=interpolation)
 
 
 
@@ -241,16 +262,47 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
                 [stream.x.values[cube], stream.y.values[cube], stream.z.values[cube]])
             datau2 = np.inner(streams, dir_vecs[1][1])
             datav2 = np.inner(streams, dir_vecs[2][1])
-        u_strm = griddata(points, datau2, grids, method=interpolation)
-        v_strm = griddata(points, datav2, grids, method=interpolation)
-        w_strm = griddata(points, np.sqrt(datau2**2+datav2**2),
-                          grids, method=interpolation)
+
+        to_process["u_strm"] = datau2
+        to_process["v_strm"] = datav2
+        to_process["w_strm"] = np.sqrt(datau2**2+datav2**2)
+
+        # u_strm = griddata(points, datau2, grids, method=interpolation)
+        # v_strm = griddata(points, datav2, grids, method=interpolation)
+        # w_strm = griddata(points, np.sqrt(datau2**2+datav2**2),
+        #                   grids, method=interpolation)
+    print(list(to_process.values()))
+
+    results, y_edges, x_edges, bin_number = binned_statistic_2d(x=datay, y=datax, values=list(to_process.values()), statistic='mean', bins=[ye, xe])
+    print(results)
+    print(len(results))
+
+    # nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
+    # nums = results[0].flatten()
+    subs = np.where(np.isfinite(results[0].flatten()))
+    points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
+
+    for i, key in enumerate(to_process.keys()):
+        to_render[key] = griddata(
+            points, results[i].flatten()[subs], grids, method=interpolation)
+
+    # z_scal = griddata(
+    #         points, results[0].flatten()[subs], grids, method=interpolation)
+
+    # if vec:
+    #     u_vect = griddata(
+    #         points, results[1].flatten()[subs], grids, method=interpolation)
+    #     v_vect = griddata(
+    #         points, results[2].flatten()[subs], grids, method=interpolation)
+    #     w_vect = griddata(
+    #         points, results[3].flatten()[subs], grids, method=interpolation)
+
 
     # Render the map
     if plot:
-        render_map(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=z_scal,
-                   z_imag=z_imag, z_cont=z_cont, u_vect=u_vect, v_vect=v_vect, w_vect=w_vect, u_strm=u_strm,
-                   v_strm=v_strm, w_strm=w_strm, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
+        render_map(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
+                   z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
+                   v_strm=to_render["v_strm"], w_strm=to_render["w_strm"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
                    axes=axes, title=title, sinks=sinks, new_window=new_window, clear=clear, block=block,
                    resolution=resolution, thePlane=[
                        a_plane, b_plane, c_plane, d_plane],
