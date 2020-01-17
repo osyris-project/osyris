@@ -66,8 +66,7 @@ def interpolate(field, points):
         cube = dict()
         dmax = 0.0
         cube[theHash] = dict()
-        cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-            holder.hash_table[theHash]]
+        cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
         cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((igrid+0.5)*dxcell))**2 +
                                         (points[ip, 1]-((jgrid+0.5)*dxcell))**2 +
                                         (points[ip, 2]-((kgrid+0.5)*dxcell))**2)
@@ -86,8 +85,7 @@ def interpolate(field, points):
                         try:
                             neighbour = holder.hash_table[theHash]
                             cube[theHash] = dict()
-                            cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                holder.hash_table[theHash]]
+                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
                             cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((ii+0.5)*dxcell))**2 +
                                                             (points[ip, 1]-((jj+0.5)*dxcell))**2 +
                                                             (points[ip, 2]-((kk+0.5)*dxcell))**2)
@@ -103,8 +101,7 @@ def interpolate(field, points):
                                             theHash = str(
                                                 2*ii+i1)+','+str(2*jj+j1)+','+str(2*kk+k1)+','+str(ilevl+1)
                                             cube[theHash] = dict()
-                                            cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                                holder.hash_table[theHash]]
+                                            cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
                                             cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((2*ii+i1+0.5)*dxcell*0.5))**2 +
                                                                             (points[ip, 1]-((2*jj+j1+0.5)*dxcell*0.5))**2 +
                                                                             (points[ip, 2]-((2*kk+k1+0.5)*dxcell*0.5))**2)
@@ -116,8 +113,7 @@ def interpolate(field, points):
                                 try:
                                     neighbour = holder.hash_table[theHash]
                                     cube[theHash] = dict()
-                                    cube[theHash]["vars"] = holder.get(field.name, only_leafs=True)[
-                                        holder.hash_table[theHash]]
+                                    cube[theHash]["vars"] = field.values[holder.hash_table[theHash]]
                                     cube[theHash]["dist"] = np.sqrt((points[ip, 0]-((int(float(ii)/2.0)+0.5)*dxcell*2.0))**2 +
                                                                     (points[ip, 1]-((int(float(jj)/2.0)+0.5)*dxcell*2.0))**2 +
                                                                     (points[ip, 2]-((int(float(kk)/2.0)+0.5)*dxcell*2.0))**2)
