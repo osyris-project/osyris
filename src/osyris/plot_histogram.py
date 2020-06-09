@@ -312,13 +312,24 @@ def plot_histogram(var_x,
             to_process["contour"] = contour.values
         empty = False
     if scatter:
+        if scatter is True:
+            scatter = cell_count
+            scatter.values = np.ones_like(datax)
         empty = False
+        #     to_render["contour"] = z1
+        # else:
+        #     to_process["contour"] = contour.values
     if scalar or empty:
-        if empty or (scalar is True):
+        if scalar is not True:
+            to_process["scalar"] = scalar.values
+            empty = False
+        else:
+        # if empty or (scalar is True):
             scalar = cell_count
             to_render["scalar"] = z1
-        else:
-            to_process["scalar"] = scalar.values
+        # else:
+        #     to_process["scalar"] = scalar.values
+    # print(to_process)
 
     # to_process["counts"]
     # if image:
