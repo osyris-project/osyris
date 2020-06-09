@@ -10,6 +10,7 @@ from scipy.stats import binned_statistic_2d
 
 def plot_histogram(var_x,
                    var_y,
+                   scalar=False,
                    axes=None,
                    block=False,
                    cbar=True,
@@ -26,7 +27,6 @@ def plot_histogram(var_x,
                    outline_args={},
                    plot=True,
                    resolution=256,
-                   scalar=False,
                    scalar_args={},
                    scatter=False,
                    scatter_args={},
@@ -274,7 +274,7 @@ def plot_histogram(var_x,
     # Construct some edge specifiers for the histogram2d function call
     xe = np.linspace(xmin, xmax, nx)
     ye = np.linspace(ymin, ymax, ny)
-    # Call the numpy histogram2d function
+    # # Call the numpy histogram2d function
     z0, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(ye, xe))
     z1 = np.ma.masked_where(z0 == 0.0, z0)
     # In the contour plots, x and y are the centers of the cells, instead of the edges.
@@ -294,19 +294,19 @@ def plot_histogram(var_x,
     to_process = {}
 
     empty = True
+    cell_count = OsyrisField(name=default_var,
+                       unit="", label="Number of cells")
 
     if image:
         if image is True:
-            image = OsyrisField(name=default_var, unit="",
-                                label="Number of cells")
+            image = cell_count
             to_render["image"] = z1
         else:
             to_process["image"] = image.values
         empty = False
     if contour:
         if contour is True:
-            contour = OsyrisField(name=default_var, unit="",
-                                  label="Number of cells")
+            contour = cell_count
             to_render["contour"] = z1
         else:
             to_process["contour"] = contour.values
@@ -315,12 +315,31 @@ def plot_histogram(var_x,
         empty = False
     if scalar or empty:
         if empty or (scalar is True):
-            scalar = OsyrisField(name=default_var, unit="",
-                                 label="Number of cells")
+            scalar = cell_count
             to_render["scalar"] = z1
         else:
             to_process["scalar"] = scalar.values
 
+    # to_process["counts"]
+    # if image:
+    #     if image is True:
+    #         image = ones
+    #     else:
+    #         to_process["image"] = image.values
+    #     empty = False
+    # if contour:
+    #     if contour is True:
+    #         contour = ones
+    #     else:
+    #         to_process["contour"] = contour.values
+    #     empty = False
+    # if scatter:
+    #     empty = False
+    # if scalar or empty:
+    #     if empty or (scalar is True):
+    #         scalar = ones
+    #     else:
+    #         to_process["scalar"] = scalar.values
 
 
 
@@ -383,7 +402,7 @@ def plot_histogram(var_x,
     #     z_scal = np.ma.masked_where(z0 == 0.0, z0)
 
     if outline:
-        z_outl = z0
+        to_render["outline"] = z0
 
 
     if len(to_process) > 0:
@@ -395,7 +414,7 @@ def plot_histogram(var_x,
 
     if plot:
         render_map(scalar=scalar, image=image, contour=contour, scatter=scatter, x=x, y=y, z_scal=to_render["scalar"],
-                   z_imag=to_render["image"], z_cont=to_render["contour"], z_outl=z_outl, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
+                   z_imag=to_render["image"], z_cont=to_render["contour"], z_outl=to_render["outline"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
                    axes=axes, title=title, new_window=new_window, clear=clear, block=block,
                    resolution=resolution, scalar_args=scalar_args, image_args=image_args, holder=holder,
                    contour_args=contour_args, scatter_args=scatter_args, equal_axes=equal_axes, x_raw=datax, y_raw=datay,
@@ -406,6 +425,6 @@ def plot_histogram(var_x,
         holder.delete_field(default_var)
 
     if copy:
-        return x, y, z_scal, z_imag, z_cont, z_outl
+        return x, y, to_render
     else:
         return

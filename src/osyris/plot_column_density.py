@@ -5,6 +5,7 @@
 import numpy as np
 from scipy.interpolate import griddata
 from .plot import get_slice_direction, render_map
+from .plot_slice import plot_slice
 
 
 def plot_column_density(scalar=False, image=False, contour=False, vec=False, stream=False,
@@ -111,8 +112,7 @@ def plot_column_density(scalar=False, image=False, contour=False, vec=False, str
 
         this_origin = [origin[i] + dir_vecs[0][1][i] * z[iz] for i in range(3)]
 
-        [x, y, z_scal_slice, z_imag_slice, z_cont_slice, u_vect_slice, v_vect_slice,
-            w_vect_slice, u_strm_slice, v_strm_slice, w_strm_slice] = \
+        [x, y, z_slice] = \
             plot_slice(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream,
                        direction=direction, dx=dx, dy=dy, sinks=sinks, copy=True, resolution=resolution,
                        origin=this_origin, plot=False, interpolation=interpolation, lmax=lmax,
@@ -120,19 +120,19 @@ def plot_column_density(scalar=False, image=False, contour=False, vec=False, str
 
         # Increment the sum
         if scalar:
-            z_scal += z_scal_slice
+            z_scal += z_slice["scalar"]
         if image:
-            z_imag += z_imag_slice
+            z_imag += z_slice["image"]
         if contour:
-            z_cont += z_cont_slice
+            z_cont += z_slice["contour"]
         if vec:
-            u_vect += u_vect_slice
-            v_vect += v_vect_slice
-            w_vect += w_vect_slice
+            u_vect += z_slice["u_vect"]
+            v_vect += z_slice["v_vect"]
+            w_vect += z_slice["w_vect"]
         if stream:
-            u_strm += u_strm_slice
-            v_strm += v_strm_slice
-            w_strm += w_strm_slice
+            u_strm += z_slice["u_strm"]
+            v_strm += z_slice["v_strm"]
+            w_strm += z_slice["w_strm"]
 
     # If summed=True, this is a real column density.
     # Else, only the average of the quantity is requested

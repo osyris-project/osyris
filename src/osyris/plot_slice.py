@@ -370,6 +370,6 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
                    outline_args=outline_args, sink_args=sink_args, x_raw=datax, y_raw=datay, holder=holder)
 
     if copy:
-        return x, y, z_scal, z_imag, z_cont, u_vect, v_vect, w_vect, u_strm, v_strm, w_strm
+        return x, y, to_render
     else:
         return
