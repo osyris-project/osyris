@@ -131,9 +131,9 @@ def test_plot_subset_of_disk_cells():
 
     mydata.new_field(name="log_rho_disk",
                      values=np.where(np.logical_and(
-                         mydata.get("log_rho", only_leafs=False) > -12.5,
-                         mydata.get("log_rho", only_leafs=False) < -11.0),
-                         mydata.get("log_rho", only_leafs=False), np.NaN),
+                         mydata.get("log_rho") > -12.5,
+                         mydata.get("log_rho") < -11.0),
+                         mydata.get("log_rho"), np.NaN),
                      label="Disk density")
 
     osyris.plot_slice(mydata.log_rho_disk, direction="z", dx=50)
@@ -147,9 +147,9 @@ def test_plot_subset_of_disk_cells():
     # Method 2:
     mydata.new_field(name="disk_mass",
                      values=np.where(np.logical_and(
-                         mydata.get("log_rho", only_leafs=False) > -12.5,
-                         mydata.get("log_rho", only_leafs=False) < -11.0),
-                         mydata.get("mass", only_leafs=False), np.NaN),
+                         mydata.get("log_rho") > -12.5,
+                         mydata.get("log_rho") < -11.0),
+                         mydata.get("mass"), np.NaN),
                      label="Disk mass")
     mcore2 = np.nansum(mydata.get("disk_mass"))
     print("Disk mass: %.3e Msun ; %.3e Msun"%(mcore1, mcore2))

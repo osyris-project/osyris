@@ -4,10 +4,13 @@
 
 import numpy as np
 from .plot import render_map
+from .engine import OsyrisField
+from scipy.stats import binned_statistic_2d
 
 
 def plot_histogram(var_x,
                    var_y,
+                   scalar=False,
                    axes=None,
                    block=False,
                    cbar=True,
@@ -20,16 +23,14 @@ def plot_histogram(var_x,
                    image=False,
                    image_args={},
                    new_window=False,
-                   only_leafs=True,
                    outline=False,
                    outline_args={},
                    plot=True,
                    resolution=256,
-                   scalar=False,
                    scalar_args={},
                    scatter=False,
                    scatter_args={},
-                   summed=False,
+                   operation="mean",
                    title=None,
                    update=None,
                    xmin=None,
@@ -69,7 +70,6 @@ def plot_histogram(var_x,
     # :param image=False,
     # :param image_args={},
     # :param new_window=False,
-    # :param only_leafs=True,
     # :param outline=False,
     # :param outline_args={},
     # :param plot=True,
@@ -208,8 +208,8 @@ def plot_histogram(var_x,
     ny = resolution+1
 
     # Get the data values and units
-    datax = holder.get(var_x.name, only_leafs=only_leafs)
-    datay = holder.get(var_y.name, only_leafs=only_leafs)
+    datax = holder.get(var_x.name)
+    datay = holder.get(var_y.name)
     xlabel = var_x.label+" ["+var_x.unit+"]"
     ylabel = var_y.label+" ["+var_y.unit+"]"
     default_var = "histo_cell_density"
@@ -276,6 +276,7 @@ def plot_histogram(var_x,
     ye = np.linspace(ymin, ymax, ny)
     # Call the numpy histogram2d function
     z0, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(ye, xe))
+    z1 = np.ma.masked_where(z0 == 0.0, z0)
     # In the contour plots, x and y are the centers of the cells, instead of the edges.
     x = np.zeros([nx-1])
     y = np.zeros([ny-1])
@@ -286,78 +287,63 @@ def plot_histogram(var_x,
 
     # Use numpy histogram2d function to make image
     z_scal = z_imag = z_cont = z_outl = False
+
+    to_render = {"scalar": None, "image": None, "contour": None,
+                 "outline": None, "scatter": None}
+
+    to_process = {}
+
     empty = True
-    if scalar:
-        try:
-            z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-                ye, xe), weights=holder.get(scalar.name, only_leafs=only_leafs))
-            if summed:
-                z_scal = np.ma.masked_where(z0 == 0.0, z1)
-            else:
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    z_scal = np.ma.masked_where(z0 == 0.0, z1/z0)
-        except AttributeError:
-            holder.new_field(name=default_var, unit="",
-                             label="Number of cells", verbose=True)
-            scalar = getattr(holder, default_var)
-            z_scal = np.ma.masked_where(z0 == 0.0, z0)
-        empty = False
+    cell_count = OsyrisField(name=default_var,
+                       unit="", label="Number of cells")
+
     if image:
-        try:
-            z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-                ye, xe), weights=holder.get(image.name, only_leafs=only_leafs))
-            if summed:
-                z_imag = np.ma.masked_where(z0 == 0.0, z1)
-            else:
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    z_imag = np.ma.masked_where(z0 == 0.0, z1/z0)
-        except AttributeError:
-            holder.new_field(name=default_var, unit="",
-                             label="Number of cells", verbose=True)
-            image = getattr(holder, default_var)
-            z_imag = np.ma.masked_where(z0 == 0.0, z0)
+        if image is True:
+            image = cell_count
+            to_render["image"] = z1
+        else:
+            to_process["image"] = image.values
         empty = False
     if contour:
-        try:
-            z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-                ye, xe), weights=holder.get(contour.name, only_leafs=only_leafs))
-            if summed:
-                z_cont = np.ma.masked_where(z0 == 0.0, z1)
-            else:
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    z_cont = np.ma.masked_where(z0 == 0.0, z1/z0)
-        except AttributeError:
-            holder.new_field(name=default_var, unit="",
-                             label="Number of cells", verbose=True)
-            contour = getattr(holder, default_var)
-            z_cont = np.ma.masked_where(z0 == 0.0, z0)
+        if contour is True:
+            contour = cell_count
+            to_render["contour"] = z1
+        else:
+            to_process["contour"] = contour.values
         empty = False
     if scatter:
+        if scatter is True:
+            scatter = cell_count
         empty = False
-
-    # If no variable is requested for z/color dimension, store number of cells by default
-    if empty:
-        holder.new_field(name=default_var, unit="",
-                         label="Number of cells", verbose=True)
-        scalar = getattr(holder, default_var)
-        z_scal = np.ma.masked_where(z0 == 0.0, z0)
+    if scalar or empty:
+        if scalar is not True:
+            to_process["scalar"] = scalar.values
+            empty = False
+        else:
+            scalar = cell_count
+            to_render["scalar"] = z1
 
     if outline:
-        z_outl = z0
+        to_render["outline"] = z0
+
+    if len(to_process) > 0:
+        results, y_edges, x_edges, bin_number = binned_statistic_2d(x=datay, y=datax, values=list(to_process.values()), statistic=operation, bins=[ye, xe])
+        for i, key in enumerate(to_process.keys()):
+            to_render[key] = np.ma.masked_where(z0 == 0.0, results[i])
 
     if plot:
-        render_map(scalar=scalar, image=image, contour=contour, scatter=scatter, x=x, y=y, z_scal=z_scal,
-                   z_imag=z_imag, z_cont=z_cont, z_outl=z_outl, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
+        render_map(scalar=scalar, image=image, contour=contour, scatter=scatter, x=x, y=y, z_scal=to_render["scalar"],
+                   z_imag=to_render["image"], z_cont=to_render["contour"], z_outl=to_render["outline"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
                    axes=axes, title=title, new_window=new_window, clear=clear, block=block,
                    resolution=resolution, scalar_args=scalar_args, image_args=image_args, holder=holder,
                    contour_args=contour_args, scatter_args=scatter_args, equal_axes=equal_axes, x_raw=datax, y_raw=datay,
-                   outline=outline, outline_args=outline_args, sinks=False, only_leafs=only_leafs,
+                   outline=outline, outline_args=outline_args, sinks=False,
                    dir_vecs=[["", [0, 0, 0]], [var_x.name, [0, 0, 0]], [var_y.name, [0, 0, 0]]])
 
     if hasattr(holder, default_var):
         holder.delete_field(default_var)
 
     if copy:
-        return x, y, z_scal, z_imag, z_cont, z_outl
+        return x, y, to_render
     else:
         return

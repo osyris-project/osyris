@@ -135,17 +135,14 @@ def get_slice_direction(holder, direction, dx=0, dy=0, origin=[0, 0, 0]):
                              z_loc[sphere])*holder.get("mass")[sphere]).T
             vel = np.vstack((holder.get("velocity_x")[sphere], holder.get(
                 "velocity_y")[sphere], holder.get("velocity_z")[sphere])).T
-            #vel    = holder.get("velocity")[sphere]
             AngMom = np.sum(np.cross(pos, vel), axis=0)
             if view == "top":
                 dir1 = AngMom
-                # [1.0, 1.0, -1.0 * (dir1[0] + dir1[1]) / dir1[2]]
                 dir2 = perpendicular_vector(dir1)
                 dir3 = np.cross(dir1, dir2)
             elif view == "side":
                 # Choose a vector perpendicular to the angular momentum vector
                 dir3 = AngMom
-                # [1.0, 1.0, -1.0 * (dir3[0] + dir3[1]) / dir3[2]]
                 dir1 = perpendicular_vector(dir3)
                 dir2 = np.cross(dir1, dir3)
             else:
@@ -201,14 +198,16 @@ def get_slice_direction(holder, direction, dx=0, dy=0, origin=[0, 0, 0]):
     return dx, dy, box, dir_vecs, origin
 
 
-def render_map(scalar=False, image=False, contour=False, scatter=False, vec=False, stream=False, outline=False, x=0, y=0,
+def render_map(scalar=False, image=False, contour=False, scatter=False,
+               vec=False, stream=False, outline=False, x=0, y=0,
                z_scal=0, z_imag=0, z_cont=0, z_outl=0, u_vect=0, v_vect=0, w_vect=0, u_strm=0, v_strm=0,
                w_strm=0, fname=None, axes=None, title=None, sinks=True, new_window=False,
                clear=True, block=False, xmin=0, xmax=0, ymin=0, ymax=0,
                resolution=128, scalar_args={}, image_args={}, contour_args={}, vec_args={},
                stream_args={}, scatter_args={}, outline_args={}, sink_args={}, dz=0, holder=None,
-               thePlane=0, origin=[0, 0, 0], dir_vecs=[["z", [0, 0, 0]], ["x", [0, 0, 0]], ["y", [0, 0, 0]]], x_raw=None, y_raw=None, equal_axes=True,
-               only_leafs=True):
+               thePlane=0, origin=[0, 0, 0],
+               dir_vecs=[["z", [0, 0, 0]], ["x", [0, 0, 0]], ["y", [0, 0, 0]]],
+               x_raw=None, y_raw=None, equal_axes=True):
     """
     Use matplotlib to plot histogram, slice or column density maps
     """
@@ -296,28 +295,23 @@ def render_map(scalar=False, image=False, contour=False, scatter=False, vec=Fals
     if scatter:
         cube = np.where(np.logical_and(x_raw >= xmin, np.logical_and(x_raw <= xmax,
                                                                      np.logical_and(y_raw >= ymin, y_raw <= ymax))))
-        try:
-            vmin = np.nanmin(holder.get(
-                scatter.name, only_leafs=only_leafs)[cube])
-            vmax = np.nanmax(holder.get(
-                scatter.name, only_leafs=only_leafs)[cube])
+        if scatter.values is not None:
+            vmin = np.nanmin(scatter.values[cube])
+            vmax = np.nanmax(scatter.values[cube])
             scbar = True
             scmap = conf.default_values["colormap"]
-        except AttributeError:
+        else:
             vmin = vmax = None
             scbar = False
             scmap = None
-        scatter_args_osyris = {"iskip": 1, "cmap": scmap, "vmin": vmin,
+        scatter_args_osyris = {"iskip": len(x_raw)//10000, "cmap": scmap, "vmin": vmin,
                                "vmax": vmax, "cbar": scbar, "cbax": None, "nc": 21}
         scatter_args_plot = {"cmap": 1, "marker": ".",
                              "c": "b", "edgecolor": "None", "s": 20, "norm": 1}
         parse_arguments(scatter_args, scatter_args_osyris, scatter_args_plot)
         # Check if a variable is given as a color
-        try:
-            scatter_args_plot["c"] = holder.get(scatter.name, only_leafs=only_leafs)[
-                cube][::scatter_args_osyris["iskip"]]
-        except AttributeError:
-            pass
+        if scatter.values is not None and "c" not in scatter_args:
+            scatter_args_plot["c"] = scatter.values[cube][::scatter_args_osyris["iskip"]]
         scat = theAxes.scatter(x_raw[cube][::scatter_args_osyris["iskip"]],
                                y_raw[cube][::scatter_args_osyris["iskip"]], **scatter_args_plot)
         if scatter_args_osyris["cbar"]:

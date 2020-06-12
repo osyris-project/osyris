@@ -35,8 +35,8 @@ class OsyrisField():
 
         return
 
-    def get(self, only_leafs=True):
-        return self.parent.get(self.name, only_leafs=only_leafs)
+    def get(self):
+        return self.parent.get(self.name)
 
 #=======================================================================================
 # This is a dummy class which gives access to common functions to the other
@@ -224,7 +224,7 @@ class OsyrisData:
                 zc = self.get("z")[minloc]
             elif self.info["center"].startswith("av"):
                 # cvar=self.info["center"].split(":")[1]
-                [op_parsed,depth,grp,status] = self.parse_operation(cvar,only_leafs=True)
+                [op_parsed,depth,grp,status] = self.parse_operation(cvar)
                 select = eval("np.where("+op_parsed+")")
                 xc = np.average(self.get("x")[select])
                 yc = np.average(self.get("y")[select])
@@ -382,7 +382,7 @@ class OsyrisData:
     # is found in the operation, it is replaced by self.get("density") so that it
     # can be properly evaluated by the 'eval' function in the 'new_field' function.
     #=======================================================================================
-    def parse_operation(self,operation,suffix="",only_leafs=False):
+    def parse_operation(self,operation,suffix=""):
 
         max_depth = 0
         # Add space before and after to make it easier when searching for characters before
@@ -432,7 +432,7 @@ class OsyrisData:
                             thisKey = key+suffix
                         else:
                             thisKey = key
-                        hashkeys[theHash] = "self.get(\""+thisKey+"\",only_leafs="+str(only_leafs)+")"
+                        hashkeys[theHash] = "self.get(\""+thisKey+"\")"
                         expression = expression.replace(key,theHash,1)
                         max_depth = max(max_depth,getattr(self,thisKey).depth)
                         types_found[getattr(self,thisKey).kind] = True
@@ -469,17 +469,9 @@ class OsyrisData:
 
     #=======================================================================================
     # The function get returns the values of the selected variable.
-    # By default, it will only return the leaf cells, but you can choose to return
-    # all the cells in the tree by using the argument only_leafs=False.
     #=======================================================================================
-    def get(self,var,only_leafs=True):
-
-        # Make sure that we don't use the "only_leafs" indices if we are trying to access
-        # particle fields
-        if only_leafs and (getattr(self,var).group != "part"):
-            return getattr(self,var).values[self.info["leafs"]]
-        else:
-            return getattr(self,var).values
+    def get(self, var):
+        return getattr(self, var).values
 
     #=======================================================================================
     # The function returns the list of variables
@@ -546,12 +538,12 @@ class OsyrisData:
         if self.info["ndim"] > 2:
             v_z=getattr(self,name+"_z")
             v_z.vector_component = True
-            vals = np.linalg.norm([self.get(name+"_x",only_leafs=False),\
-                                   self.get(name+"_y",only_leafs=False),\
-                                   self.get(name+"_z",only_leafs=False)],axis=0)
+            vals = np.linalg.norm([self.get(name+"_x"),\
+                                   self.get(name+"_y"),\
+                                   self.get(name+"_z")],axis=0)
         else:
             v_z = False
-            vals = np.linalg.norm([self.get(name+"_x",only_leafs=False),self.get(name+"_y",only_leafs=False)],axis=0)
+            vals = np.linalg.norm([self.get(name+"_x"),self.get(name+"_y")],axis=0)
 
         self.new_field(name=name,values=vals,label=label,vec_x=v_x,vec_y=v_y,vec_z=v_z,kind="vector",unit=v_x.unit,group=v_x.group)
 
