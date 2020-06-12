@@ -12,13 +12,15 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src'))
 
+src = os.path.abspath('../src')
+os.environ['PYTHONPATH'] = src
+sys.path.insert(0, src)
 
 # -- Project information -----------------------------------------------------
 
 project = 'osyris'
-copyright = '2019, Neil Vaytet'
+copyright = '2020, Osyris contributors'
 author = 'Neil Vaytet'
 
 
@@ -30,6 +32,8 @@ author = 'Neil Vaytet'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.mathjax',
+    'nbsphinx'
 ]
 
 autosummary_generate = True
@@ -40,7 +44,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
