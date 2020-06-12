@@ -274,7 +274,7 @@ def plot_histogram(var_x,
     # Construct some edge specifiers for the histogram2d function call
     xe = np.linspace(xmin, xmax, nx)
     ye = np.linspace(ymin, ymax, ny)
-    # # Call the numpy histogram2d function
+    # Call the numpy histogram2d function
     z0, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(ye, xe))
     z1 = np.ma.masked_where(z0 == 0.0, z0)
     # In the contour plots, x and y are the centers of the cells, instead of the edges.
@@ -314,114 +314,22 @@ def plot_histogram(var_x,
     if scatter:
         if scatter is True:
             scatter = cell_count
-            scatter.values = np.ones_like(datax)
         empty = False
-        #     to_render["contour"] = z1
-        # else:
-        #     to_process["contour"] = contour.values
     if scalar or empty:
         if scalar is not True:
             to_process["scalar"] = scalar.values
             empty = False
         else:
-        # if empty or (scalar is True):
             scalar = cell_count
             to_render["scalar"] = z1
-        # else:
-        #     to_process["scalar"] = scalar.values
-    # print(to_process)
-
-    # to_process["counts"]
-    # if image:
-    #     if image is True:
-    #         image = ones
-    #     else:
-    #         to_process["image"] = image.values
-    #     empty = False
-    # if contour:
-    #     if contour is True:
-    #         contour = ones
-    #     else:
-    #         to_process["contour"] = contour.values
-    #     empty = False
-    # if scatter:
-    #     empty = False
-    # if scalar or empty:
-    #     if empty or (scalar is True):
-    #         scalar = ones
-    #     else:
-    #         to_process["scalar"] = scalar.values
-
-
-
-
-
-
-    # if scalar:
-    #     try:
-    #         z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-    #             ye, xe), weights=holder.get(scalar.name, only_leafs=only_leafs))
-    #         if summed:
-    #             z_scal = np.ma.masked_where(z0 == 0.0, z1)
-    #         else:
-    #             with np.errstate(divide="ignore", invalid="ignore"):
-    #                 z_scal = np.ma.masked_where(z0 == 0.0, z1/z0)
-    #     except AttributeError:
-    #         holder.new_field(name=default_var, unit="",
-    #                          label="Number of cells", verbose=True)
-    #         scalar = getattr(holder, default_var)
-    #         z_scal = np.ma.masked_where(z0 == 0.0, z0)
-    #     empty = False
-    # if image:
-    #     try:
-    #         z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-    #             ye, xe), weights=holder.get(image.name, only_leafs=only_leafs))
-    #         if summed:
-    #             z_imag = np.ma.masked_where(z0 == 0.0, z1)
-    #         else:
-    #             with np.errstate(divide="ignore", invalid="ignore"):
-    #                 z_imag = np.ma.masked_where(z0 == 0.0, z1/z0)
-    #     except AttributeError:
-    #         holder.new_field(name=default_var, unit="",
-    #                          label="Number of cells", verbose=True)
-    #         image = getattr(holder, default_var)
-    #         z_imag = np.ma.masked_where(z0 == 0.0, z0)
-    #     empty = False
-    # if contour:
-    #     try:
-    #         z1, yedges1, xedges1 = np.histogram2d(datay, datax, bins=(
-    #             ye, xe), weights=holder.get(contour.name, only_leafs=only_leafs))
-    #         if summed:
-    #             z_cont = np.ma.masked_where(z0 == 0.0, z1)
-    #         else:
-    #             with np.errstate(divide="ignore", invalid="ignore"):
-    #                 z_cont = np.ma.masked_where(z0 == 0.0, z1/z0)
-    #     except AttributeError:
-    #         holder.new_field(name=default_var, unit="",
-    #                          label="Number of cells", verbose=True)
-    #         contour = getattr(holder, default_var)
-    #         z_cont = np.ma.masked_where(z0 == 0.0, z0)
-    #     empty = False
-    # if scatter:
-    #     empty = False
-
-    # # If no variable is requested for z/color dimension, store number of cells by default
-    # if empty:
-    #     holder.new_field(name=default_var, unit="",
-    #                      label="Number of cells", verbose=True)
-    #     scalar = getattr(holder, default_var)
-    #     z_scal = np.ma.masked_where(z0 == 0.0, z0)
 
     if outline:
         to_render["outline"] = z0
-
 
     if len(to_process) > 0:
         results, y_edges, x_edges, bin_number = binned_statistic_2d(x=datay, y=datax, values=list(to_process.values()), statistic=operation, bins=[ye, xe])
         for i, key in enumerate(to_process.keys()):
             to_render[key] = np.ma.masked_where(z0 == 0.0, results[i])
-
-
 
     if plot:
         render_map(scalar=scalar, image=image, contour=contour, scatter=scatter, x=x, y=y, z_scal=to_render["scalar"],

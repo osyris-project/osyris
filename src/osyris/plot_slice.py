@@ -7,8 +7,6 @@ from scipy.interpolate import griddata
 from scipy.stats import binned_statistic_2d
 from .plot import get_slice_direction, render_map
 
-from timeit import default_timer as timer
-
 
 def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False, axes=None,
                direction="z", dx=0.0, dy=0.0, fname=None, title=None, sinks=True, copy=False,
@@ -58,18 +56,19 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     except TypeError:
         pass
 
-    # Determine if interpolation is to be done in 2d or 3d
-    if (interpolation.count("3d") > 0) or (interpolation.count("3D") > 0):
-        inter_3d = True
-        # size_fact = np.sqrt(3.0)
-        chars = [",", ":", ";", " ", "3d", "3D"]
-        for ch in chars:
-            interpolation = interpolation.replace(ch, "")
-        if len(interpolation) == 0:
-            interpolation = "linear"
-    else:
-        inter_3d = False
-        size_fact = 1.0
+    # # Determine if interpolation is to be done in 2d or 3d
+    # if (interpolation.count("3d") > 0) or (interpolation.count("3D") > 0):
+    #     inter_3d = True
+    #     # size_fact = np.sqrt(3.0)
+    #     chars = [",", ":", ";", " ", "3d", "3D"]
+    #     for ch in chars:
+    #         interpolation = interpolation.replace(ch, "")
+    #     if len(interpolation) == 0:
+    #         interpolation = "linear"
+    # else:
+    inter_3d = False
+    size_fact = 1.0
+    sqrt3 = np.sqrt(3.0)
 
     # Get slice extent and direction vectors
     if slice_direction is not None:
@@ -77,27 +76,6 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     else:
         dx, dy, box, dir_vecs, origin = get_slice_direction(
             holder, direction, dx, dy, origin=origin)
-
-    # # Try to automatically determine lmax to speedup process
-    # if lmax == 0:
-    #     # dxlmax = holder.info["boxsize_scaled"] * \
-    #     #     (0.5**holder.info["levelmax_active"])
-    #     # target = min(dx, dy)/float(resolution)
-    #     lmax = int(round(np.log((min(dx, dy)/float(resolution)) /
-    #                             holder.info["boxsize_scaled"])/(np.log(0.5)))) + 2
-    #     # subset = np.where(holder.get("level") <= lmax)
-    #     # print(lmax)
-    #     # nmax = holder.info["level_indices"][int(lmax)]
-    #     # print(nmax)
-    # # else:
-    # #     lmax = holder.info["levelmax_active"]
-    # # print(lmax, int(lmax))
-    # if lmax >= int(holder.info["levelmax_active"]):
-    #     nmax = holder.info["ncells"] + 1
-    # else:
-    #     nmax = holder.info["level_indices"][int(lmax)]
-    # print(lmax, nmax)
-    sqrt3 = np.sqrt(3.0)
 
     # Define equation of a plane
     a_plane = dir_vecs[0][1][0]
@@ -118,11 +96,8 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         sqrt3*0.5*holder.get("dx")
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    # cube = np.where(np.logical_and(np.abs(dist1) <= 0.5*holder.get("dx")*size_fact,
-    #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0)))
     cube = np.where(np.logical_and(np.abs(dist1) <= 0.5001*holder.get("dx")*sqrt3,
                                    np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0)))
-    # cube = np.where(np.abs(dist1) <= 0.5001*holder.get("dx")*sqrt3)
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([holder.get("x")[cube]-origin[0],
@@ -130,7 +105,6 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
                            holder.get("z")[cube]-origin[2]])
     datax = np.inner(coords, dir_vecs[1][1])
     datay = np.inner(coords, dir_vecs[2][1])
-    print(len(holder.get("x")[cube]))
     datadx = sqrt3*0.5*holder.get("dx")[cube]
 
     # Define slice extent and resolution
@@ -148,74 +122,23 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     dpy = (ymax-ymin)/float(ny)
     x = np.linspace(xmin+0.5*dpx, xmax-0.5*dpx, nx)
     y = np.linspace(ymin+0.5*dpy, ymax-0.5*dpy, ny)
-    # grid_x, grid_y = np.meshgrid(x, y)
 
-    # # xe = np.linspace(xmin, xmax, nx*2 + 1)
-    # # ye = np.linspace(ymin, ymax, ny*2 + 1)
-    # # xe = np.linspace(xmin, xmax, nx + 1)
-    # # ye = np.linspace(ymin, ymax, ny + 1)
-    # xe = np.linspace(xmin-0.1*dx, xmax+0.1*dx, 1.5*nx)
-    # ye = np.linspace(ymin-0.1*dy, ymax+0.1*dy, 1.5*ny)
-
-    # xc = 0.5 * (xe[:-1] + xe[1:])
-    # yc = 0.5 * (ye[:-1] + ye[1:])
-    # grid_x2, grid_y2 = np.meshgrid(xc, yc)
-
-    # # Doing different things depending on whether interpolation is 2D or 3D
-    # if inter_3d:
-    #     dataz = np.inner(coords, dir_vecs[0][1])
-    #     grid_z = np.zeros([nx, ny])
-    #     points = np.transpose([datax, datay, dataz])
-    #     grids = (grid_x, grid_y, grid_z)
-    # else:
-    #     points = np.transpose([datax, datay])
-    #     # points = np.transpose([grid_x2.flatten(), grid_y2.flatten()])
-    #     grids = (grid_x, grid_y)
-
-    # # nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
-    # # nums = nums.flatten()
-    # # subs = np.where(nums > 0)
-    # # points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
-
-    # # Use scipy interpolation function to make image
-    # z_scal = z_imag = z_cont = u_vect = v_vect = w_vect = u_strm = v_strm = w_strm = 0
 
     to_render = {"scalar": None, "image": None, "contour": None,
                  "u_vect": None, "v_vect": None, "w_vect": None,
                  "u_strm": None, "v_strm": None, "w_strm": None}
 
-
     to_process = {}
-
-
 
     if scalar:
         to_process["scalar"] = scalar.values[cube]
-        # # vals, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye), weights=scalar.values[cube])
-        # # nums, xedg, yedg = np.histogram2d(datax, datay, bins=(xe, ye))
-        # vals, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=scalar.values[cube])
-        # print(len(points), len(vals.flatten()))
-        # # vals = vals.flatten()
-        # # subs = np.where(nums > 0)
-        # print(len(nums[subs]))
-        # z_scal = griddata(
-        #     points, vals.flatten()[subs]/nums[subs], grids, method=interpolation)
-
-        # # z_scal = griddata(
-        # #     np.transpose([datax, datay]), scalar.values[cube], grids, method=interpolation)
-        
-
-        # axes.scatter(points[:, 0], points[:, 1])
-        # return
 
     if image:
-        # z_imag = griddata(
-        #     points, image.values[cube], grids, method=interpolation)
         to_process["image"] = image.values[cube]
+
     if contour:
         to_process["contour"] = contour.values[cube]
-        # z_cont = griddata(
-        #     points, contour.values[cube], grids, method=interpolation)
+
     if vec:
         if holder.info["ndim"] < 3:
             datau1 = vec.x.values[cube]
@@ -229,34 +152,6 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         to_process["u_vect"] = datau1
         to_process["v_vect"] = datav1
         to_process["w_vect"] = np.sqrt(datau1**2+datav1**2)
-
-        # # u_vect = griddata(points, datau1, grids, method=interpolation)
-        # # v_vect = griddata(points, datav1, grids, method=interpolation)
-        # # if "colors" in vec_args.keys():
-        # #     w_vect = griddata(
-        # #         points, vec_args["colors"].values[cube], grids, method=interpolation)
-        # # else:
-        # #     w_vect = griddata(points, np.sqrt(
-        # #         datau1**2+datav1**2), grids, method=interpolation)
-
-        # ### should use binned_statistic !!!####
-
-
-        # vals_u, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datau1)
-        # vals_v, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=datav1)
-        # vals_w, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe), weights=np.sqrt(datau1**2+datav1**2))
-        # # vals_u = vals_u.flatten()
-        # # vals_v = vals_v.flatten()
-        # # subs = np.where(nums > 0)
-        # print(len(nums[subs]))
-        # u_vect = griddata(
-        #     points, vals_u.flatten()[subs]/nums[subs], grids, method=interpolation)
-        # v_vect = griddata(
-        #     points, vals_v.flatten()[subs]/nums[subs], grids, method=interpolation)
-        # w_vect = griddata(
-        #     points, vals_w.flatten()[subs]/nums[subs], grids, method=interpolation)
-
-
 
     if stream:
         if holder.info["ndim"] < 3:
@@ -272,34 +167,9 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         to_process["v_strm"] = datav2
         to_process["w_strm"] = np.sqrt(datau2**2+datav2**2)
 
-        # u_strm = griddata(points, datau2, grids, method=interpolation)
-        # v_strm = griddata(points, datav2, grids, method=interpolation)
-        # w_strm = griddata(points, np.sqrt(datau2**2+datav2**2),
-        #                   grids, method=interpolation)
-    # print(list(to_process.values()))
-
-
-    # results, y_edges, x_edges, bin_number = binned_statistic_2d(x=datay, y=datax, values=list(to_process.values()), statistic='mean', bins=[ye, xe])
-    # # print(results)
-    # # print(len(results))
-
-    # # nums, yedg, xedg = np.histogram2d(datay, datax, bins=(ye, xe))
-    # # nums = results[0].flatten()
-    # subs = np.where(np.isfinite(results[0].flatten()))
-    # points = np.transpose([grid_x2.flatten()[subs], grid_y2.flatten()[subs]])
-
-
-    # start = timer()
-    # for i, key in enumerate(to_process.keys()):
-        # to_render[key] = griddata(
-        #     points, results[i].flatten()[subs], grids, method=interpolation)
-    start = timer()
     counts = np.zeros([ny, nx])
     for key in to_process.keys():
         to_render[key] = np.zeros([ny, nx])
-        # counts[key] = np.zeros([ny, nx])
-    print("init", timer() - start)
-    start = timer()
 
     datax -= xmin
     datay -= ymin
@@ -307,35 +177,8 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     iend = ((datax + datadx) / dpx + 1).astype(np.int)
     jstart = ((datay - datadx) / dpy).astype(np.int)
     jend = ((datay + datadx) / dpy + 1).astype(np.int)
-    print(istart, type(istart))
-    # to_render["scalar"]
-    print("ijstart", timer() - start)
-    start = timer()
-
-    # sel = np.where(np.logical_and(istart >= 0, np.logical_and(jstart >= 0,
-    #     np.logical_and(iend <= nx+1, jend <= ny+1))))
-
-    # # np.add.at(to_render["scalar"],([jstart[sel]:jend[sel]],[istart[sel]:iend[sel]]), 1)
-    # istart = istart[sel]
-    # iend = iend[sel]
-    # jstart = jstart[sel]
-    # jend = jend[sel]
-    # print("sel", timer() - start)
-    # start = timer()
-    # # n = len(datax[sel])
-    # # keys = to_process.keys()
-    # # # key = "scalar"
-    # # print('n', n)
-    # # print(istart)
-    # # # to_render = np.zeros([ny, nx])
-    # for key in to_process.keys():
-    #     to_process[key] = to_process[key][sel]
 
     for i in range(len(istart)):
-        # i0 = int((datax[i] - datadx[i] - xmin) / dpx)
-        # i1 = int((datax[i] + datadx[i] - xmin) / dpx) + 1
-        # j0 = int((datay[i] - datadx[i] - ymin) / dpy)
-        # j1 = int((datay[i] + datadx[i] - ymin) / dpy) + 1
         i0 = istart[i]
         i1 = iend[i]
         j0 = jstart[i]
@@ -348,10 +191,6 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
             for key in to_process.keys():
                 to_render[key][j0:j1, i0:i1] += to_process[key][i]
             counts[j0:j1, i0:i1] += 1.0
-        # to_render[j0:j1, i0:i1] += 1.0
-        # # print(key, timer() - start)
-    print("loop1", timer() - start)
-    start = timer()
 
     # Normalize by counts
     for key in to_process.keys():
