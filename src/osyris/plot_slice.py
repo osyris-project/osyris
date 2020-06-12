@@ -3,8 +3,6 @@
 # @author Neil Vaytet
 
 import numpy as np
-from scipy.interpolate import griddata
-from scipy.stats import binned_statistic_2d
 from .plot import get_slice_direction, render_map
 
 
@@ -66,8 +64,8 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
     #     if len(interpolation) == 0:
     #         interpolation = "linear"
     # else:
-    inter_3d = False
-    size_fact = 1.0
+    # inter_3d = False
+    # size_fact = 1.0
     sqrt3 = np.sqrt(3.0)
 
     # Get slice extent and direction vectors

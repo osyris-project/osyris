@@ -734,13 +734,6 @@ class RamsesData(eng.OsyrisData):
         # Store the number of cells
         self.info["ncells"] = ncells_tot
 
-        # # We will sort the data according to AMR level.
-        # # This will be useful for plotting slices, etc.
-        # sort = np.argsort(master_data_array[:, list_vars.index("level")])
-        # print(list_vars.index("level"))
-        # print(list_vars)
-        # print(master_data_array[:,-6])
-
         # We load the master array into the data structure adding one
         # 'new_field' per variable we have read in.
         for i in range(len(list_vars)):
@@ -762,12 +755,6 @@ class RamsesData(eng.OsyrisData):
                 # Use the 'new_field' function to create data field
                 self.new_field(name=theKey,unit=uu,label=theLabel,values=master_part_array[:,i]*norm,\
                                verbose=False,norm=norm,update=update,group="part")
-
-        # # Finally, useful information on active levels and levels index thresholds
-        # self.info["levelmax_active"] = np.nanmax(self.level.values)
-        # print(self.info["levelmax_active"])
-        # self.info["level_indices"] = [ np.argmax(self.level.values > i) for i in np.arange(self.info["levelmax_active"]) ]
-        # print(self.info["level_indices"])
 
         # Re-center the mesh around chosen center
         self.re_center()
