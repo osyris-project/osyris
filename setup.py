@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="osyris",
-    version="1.0.9",
+    version="1.1.0",
     author="Neil Vaytet",
     author_email="neil.vaytet@esss.se",
     description="A package to visualize AMR data from the RAMSES code",
@@ -23,7 +23,6 @@ setuptools.setup(
     install_requires=[
         "matplotlib>=2.0.0",
         "numpy>=1.0.0",
-        "scipy>=0.1.0",
-        "ipyvolume>=0.5",
+        "scipy>=0.1.0"
     ],
 )

@@ -25,13 +25,13 @@ Installation
 
    installation
 
-Getting started
-===============
+Basic usage
+===========
 
 .. toctree::
    :maxdepth: 2
 
-   getting-started
+   basic-usage
 
 Configuration
 =============
@@ -41,13 +41,13 @@ Configuration
 
    configuration
 
-Demos
-=====
+Examples
+========
 
 .. toctree::
    :maxdepth: 2
 
-   demos
+   examples
 
 API
 ===

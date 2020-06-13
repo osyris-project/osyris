@@ -316,7 +316,7 @@ def plot_histogram(var_x,
             scatter = cell_count
         empty = False
     if scalar or empty:
-        if scalar is not True:
+        if hasattr(scalar, "values"):
             to_process["scalar"] = scalar.values
             empty = False
         else:
