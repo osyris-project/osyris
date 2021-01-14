@@ -662,7 +662,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
 
     for i, key in enumerate(list_vars):
-        df[key] = master_data_array[:, i]
+        df[key.strip()] = master_data_array[:, i]
 
     # if particles:
     #     df.attrs["npart_tot"] = npart_count
