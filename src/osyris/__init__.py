@@ -19,7 +19,8 @@ except ImportError:
     except ImportError:
         from . import config
 
-from .load_ramses import RamsesData
+# from .load_ramses import RamsesData
+from .io import load
 from .plot_histogram import plot_histogram
 from .plot_slice import plot_slice
 from .plot_column_density import plot_column_density

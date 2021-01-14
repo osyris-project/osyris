@@ -3,16 +3,20 @@
 # @author Neil Vaytet
 
 import numpy as np
+import pandas as pd
 import struct
 import glob
-from . import config as conf
-from . import engine as eng
+from .. import config as conf
+from .. import engine as eng
 
 divider = "============================================"
 
 #=======================================================================================
 # This is the class which will hold the data that you read from the Ramses output
 #=======================================================================================
+
+def load
+
 class RamsesData(eng.OsyrisData):
 
     # This is the constructor which creates a `RamsesData` object.
@@ -58,7 +62,7 @@ class RamsesData(eng.OsyrisData):
                  path=conf.default_values["path"],variables=conf.default_values["variables"]):
 
         # Load the Ramses data using the loader function
-        status = self.data_loader(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
+        status = self.load(nout=nout,lmax=lmax,center=center,dx=dx,dy=dy,dz=dz,scale=scale,\
                  path=path,variables=variables)
 
         if status == 0:
@@ -161,7 +165,7 @@ class RamsesData(eng.OsyrisData):
     # Returns:
     #
     #* `status`: (*integer*) 1 is successful, 0 if not.
-    def data_loader(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
+    def load(self,nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",\
                     update=False,variables=[]):
 
         # Generate directory name from output number
