@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections
 from matplotlib.colors import LogNorm, Normalize
-from . import config as conf
+from .. import config as conf
 
 
 # def perpendicular_vector(v):

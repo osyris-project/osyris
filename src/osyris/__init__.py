@@ -21,10 +21,12 @@ except ImportError:
 
 # from .load_ramses import RamsesData
 from .io import load
-from .plot_histogram import plot_histogram
-from .plot_slice import plot_slice
-from .plot_column_density import plot_column_density
-from .plot_3d import plot_volume, plot_quiver
-from . import ism_physics
-from .vtk import to_vtk
-from .interpolate import interpolate
+from .plot import histogram
+
+# from .plot_histogram import plot_histogram
+# from .plot_slice import plot_slice
+# from .plot_column_density import plot_column_density
+# from .plot_3d import plot_volume, plot_quiver
+# from . import ism_physics
+# from .vtk import to_vtk
+# from .interpolate import interpolate

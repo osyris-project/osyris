@@ -195,8 +195,8 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
         to_render[key] /= counts
 
     # Render the map
-    if plot:
-        render_map(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
+
+    figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
                    z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
                    v_strm=to_render["v_strm"], w_strm=to_render["w_strm"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
                    axes=axes, title=title, sinks=sinks, new_window=new_window, clear=clear, block=block,
@@ -206,7 +206,9 @@ def plot_slice(scalar=False, image=False, contour=False, vec=False, stream=False
                    contour_args=contour_args, vec_args=vec_args, stream_args=stream_args, outline=outline,
                    outline_args=outline_args, sink_args=sink_args, x_raw=datax, y_raw=datay, holder=holder)
 
-    if copy:
-        return x, y, to_render
-    else:
-        return
+    return OsyrisPlot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+
+    # if copy:
+    #     return x, y, to_render
+    # else:
+    #     return
