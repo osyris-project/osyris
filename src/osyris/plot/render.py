@@ -198,34 +198,56 @@ from .. import config as conf
 #     return dx, dy, box, dir_vecs, origin
 
 
-def render(scalar=False, image=False, contour=False, scatter=False,
-               vec=False, stream=False, outline=False, x=0, y=0,
-               z_scal=0, z_imag=0, z_cont=0, z_outl=0, u_vect=0, v_vect=0, w_vect=0, u_strm=0, v_strm=0,
-               w_strm=0, fname=None, axes=None, title=None, sinks=True, new_window=False,
-               clear=True, block=False, xmin=0, xmax=0, ymin=0, ymax=0,
-               resolution=128, scalar_args={}, image_args={}, contour_args={}, vec_args={},
-               stream_args={}, scatter_args={}, outline_args={}, sink_args={}, dz=0, holder=None,
-               thePlane=0, origin=[0, 0, 0],
-               dir_vecs=[["z", [0, 0, 0]], ["x", [0, 0, 0]], ["y", [0, 0, 0]]],
-               x_raw=None, y_raw=None, equal_axes=True):
+def render(x, y, data):
+    # scalar=False, image=False, contour=False, scatter=False,
+    #            vec=False, stream=False, outline=False, x=0, y=0,
+    #            z_scal=0, z_imag=0, z_cont=0, z_outl=0, u_vect=0, v_vect=0, w_vect=0, u_strm=0, v_strm=0,
+    #            w_strm=0, fname=None, axes=None, title=None, sinks=True, new_window=False,
+    #            clear=True, block=False, xmin=0, xmax=0, ymin=0, ymax=0,
+    #            resolution=128, scalar_args={}, image_args={}, contour_args={}, vec_args={},
+    #            stream_args={}, scatter_args={}, outline_args={}, sink_args={}, dz=0, holder=None,
+    #            thePlane=0, origin=[0, 0, 0],
+    #            dir_vecs=[["z", [0, 0, 0]], ["x", [0, 0, 0]], ["y", [0, 0, 0]]],
+    #            x_raw=None, y_raw=None, equal_axes=True):
     """
     Use matplotlib to plot histogram, slice or column density maps
     """
 
-    if axes:
-        theAxes = axes
-    elif new_window:
-        plt.figure()
-        plt.subplot(111)
-        theAxes = plt.gca()
-    else:
-        if clear:
-            plt.clf()
-        plt.subplot(111)
-        theAxes = plt.gca()
+    fig, ax = plt.subplots()
 
-    x += np.inner(origin, dir_vecs[1][1])
-    y += np.inner(origin, dir_vecs[2][1])
+    # if axes:
+    #     theAxes = axes
+    # elif new_window:
+    #     plt.figure()
+    #     plt.subplot(111)
+    #     theAxes = plt.gca()
+    # else:
+    #     if clear:
+    #         plt.clf()
+    #     plt.subplot(111)
+    #     theAxes = plt.gca()
+
+    # x += np.inner(origin, dir_vecs[1][1])
+    # y += np.inner(origin, dir_vecs[2][1])
+
+    if "counts" in data:
+        contf = ax.contourf(x, y, data["counts"])
+        scb = plt.colorbar(
+            contf, ax=ax, cax=None)
+        scb.ax.set_ylabel("counts")
+            # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+        scb.ax.yaxis.set_label_coords(-1.1, 0.5)
+        # # if scalar_args_osyris["cbar"]:
+        #     scb = plt.colorbar(
+        #         contf, ax=ax, cax=scalar_args_osyris["cbax"], format=scalar_args_osyris["cb_format"])
+        #     scb.ax.set_ylabel(
+        #         scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+        #     scb.ax.yaxis.set_label_coords(-1.1, 0.5)
+
+    return {"fig": fig, "ax": ax}
+
+
+    func_map = {"contf": contourf}
 
     # Plot scalar field
     if scalar:

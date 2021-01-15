@@ -3,8 +3,9 @@
 # @author Neil Vaytet
 
 import numpy as np
+from ..classes import OsyrisPlot
 from .render import render
-from ..tools import to_bin_centers
+from .tools import to_bin_centers, finmin, finmax
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
@@ -32,7 +33,7 @@ def histogram(x, y, contf=None,
                    # scalar_args={},
                    # scatter=False,
                    # scatter_args={},
-                   operation="mean",
+                   operation="sum",
                    title=None,
                    # update=None,
                    xmin=None,
@@ -68,8 +69,9 @@ def histogram(x, y, contf=None,
         ymin = finmin(y)
         autoymin = True
     if ymax is None:
-        ymax = finmin(y)
+        ymax = finmax(y)
         autoymax = True
+
 
     # try:
     #     xmin += 0
@@ -127,9 +129,9 @@ def histogram(x, y, contf=None,
     xedges = np.linspace(xmin, xmax, nx+1)
     yedges = np.linspace(ymin, ymax, ny+1)
 
-    # Call the numpy histogram2d function
-    counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
-    z1 = np.ma.masked_where(z0 == 0.0, z0)
+    # # Call the numpy histogram2d function
+    # counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
+    # masked = np.ma.masked_where(z0 == 0.0, z0)
 
     # In the contour plots, x and y are the centers of the cells, instead of the edges.
     xcenters = to_bin_centers(xedges)
@@ -145,62 +147,70 @@ def histogram(x, y, contf=None,
     # # Use numpy histogram2d function to make image
     # z_scal = z_imag = z_cont = z_outl = False
 
-    to_render = {"contf": None, "image": None, "contour": None,
-                 "outline": None, "scatter": None}
+    to_render = {}
+    # "contf": None, "image": None, "contour": None,
+    #              "outline": None, "scatter": None}
 
-    to_process = {}
+    to_process = {"counts": np.ones_like(x)}
 
     empty = True
 
     # cell_count = OsyrisField(name=default_var,
     #                    unit="", label="Number of cells")
 
+    
 
-    if image is not None:
-        if image is True:
-            image = cell_count
-            to_render["image"] = z1
-        else:
-            to_process["image"] = image.values
-        empty = False
-    if contour:
-        if contour is True:
-            contour = cell_count
-            to_render["contour"] = z1
-        else:
-            to_process["contour"] = contour.values
-        empty = False
-    if scatter:
-        if scatter is True:
-            scatter = cell_count
-        empty = False
-    if scalar or empty:
-        if hasattr(scalar, "values"):
-            to_process["scalar"] = scalar.values
-            empty = False
-        else:
-            scalar = cell_count
-            to_render["scalar"] = z1
+    # if image is not None:
+    #     if image is True:
+    #         image = cell_count
+    #         to_render["image"] = z1
+    #     else:
+    #         to_process["image"] = image.values
+    #     empty = False
+    # if contour:
+    #     if contour is True:
+    #         contour = cell_count
+    #         to_render["contour"] = z1
+    #     else:
+    #         to_process["contour"] = contour.values
+    #     empty = False
+    # if scatter:
+    #     if scatter is True:
+    #         scatter = cell_count
+    #     empty = False
+    # if scalar or empty:
+    #     if hasattr(scalar, "values"):
+    #         to_process["scalar"] = scalar.values
+    #         empty = False
+    #     else:
+    #         scalar = cell_count
+    #         to_render["scalar"] = z1
 
-    # if outline:
-    #     to_render["outline"] = z0
+    # # if outline:
+    # #     to_render["outline"] = z0
 
-    if len(to_process) > 0:
-        results, y_edges, x_edges, bin_number = binned_statistic_2d(x=datay, y=datax, values=list(to_process.values()), statistic=operation, bins=[ye, xe])
-        for i, key in enumerate(to_process.keys()):
-            to_render[key] = np.ma.masked_where(z0 == 0.0, results[i])
+    # if len(to_process) > 0:
+    results, _, _, _ = binned_statistic_2d(x=y, y=x, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
 
+    # Here we assume that dictionary retains order of insertion: counts
+    # are the first key
+    mask = results[0] == 0.0
+    for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
+        to_render[key] = np.ma.masked_where(mask, results[i + 1])
+    if len(to_render) == 0:
+    	to_render["counts"] = np.ma.masked_where(mask, results[0])
 
+    figure = render(xcenters, ycenters, to_render)
 
-    figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
-                   z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
-                   v_strm=to_render["v_strm"], w_strm=to_render["w_strm"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
-                   axes=axes, title=title, sinks=sinks, new_window=new_window, clear=clear, block=block,
-                   resolution=resolution, thePlane=[
-                       a_plane, b_plane, c_plane, d_plane],
-                   origin=origin, dir_vecs=dir_vecs, scalar_args=scalar_args, image_args=image_args,
-                   contour_args=contour_args, vec_args=vec_args, stream_args=stream_args, outline=outline,
-                   outline_args=outline_args, sink_args=sink_args, x_raw=datax, y_raw=datay, holder=holder)
+    # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
+    #                z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
+    #                v_strm=to_render["v_strm"], w_strm=to_render["w_strm"], xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fname=fname,
+    #                axes=axes, title=title, sinks=sinks, new_window=new_window, clear=clear, block=block,
+    #                resolution=resolution, thePlane=[
+    #                    a_plane, b_plane, c_plane, d_plane],
+    #                origin=origin, dir_vecs=dir_vecs, scalar_args=scalar_args, image_args=image_args,
+    #                contour_args=contour_args, vec_args=vec_args, stream_args=stream_args, outline=outline,
+    #                outline_args=outline_args, sink_args=sink_args, x_raw=datax, y_raw=datay, holder=holder)
 
 
     return OsyrisPlot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])

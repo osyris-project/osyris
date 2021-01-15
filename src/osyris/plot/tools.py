@@ -1,21 +1,22 @@
+import numpy as np
 
 def get_finite_inds(x):
-	"""
-	Find indices of finite numbers.
-	"""
-    return np.where(np.isfinite(x))
+    """
+    Find indices of finite numbers.
+    """
+    return np.where(np.isfinite(x))[0]
 
 def finmin(x):
     """
     Finite minimum.
     """
-    np.amin(x[get_finite_inds(x)])
+    return np.amin(x.take(get_finite_inds(x)))
 
 def finmax(x):
     """
     Finite maximum.
     """
-    np.amax(x[get_finite_inds(x)])
+    return np.amax(x.take(get_finite_inds(x)))
 
 def to_bin_centers(x):
     """
