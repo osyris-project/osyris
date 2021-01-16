@@ -15,6 +15,9 @@ def histogram(x, y, contf=None,
 	contour=None,
 	scatter=None,
                    ax=None,
+                   logx=False,
+                   logy=False,
+                   logxy=False,
                    # block=False,
                    cbar=True,
                    # clear=True,
@@ -43,6 +46,9 @@ def histogram(x, y, contf=None,
     """
     Plot a 2D histogram with two variables as input.
     """
+    if logxy:
+    	logx = logy = True
+
     nx = resolution
     ny = resolution
 
@@ -72,6 +78,13 @@ def histogram(x, y, contf=None,
         ymax = finmax(y)
         autoymax = True
 
+    if logx:
+	    [xmin, xmax] = np.log10([xmin, xmax])
+    if logy:
+	    [ymin, ymax] = np.log10([ymin, ymax])
+	   #  xmax = np.log10(xmax)
+    # ymin = np.log10(ymin)
+    # ymax = np.log10(ymax)
 
     # try:
     #     xmin += 0
@@ -126,8 +139,17 @@ def histogram(x, y, contf=None,
         ymax = ymax + 0.05*dy
 
     # Construct some bin edges
-    xedges = np.linspace(xmin, xmax, nx+1)
-    yedges = np.linspace(ymin, ymax, ny+1)
+    # xedges = np.linspace(xmin, xmax, nx+1)
+    # yedges = np.linspace(ymin, ymax, ny+1)
+    if logx:
+        xedges = np.logspace(xmin, xmax, nx+1)
+    else:
+    	xedges = np.linspace(xmin, xmax, nx+1)
+    if logy:
+        yedges = np.logspace(ymin, ymax, ny+1)
+    else:
+        yedges = np.linspace(ymin, ymax, ny+1)
+
 
     # # Call the numpy histogram2d function
     # counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
@@ -190,6 +212,9 @@ def histogram(x, y, contf=None,
     # #     to_render["outline"] = z0
 
     # if len(to_process) > 0:
+
+    # print(xedges)
+    # print(yedges)
     results, _, _, _ = binned_statistic_2d(x=y, y=x, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
 
     # Here we assume that dictionary retains order of insertion: counts
@@ -200,7 +225,7 @@ def histogram(x, y, contf=None,
     if len(to_render) == 0:
     	to_render["counts"] = np.ma.masked_where(mask, results[0])
 
-    figure = render(xcenters, ycenters, to_render)
+    figure = render(xcenters, ycenters, to_render, logx, logy)
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
     #                z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
@@ -212,6 +237,8 @@ def histogram(x, y, contf=None,
     #                contour_args=contour_args, vec_args=vec_args, stream_args=stream_args, outline=outline,
     #                outline_args=outline_args, sink_args=sink_args, x_raw=datax, y_raw=datay, holder=holder)
 
+    # figure["ax"].set_xscale("log")
+    # figure["ax"].set_yscale("log")
 
     return OsyrisPlot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 

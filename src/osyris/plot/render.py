@@ -198,7 +198,7 @@ from .. import config as conf
 #     return dx, dy, box, dir_vecs, origin
 
 
-def render(x, y, data):
+def render(x, y, data, logx=False, logy=False):
     # scalar=False, image=False, contour=False, scatter=False,
     #            vec=False, stream=False, outline=False, x=0, y=0,
     #            z_scal=0, z_imag=0, z_cont=0, z_outl=0, u_vect=0, v_vect=0, w_vect=0, u_strm=0, v_strm=0,
@@ -243,6 +243,11 @@ def render(x, y, data):
         #     scb.ax.set_ylabel(
         #         scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
         #     scb.ax.yaxis.set_label_coords(-1.1, 0.5)
+
+    if logx:
+        ax.set_xscale("log")
+    if logy:
+        ax.set_yscale("log")
 
     return {"fig": fig, "ax": ax}
 
