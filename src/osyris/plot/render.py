@@ -198,7 +198,7 @@ from .. import config as conf
 #     return dx, dy, box, dir_vecs, origin
 
 
-def render(x, y, data, logx=False, logy=False):
+def render(x, y, data, logx=False, logy=False, norm=None, vmin=None, vmax=None, **kwargs):
     # scalar=False, image=False, contour=False, scatter=False,
     #            vec=False, stream=False, outline=False, x=0, y=0,
     #            z_scal=0, z_imag=0, z_cont=0, z_outl=0, u_vect=0, v_vect=0, w_vect=0, u_strm=0, v_strm=0,
@@ -215,6 +215,10 @@ def render(x, y, data, logx=False, logy=False):
 
     fig, ax = plt.subplots()
 
+    if norm is not None:
+        func = LogNorm if norm == "log" else Normalize
+        norm = func(vmin=vmin, vmax=vmax)
+
     # if axes:
     #     theAxes = axes
     # elif new_window:
@@ -230,8 +234,9 @@ def render(x, y, data, logx=False, logy=False):
     # x += np.inner(origin, dir_vecs[1][1])
     # y += np.inner(origin, dir_vecs[2][1])
 
+    print(kwargs)
     if "counts" in data:
-        contf = ax.contourf(x, y, data["counts"])
+        contf = ax.contourf(x, y, data["counts"], norm=norm, **kwargs)
         scb = plt.colorbar(
             contf, ax=ax, cax=None)
         scb.ax.set_ylabel("counts")

@@ -33,9 +33,32 @@ def to_bin_edges(x):
     right = centers[-1] + (x[-1] - x[-2])
     return np.concatenate(np.concatenate(left, center), right)
 
-def parse_input(entry):
+def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, **kwargs):
+    mode = "contourf" if mode is None else mode
     if isinstance(entry, dict):
-        kwargs = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
-        return entry["data"], kwargs
+        params = entry.copy()
+        if "mode" not in params:
+            params["mode"] = mode
+        if "norm" not in params:
+            params["norm"] = norm
+        if "vmin" not in params:
+            params["vmin"] = vmin
+        if "vmax" not in params:
+            params["vmax"] = vmax
+
+        for key, arg in kwargs.items():
+            if key not in params:
+                params[key] = arg
+        print(params)
+        return entry["data"].name, params
+        # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
+        # return entry["data"], kwargs
+        # ret
     else:
-        return entry, None
+        params = {"data": entry,
+                  "mode": mode,
+                   "norm": norm,
+                   "vmin": vmin,
+                   "vmax": vmax}
+        params.update(kwargs)
+        return entry.name, params

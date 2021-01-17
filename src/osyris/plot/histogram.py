@@ -5,19 +5,21 @@
 import numpy as np
 from ..classes import OsyrisPlot
 from .render import render
-from .tools import to_bin_centers, finmin, finmax
+from .tools import to_bin_centers, finmin, finmax, parse_layer
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
 
-def histogram(x, y, contf=None,
-	image=None,
-	contour=None,
-	scatter=None,
+def histogram(x, y, layers=None,
+	mode=None,
+	# image=None,
+	# contour=None,
+	# scatter=None,
                    ax=None,
                    logx=False,
                    logy=False,
-                   logxy=False,
+                   loglog=False,
+                   norm=None,
                    # block=False,
                    cbar=True,
                    # clear=True,
@@ -42,11 +44,14 @@ def histogram(x, y, contf=None,
                    xmin=None,
                    xmax=None,
                    ymin=None,
-                   ymax=None):
+                   ymax=None,
+                   vmin=None,
+                   vmax=None,
+                   **kwargs):
     """
     Plot a 2D histogram with two variables as input.
     """
-    if logxy:
+    if loglog:
     	logx = logy = True
 
     nx = resolution
@@ -180,7 +185,15 @@ def histogram(x, y, contf=None,
     # cell_count = OsyrisField(name=default_var,
     #                    unit="", label="Number of cells")
 
-    
+    for layer in layers:
+    	key, params = parse_layer(layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax)
+    	to_render[key] = params
+
+    print(to_render)
+
+
+
+
 
     # if image is not None:
     #     if image is True:
@@ -223,9 +236,17 @@ def histogram(x, y, contf=None,
     for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
         to_render[key] = np.ma.masked_where(mask, results[i + 1])
     if len(to_render) == 0:
-    	to_render["counts"] = np.ma.masked_where(mask, results[0])
+    	to_render["counts"] = {"data": np.ma.masked_where(mask, results[0]),
+    	                       "mode": mode,
+    	                       "norm": norm,
+    	                       "vmin": vmin,
+    	                       "vmax": vmax}
 
-    figure = render(xcenters, ycenters, to_render, logx, logy)
+
+    figure = render(x=xcenters, y=ycenters,
+    	data=to_render, logx=logx, logy=logy,
+    	norm=norm, vmin=vmin, vmax=vmax,
+    	**kwargs)
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
     #                z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
