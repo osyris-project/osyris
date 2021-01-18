@@ -186,10 +186,15 @@ def histogram(x, y, layers=None,
     #                    unit="", label="Number of cells")
 
     for layer in layers:
-    	key, params = parse_layer(layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax)
-    	to_render[key] = params
+    	data, mode, params = parse_layer(layer, mode=mode, norm=norm,
+    		vmin=vmin, vmax=vmax, **kwargs)
+    	to_process[data.name] = data
+    	to_render[data.name] = {"mode": mode, "params": params}
 
+    print("========")
+    print(to_process)
     print(to_render)
+    print("========")
 
 
 
@@ -234,19 +239,21 @@ def histogram(x, y, layers=None,
     # are the first key
     mask = results[0] == 0.0
     for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
-        to_render[key] = np.ma.masked_where(mask, results[i + 1])
+        to_render[key]["data"] = np.ma.masked_where(mask, results[i + 1])
     if len(to_render) == 0:
     	to_render["counts"] = {"data": np.ma.masked_where(mask, results[0]),
     	                       "mode": mode,
+    	                       "params":{
+    	                       "mode": mode,
     	                       "norm": norm,
     	                       "vmin": vmin,
-    	                       "vmax": vmax}
+    	                       "vmax": vmax}}
 
 
     figure = render(x=xcenters, y=ycenters,
-    	data=to_render, logx=logx, logy=logy,
-    	norm=norm, vmin=vmin, vmax=vmax,
-    	**kwargs)
+    	data=to_render, logx=logx, logy=logy)
+    	# norm=norm, vmin=vmin, vmax=vmax,
+    	# **kwargs)
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
     #                z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],
