@@ -5,16 +5,16 @@
 import numpy as np
 from ..classes import OsyrisPlot
 from .render import render
-from .tools import to_bin_centers, finmin, finmax, parse_layer
+from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
 
 def histogram(x, y, layers=None,
-	mode=None,
-	# image=None,
-	# contour=None,
-	# scatter=None,
+    mode=None,
+    # image=None,
+    # contour=None,
+    # scatter=None,
                    ax=None,
                    logx=False,
                    logy=False,
@@ -52,7 +52,7 @@ def histogram(x, y, layers=None,
     Plot a 2D histogram with two variables as input.
     """
     if loglog:
-    	logx = logy = True
+        logx = logy = True
 
     nx = resolution
     ny = resolution
@@ -84,10 +84,10 @@ def histogram(x, y, layers=None,
         autoymax = True
 
     if logx:
-	    [xmin, xmax] = np.log10([xmin, xmax])
+        [xmin, xmax] = np.log10([xmin, xmax])
     if logy:
-	    [ymin, ymax] = np.log10([ymin, ymax])
-	   #  xmax = np.log10(xmax)
+        [ymin, ymax] = np.log10([ymin, ymax])
+       #  xmax = np.log10(xmax)
     # ymin = np.log10(ymin)
     # ymax = np.log10(ymax)
 
@@ -149,7 +149,7 @@ def histogram(x, y, layers=None,
     if logx:
         xedges = np.logspace(xmin, xmax, nx+1)
     else:
-    	xedges = np.linspace(xmin, xmax, nx+1)
+        xedges = np.linspace(xmin, xmax, nx+1)
     if logy:
         yedges = np.logspace(ymin, ymax, ny+1)
     else:
@@ -185,17 +185,22 @@ def histogram(x, y, layers=None,
     # cell_count = OsyrisField(name=default_var,
     #                    unit="", label="Number of cells")
 
-    for layer in layers:
-    	data, mode, params = parse_layer(layer, mode=mode, norm=norm,
-    		vmin=vmin, vmax=vmax, **kwargs)
-    	to_process[data.name] = data
-    	to_render[data.name] = {"mode": mode, "params": params}
+    operations = {}
+    if layers is not None:
+        for layer in layers:
+            data, settings, params = parse_layer(layer, mode=mode, norm=norm,
+                vmin=vmin, vmax=vmax, operation=operation, **kwargs)
+            to_process[data.name] = data
+            to_render[data.name] = {"mode": settings["mode"], "params": params}
+            operations[data.name] = settings["operation"]
 
     print("========")
     print(to_process)
     print(to_render)
     print("========")
 
+    if (operation == "mean") and "sum" in operations.values():
+    	counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
 
 
 
@@ -233,27 +238,35 @@ def histogram(x, y, layers=None,
 
     # print(xedges)
     # print(yedges)
-    results, _, _, _ = binned_statistic_2d(x=y, y=x, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
+    binned, _, _, _ = binned_statistic_2d(x=y, y=x, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
 
     # Here we assume that dictionary retains order of insertion: counts
     # are the first key
-    mask = results[0] == 0.0
+    mask = binned[0] == 0.0
     for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
-        to_render[key]["data"] = np.ma.masked_where(mask, results[i + 1])
+        data = binned[i + 1]
+        if operations[key] != operation:
+        	if operation == "sum":
+        		data /= binned[0]
+        	else:
+        		data *= counts
+        to_render[key]["data"] = np.ma.masked_where(mask, data)
+
     if len(to_render) == 0:
-    	to_render["counts"] = {"data": np.ma.masked_where(mask, results[0]),
-    	                       "mode": mode,
-    	                       "params":{
-    	                       "mode": mode,
-    	                       "norm": norm,
-    	                       "vmin": vmin,
-    	                       "vmax": vmax}}
+        to_render["counts"] = {"data": np.ma.masked_where(mask, binned[0]),
+                               "mode": settings["mode"],
+                               "params":{
+                               "norm": get_norm(norm=norm,
+                               	                vmin=vmin,
+                               	                vmax=vmax),
+                               "vmin": vmin,
+                               "vmax": vmax}}
 
 
     figure = render(x=xcenters, y=ycenters,
-    	data=to_render, logx=logx, logy=logy)
-    	# norm=norm, vmin=vmin, vmax=vmax,
-    	# **kwargs)
+        data=to_render, logx=logx, logy=logy)
+        # norm=norm, vmin=vmin, vmax=vmax,
+        # **kwargs)
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
     #                z_imag=to_render["image"], z_cont=to_render["contour"], u_vect=to_render["u_vect"], v_vect=to_render["v_vect"], w_vect=to_render["w_vect"], u_strm=to_render["u_strm"],

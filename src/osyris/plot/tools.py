@@ -41,13 +41,13 @@ def get_norm(norm=None, vmin=None, vmax=None):
         norm = func(vmin=vmin, vmax=vmax)
     return norm
 
-def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, **kwargs):
+def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
     mode = "contourf" if mode is None else mode
     
     # print("NORM IS", norm)
 
     if isinstance(entry, dict):
-        params = {key: entry[key] for key in set(entry.keys() - set(["data", "mode"]))}
+        params = {key: entry[key] for key in set(entry.keys()) - set(["data", "mode", "operation"])}
         if "norm" not in params:
             params["norm"] = norm
         if "vmin" not in params:
@@ -64,19 +64,22 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, **kwargs):
         # print(params)
         # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
 
-        if "mode" in entry:
-            layer_mode = entry["mode"]
-        else:
-            layer_mode = mode
+        settings = {}
+        for key in ["mode", "operation"]:
+            settings[key] = entry[key] if key in entry else eval(key)
+            # if key in entry:
+            #     settings[key] = entry["mode"]
+            # else:
+            #     layer_mode = mode
 
-        return entry["data"], layer_mode, params
+        return entry["data"], settings, params
         # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
         # return entry["data"], kwargs
         # ret
     else:
-        params = {"mode": mode,
-                   "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-                   "vmin": vmin,
-                   "vmax": vmax}
+        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
+                  "vmin": vmin,
+                  "vmax": vmax}
+        settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
-        return entry, params
+        return entry, settings, params
