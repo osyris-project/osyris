@@ -5,7 +5,7 @@
 import numpy as np
 from ..classes import OsyrisPlot
 from .render import render
-from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
+from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm, get_mode
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
@@ -194,13 +194,13 @@ def histogram(x, y, layers=None,
             to_render[data.name] = {"mode": settings["mode"], "params": params}
             operations[data.name] = settings["operation"]
 
-    print("========")
-    print(to_process)
-    print(to_render)
-    print("========")
+    # print("========")
+    # print(to_process)
+    # print(to_render)
+    # print("========")
 
     if (operation == "mean") and "sum" in operations.values():
-    	counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
+        counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
 
 
 
@@ -245,20 +245,22 @@ def histogram(x, y, layers=None,
     mask = binned[0] == 0.0
     for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
         data = binned[i + 1]
+        print(key, operations[key], operation)
         if operations[key] != operation:
-        	if operation == "sum":
-        		data /= binned[0]
-        	else:
-        		data *= counts
+            if operation == "sum":
+                with np.errstate(invalid="ignore"):
+                    data /= binned[0]
+            else:
+                data *= counts
         to_render[key]["data"] = np.ma.masked_where(mask, data)
 
     if len(to_render) == 0:
         to_render["counts"] = {"data": np.ma.masked_where(mask, binned[0]),
-                               "mode": settings["mode"],
+                               "mode": get_mode(mode),
                                "params":{
                                "norm": get_norm(norm=norm,
-                               	                vmin=vmin,
-                               	                vmax=vmax),
+                                                   vmin=vmin,
+                                                   vmax=vmax),
                                "vmin": vmin,
                                "vmax": vmax}}
 

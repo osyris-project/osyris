@@ -41,8 +41,15 @@ def get_norm(norm=None, vmin=None, vmax=None):
         norm = func(vmin=vmin, vmax=vmax)
     return norm
 
-def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
+def get_mode(mode):
     mode = "contourf" if mode is None else mode
+    if mode == "image":
+        mode = "pcolormesh"
+    return mode
+
+
+def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
+    mode = get_mode(mode)
     
     # print("NORM IS", norm)
 
@@ -71,6 +78,9 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
             #     settings[key] = entry["mode"]
             # else:
             #     layer_mode = mode
+        # if settings["mode"] == "image":
+        #     settings["mode"] = "imshow"
+        settings["mode"] = get_mode(settings["mode"])
 
         return entry["data"], settings, params
         # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
@@ -82,4 +92,6 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
                   "vmax": vmax}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
+        if settings["mode"] == "image":
+            settings["mode"] = "imshow"
         return entry, settings, params

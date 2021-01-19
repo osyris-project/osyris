@@ -237,7 +237,7 @@ def render(x, y, data, logx=False, logy=False):
     # y += np.inner(origin, dir_vecs[2][1])
 
     mpl_objects = {}
-
+    cbar = None
     for key in data:
 
 
@@ -255,18 +255,18 @@ def render(x, y, data, logx=False, logy=False):
         #     **data[key]["params"])
 
 
-
-        # scb = plt.colorbar(
-        #     contf, ax=ax, cax=None)
-        # scb.ax.set_ylabel("counts")
-        #     # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-        # scb.ax.yaxis.set_label_coords(-1.1, 0.5)
-        # # # if scalar_args_osyris["cbar"]:
-        # #     scb = plt.colorbar(
-        # #         contf, ax=ax, cax=scalar_args_osyris["cbax"], format=scalar_args_osyris["cb_format"])
-        # #     scb.ax.set_ylabel(
-        # #         scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
-        # #     scb.ax.yaxis.set_label_coords(-1.1, 0.5)
+        if data[key]["mode"] in ["contourf", "pcolormesh"] and cbar is None:
+            cbar = plt.colorbar(
+                mpl_objects[key], ax=ax, cax=None)
+            cbar.ax.set_ylabel(key)
+                # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+            cbar.ax.yaxis.set_label_coords(-1.1, 0.5)
+            # # if scalar_args_osyris["cbar"]:
+            #     scb = plt.colorbar(
+            #         contf, ax=ax, cax=scalar_args_osyris["cbax"], format=scalar_args_osyris["cb_format"])
+            #     scb.ax.set_ylabel(
+            #         scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
+            #     scb.ax.yaxis.set_label_coords(-1.1, 0.5)
 
     if logx:
         ax.set_xscale("log")
