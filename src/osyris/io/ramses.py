@@ -8,6 +8,7 @@ import struct
 import glob
 from .. import config as conf
 from .. import engine as eng
+from ..utils import create_vector_containers
 
 divider = "============================================"
 
@@ -708,6 +709,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # # Re-center the mesh around chosen center
     # self.re_center()
 
-    return df
+    create_vector_containers(df)
 
+    return df
 
