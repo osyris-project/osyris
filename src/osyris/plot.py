@@ -180,22 +180,23 @@ def get_slice_direction(holder, direction, dx=0, dy=0, origin=[0, 0, 0]):
         print("Bad direction for slice: ", direction)
         return
 
-    boxmin_x = np.nanmin(holder.get(dir_vecs[1][0]))
-    boxmax_x = np.nanmax(holder.get(dir_vecs[1][0]))
-    boxmin_y = np.nanmin(holder.get(dir_vecs[2][0]))
-    boxmax_y = np.nanmax(holder.get(dir_vecs[2][0]))
-    if dx+dy == 0.0:
-        dx = boxmax_x - boxmin_x
-        dy = boxmax_y - boxmin_y
-    elif dx == 0.0:
-        dx = dy
+    # boxmin_x = np.nanmin(holder.get(dir_vecs[1][0]))
+    # boxmax_x = np.nanmax(holder.get(dir_vecs[1][0]))
+    # boxmin_y = np.nanmin(holder.get(dir_vecs[2][0]))
+    # boxmax_y = np.nanmax(holder.get(dir_vecs[2][0]))
+    # if dx+dy == 0.0:
+    #     dx = boxmax_x - boxmin_x
+    #     dy = boxmax_y - boxmin_y
+    # elif dx == 0.0:
+    #     dx = dy
 
     for i in range(3):
         dir_vecs[i][1] /= np.linalg.norm(dir_vecs[i][1])
 
-    box = [boxmin_x, boxmax_x, boxmin_y, boxmax_y]
+    # box = [boxmin_x, boxmax_x, boxmin_y, boxmax_y]
 
-    return dx, dy, box, dir_vecs, origin
+    # return dx, dy, box, dir_vecs, origin
+    return dir_vecs, origin
 
 
 def render_map(scalar=False, image=False, contour=False, scatter=False,

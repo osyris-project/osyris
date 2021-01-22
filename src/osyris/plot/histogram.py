@@ -283,7 +283,7 @@ def histogram(x, y, layers=None,
     # figure["ax"].set_xscale("log")
     # figure["ax"].set_yscale("log")
 
-    return OsyrisPlot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return OsyrisPlot(x=xcenters, y=ycenters, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
 
 

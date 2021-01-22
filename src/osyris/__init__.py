@@ -21,7 +21,7 @@ except ImportError:
 
 # from .load_ramses import RamsesData
 from .io import load
-from .plot import histogram
+from .plot import histogram, plane
 
 # from .plot_histogram import plot_histogram
 # from .plot_slice import plot_slice
