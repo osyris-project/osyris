@@ -3,12 +3,13 @@
 # @author Neil Vaytet
 
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import struct
 import glob
 from .. import config as conf
 from .. import engine as eng
 from ..utils import create_vector_containers
+from ..core import Dict
 
 divider = "============================================"
 
@@ -36,35 +37,23 @@ def generate_fname(nout,path="",ftype="",cpuid=1,ext=""):
     return infile
 
 
-# def read_parameter_file(fname="",dict_name="",evaluate=True,verbose=False,delimiter="="):
-
-#     # Read info file and create dictionary
-#     try:
-#         with open(fname) as f:
-#             content = f.readlines()
-#         f.close()
-#     except IOError:
-#         # Clean exit if the file was not found
-#         if verbose:
-#             print("File not found: "+fname)
-#         #if raise_error:
-#             #raise IOError
-#         #else:
-#         return 0
-
-#     setattr(self,dict_name,dict())
-#     for line in content:
-#         sp = line.split(delimiter)
-#         if len(sp) > 1:
-#             if evaluate:
-#                 try:
-#                     getattr(self,dict_name)[sp[0].strip()] = eval(sp[1].strip())
-#                 except (NameError,SyntaxError):
-#                     getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
-#             else:
-#                 getattr(self,dict_name)[sp[0].strip()] = sp[1].strip()
-
-#     return 1
+def read_parameter_file(fname=None, delimiter="="):
+    """
+    Read info file and create dictionary
+    """
+    out = {}
+    with open(fname) as f:
+        content = f.readlines()
+    for line in content:
+        sp = line.split(delimiter)
+        if len(sp) > 1:
+            value = sp[1].strip()
+            try:
+                value = eval(value)
+            except NameError:
+                pass
+            out[sp[0].strip()] = value
+    return out
 
 
 
@@ -72,53 +61,47 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
                     update=False,variables=[]):
 
 
-    df = pd.DataFrame()
+    # df = pd.DataFrame()
+    data = Dict()
 
     # Generate directory name from output number
     infile = generate_fname(nout,path)
 
     # Read info file and create info dictionary
     infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
+    data.meta.update(read_parameter_file(fname=infofile))
 
-    info = pd.read_csv(infofile, delimiter="=", header=None)
-    for key, value in zip(info[0], info[1]):
-        try:
-            x = float(value)
-            if np.isfinite(x):
-                df.attrs[key.strip()] = x
-        except ValueError:
-            df.attrs[key.strip()] = value
 
-    print(df.attrs)
+    print(data.meta)
 
     # Add additional information
-    df.attrs["center"   ] = center
-    df.attrs["scale"    ] = scale
-    df.attrs["infile"   ] = infile
-    df.attrs["path"     ] = path
-    df.attrs["boxsize"  ] = df.attrs["boxlen"]*df.attrs["unit_l"]
-    df.attrs["time"     ] = df.attrs["time"]*df.attrs["unit_t"]
-    df.attrs["dx_load"  ] = dx
-    df.attrs["dy_load"  ] = dy
-    df.attrs["dz_load"  ] = dz
-    df.attrs["lmax"     ] = lmax
-    df.attrs["variables"] = variables
+    data.meta["center"   ] = center
+    data.meta["scale"    ] = scale
+    data.meta["infile"   ] = infile
+    data.meta["path"     ] = path
+    data.meta["boxsize"  ] = data.meta["boxlen"]*data.meta["unit_l"]
+    data.meta["time"     ] = data.meta["time"]*data.meta["unit_t"]
+    data.meta["dx_load"  ] = dx
+    data.meta["dy_load"  ] = dy
+    data.meta["dz_load"  ] = dz
+    data.meta["lmax"     ] = lmax
+    data.meta["variables"] = variables
 
-    # Convert to integers
-    df.attrs["ncpu"]         = int(df.attrs["ncpu"]        )
-    df.attrs["ndim"]         = int(df.attrs["ndim"]        )
-    df.attrs["levelmin"]     = int(df.attrs["levelmin"]    )
-    df.attrs["levelmax"]     = int(df.attrs["levelmax"]    )
-    df.attrs["ngridmax"]     = int(df.attrs["ngridmax"]    )
-    df.attrs["nstep_coarse"] = int(df.attrs["nstep_coarse"])
-    df.attrs["ngrp"]         = int(df.attrs["ngrp"]        )
-    df.attrs["ir_cloud"]     = int(df.attrs["ir_cloud"]        )
-    df.attrs["eos"]          = int(df.attrs["eos"]        )
+    # # Convert to integers
+    # data.meta["ncpu"]         = int(data.meta["ncpu"]        )
+    # data.meta["ndim"]         = int(data.meta["ndim"]        )
+    # data.meta["levelmin"]     = int(data.meta["levelmin"]    )
+    # data.meta["levelmax"]     = int(data.meta["levelmax"]    )
+    # data.meta["ngridmax"]     = int(data.meta["ngridmax"]    )
+    # data.meta["nstep_coarse"] = int(data.meta["nstep_coarse"])
+    # data.meta["ngrp"]         = int(data.meta["ngrp"]        )
+    # data.meta["ir_cloud"]     = int(data.meta["ir_cloud"]        )
+    # data.meta["eos"]          = int(data.meta["eos"]        )
 
        # if nout==-1:
-    #     df.attrs["nout" ] = int(infile.split("_")[-1])
+    #     data.meta["nout" ] = int(infile.split("_")[-1])
     # else:
-    #     df.attrs["nout" ] = nout
+    #     data.meta["nout" ] = nout
 
     # # Read namelist file and create namelist dictionary
     # nmlfile = infile+"/namelist.txt"
@@ -153,7 +136,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
 
     hydro = True
-    df.attrs["nvar_hydro"] = len(descriptor)
+    data.meta["nvar_hydro"] = len(descriptor)
     # try:
     #     with open(hydrofile) as f:
     #         content = f.readlines()
@@ -161,7 +144,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     #     hydro = False
     # if hydro:
     #     # Store the total number of hydro variables
-    #     df.attrs["nvar_hydro"] = len(content) - 2
+    #     data.meta["nvar_hydro"] = len(content) - 2
     #     # Now add to the list of variables to be read
     #     for line in content[2:]:
     #         sp = line.split(",")
@@ -180,7 +163,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # # Check if self-gravity files exist
     # grav_fname = self.generate_fname(nout,path,ftype="grav",cpuid=1)
     gravity = False
-    # df.attrs["nvar_grav"] = 0
+    # data.meta["nvar_grav"] = 0
     # try:
     #     with open(grav_fname, mode='rb') as grav_file:
     #         gravContent = grav_file.read()
@@ -189,9 +172,9 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     # # Add gravity fields
     # if gravity:
-    #     df.attrs["nvar_grav"] = 4
+    #     data.meta["nvar_grav"] = 4
     #     content = ["grav_potential"]
-    #     for n in range(df.attrs["ndim"]):
+    #     for n in range(data.meta["ndim"]):
     #         content.append("grav_acceleration_"+xyz_strings[n])
 
     #     # Now add to the list of variables to be read
@@ -207,7 +190,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     # rtfile = infile+"/rt_file_descriptor.txt"
     rt = False
-    # df.attrs["nvar_rt"] = 0
+    # data.meta["nvar_rt"] = 0
     # try:
     #     with open(rtfile) as f:
     #         content = f.readlines()
@@ -216,7 +199,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     #     rt = False
     # if rt:
     #     # Store the total number of rt variables
-    #     df.attrs["nvar_rt"] = len(content) - 2
+    #     data.meta["nvar_rt"] = len(content) - 2
     #     # Now add to the list of variables to be read
     #     for line in content[2:]:
     #         sp = line.split(",")
@@ -245,7 +228,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     # particles = True
     # partfile = infile+"/part_file_descriptor.txt"
-    # df.attrs["npart_tot"] = 0
+    # data.meta["npart_tot"] = 0
     # try:
     #     with open(partfile) as f:
     #         content = f.readlines()
@@ -257,7 +240,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     #     part_vars = []
     #     part_type = []
     #     # Store the total number of part variables
-    #     df.attrs["nvar_part"] = len(content) - 2
+    #     data.meta["nvar_part"] = len(content) - 2
     #     # Now add to the list of variables to be read
     #     for line in content[2:]:
     #         sp = line.split(",")
@@ -281,10 +264,10 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # We have to open the files in binary format, and count all the bytes in the ===
     # file structure to extract just the data we need. =============================
     # See output_amr.f90 and output_hydro.f90 in the RAMSES source. ================
-    print("Processing %i files in " % (df.attrs["ncpu"]) + infile)
+    print("Processing %i files in " % (data.meta["ncpu"]) + infile)
 
     # Define the size of the region to be read
-    lconvert = conf.constants[scale]/(df.attrs["boxlen"]*df.attrs["unit_l"])
+    lconvert = conf.constants[scale]/(data.meta["boxlen"]*data.meta["unit_l"])
     if dx > 0.0:
         xmin = xc - 0.5*dx*lconvert
         xmax = xc + 0.5*dx*lconvert
@@ -305,7 +288,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
         zmax = 1.0
 
     if lmax==0:
-       lmax = df.attrs["levelmax"]
+       lmax = data.meta["levelmax"]
 
     # We will store the cells in a dictionary which we build as we go along.
     # The final concatenation into a single array will be done once at the end.
@@ -316,23 +299,23 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     npart_count = 0
 
     # Allocate work arrays
-    twotondim = 2**df.attrs["ndim"]
+    twotondim = 2**data.meta["ndim"]
     xcent = np.zeros([8,3],dtype=np.float64)
-    xg    = np.zeros([df.attrs["ngridmax"],3],dtype=np.float64)
-    son   = np.zeros([df.attrs["ngridmax"],twotondim],dtype=np.int32)
-    var   = np.zeros([df.attrs["ngridmax"],twotondim,nvar_read],dtype=np.float64)
-    xyz   = np.zeros([df.attrs["ngridmax"],twotondim,df.attrs["ndim"]],dtype=np.float64)
-    ref   = np.zeros([df.attrs["ngridmax"],twotondim],dtype=np.bool)
+    xg    = np.zeros([data.meta["ngridmax"],3],dtype=np.float64)
+    son   = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.int32)
+    var   = np.zeros([data.meta["ngridmax"],twotondim,nvar_read],dtype=np.float64)
+    xyz   = np.zeros([data.meta["ngridmax"],twotondim,data.meta["ndim"]],dtype=np.float64)
+    ref   = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.bool)
 
     iprog = 1
     istep = 10
     ncells_tot = 0
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
-    for k in range(df.attrs["ncpu"]):
+    for k in range(data.meta["ncpu"]):
 
         # Print progress
-        percentage = int(float(k)*100.0/float(df.attrs["ncpu"]))
+        percentage = int(float(k)*100.0/float(data.meta["ncpu"]))
         if percentage >= iprog*istep:
             print("%3i%% : read %10i cells" % (percentage,ncells_tot))
             iprog += 1
@@ -375,7 +358,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
             ninteg = 7
             nlines = 5
             [nboundary] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
-            ngridlevel = np.zeros([df.attrs["ncpu"]+nboundary,df.attrs["levelmax"]],dtype=np.int32)
+            ngridlevel = np.zeros([data.meta["ncpu"]+nboundary,data.meta["levelmax"]],dtype=np.int32)
 
             # noutput
             ninteg = 9
@@ -387,44 +370,44 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
             ninteg = 12
             nfloat = 2+2*noutput
             nlines = 12
-            df.attrs["dtold"] = eng.get_binary_data(fmt="%id"%(df.attrs["levelmax"]),\
+            data.meta["dtold"] = eng.get_binary_data(fmt="%id"%(data.meta["levelmax"]),\
                                  content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-            nfloat += 1+df.attrs["levelmax"]
+            nfloat += 1+data.meta["levelmax"]
             nlines += 1
-            df.attrs["dtnew"] = eng.get_binary_data(fmt="%id"%(df.attrs["levelmax"]),\
+            data.meta["dtnew"] = eng.get_binary_data(fmt="%id"%(data.meta["levelmax"]),\
                                  content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
 
             # hydro gamma
             ninteg = 5
             nfloat = 0
             nlines = 5
-            [df.attrs["gamma"]] = eng.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
+            [data.meta["gamma"]] = eng.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
 
         # Read the number of grids
-        ninteg = 14+(2*df.attrs["ncpu"]*df.attrs["levelmax"])
-        nfloat = 18+(2*noutput)+(2*df.attrs["levelmax"])
+        ninteg = 14+(2*data.meta["ncpu"]*data.meta["levelmax"])
+        nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         nlines = 21
-        ngridlevel[:df.attrs["ncpu"],:] = np.asarray(eng.get_binary_data(fmt="%ii"%(df.attrs["ncpu"]*df.attrs["levelmax"]),\
-             content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(df.attrs["levelmax"],df.attrs["ncpu"]).T
+        ngridlevel[:data.meta["ncpu"],:] = np.asarray(eng.get_binary_data(fmt="%ii"%(data.meta["ncpu"]*data.meta["levelmax"]),\
+             content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],data.meta["ncpu"]).T
 
         # Read boundary grids if any
         if nboundary > 0:
-            ninteg = 14+(3*df.attrs["ncpu"]*df.attrs["levelmax"])+(10*df.attrs["levelmax"])+(2*nboundary*df.attrs["levelmax"])
-            nfloat = 18+(2*noutput)+(2*df.attrs["levelmax"])
+            ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(2*nboundary*data.meta["levelmax"])
+            nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
             nlines = 25
-            ngridlevel[df.attrs["ncpu"]:df.attrs["ncpu"]+nboundary,:] = np.asarray(eng.get_binary_data(fmt="%ii"%(nboundary*df.attrs["levelmax"]),\
-                                            content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(df.attrs["levelmax"],nboundary).T
+            ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.asarray(eng.get_binary_data(fmt="%ii"%(nboundary*data.meta["levelmax"]),\
+                                            content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],nboundary).T
 
         # Determine bound key precision
-        ninteg = 14+(3*df.attrs["ncpu"]*df.attrs["levelmax"])+(10*df.attrs["levelmax"])+(3*nboundary*df.attrs["levelmax"])+5
-        nfloat = 18+(2*noutput)+(2*df.attrs["levelmax"])
+        ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(3*nboundary*data.meta["levelmax"])+5
+        nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         nlines = 21+2+3*min(1,nboundary)+1+1
         nstrin = 128
         [key_size] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
 
         # Offset for AMR
-        ninteg1 = 14+(3*df.attrs["ncpu"]*df.attrs["levelmax"])+(10*df.attrs["levelmax"])+(3*nboundary*df.attrs["levelmax"])+5+3*ncoarse
-        nfloat1 = 18+(2*noutput)+(2*df.attrs["levelmax"])
+        ninteg1 = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(3*nboundary*data.meta["levelmax"])+5+3*ncoarse
+        nfloat1 = 18+(2*noutput)+(2*data.meta["levelmax"])
         nlines1 = 21+2+3*min(1,nboundary)+1+1+1+3
         nstrin1 = 128 + key_size
 
@@ -491,7 +474,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
                 nstrin_rt = nstrin4
 
             # Loop over domains
-            for j in range(nboundary+df.attrs["ncpu"]):
+            for j in range(nboundary+data.meta["ncpu"]):
 
                 ncache = ngridlevel[j,ilevel]
 
@@ -514,14 +497,14 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
                         nfloat = nfloat_amr
                         nlines = nlines_amr + 3
                         nstrin = nstrin_amr
-                        for n in range(df.attrs["ndim"]):
+                        for n in range(data.meta["ndim"]):
                             offset = 4*ninteg + 8*(nlines+nfloat+n*(ncache+1)) + nstrin + 4
                             xg[:ncache,n] = struct.unpack("%id"%(ncache), amrContent[offset:offset+8*ncache])
 
                         # son indices
-                        ninteg = ninteg_amr + ncache*(4+2*df.attrs["ndim"])
-                        nfloat = nfloat_amr + ncache*df.attrs["ndim"]
-                        nlines = nlines_amr + 4 + 3*df.attrs["ndim"]
+                        ninteg = ninteg_amr + ncache*(4+2*data.meta["ndim"])
+                        nfloat = nfloat_amr + ncache*data.meta["ndim"]
+                        nlines = nlines_amr + 4 + 3*data.meta["ndim"]
                         nstrin = nstrin_amr
                         for ind in range(twotondim):
                             offset = 4*(ninteg+ind*ncache) + 8*(nlines+nfloat+ind) + nstrin + 4
@@ -529,47 +512,47 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
                             # var: hydro variables
                             jvar = 0
                             if hydro:
-                                for ivar in range(df.attrs["nvar_hydro"]):
+                                for ivar in range(data.meta["nvar_hydro"]):
                                     if var_read[ivar]:
-                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*df.attrs["nvar_hydro"]+ivar)*(ncache+1)) + nstrin_hydro + 4
+                                        offset = 4*ninteg_hydro + 8*(nlines_hydro+nfloat_hydro+(ind*data.meta["nvar_hydro"]+ivar)*(ncache+1)) + nstrin_hydro + 4
                                         var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), hydroContent[offset:offset+8*ncache])
                                         jvar += 1
                             # var: grav variables
                             if gravity:
-                                for ivar in range(df.attrs["nvar_grav"]):
-                                    if var_read[ivar+df.attrs["nvar_hydro"]]:
-                                        offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*df.attrs["nvar_grav"]+ivar)*(ncache+1)) + nstrin_grav + 4
+                                for ivar in range(data.meta["nvar_grav"]):
+                                    if var_read[ivar+data.meta["nvar_hydro"]]:
+                                        offset = 4*ninteg_grav + 8*(nlines_grav+nfloat_grav+(ind*data.meta["nvar_grav"]+ivar)*(ncache+1)) + nstrin_grav + 4
                                         var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), gravContent[offset:offset+8*ncache])
                                         jvar += 1
                             # var: rt variables
                             if rt:
-                                for ivar in range(df.attrs_rt["nvar_rt"]):
-                                    if var_read[ivar+df.attrs["nvar_hydro"]+df.attrs["nvar_grav"]]:
-                                        offset = 4*ninteg_rt + 8*(nlines_rt+nfloat_rt+(ind*df.attrs_rt["nRTvar"]+ivar)*(ncache+1)) + nstrin_rt + 4
+                                for ivar in range(data.meta_rt["nvar_rt"]):
+                                    if var_read[ivar+data.meta["nvar_hydro"]+data.meta["nvar_grav"]]:
+                                        offset = 4*ninteg_rt + 8*(nlines_rt+nfloat_rt+(ind*data.meta_rt["nRTvar"]+ivar)*(ncache+1)) + nstrin_rt + 4
                                         var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), rtContent[offset:offset+8*ncache])
                                         jvar += 1
                             # var: coordinates and cell sizes
                             var[:ncache,ind,-6] = float(ilevel+1)
-                            for n in range(df.attrs["ndim"]):
+                            for n in range(data.meta["ndim"]):
                                 xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-                                var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*df.attrs["boxlen"]
-                            var[:ncache,ind,-2] = dxcell*df.attrs["boxlen"]
+                                var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
+                            var[:ncache,ind,-2] = dxcell*data.meta["boxlen"]
                             var[:ncache,ind,-1] = k+1
                             # ref: True if the cell is unrefined
                             ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < lmax-1))
 
                         # Select only the cells that are in the region of interest
-                        if df.attrs["ndim"] == 1:
+                        if data.meta["ndim"] == 1:
                             cube = np.where(np.logical_and(ref[:ncache,:], \
                                             np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                                            (xyz[:ncache,:,0]-dx2)<=xmax)))
-                        elif df.attrs["ndim"] == 2:
+                        elif data.meta["ndim"] == 2:
                             cube = np.where(np.logical_and(ref[:ncache,:], \
                                             np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                             np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
                                             np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
                                                            (xyz[:ncache,:,1]-dx2)<=ymax)))))
-                        elif df.attrs["ndim"] == 3:
+                        elif data.meta["ndim"] == 3:
                             cube = np.where(np.logical_and(ref[:ncache,:], \
                                             np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
                                             np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
@@ -590,21 +573,21 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
                             data_pieces["piece"+str(npieces)] = cells
 
                     # Now increment the offsets while looping through the domains
-                    ninteg_amr += ncache*(4+3*twotondim+2*df.attrs["ndim"])
-                    nfloat_amr += ncache*df.attrs["ndim"]
-                    nlines_amr += 4 + 3*twotondim + 3*df.attrs["ndim"]
+                    ninteg_amr += ncache*(4+3*twotondim+2*data.meta["ndim"])
+                    nfloat_amr += ncache*data.meta["ndim"]
+                    nlines_amr += 4 + 3*twotondim + 3*data.meta["ndim"]
 
                     if hydro:
-                        nfloat_hydro += ncache*twotondim*df.attrs["nvar_hydro"]
-                        nlines_hydro += twotondim*df.attrs["nvar_hydro"]
+                        nfloat_hydro += ncache*twotondim*data.meta["nvar_hydro"]
+                        nlines_hydro += twotondim*data.meta["nvar_hydro"]
 
                     if gravity:
-                        nfloat_grav += ncache*twotondim*(df.attrs["nvar_grav"])
-                        nlines_grav += twotondim*(df.attrs["nvar_grav"])
+                        nfloat_grav += ncache*twotondim*(data.meta["nvar_grav"])
+                        nlines_grav += twotondim*(data.meta["nvar_grav"])
 
                     if rt:
-                        nfloat_rt += ncache*twotondim*df.attrs_rt["nvar_rt"]
-                        nlines_rt += twotondim*df.attrs_rt["nvar_rt"]
+                        nfloat_rt += ncache*twotondim*data.meta_rt["nvar_rt"]
+                        nlines_rt += twotondim*data.meta_rt["nvar_rt"]
 
             # Now increment the offsets while looping through the levels
             ninteg1 = ninteg_amr
@@ -666,7 +649,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
         df[key.strip()] = master_data_array[:, i]
 
     # if particles:
-    #     df.attrs["npart_tot"] = npart_count
+    #     data.meta["npart_tot"] = npart_count
     #     master_part_array = np.concatenate(list(part_pieces.values()), axis=0)
 
     # Free memory
@@ -676,19 +659,19 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     print("Total number of cells loaded: %i" % ncells_tot)
     # if particles:
-    #     print("Total number of particles loaded: %i" % df.attrs["npart_tot"])
-    # if df.attrs["nsinks"] > 0:
-    #     print(("Read %i sink particle" % df.attrs["nsinks"]) + ("s" if df.attrs["nsinks"] > 1 else ""))
+    #     print("Total number of particles loaded: %i" % data.meta["npart_tot"])
+    # if data.meta["nsinks"] > 0:
+    #     print(("Read %i sink particle" % data.meta["nsinks"]) + ("s" if data.meta["nsinks"] > 1 else ""))
     # print("Generating data structure... please wait")
 
     # Store the number of cells
-    df.attrs["ncells"] = ncells_tot
+    data.meta["ncells"] = ncells_tot
 
     # # We load the master array into the data structure adding one
     # # 'new_field' per variable we have read in.
     # for i in range(len(list_vars)):
     #     theKey = list_vars[i]
-    #     [norm,uu] = self.get_units(theKey,df.attrs["unit_d"],df.attrs["unit_l"],df.attrs["unit_t"],df.attrs["scale"])
+    #     [norm,uu] = self.get_units(theKey,data.meta["unit_d"],data.meta["unit_l"],data.meta["unit_t"],data.meta["scale"])
     #     # Replace "_" with " " to avoid error with latex when saving figures
     #     theLabel = theKey.replace("_"," ")
     #     # Use the 'new_field' function to create data field
@@ -699,7 +682,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # if particles:
     #     for i in range(len(part_vars)):
     #         theKey = part_vars[i]
-    #         [norm,uu] = self.get_units(theKey,df.attrs["unit_d"],df.attrs["unit_l"],df.attrs["unit_t"],df.attrs["scale"])
+    #         [norm,uu] = self.get_units(theKey,data.meta["unit_d"],data.meta["unit_l"],data.meta["unit_t"],data.meta["scale"])
     #         # Replace "_" with " " to avoid error with latex when saving figures
     #         theLabel = theKey.replace("_"," ")
     #         # Use the 'new_field' function to create data field

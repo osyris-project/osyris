@@ -6,7 +6,7 @@ import numpy as np
 from ..utils import get_slice_direction
 from .render import render
 from .tools import parse_layer
-from ..classes import OsyrisPlot
+from ..core import Plot
 
 
 

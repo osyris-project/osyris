@@ -3,7 +3,7 @@
 # @author Neil Vaytet
 
 import numpy as np
-from ..classes import OsyrisPlot
+from ..core import Plot
 from .render import render
 from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm, get_mode
 # from .engine import OsyrisField
