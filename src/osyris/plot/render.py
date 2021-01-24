@@ -247,8 +247,12 @@ def render(x, y, data, logx=False, logy=False):
         #     func = LogNorm if norm == "log" else Normalize
         #     norm = func(vmin=vmin, vmax=vmax)
 
-        mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"],
-            **data[key]["params"])
+        if data[key]["mode"] == "vec":
+            mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"][0], data[key]["data"][1], data[key]["data"][2],
+                **data[key]["params"])
+        else:
+            mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"],
+                **data[key]["params"])
 
 
         # contf = ax.contourf(x, y, data[key]["data"],

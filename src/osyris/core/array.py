@@ -1,3 +1,5 @@
+import numpy as np
+
 class Array:
     def __init__(self, values=None,unit=1,
         # label=None,norm=1.0,
@@ -18,7 +20,10 @@ class Array:
 
     @property
     def values(self):
-        return self._array
+        if self._array.ndim == 1:
+            return self._array
+        else:
+            return np.linalg.norm(self._array, axis=1)
 
     @values.setter
     def values(self, values_):
@@ -54,18 +59,21 @@ class Array:
 
     @property
     def x(self):
-        if self._ndim > 1:
-            return self._array[:, 0]
+        if self.ndim > 1:
+            return Array(values=self._array[:, 0], unit=self._unit,
+                parent=self._parent, name=self.name+"_x")
 
     @property
     def y(self):
-        if self._ndim > 1:
-            return self._array[:, 1]
+        if self.ndim > 1:
+            return Array(values=self._array[:, 1], unit=self._unit,
+                parent=self._parent, name=self.name+"_y")
 
     @property
     def z(self):
-        if self._ndim > 1:
-            return self._array[:, 2]
+        if self.ndim > 2:
+            return Array(values=self._array[:, 2], unit=self._unit,
+                parent=self._parent, name=self.name+"_z")
 
 
     def _expect_same_unit_kind(self, other):

@@ -46,16 +46,36 @@ def plane(layers=None,
         data, settings, params = parse_layer(layer, mode=mode, norm=norm,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
         print(data, settings, params)
-        to_process[data.name] = data.values
+        # if settings["mode"] in ["vec", "stream"]:
+        #     to_process[data.name] = data._array
+        # else:
+
+
+
+# if holder.info["ndim"] < 3:
+    #         datau1 = vec.x.values[cube]
+    #         datav1 = vec.y.values[cube]
+    #     else:
+    #         vectors = np.transpose(
+    #             [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
+    #         datau1 = np.inner(vectors, dir_vecs[1][1])
+    #         datav1 = np.inner(vectors, dir_vecs[2][1])
+
+    #     to_process["u_vect"] = datau1
+    #     to_process["v_vect"] = datav1
+    #     to_process["w_vect"] = np.sqrt(datau1**2+datav1**2)
+
+
+        to_process[data.name] = data
         to_render[data.name] = {"mode": settings["mode"], "params": params}
         # operations[data.name] = settings["operation"]
 
 
     # # Find parent container of object to plot
     # print(to_process)
-    # key = list(to_process.keys())[0]
-    # parent = to_process[key]._get_cacher()
-    parent = layers[0].parent
+    key = list(to_process.keys())[0]
+    parent = to_process[key].parent
+    # parent = layers[0].parent
 
 
 
@@ -136,6 +156,8 @@ def plane(layers=None,
                                    np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     print(cube)
 
+    ncells = len(cube)
+
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = np.transpose([parent["x"].values.take(cube)-origin[0],
                            parent["y"].values.take(cube)-origin[1],
@@ -205,9 +227,24 @@ def plane(layers=None,
     #     to_process["w_strm"] = np.sqrt(datau2**2+datav2**2)
 
     counts = np.zeros([ny, nx])
-    for key in to_process.keys():
-        to_process[key] = to_process[key].take(cube)
-        to_render[key]["data"] = np.zeros([ny, nx])
+    for key in to_process:
+        # to_render[data.name] = {"mode": settings["mode"]
+        if to_render[key]["mode"] in ["vec", "stream"]:
+            if to_process[key].ndim < 3:
+                to_process[key] = to_process[key]._array[cube]
+            else:
+                # vectors = np.transpose(
+                #     [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
+                # u = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1][1])
+                # v = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[2][1])
+                uv = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1:3][1])
+                # w = np.sqrt(u**2+v**2)
+                w = np.linalg.norm(uv, axis=1).reshape(ncells, 1)
+                to_process[key] = np.concatenate((uv, w), axis=1)
+            to_render[key]["data"] = np.zeros([ny, nx, to_process[key].shape[1]])
+        else:
+            to_process[key] = to_process[key].values.take(cube)
+            to_render[key]["data"] = np.zeros([ny, nx])
 
     datax -= xmin
     datay -= ymin
@@ -233,6 +270,7 @@ def plane(layers=None,
             j0 = max(j0, 0)
             j1 = min(j1, ny)
             for key in to_process.keys():
+                # print(to_render[key]["data"].shape)
                 to_render[key]["data"][j0:j1, i0:i1] += to_process[key][i]
             counts[j0:j1, i0:i1] += 1.0
 
