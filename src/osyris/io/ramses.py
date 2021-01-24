@@ -8,8 +8,8 @@ import struct
 import glob
 from .. import config as conf
 from .. import engine as eng
-from ..utils import create_vector_containers
-from ..core import Dict
+# from ..utils import create_vector_containers
+from ..core import Dict, Array
 
 divider = "============================================"
 
@@ -72,7 +72,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     data.meta.update(read_parameter_file(fname=infofile))
 
 
-    print(data.meta)
+    # print(data.meta)
 
     # Add additional information
     data.meta["center"   ] = center
@@ -127,11 +127,19 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     except IOError:
         hydro = False
 
+    print(descriptor)
+    print(descriptor[:, 1])
+
     if hydro:
         var_read = [True] * len(descriptor)
-        list_vars = list(descriptor[1])
-        var_type = list(descriptor[2])
+        list_vars = [v.strip() for v in descriptor[:, 1]]
+        var_type = [t.strip() for t in descriptor[:, 2]]
         data.meta["nvar_hydro"] = len(descriptor)
+
+    # print(var_read)
+    # print(list_vars)
+    # print(var_type)
+    # print(data.meta)
 
     # var_read.append(True)
     #             list_vars.append(v)
@@ -698,17 +706,18 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # # Re-center the mesh around chosen center
     # self.re_center()
 
-    create_vector_containers(df)
+    # create_vector_containers(df)
 
-    return df
+    return data
 
 def make_vector_arrays(data):
     """
     Merge vector components in 2d arrays.
     """
     if data.meta["ndim"] > 1:
-        for key in data:
-            if key.endswith("_x"):
+        skip = []
+        for key in list(data.keys()):
+            if key.endswith("_x") and key not in skip:
                 rawkey = key[:-2]
                 ok = rawkey+"_y" in data
                 if data.meta["ndim"] > 2:
@@ -716,11 +725,14 @@ def make_vector_arrays(data):
 
                 if ok:
                     values = np.array([data[rawkey+'_x'].values,
-                                  df[rawkey+'_y'].values,
-                                  df[rawkey+'_z'].values]).T
+                                  data[rawkey+'_y'].values,
+                                  data[rawkey+'_z'].values]).T
 
-                    data[rawkey] = 
+                    data[rawkey] = Array(values=values, unit=data[key].unit)
+                    del data[key]
+                    del data[rawkey+"_y"]
+                    skip.append(rawkey+"_y")
+                    if data.meta["ndim"] > 2:
+                        del data[rawkey+"_z"]
+                        skip.append(rawkey+"_z")
 
-                    df[rawkey].attrs["vector"] = {'x': df[rawkey+'_x'],
-                                                  'y': df[rawkey+'_y'],
-                                                  'z': df[rawkey+'_z']}

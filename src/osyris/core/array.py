@@ -1,37 +1,71 @@
-
-class Plot:
-
-    def __init__(self, x, y, layers, fig, ax):
-        self.x = x
-        self.y = y
-        self.layers = layers
-        self.fig = fig
-        self.ax = ax
-
-
 class Array:
-    def __init__(self, values=None,unit=1,label=None,norm=1.0,
-             parent=None,kind="scalar",name=""):
+    def __init__(self, values=None,unit=1,
+        # label=None,norm=1.0,
+             parent=None,name=""):
 
-        self._values = values
+        self._array = values
         self._unit = unit
         # self._label = label
         # self.operation = operation
         # self.depth = depth
         # self.norm = norm
-        self.kind = "vector" if values.ndim > 1 else "scalar"
-        self.parent = parent
-        self.name = name
+        # self._kind = "vector" if values.ndim > 1 else "scalar"
+        # self._vector = values.ndim > 1
+        self._parent = parent
+        self._name = name
         # self.group = group
         # self.vector = vector
 
     @property
-    def foo(self):
-        return self._foo
+    def values(self):
+        return self._array
+
+    @values.setter
+    def values(self, values_):
+        self._array = values_
 
     @property
-    def foo(self):
-        return self._foo
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit_):
+        self._unit = unit_
+
+    @property
+    def ndim(self):
+        return self._array.ndim
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent_):
+        self._parent = parent_
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name_):
+        self._name = name_
+
+    @property
+    def x(self):
+        if self._ndim > 1:
+            return self._array[:, 0]
+
+    @property
+    def y(self):
+        if self._ndim > 1:
+            return self._array[:, 1]
+
+    @property
+    def z(self):
+        if self._ndim > 1:
+            return self._array[:, 2]
 
 
     def _expect_same_unit_kind(self, other):
@@ -73,44 +107,18 @@ class Array:
             parent=self.parent, kind=self.kind, name=self.name)
 
     def __truediv__(self, other):
-        parent = self._get_parent(other)
-        return Array(values=self.values/other.values,unit=self.unit / other.unit,
-             parent=parent, kind=self.kind)
+        if isinstance(other, Array):
+            parent = self._get_parent(other)
+            return Array(values=self.values/other.values,unit=self.unit / other.unit,
+                 parent=parent, kind=self.kind)
+        else:
+            return Array(values=self.values/other, unit=self.unit, label=self.label,
+            parent=self.parent, kind=self.kind, name=self.name)
 
     def __rmul__(self, number):
         return Array(values=self.values*number, unit=self.unit, label=self.label,
             parent=self.parent, kind=self.kind, name=self.name)
 
-
-class Dict:
-    def __init__(self):
-        self.container = {}
-        self.meta = {}
-
-    def __iter__(self):
-        return self.container.__iter__()
-
-    def __getitem__(self, key):
-        return self.container[key]
-
-    def __setitem__(self, key, value):
-        if isinstance(value, Array):
-            value.name = key
-            value.parent = self
-            self.container[key] = value
-        else:
-            self.container[key] = Array(values=value, name=key, parent=self)
-
-    def keys(self):
-        return self.container.keys()
-
-    def items(self):
-        return self.container.items()
-
-    def values(self):
-        return self.container.values()
-
-
-
-def array(**kwargs):
-    return Array(**kwargs)
+    def __rtruediv__(self, other):
+        return Array(values=self.values/number, unit=self.unit, label=self.label,
+            parent=self.parent, kind=self.kind, name=self.name)

@@ -6,7 +6,7 @@ import numpy as np
 from ..utils import get_slice_direction
 from .render import render
 from .tools import parse_layer
-from ..core import Plot
+from ..core import Plot, Array
 
 
 
@@ -37,21 +37,25 @@ def plane(layers=None,
     - fname      : if specified, the figure is saved to file.
     """
 
+    if isinstance(layers, Array):
+        layers = [layers]
+
     to_process = {}
     to_render = {}
     for layer in layers:
         data, settings, params = parse_layer(layer, mode=mode, norm=norm,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
         print(data, settings, params)
-        to_process[data.name] = data
+        to_process[data.name] = data.values
         to_render[data.name] = {"mode": settings["mode"], "params": params}
         # operations[data.name] = settings["operation"]
 
 
-    # Find parent container of object to plot
-    print(to_process)
-    key = list(to_process.keys())[0]
-    parent = to_process[key]._get_cacher()
+    # # Find parent container of object to plot
+    # print(to_process)
+    # key = list(to_process.keys())[0]
+    # parent = to_process[key]._get_cacher()
+    parent = layers[0].parent
 
 
 
@@ -117,18 +121,18 @@ def plane(layers=None,
         dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
 
     # Distance to the plane
-    dist1 = (a_plane*parent["x"] +
-             b_plane*parent["y"] +
-             c_plane*parent["z"] +
+    dist1 = (a_plane*parent["x"].values +
+             b_plane*parent["y"].values +
+             c_plane*parent["z"].values +
              d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
     # Distance from center
-    dist2 = np.sqrt((parent["x"]-origin[0])**2 +
-                    (parent["y"]-origin[1])**2 +
-                    (parent["z"]-origin[2])**2) - \
-        sqrt3*0.5*parent["dx"]
+    dist2 = np.sqrt((parent["x"].values-origin[0])**2 +
+                    (parent["y"].values-origin[1])**2 +
+                    (parent["z"].values-origin[2])**2) - \
+        sqrt3*0.5*parent["dx"].values
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"]*sqrt3,
+    cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"].values*sqrt3,
                                    np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     print(cube)
 
@@ -202,7 +206,7 @@ def plane(layers=None,
 
     counts = np.zeros([ny, nx])
     for key in to_process.keys():
-        to_process[key] = to_process[key].values.take(cube)
+        to_process[key] = to_process[key].take(cube)
         to_render[key]["data"] = np.zeros([ny, nx])
 
     datax -= xmin
@@ -240,7 +244,7 @@ def plane(layers=None,
 
     figure = render(x=x, y=y, data=to_render)
 
-    return OsyrisPlot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],

@@ -23,7 +23,7 @@ except ImportError:
 from .io import load
 from .plot import histogram, plane
 
-from .core import Plot, array, Dict
+from .core import Plot, Array, Dict
 
 # from .plot_histogram import plot_histogram
 # from .plot_slice import plot_slice

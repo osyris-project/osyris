@@ -71,16 +71,16 @@ def histogram(x, y, layers=None,
     autoymax = False
 
     if xmin is None:
-        xmin = finmin(x)
+        xmin = finmin(x.values)
         autoxmin = True
     if xmax is None:
-        xmax = finmax(x)
+        xmax = finmax(x.values)
         autoxmax = True
     if ymin is None:
-        ymin = finmin(y)
+        ymin = finmin(y.values)
         autoymin = True
     if ymax is None:
-        ymax = finmax(y)
+        ymax = finmax(y.values)
         autoymax = True
 
     if logx:
@@ -178,7 +178,7 @@ def histogram(x, y, layers=None,
     # "contf": None, "image": None, "contour": None,
     #              "outline": None, "scatter": None}
 
-    to_process = {"counts": np.ones_like(x)}
+    to_process = {"counts": np.ones_like(x.values)}
 
     empty = True
 
@@ -190,7 +190,7 @@ def histogram(x, y, layers=None,
         for layer in layers:
             data, settings, params = parse_layer(layer, mode=mode, norm=norm,
                 vmin=vmin, vmax=vmax, operation=operation, **kwargs)
-            to_process[data.name] = data
+            to_process[data.name] = data.values
             to_render[data.name] = {"mode": settings["mode"], "params": params}
             operations[data.name] = settings["operation"]
 
@@ -200,7 +200,7 @@ def histogram(x, y, layers=None,
     # print("========")
 
     if (operation == "mean") and "sum" in operations.values():
-        counts, _, _ = np.histogram2d(y, x, bins=(yedges, xedges))
+        counts, _, _ = np.histogram2d(y.values, x.values, bins=(yedges, xedges))
 
 
 
@@ -238,7 +238,7 @@ def histogram(x, y, layers=None,
 
     # print(xedges)
     # print(yedges)
-    binned, _, _, _ = binned_statistic_2d(x=y, y=x, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
+    binned, _, _, _ = binned_statistic_2d(x=y.values, y=x.values, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
 
     # Here we assume that dictionary retains order of insertion: counts
     # are the first key
@@ -283,7 +283,7 @@ def histogram(x, y, layers=None,
     # figure["ax"].set_xscale("log")
     # figure["ax"].set_yscale("log")
 
-    return OsyrisPlot(x=xcenters, y=ycenters, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return Plot(x=xcenters, y=ycenters, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
 
 

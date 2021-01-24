@@ -109,34 +109,14 @@ def get_slice_direction(direction, origin=[0, 0, 0]):
     return dir_vecs, origin
 
 
-def create_vector_containers(df):
-    """
-    Create dummy variables containing the components of the vectors
-    """
-    if df.attrs["ndim"] > 1:
-        for key in df:
-            if key.endswith("_x"):
-                rawkey = key[:-2]
-                ok = rawkey+"_y" in df
-                # try:
-                #     k1 = len(self.get(rawkey+"_y"))
-                # except AttributeError:
-                #     ok = False
-                if df.attrs["ndim"] > 2:
-                    ok = ok and rawkey+"_z" in df
-                    # try:
-                    #     k2 = len(self.get(rawkey+"_z"))
-                    # except AttributeError:
-                    #     ok = False
-
-                if ok:
-                    # self.vector_field(name=rawkey,label=rawkey)
-                    df[rawkey] = np.linalg.norm(
-                        np.array([df[rawkey+'_x'].values,
-                                  df[rawkey+'_y'].values,
-                                  df[rawkey+'_z'].values]).T, axis=1)
-                    df[rawkey].attrs["vector"] = {'x': df[rawkey+'_x'],
-                                                  'y': df[rawkey+'_y'],
-                                                  'z': df[rawkey+'_z']}
-
-    return
+def value_to_string(val, precision=3):
+    if (not isinstance(val, float)) or (val == 0):
+        text = str(val)
+    elif (abs(val) >= 10.0**(precision+1)) or \
+         (abs(val) <= 10.0**(-precision-1)):
+        text = "{val:.{prec}e}".format(val=val, prec=precision)
+    else:
+        text = "{}".format(val)
+        if len(text) > precision + 2 + (text[0] == '-'):
+            text = "{val:.{prec}f}".format(val=val, prec=precision)
+    return text
