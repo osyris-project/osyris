@@ -13,17 +13,26 @@ class Array:
     def __init__(self, values=None,unit=1,label=None,norm=1.0,
              parent=None,kind="scalar",name=""):
 
-        self.values = values
-        self.unit = unit
-        self.label = label
+        self._values = values
+        self._unit = unit
+        # self._label = label
         # self.operation = operation
         # self.depth = depth
         # self.norm = norm
-        self.kind = kind
+        self.kind = "vector" if values.ndim > 1 else "scalar"
         self.parent = parent
         self.name = name
         # self.group = group
         # self.vector = vector
+
+    @property
+    def foo(self):
+        return self._foo
+
+    @property
+    def foo(self):
+        return self._foo
+
 
     def _expect_same_unit_kind(self, other):
         if self.unit != other.unit:

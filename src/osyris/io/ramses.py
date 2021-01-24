@@ -120,13 +120,18 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     # Read the number of variables from the hydro_file_descriptor.txt
     # and select the ones to be read if specified by user
+    hydro = True
     hydrofile = infile+"/hydro_file_descriptor.txt"
+    try:
+        descriptor = np.loadtxt(hydrofile, dtype=str, delimiter=",")
+    except IOError:
+        hydro = False
 
-    descriptor = pd.read_csv(hydrofile, header=None, comment="#")
-
-    var_read = [True] * len(descriptor)
-    list_vars = list(descriptor[1])
-    var_type = list(descriptor[2])
+    if hydro:
+        var_read = [True] * len(descriptor)
+        list_vars = list(descriptor[1])
+        var_type = list(descriptor[2])
+        data.meta["nvar_hydro"] = len(descriptor)
 
     # var_read.append(True)
     #             list_vars.append(v)
@@ -135,8 +140,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
 
 
-    hydro = True
-    data.meta["nvar_hydro"] = len(descriptor)
+    #hydro = True
+
     # try:
     #     with open(hydrofile) as f:
     #         content = f.readlines()
@@ -646,7 +651,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
 
     for i, key in enumerate(list_vars):
-        df[key.strip()] = master_data_array[:, i]
+        data[key] = Array(values=master_data_array[:, i])
+    make_vector_arrays(data)
 
     # if particles:
     #     data.meta["npart_tot"] = npart_count
@@ -696,3 +702,25 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     return df
 
+def make_vector_arrays(data):
+    """
+    Merge vector components in 2d arrays.
+    """
+    if data.meta["ndim"] > 1:
+        for key in data:
+            if key.endswith("_x"):
+                rawkey = key[:-2]
+                ok = rawkey+"_y" in data
+                if data.meta["ndim"] > 2:
+                    ok = ok and rawkey+"_z" in data
+
+                if ok:
+                    values = np.array([data[rawkey+'_x'].values,
+                                  df[rawkey+'_y'].values,
+                                  df[rawkey+'_z'].values]).T
+
+                    data[rawkey] = 
+
+                    df[rawkey].attrs["vector"] = {'x': df[rawkey+'_x'],
+                                                  'y': df[rawkey+'_y'],
+                                                  'z': df[rawkey+'_z']}
