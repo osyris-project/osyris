@@ -247,9 +247,18 @@ def render(x, y, data, logx=False, logy=False):
         #     func = LogNorm if norm == "log" else Normalize
         #     norm = func(vmin=vmin, vmax=vmax)
 
+        # print("shape", data[key]["data"].shape)
+
         if data[key]["mode"] == "vec":
-            mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"][0], data[key]["data"][1], data[key]["data"][2],
-                **data[key]["params"])
+            # mpl_objects[key] = ax.quiver(x, y, data[key]["data"][0], data[key]["data"][1], data[key]["data"][2],
+            #     **data[key]["params"])
+            mpl_objects[key] = ax.quiver(x, y,
+                data[key]["data"][..., 0],
+                data[key]["data"][..., 1],
+                # data[key]["data"][..., 2],
+                scale=np.nanmax(data[key]["data"][..., 2])*15.0,
+                color='w', pivot='mid')
+            
         else:
             mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"],
                 **data[key]["params"])

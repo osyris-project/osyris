@@ -276,7 +276,10 @@ def plane(layers=None,
 
     # Normalize by counts
     for key in to_process.keys():
-        to_render[key]["data"] /= counts
+        if to_render[key]["data"].ndim > counts.ndim:
+            to_render[key]["data"] /= counts.reshape(ny, nx, 1)
+        else:
+            to_render[key]["data"] /= counts
 
     # Render the map
 
