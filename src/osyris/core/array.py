@@ -1,4 +1,5 @@
 import numpy as np
+from ..utils import value_to_string
 
 class Array:
     def __init__(self, values=None,unit=None,
@@ -18,9 +19,26 @@ class Array:
         # self.group = group
         # self.vector = vector
 
+
+    def __getitem__(self, slice_):
+        return Array(values=self._array[slice_], unit=self._unit,
+                parent=self._parent, name="")
+
+    def __str__(self):
+        name_str = "'"+self._name + "' "
+        values_str = "Min: " + value_to_string(
+            self._array.min()) + " Max: " + value_to_string(
+            self._array.max())
+        unit_str = " [{}] ".format(self._unit)
+        shape_str = str(self._array.shape)
+        return name_str + values_str + unit_str + shape_str
+
+    def __repr__(self):
+        return str(self)
+
     @property
     def values(self):
-        if self._array.ndim == 1:
+        if self._array.ndim < 2:
             return self._array
         else:
             return np.linalg.norm(self._array, axis=1)

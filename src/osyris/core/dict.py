@@ -12,7 +12,14 @@ class Dict:
         return self._container.__iter__()
 
     def __getitem__(self, key):
-        return self._container[key]
+        if isinstance(key, str):
+            return self._container[key]
+        else:
+            d = Dict()
+            for name, val in self.items():
+                d[name] = val[key]
+            d.meta.update(self.meta)
+            return d
 
     def __setitem__(self, key, value):
         if isinstance(value, Array):
