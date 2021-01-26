@@ -236,9 +236,37 @@ def render(x, y, data, logx=False, logy=False):
     # x += np.inner(origin, dir_vecs[1][1])
     # y += np.inner(origin, dir_vecs[2][1])
 
+
+
+    function_map = {"vec": "quiver", "vector": "quiver", "stream": "streamplot",
+        None: "contourf", "image": "pcolormesh", "imshow": "pcolormesh"}
+
+    default_args = {
+        "quiver": {
+            # "skip": int(0.047*np.sqrt(len(x)*len(y))),
+            "scale": 0.1 / np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2),
+            "pivot": "mid",
+            "color": "w"
+        },
+        "streamplot": {
+            "color": "w"
+        }
+    }
+
+    print(np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2))
+    print(default_args["quiver"])
+
     mpl_objects = {}
     cbar = None
     for key in data:
+
+        layer_kwargs = {}
+        func = data[key]["mode"]
+        if func in function_map:
+            func = function_map[func]
+            if func in default_args:
+                layer_kwargs.update(default_args[func])
+        layer_kwargs.update(data[key]["params"])
 
 
     # print(kwargs)
@@ -248,27 +276,56 @@ def render(x, y, data, logx=False, logy=False):
         #     norm = func(vmin=vmin, vmax=vmax)
 
         # print("shape", data[key]["data"].shape)
+        skip = (slice(None,None,4),slice(None,None,4))
 
-        if data[key]["mode"] == "vec":
-            # mpl_objects[key] = ax.quiver(x, y, data[key]["data"][0], data[key]["data"][1], data[key]["data"][2],
-            #     **data[key]["params"])
-            mpl_objects[key] = ax.quiver(x, y,
-                data[key]["data"][..., 0],
-                data[key]["data"][..., 1],
-                # data[key]["data"][..., 2],
-                scale=np.nanmax(data[key]["data"][..., 2])*15.0,
-                color='w', pivot='mid')
-            
+        args = [x, y]
+        # print(len(args))
+        # print(data[key]["data"].ndim)
+        if data[key]["data"].ndim > 2:
+            args = [x[skip[0]], y[skip[1]]]
+            args += [data[key]["data"][..., 0][skip],
+                data[key]["data"][..., 1][skip]]
+            if "scale" in layer_kwargs:
+                print("nanmax", np.nanmax(data[key]["data"][..., 2]))
+                layer_kwargs["scale"] *= np.nanmax(data[key]["data"][..., 2])
         else:
-            mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"],
-                **data[key]["params"])
+            args += [data[key]["data"]]
+        # print(args)
+        # print(data[key]["data"].shape)
+        # print(data[key]["params"])
+        # print(*args)
+        # print(len(args))
+
+        # if data[key]["mode"] in function_map:
+        #     mpl_objects[key] = getattr(
+        #         ax, function_map[data[key]["mode"]])(*args,
+        #             **data[key]["params"])
+        # else:
+        # layer_kwargs.update(data[key]["params"])
+        mpl_objects[key] = getattr(ax, func)(*args, **layer_kwargs)
+
+
+
+        # if data[key]["mode"] == "vec":
+        #     # mpl_objects[key] = ax.quiver(x, y, data[key]["data"][0], data[key]["data"][1], data[key]["data"][2],
+        #     #     **data[key]["params"])
+        #     mpl_objects[key] = ax.quiver(x, y,
+        #         data[key]["data"][..., 0],
+        #         data[key]["data"][..., 1],
+        #         # data[key]["data"][..., 2],
+        #         scale=np.nanmax(data[key]["data"][..., 2])*15.0,
+        #         color='w', pivot='mid')
+            
+        # else:
+        #     mpl_objects[key] = getattr(ax, data[key]["mode"])(x, y, data[key]["data"],
+        #         **data[key]["params"])
 
 
         # contf = ax.contourf(x, y, data[key]["data"],
         #     **data[key]["params"])
 
 
-        if data[key]["mode"] in ["contourf", "pcolormesh"] and cbar is None:
+        if func in ["contourf", "pcolormesh"] and cbar is None:
             cbar = plt.colorbar(
                 mpl_objects[key], ax=ax, cax=None)
             cbar.ax.set_ylabel(key)

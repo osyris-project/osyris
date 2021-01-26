@@ -5,7 +5,7 @@
 import numpy as np
 from ..core import Plot
 from .render import render
-from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm, get_mode
+from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
@@ -256,7 +256,7 @@ def histogram(x, y, layers=None,
 
     if len(to_render) == 0:
         to_render["counts"] = {"data": np.ma.masked_where(mask, binned[0]),
-                               "mode": get_mode(mode),
+                               "mode": mode,
                                "params":{
                                "norm": get_norm(norm=norm,
                                                    vmin=vmin,

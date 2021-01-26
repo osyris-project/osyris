@@ -27,8 +27,8 @@ class Array:
     def __str__(self):
         name_str = "'"+self._name + "' "
         values_str = "Min: " + value_to_string(
-            self._array.min()) + " Max: " + value_to_string(
-            self._array.max())
+            self.values.min()) + " Max: " + value_to_string(
+            self.values.max())
         unit_str = " [{}] ".format(self._unit)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str

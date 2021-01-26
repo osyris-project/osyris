@@ -36,20 +36,25 @@ def to_bin_edges(x):
     return np.concatenate(np.concatenate(left, center), right)
 
 def get_norm(norm=None, vmin=None, vmax=None):
-    if norm is not None:
-        func = LogNorm if norm == "log" else Normalize
-        norm = func(vmin=vmin, vmax=vmax)
+    if norm == "log":
+        if vmin is not None:
+            vmin = np.log10(vmin)
+        if vmax is not None:
+            vmax = np.log10(vmax)
+        norm = LogNorm(vmin=vmin, vmax=vmax)
+    else:
+        norm = Normalize(vmin=vmin, vmax=vmax)
     return norm
 
-def get_mode(mode):
-    mode = "contourf" if mode is None else mode
-    if mode == "image":
-        mode = "pcolormesh"
-    return mode
+# def get_mode(mode):
+#     mode = "contourf" if mode is None else mode
+#     if mode == "image":
+#         mode = "pcolormesh"
+#     return mode
 
 
 def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
-    mode = get_mode(mode)
+    # mode = get_mode(mode)
     
     # print("NORM IS", norm)
 
@@ -57,13 +62,13 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
         params = {key: entry[key] for key in set(entry.keys()) - set(["data", "mode", "operation"])}
         if "norm" not in params:
             params["norm"] = norm
-        if "vmin" not in params:
-            params["vmin"] = vmin
-        if "vmax" not in params:
-            params["vmax"] = vmax
+        # if "vmin" not in params:
+        #     params["vmin"] = vmin
+        # if "vmax" not in params:
+        #     params["vmax"] = vmax
 
         params["norm"] = get_norm(norm=params["norm"],
-            vmin=params["vmin"], vmax=params["vmax"])
+            vmin=vmin, vmax=vmax)
 
         for key, arg in kwargs.items():
             if key not in params:
@@ -80,18 +85,16 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
             #     layer_mode = mode
         # if settings["mode"] == "image":
         #     settings["mode"] = "imshow"
-        settings["mode"] = get_mode(settings["mode"])
+        # settings["mode"] = get_mode(settings["mode"])
 
         return entry["data"], settings, params
         # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
         # return entry["data"], kwargs
         # ret
     else:
-        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-                  "vmin": vmin,
-                  "vmax": vmax}
+        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
-        if settings["mode"] == "image":
-            settings["mode"] = "imshow"
+        # if settings["mode"] == "image":
+        #     settings["mode"] = "imshow"
         return entry, settings, params
