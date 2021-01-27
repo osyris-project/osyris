@@ -244,7 +244,10 @@ def render(x, y, data, logx=False, logy=False):
     default_args = {
         "quiver": {
             # "skip": int(0.047*np.sqrt(len(x)*len(y))),
-            "scale": 0.1 / np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2),
+            # "scale": np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2),
+            # "scale_units": "inches",
+            # "scale": 1.0e3,
+            "angles": "xy",
             "pivot": "mid",
             "color": "w"
         },
@@ -255,6 +258,8 @@ def render(x, y, data, logx=False, logy=False):
 
     print(np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2))
     print(default_args["quiver"])
+
+    scaling = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2)
 
     mpl_objects = {}
     cbar = None
@@ -276,18 +281,21 @@ def render(x, y, data, logx=False, logy=False):
         #     norm = func(vmin=vmin, vmax=vmax)
 
         # print("shape", data[key]["data"].shape)
-        skip = (slice(None,None,4),slice(None,None,4))
+        skip = (slice(None,None,8),slice(None,None,8))
 
         args = [x, y]
         # print(len(args))
         # print(data[key]["data"].ndim)
         if data[key]["data"].ndim > 2:
             args = [x[skip[0]], y[skip[1]]]
-            args += [data[key]["data"][..., 0][skip],
-                data[key]["data"][..., 1][skip]]
-            if "scale" in layer_kwargs:
-                print("nanmax", np.nanmax(data[key]["data"][..., 2]))
-                layer_kwargs["scale"] *= np.nanmax(data[key]["data"][..., 2])
+            div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
+            args += [data[key]["data"][..., 0][skip] * div,
+                data[key]["data"][..., 1][skip] * div]
+            # args += [data[key]["data"][..., 0][skip],
+            #     data[key]["data"][..., 1][skip]]
+            # if "scale" in layer_kwargs:
+            #     print("nanmax", np.nanmax(data[key]["data"][..., 2]))
+            #     layer_kwargs["scale"] *= data[key]["data"][..., 2] / np.nanmax(data[key]["data"][..., 2])
         else:
             args += [data[key]["data"]]
         # print(args)
