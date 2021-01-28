@@ -3,6 +3,10 @@
 # If that fails, just load the default.
 import os
 import sys
+from pint import UnitRegistry
+
+units = UnitRegistry(system="cgs")
+
 conf_dir = os.path.join(os.path.expanduser("~"), ".osyris")
 sys.path.append(conf_dir)
 try:
@@ -18,6 +22,8 @@ except ImportError:
         import config_osyris as config
     except ImportError:
         from . import config
+
+
 
 # from .load_ramses import RamsesData
 from .io import load

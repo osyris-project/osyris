@@ -67,7 +67,9 @@ def plane(layers=None,
 
 
         to_process[data.name] = data
-        to_render[data.name] = {"mode": settings["mode"], "params": params}
+        to_render[data.name] = {"mode": settings["mode"],
+                                "params": params,
+                                "unit": data.unit.units}
         # operations[data.name] = settings["operation"]
 
 
@@ -284,6 +286,9 @@ def plane(layers=None,
     # Render the map
 
     figure = render(x=x, y=y, data=to_render)
+
+    figure["ax"].set_xlabel(parent["x"].label)
+    figure["ax"].set_ylabel(parent["y"].label)
 
     return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 

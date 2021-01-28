@@ -10,6 +10,7 @@ from .. import config as conf
 from .. import engine as eng
 # from ..utils import create_vector_containers
 from ..core import Dict, Array
+from .. import units
 
 divider = "============================================"
 
@@ -659,7 +660,10 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
 
     for i, key in enumerate(list_vars):
-        data[key] = Array(values=master_data_array[:, i])
+        unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
+                data.meta["unit_t"])
+        data[key] = Array(values=master_data_array[:, i]*unit.magnitude,
+            unit=1.0*unit.units)
     make_vector_arrays(data)
 
     # if particles:
@@ -736,3 +740,57 @@ def make_vector_arrays(data):
                         del data[rawkey+"_z"]
                         skip.append(rawkey+"_z")
 
+
+def get_unit(string, ud, ul, ut, scale="cm"):
+    ramses_units = {
+        "density": ud * (units.g / (units.cm**3)),
+        "velocity": (ul / ut) * (units.cm / units.s),
+        "part_velocity": (ul / ut) * (units.cm / units.s),
+        "momentum": (ud*ul/ut) * (units.g/(units.cm**2)/units.s),
+        "B_": np.sqrt(4.0*np.pi*ud*(ul/ut)**2) * units.G,
+        "part_tracer_b": np.sqrt(4.0*np.pi*ud*(ul/ut)**2) * units.G,
+        "acceleration": (ul/ut**2) * (units.cm/(units.s**2)),
+        "thermal_pressure": ud*((ul/ut)**2) * (units.erg/(units.cm**3)),
+        "energy": ud*((ul/ut)**2) * (units.erg/(units.cm**3)),
+        "temperature": 1.0 * units.K
+        }
+    ramses_units.update(dict.fromkeys(['x', 'y', 'z', 'dx'], (ul * units.cm / units(scale).to(units.cm)).magnitude * units(scale)))
+
+    if string in ramses_units:
+        return ramses_units[string]
+
+    for key in ramses_units:
+        if string.startswith(key):
+            return ramses_units[key]
+
+    for key in ramses_units:
+        if key in string:
+            return ramses_units[key]
+
+    print(string)
+    return 1.0 * units.dimensionless
+
+    # if string == "density":
+    #         return ud * (units.g / (units.cm**3))
+    #     elif (string.startswith("velocity")) or (string.startswith("part_velocity")):
+    #         return (ul / ut) * (units.cm / units.s)
+    #     elif string.startswith("momentum"):
+    #         return (ud*ul/ut) * (units.g/(units.cm**2)/units.s)
+    #     elif (string.startswith("B_")) or (string.startswith("part_tracer_b")):
+    #         return np.sqrt(4.0*np.pi*ud*(ul/ut)**2) * units.G
+    #     elif (string.startswith("current_")):
+    #         return np.sqrt(4.0*np.pi*ud*(ul/ut)**2)/(self.info["boxlen"]*ul) * (units.G/units.cm)
+    #     elif ("acceleration" in string):
+    #         return (ul/ut**2) * (units.cm/(units.s**2))
+    #     elif string == ("thermal_pressure") or (string.count("energy") > 0):
+    #         return ud*((ul/ut)**2) * (units.erg/(units.cm**3))
+    #     elif (string == "x") or (string == "y") or (string == "z") or (string == "dx"):
+    #         return (ul * units.cm / units(scale).to(units.cm)).magnitude * units(scale)
+    #     elif string.startswith("part_position"):
+    #         return (ul*self.info["boxlen"] * units.cm / units(scale).to(units.cm)).magnitude * units(scale)
+    #     elif string == "temperature":
+    #         return 1.0 * units.K
+    #     elif string.startswith("photon_density"):
+    #         return self.info_rt["unit_np"] * (units.erg/(units.cm**3))
+    #     elif string.startswith("photon_flux"):
+    #         return self.info_rt["unit_pf"] * (units.erg/(units.cm**2)/units.s)

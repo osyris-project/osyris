@@ -355,7 +355,7 @@ def render(x, y, data, logx=False, logy=False):
         if func in ["contourf", "pcolormesh"] and cbar is None:
             cbar = plt.colorbar(
                 mpl_objects[key], ax=ax, cax=None)
-            cbar.ax.set_ylabel(key)
+            cbar.set_label(key + " [{:~}]".format(data[key]["unit"]))
                 # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
             cbar.ax.yaxis.set_label_coords(-1.1, 0.5)
             # # if scalar_args_osyris["cbar"]:

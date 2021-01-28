@@ -47,7 +47,7 @@ class Dict:
             print_list[key][columns[0]] = key
             print_list[key][columns[1]] = "vector" if item.ndim > 1 else "scalar"
             # print_list[key][columns[2]] = getattr(self,key).group
-            print_list[key][columns[2]] = "[{}]".format(item.unit)
+            print_list[key][columns[2]] = "[{:~}]".format(item.unit.units)
             print_list[key][columns[3]] = value_to_string(np.nanmin(item.values))
             print_list[key][columns[4]] = value_to_string(np.nanmax(item.values))
             for col in columns:

@@ -2,12 +2,12 @@ import numpy as np
 from ..utils import value_to_string
 
 class Array:
-    def __init__(self, values=None,unit=None,
+    def __init__(self, values=None, unit=None,
         # label=None,norm=1.0,
-             parent=None,name=""):
+             parent=None, name=""):
 
         self._array = values
-        self._unit = np.random.random()
+        self._unit = unit
         # self._label = label
         # self.operation = operation
         # self.depth = depth
@@ -29,7 +29,7 @@ class Array:
         values_str = "Min: " + value_to_string(
             self.values.min()) + " Max: " + value_to_string(
             self.values.max())
-        unit_str = " [{}] ".format(self._unit)
+        unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
 
@@ -106,6 +106,15 @@ class Array:
         else:
             return
 
+    @property
+    def label(self, name=True, unit=True):
+        lab = ""
+        if name:
+            lab += self._name + " "
+        if unit:
+            lab += "[{:~}]".format(self._unit.units)
+        return lab.strip()
+
     # def _get_kind(self, other):
     #     return
 
@@ -114,37 +123,37 @@ class Array:
         self._expect_same_unit(other)
         parent = self._get_parent(other)
 
-        return Array(values=self.values+other.values,unit=self.unit,
+        return Array(values=self._array+other._array,unit=self.unit,
              parent=parent)
 
     def __sub__(self, other):
         self._expect_same_unit(other)
         parent = self._get_parent(other)
-        return Array(values=self.values-other.values,unit=self.unit,
+        return Array(values=self._array-other._array,unit=self.unit,
              parent=parent)
 
     def __mul__(self, other):
         if isinstance(other, Array):
             parent = self._get_parent(other)
-            return Array(values=self.values*other.values,unit=self.unit * other.unit,
+            return Array(values=self._array*other._array,unit=self.unit * other.unit,
                  parent=parent)
         else:
-            return Array(values=self.values*other, unit=self.unit,
+            return Array(values=self._array*other, unit=self.unit,
             parent=self.parent, name=self.name)
 
     def __truediv__(self, other):
         if isinstance(other, Array):
             parent = self._get_parent(other)
-            return Array(values=self.values/other.values,unit=self.unit / other.unit,
+            return Array(values=self._array/other._array,unit=self.unit / other.unit,
                  parent=parent)
         else:
-            return Array(values=self.values/other, unit=self.unit,
+            return Array(values=self._array/other, unit=self.unit,
             parent=self.parent, name=self.name)
 
     def __rmul__(self, number):
-        return Array(values=self.values*number, unit=self.unit,
+        return Array(values=self._array*number, unit=self.unit,
             parent=self.parent, name=self.name)
 
     def __rtruediv__(self, other):
-        return Array(values=self.values/number, unit=self.unit,
+        return Array(values=self._array/number, unit=self.unit,
             parent=self.parent, name=self.name)

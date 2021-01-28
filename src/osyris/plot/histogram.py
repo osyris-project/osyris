@@ -4,6 +4,7 @@
 
 import numpy as np
 from ..core import Plot
+from .. import units
 from .render import render
 from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
 # from .engine import OsyrisField
@@ -191,7 +192,9 @@ def histogram(x, y, layers=None,
             data, settings, params = parse_layer(layer, mode=mode, norm=norm,
                 vmin=vmin, vmax=vmax, operation=operation, **kwargs)
             to_process[data.name] = data.values
-            to_render[data.name] = {"mode": settings["mode"], "params": params}
+            to_render[data.name] = {"mode": settings["mode"],
+                                    "params": params,
+                                    "unit": data.unit.units}
             operations[data.name] = settings["operation"]
 
     # print("========")
@@ -262,7 +265,8 @@ def histogram(x, y, layers=None,
                                                    vmin=vmin,
                                                    vmax=vmax),
                                "vmin": vmin,
-                               "vmax": vmax}}
+                               "vmax": vmax},
+                               "unit": 1.0 * units.dimensionless}
 
 
     figure = render(x=xcenters, y=ycenters,
@@ -282,6 +286,10 @@ def histogram(x, y, layers=None,
 
     # figure["ax"].set_xscale("log")
     # figure["ax"].set_yscale("log")
+
+    figure["ax"].set_xlabel(x.label)
+    figure["ax"].set_ylabel(y.label)
+
 
     return Plot(x=xcenters, y=ycenters, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
