@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.collections
 from matplotlib.colors import LogNorm, Normalize
 from .. import config as conf
+from . import wrappers
 
 
 # def perpendicular_vector(v):
@@ -241,37 +242,48 @@ def render(x, y, data, logx=False, logy=False):
     function_map = {"vec": "quiver", "vector": "quiver", "stream": "streamplot",
         None: "contourf", "image": "pcolormesh", "imshow": "pcolormesh"}
 
-    default_args = {
-        "quiver": {
-            # "skip": int(0.047*np.sqrt(len(x)*len(y))),
-            # "scale": np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2),
-            # "scale_units": "inches",
-            # "scale": 1.0e3,
-            "angles": "xy",
-            "pivot": "mid",
-            "color": "w"
-        },
-        "streamplot": {
-            "color": "w"
-        }
-    }
+    # default_args = {
+    #     "quiver": {
+    #         # "skip": int(0.047*np.sqrt(len(x)*len(y))),
+    #         # "scale": np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2),
+    #         # "scale_units": "inches",
+    #         # "scale": 1.0e3,
+    #         "angles": "xy",
+    #         "pivot": "mid",
+    #         "color": "w"
+    #     },
+    #     "streamplot": {
+    #         "color": "w"
+    #     }
+    # }
 
-    print(np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2))
-    print(default_args["quiver"])
+    # custom_args = {
+    #     "quiver": {
+    #         "density": 
+    #     }
+    # }
 
-    scaling = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2)
+    # print(np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2))
+    # print(default_args["quiver"])
+
+    # scaling = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2)
 
     mpl_objects = {}
     cbar = None
     for key in data:
 
-        layer_kwargs = {}
+        # layer_kwargs = {}
         func = data[key]["mode"]
         if func in function_map:
             func = function_map[func]
-            if func in default_args:
-                layer_kwargs.update(default_args[func])
-        layer_kwargs.update(data[key]["params"])
+        #     if func in default_args:
+        #         layer_kwargs.update(default_args[func])
+        # layer_kwargs.update(data[key]["params"])
+
+        # for arg in custom_args[data[key]["mode"]]:
+        #     if arg in layer_kwargs:
+        #         custom_args[data[key]["mode"]][arg] = layer_kwargs[arg]
+        #         del layer_kwargs[arg]
 
 
     # print(kwargs)
@@ -281,21 +293,28 @@ def render(x, y, data, logx=False, logy=False):
         #     norm = func(vmin=vmin, vmax=vmax)
 
         # print("shape", data[key]["data"].shape)
-        skip = (slice(None,None,8),slice(None,None,8))
-
-        args = [x, y]
+        # skip = (slice(None,None,4),slice(None,None,4))
+# 
+        args = [ax, x, y]
         # print(len(args))
         # print(data[key]["data"].ndim)
         if data[key]["data"].ndim > 2:
-            args = [x[skip[0]], y[skip[1]]]
-            div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
-            args += [data[key]["data"][..., 0][skip] * div,
-                data[key]["data"][..., 1][skip] * div]
-            # args += [data[key]["data"][..., 0][skip],
-            #     data[key]["data"][..., 1][skip]]
-            # if "scale" in layer_kwargs:
-            #     print("nanmax", np.nanmax(data[key]["data"][..., 2]))
-            #     layer_kwargs["scale"] *= data[key]["data"][..., 2] / np.nanmax(data[key]["data"][..., 2])
+            # args = [x[skip[0]], y[skip[1]]]
+            # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
+            # args += [data[key]["data"][..., 0][skip] * div,
+            #     data[key]["data"][..., 1][skip] * div]
+            # # args += [data[key]["data"][..., 0][skip],
+            # #     data[key]["data"][..., 1][skip]]
+            # # if "scale" in layer_kwargs:
+            # #     print("nanmax", np.nanmax(data[key]["data"][..., 2]))
+            # #     layer_kwargs["scale"] *= data[key]["data"][..., 2] / np.nanmax(data[key]["data"][..., 2])
+
+            # args = [x[skip[0]], y[skip[1]]]
+            # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
+            args += [data[key]["data"][..., 0],
+                data[key]["data"][..., 1]]
+
+
         else:
             args += [data[key]["data"]]
         # print(args)
@@ -310,7 +329,7 @@ def render(x, y, data, logx=False, logy=False):
         #             **data[key]["params"])
         # else:
         # layer_kwargs.update(data[key]["params"])
-        mpl_objects[key] = getattr(ax, func)(*args, **layer_kwargs)
+        mpl_objects[key] = getattr(wrappers, func)(*args, **data[key]["params"])
 
 
 
