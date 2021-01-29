@@ -555,28 +555,29 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                             # ref: True if the cell is unrefined
                             ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < lmax-1))
 
-                        # Select only the cells that are in the region of interest
-                        if data.meta["ndim"] == 1:
-                            cube = np.where(np.logical_and(ref[:ncache,:], \
-                                            np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                                           (xyz[:ncache,:,0]-dx2)<=xmax)))
-                        elif data.meta["ndim"] == 2:
-                            cube = np.where(np.logical_and(ref[:ncache,:], \
-                                            np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                            np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
-                                            np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                                           (xyz[:ncache,:,1]-dx2)<=ymax)))))
-                        elif data.meta["ndim"] == 3:
-                            cube = np.where(np.logical_and(ref[:ncache,:], \
-                                            np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
-                                            np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
-                                            np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
-                                            np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
-                                            np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
-                                                           (xyz[:ncache,:,2]-dx2)<=zmax)))))))
-                        else:
-                            print("Bad number of dimensions")
-                            return 0
+                        # # Select only the cells that are in the region of interest
+                        # if data.meta["ndim"] == 1:
+                        #     cube = np.where(np.logical_and(ref[:ncache,:], \
+                        #                     np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                        #                                    (xyz[:ncache,:,0]-dx2)<=xmax)))
+                        # elif data.meta["ndim"] == 2:
+                        #     cube = np.where(np.logical_and(ref[:ncache,:], \
+                        #                     np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                        #                     np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                        #                     np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                        #                                    (xyz[:ncache,:,1]-dx2)<=ymax)))))
+                        # elif data.meta["ndim"] == 3:
+                        #     cube = np.where(np.logical_and(ref[:ncache,:], \
+                        #                     np.logical_and((xyz[:ncache,:,0]+dx2)>=xmin, \
+                        #                     np.logical_and((xyz[:ncache,:,1]+dx2)>=ymin, \
+                        #                     np.logical_and((xyz[:ncache,:,2]+dx2)>=zmin, \
+                        #                     np.logical_and((xyz[:ncache,:,0]-dx2)<=xmax, \
+                        #                     np.logical_and((xyz[:ncache,:,1]-dx2)<=ymax, \
+                        #                                    (xyz[:ncache,:,2]-dx2)<=zmax)))))))
+                        # else:
+                        #     print("Bad number of dimensions")
+                        #     return 0
+                        cube = np.where(ref[:ncache,:])
 
                         cells = var[cube]
                         ncells = np.shape(cells)[0]

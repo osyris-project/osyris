@@ -27,9 +27,12 @@ def pcolormesh(ax, x, y, z, **kwargs):
     return ax.pcolormesh(x, y, z, **default_args)
 
 
-def contour(ax, x, y, z, **kwargs):
+def contour(ax, x, y, z, labels=True, **kwargs):
 
-    return ax.contour(x, y, z, **kwargs)
+    cs = ax.contour(x, y, z, **kwargs)
+    if labels:
+        ax.clabel(cs, inline=1, fontsize=10)
+    return cs
 
 def contourf(ax, x, y, z, **kwargs):
 
