@@ -11,7 +11,7 @@ from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
 from scipy.stats import binned_statistic_2d
 
 
-def histogram(x, y, layers=None,
+def histogram(x, y, *layers,
     mode=None,
     # image=None,
     # contour=None,

@@ -286,50 +286,53 @@ def render(x, y, data, logx=False, logy=False):
         #         del layer_kwargs[arg]
 
 
-    # print(kwargs)
-    # if "counts" in data:
-        # if norm is not None:
-        #     func = LogNorm if norm == "log" else Normalize
-        #     norm = func(vmin=vmin, vmax=vmax)
+#     # print(kwargs)
+#     # if "counts" in data:
+#         # if norm is not None:
+#         #     func = LogNorm if norm == "log" else Normalize
+#         #     norm = func(vmin=vmin, vmax=vmax)
 
-        # print("shape", data[key]["data"].shape)
-        # skip = (slice(None,None,4),slice(None,None,4))
-# 
-        args = [ax, x, y]
-        # print(len(args))
-        # print(data[key]["data"].ndim)
-        if data[key]["data"].ndim > 2:
-            # args = [x[skip[0]], y[skip[1]]]
-            # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
-            # args += [data[key]["data"][..., 0][skip] * div,
-            #     data[key]["data"][..., 1][skip] * div]
-            # # args += [data[key]["data"][..., 0][skip],
-            # #     data[key]["data"][..., 1][skip]]
-            # # if "scale" in layer_kwargs:
-            # #     print("nanmax", np.nanmax(data[key]["data"][..., 2]))
-            # #     layer_kwargs["scale"] *= data[key]["data"][..., 2] / np.nanmax(data[key]["data"][..., 2])
+#         # print("shape", data[key]["data"].shape)
+#         # skip = (slice(None,None,4),slice(None,None,4))
+# # 
+#         args = [ax, x, y]
+#         # print(len(args))
+#         # print(data[key]["data"].ndim)
+#         if data[key]["data"].ndim > 2:
+#             # args = [x[skip[0]], y[skip[1]]]
+#             # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
+#             # args += [data[key]["data"][..., 0][skip] * div,
+#             #     data[key]["data"][..., 1][skip] * div]
+#             # # args += [data[key]["data"][..., 0][skip],
+#             # #     data[key]["data"][..., 1][skip]]
+#             # # if "scale" in layer_kwargs:
+#             # #     print("nanmax", np.nanmax(data[key]["data"][..., 2]))
+#             # #     layer_kwargs["scale"] *= data[key]["data"][..., 2] / np.nanmax(data[key]["data"][..., 2])
 
-            # args = [x[skip[0]], y[skip[1]]]
-            # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
-            args += [data[key]["data"][..., 0],
-                data[key]["data"][..., 1]]
+#             # args = [x[skip[0]], y[skip[1]]]
+#             # div = scaling / np.nanmax(data[key]["data"][..., 2][skip])
+#             args += [data[key]["data"][..., 0],
+#                 data[key]["data"][..., 1]]
 
 
-        else:
-            args += [data[key]["data"]]
-        # print(args)
-        # print(data[key]["data"].shape)
-        # print(data[key]["params"])
-        # print(*args)
-        # print(len(args))
+#         else:
+#             args += [data[key]["data"]]
+#         # print(args)
+#         # print(data[key]["data"].shape)
+#         # print(data[key]["params"])
+#         # print(*args)
+#         # print(len(args))
 
-        # if data[key]["mode"] in function_map:
-        #     mpl_objects[key] = getattr(
-        #         ax, function_map[data[key]["mode"]])(*args,
-        #             **data[key]["params"])
-        # else:
-        # layer_kwargs.update(data[key]["params"])
-        mpl_objects[key] = getattr(wrappers, func)(*args, **data[key]["params"])
+#         # if data[key]["mode"] in function_map:
+#         #     mpl_objects[key] = getattr(
+#         #         ax, function_map[data[key]["mode"]])(*args,
+#         #             **data[key]["params"])
+#         # else:
+#         # layer_kwargs.update(data[key]["params"])
+#         # mpl_objects[key] = getattr(wrappers, func)(*args, **data[key]["params"])
+
+        mpl_objects[key] = getattr(wrappers, func)(ax, x, y, data[key]["data"], **data[key]["params"])
+
 
 
 

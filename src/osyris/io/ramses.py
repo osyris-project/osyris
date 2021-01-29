@@ -58,7 +58,7 @@ def read_parameter_file(fname=None, delimiter="="):
 
 
 
-def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
+def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                     update=False,variables=[]):
 
 
@@ -280,26 +280,26 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
     # See output_amr.f90 and output_hydro.f90 in the RAMSES source. ================
     print("Processing %i files in " % (data.meta["ncpu"]) + infile)
 
-    # Define the size of the region to be read
-    lconvert = conf.constants[scale]/(data.meta["boxlen"]*data.meta["unit_l"])
-    if dx > 0.0:
-        xmin = xc - 0.5*dx*lconvert
-        xmax = xc + 0.5*dx*lconvert
-    else:
-        xmin = 0.0
-        xmax = 1.0
-    if dy > 0.0:
-        ymin = yc - 0.5*dy*lconvert
-        ymax = yc + 0.5*dy*lconvert
-    else:
-        ymin = 0.0
-        ymax = 1.0
-    if dz > 0.0:
-        zmin = zc - 0.5*dz*lconvert
-        zmax = zc + 0.5*dz*lconvert
-    else:
-        zmin = 0.0
-        zmax = 1.0
+    # # Define the size of the region to be read
+    # lconvert = conf.constants[scale]/(data.meta["boxlen"]*data.meta["unit_l"])
+    # if dx > 0.0:
+    #     xmin = xc - 0.5*dx*lconvert
+    #     xmax = xc + 0.5*dx*lconvert
+    # else:
+    #     xmin = 0.0
+    #     xmax = 1.0
+    # if dy > 0.0:
+    #     ymin = yc - 0.5*dy*lconvert
+    #     ymax = yc + 0.5*dy*lconvert
+    # else:
+    #     ymin = 0.0
+    #     ymax = 1.0
+    # if dz > 0.0:
+    #     zmin = zc - 0.5*dz*lconvert
+    #     zmax = zc + 0.5*dz*lconvert
+    # else:
+    #     zmin = 0.0
+    #     zmax = 1.0
 
     if lmax==0:
        lmax = data.meta["levelmax"]
@@ -712,6 +712,9 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale="cm",path="",
 
     # create_vector_containers(df)
 
+    if scale is not None:
+        data.set_scale(scale)
+
     return data
 
 def make_vector_arrays(data):
@@ -741,7 +744,7 @@ def make_vector_arrays(data):
                         skip.append(rawkey+"_z")
 
 
-def get_unit(string, ud, ul, ut, scale="cm"):
+def get_unit(string, ud, ul, ut):
     ramses_units = {
         "density": ud * (units.g / (units.cm**3)),
         "velocity": (ul / ut) * (units.cm / units.s),
@@ -754,7 +757,7 @@ def get_unit(string, ud, ul, ut, scale="cm"):
         "energy": ud*((ul/ut)**2) * (units.erg/(units.cm**3)),
         "temperature": 1.0 * units.K
         }
-    ramses_units.update(dict.fromkeys(['x', 'y', 'z', 'dx'], (ul * units.cm / units(scale).to(units.cm)).magnitude * units(scale)))
+    ramses_units.update(dict.fromkeys(['x', 'y', 'z', 'dx'], (ul * units.cm)))
 
     if string in ramses_units:
         return ramses_units[string]
@@ -767,7 +770,7 @@ def get_unit(string, ud, ul, ut, scale="cm"):
         if key in string:
             return ramses_units[key]
 
-    print(string)
+    # print(string)
     return 1.0 * units.dimensionless
 
     # if string == "density":

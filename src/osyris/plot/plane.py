@@ -10,7 +10,7 @@ from ..core import Plot, Array
 
 
 
-def plane(layers=None,
+def plane(*layers,
     # scalar=False, image=False, contour=False, vec=False, stream=False, axes=None,
                direction="z", dx=0.0, dy=0.0, fname=None, title=None, sinks=True, copy=False,
                mode=None, norm=None, vmin=None, vmax=None,operation="mean",

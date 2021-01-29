@@ -1,5 +1,6 @@
 import numpy as np
 from ..utils import value_to_string
+from .. import units
 
 class Array:
     def __init__(self, values=None, unit=None,
@@ -157,3 +158,10 @@ class Array:
     def __rtruediv__(self, other):
         return Array(values=self._array/number, unit=self.unit,
             parent=self.parent, name=self.name)
+
+
+    def set_scale(self, scale):
+        new_unit = units(scale)
+        ratio = self._unit.to(new_unit) / new_unit
+        self._unit = 1.0 * new_unit
+        self._array *= ratio.magnitude
