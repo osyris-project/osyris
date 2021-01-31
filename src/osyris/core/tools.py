@@ -98,3 +98,18 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
         # if settings["mode"] == "image":
         #     settings["mode"] = "imshow"
         return entry, settings, params
+
+
+def perpendicular_vector(v):
+    """
+    Compute a vector perpendicular to the input vector
+    """
+
+    # x = y = z = 0 is not an acceptable solution
+    if v[0] == v[1] == v[2] == 0:
+        raise ValueError("zero-vector")
+
+    if v[2] == 0:
+        return [-v[1], v[0], 0]
+    else:
+        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]

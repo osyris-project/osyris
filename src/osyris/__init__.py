@@ -7,23 +7,23 @@ from pint import UnitRegistry
 
 units = UnitRegistry(system="cgs")
 
-conf_dir = os.path.join(os.path.expanduser("~"), ".osyris")
-sys.path.append(conf_dir)
+config_dir = os.path.join(os.path.expanduser("~"), ".osyris")
+sys.path.append(config_dir)
 try:
     import config_osyris as config
 except ImportError:
     from shutil import copyfile
     this_dir = os.path.dirname(os.path.abspath(__file__))
-    if not os.path.exists(conf_dir):
-        os.mkdir(conf_dir)
+    if not os.path.exists(config_dir):
+        os.mkdir(config_dir)
     copyfile(os.path.join(this_dir, "config.py"),
-             os.path.join(conf_dir, "config_osyris.py"))
+             os.path.join(config_dir, "config_osyris.py"))
     try:
         import config_osyris as config
     except ImportError:
         from . import config
 
-
+config.additional_units(units)
 
 # from .load_ramses import RamsesData
 from .io import load

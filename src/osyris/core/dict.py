@@ -89,7 +89,7 @@ class Dict:
     def set_scale(self, scale):
         for key in ["x", "y", "z", "dx"]:
             if key in self:
-                self[key].set_scale(scale)
+                self[key].to(scale)
 
     # def set_center(self, center):
     #     for key in ["x", "y", "z", "dx"]:

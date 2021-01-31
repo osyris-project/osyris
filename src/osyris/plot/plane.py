@@ -3,9 +3,9 @@
 # @author Neil Vaytet
 
 import numpy as np
-from ..utils import get_slice_direction
+from .slice import get_slice_direction
 from .render import render
-from .tools import parse_layer
+from ..core.tools import parse_layer
 from ..core import Plot, Array
 
 
@@ -132,7 +132,8 @@ def plane(*layers,
     #     dx, dy, box, dir_vecs, origin = get_slice_direction(
     #         holder, direction, dx, dy, origin=origin)
 
-    dir_vecs, origin = get_slice_direction(direction, origin=origin)
+    dir_vecs, origin = get_slice_direction(direction=direction,
+    	parent=parent, dx=0.5*(dx+dy), origin=origin)
 
 
     # Define equation of a plane

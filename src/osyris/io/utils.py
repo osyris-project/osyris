@@ -1,4 +1,7 @@
 
+import struct
+
+
 def read_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,offset=None,content=None,correction=0):
 
     if offset is None:

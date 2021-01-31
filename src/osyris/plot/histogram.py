@@ -6,7 +6,7 @@ import numpy as np
 from ..core import Plot
 from .. import units
 from .render import render
-from .tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
+from ..core.tools import to_bin_centers, finmin, finmax, parse_layer, get_norm
 # from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 

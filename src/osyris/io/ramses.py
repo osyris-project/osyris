@@ -6,8 +6,9 @@ import numpy as np
 # import pandas as pd
 import struct
 import glob
-from .. import config as conf
-from .. import engine as eng
+from .. import config
+from . import utils
+# from .. import engine as eng
 # from ..utils import create_vector_containers
 from ..core import Dict, Array
 from .. import units
@@ -364,44 +365,44 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
             # nx,ny,nz
             ninteg = 2
             nlines = 2
-            [nx,ny,nz] = eng.get_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
+            [nx,ny,nz] = utils.read_binary_data(fmt="3i",content=amrContent,ninteg=ninteg,nlines=nlines)
             ncoarse = nx*ny*nz
             xbound = [float(int(nx/2)),float(int(ny/2)),float(int(nz/2))]
 
             # nboundary
             ninteg = 7
             nlines = 5
-            [nboundary] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
+            [nboundary] = utils.read_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines)
             ngridlevel = np.zeros([data.meta["ncpu"]+nboundary,data.meta["levelmax"]],dtype=np.int32)
 
             # noutput
             ninteg = 9
             nfloat = 1
             nlines = 8
-            [noutput] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+            [noutput] = utils.read_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
 
             # dtold, dtnew
             ninteg = 12
             nfloat = 2+2*noutput
             nlines = 12
-            data.meta["dtold"] = eng.get_binary_data(fmt="%id"%(data.meta["levelmax"]),\
+            data.meta["dtold"] = utils.read_binary_data(fmt="%id"%(data.meta["levelmax"]),\
                                  content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
             nfloat += 1+data.meta["levelmax"]
             nlines += 1
-            data.meta["dtnew"] = eng.get_binary_data(fmt="%id"%(data.meta["levelmax"]),\
+            data.meta["dtnew"] = utils.read_binary_data(fmt="%id"%(data.meta["levelmax"]),\
                                  content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
 
             # hydro gamma
             ninteg = 5
             nfloat = 0
             nlines = 5
-            [data.meta["gamma"]] = eng.get_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
+            [data.meta["gamma"]] = utils.read_binary_data(fmt="d",content=hydroContent,ninteg=ninteg,nlines=nlines)
 
         # Read the number of grids
         ninteg = 14+(2*data.meta["ncpu"]*data.meta["levelmax"])
         nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         nlines = 21
-        ngridlevel[:data.meta["ncpu"],:] = np.asarray(eng.get_binary_data(fmt="%ii"%(data.meta["ncpu"]*data.meta["levelmax"]),\
+        ngridlevel[:data.meta["ncpu"],:] = np.asarray(utils.read_binary_data(fmt="%ii"%(data.meta["ncpu"]*data.meta["levelmax"]),\
              content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],data.meta["ncpu"]).T
 
         # Read boundary grids if any
@@ -409,7 +410,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
             ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(2*nboundary*data.meta["levelmax"])
             nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
             nlines = 25
-            ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.asarray(eng.get_binary_data(fmt="%ii"%(nboundary*data.meta["levelmax"]),\
+            ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.asarray(utils.read_binary_data(fmt="%ii"%(nboundary*data.meta["levelmax"]),\
                                             content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],nboundary).T
 
         # Determine bound key precision
@@ -417,7 +418,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
         nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         nlines = 21+2+3*min(1,nboundary)+1+1
         nstrin = 128
-        [key_size] = eng.get_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
+        [key_size] = utils.read_binary_data(fmt="i",content=amrContent,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
 
         # Offset for AMR
         ninteg1 = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(3*nboundary*data.meta["levelmax"])+5+3*ncoarse
@@ -637,19 +638,19 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
         #         partContent = part_file.read()
         #     # Get number of particles for this cpu
         #     offset = (fmt_to_bytes["i"] + fmt_to_bytes["e"]) * 2
-        #     [npart] = eng.get_binary_data(fmt="i",content=partContent,offset=offset)
+        #     [npart] = utils.read_binary_data(fmt="i",content=partContent,offset=offset)
         #     if npart > 0:
         #         npart_count += npart
         #         part = np.zeros([npart, len(part_vars)],dtype=np.float64)
         #         # Determine size of localseed array
         #         offset = (fmt_to_bytes["i"] + fmt_to_bytes["e"]) * 3
-        #         [recordlength] = eng.get_binary_data(fmt="i",content=partContent,offset=offset,correction=-4)
+        #         [recordlength] = utils.read_binary_data(fmt="i",content=partContent,offset=offset,correction=-4)
         #         localseedsize = recordlength//4
         #         # Now set offsets
         #         offset = fmt_to_bytes["i"]*(5+localseedsize) + fmt_to_bytes["e"]*8 + fmt_to_bytes["d"]*2
         #         # Go through all the particle fields and unpack the data
         #         for n in range(len(part_vars)):
-        #             part[:, n] = eng.get_binary_data(fmt=("%i"%npart)+part_type[n],content=partContent,offset=offset)
+        #             part[:, n] = utils.read_binary_data(fmt=("%i"%npart)+part_type[n],content=partContent,offset=offset)
         #             offset += fmt_to_bytes["e"] + npart*fmt_to_bytes[part_type[n]]
 
         #         # Add the cells in the master dictionary
@@ -743,6 +744,12 @@ def make_vector_arrays(data):
                     if data.meta["ndim"] > 2:
                         del data[rawkey+"_z"]
                         skip.append(rawkey+"_z")
+        # # Make xyz positions into vector
+        # values = [data['x'].values, data['y'].values]
+        # if data.meta["ndim"] > 2:
+        #     values += [data['z'].values]
+
+        # np.array(values).T
 
 
 def get_unit(string, ud, ul, ut):

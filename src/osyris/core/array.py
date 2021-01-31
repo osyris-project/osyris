@@ -1,4 +1,5 @@
 import numpy as np
+from pint.quantity import Quantity
 from ..utils import value_to_string
 from .. import units
 
@@ -22,7 +23,7 @@ class Array:
 
 
     def __getitem__(self, slice_):
-        return Array(values=self._array[slice_], unit=self._unit,
+        return self.__class__(values=self._array[slice_], unit=self._unit,
                 parent=self._parent, name="")
 
     def __str__(self):
@@ -79,31 +80,31 @@ class Array:
     @property
     def x(self):
         if self.ndim > 1:
-            return Array(values=self._array[:, 0], unit=self._unit,
-                parent=self._parent, name=self.name+"_x")
+            return self.__class__(values=self._array[:, 0], unit=self._unit,
+                parent=self._parent, name=self._name+"_x")
 
     @property
     def y(self):
         if self.ndim > 1:
-            return Array(values=self._array[:, 1], unit=self._unit,
-                parent=self._parent, name=self.name+"_y")
+            return self.__class__(values=self._array[:, 1], unit=self._unit,
+                parent=self._parent, name=self._name+"_y")
 
     @property
     def z(self):
         if self.ndim > 2:
-            return Array(values=self._array[:, 2], unit=self._unit,
-                parent=self._parent, name=self.name+"_z")
+            return self.__class__(values=self._array[:, 2], unit=self._unit,
+                parent=self._parent, name=self._name+"_z")
 
 
     def _expect_same_unit(self, other):
-        if self.unit != other.unit:
+        if self._unit != other.unit:
             raise RuntimeError("Units don't agree in operation.")
         # if self.kind != other.kind:
         #     raise RuntimeError("Operands are not of the same kind.")
 
     def _get_parent(self, other):
-        if self.parent == other.parent:
-            return self.parent
+        if self._parent == other.parent:
+            return self._parent
         else:
             return
 
@@ -121,47 +122,94 @@ class Array:
 
 
     def __add__(self, other):
-        self._expect_same_unit(other)
-        parent = self._get_parent(other)
+        if isinstance(other, self.__class__):
+            scale_r = other.unit.to(self._unit.units)
+            return self.__class__(values=self._array+other._array*scale_r.magnitude,
+                unit=self._unit)
+        if isinstance(other, Quantity):
+            scale_r = other.to(self._unit.units)
+            return self.__class__(values=self._array+other.magnitude*scale_r.magnitude,
+                unit=self._unit)
+        raise TypeError("Could not add types {} and {}.".format(type(self), type(other)))
 
-        return Array(values=self._array+other._array,unit=self.unit,
-             parent=parent)
 
     def __sub__(self, other):
-        self._expect_same_unit(other)
-        parent = self._get_parent(other)
-        return Array(values=self._array-other._array,unit=self.unit,
-             parent=parent)
+        if isinstance(other, self.__class__):
+            scale_r = other.unit.to(self._unit.units)
+            return self.__class__(values=self._array-other._array*scale_r.magnitude,
+                unit=self._unit)
+        if isinstance(other, Quantity):
+            scale_r = other.to(self._unit.units)
+            return self.__class__(values=self._array-other.magnitude*scale_r.magnitude,
+                unit=self._unit)
+        raise TypeError("Could not subtract types {} and {}.".format(type(self), type(other)))
+
 
     def __mul__(self, other):
-        if isinstance(other, Array):
-            parent = self._get_parent(other)
-            return Array(values=self._array*other._array,unit=self.unit * other.unit,
-                 parent=parent)
-        else:
-            return Array(values=self._array*other, unit=self.unit,
-            parent=self.parent, name=self.name)
+        if isinstance(other, self.__class__):
+            # parent = self._get_parent(other)
+            scale_l = self._unit.to_base_units()
+            scale_r = other._unit.to_base_units()
+            result = scale_l * scale_r
+            # return self.__class__(values=self._array*scale_l.magnitude *
+            #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
+            #      parent=parent)
+            return self.__class__(values=self._array*other._array * result.magnitude,
+                unit=1.0 * result.units)
+        if isinstance(other, Quantity):
+            scale_l = self._unit.to_base_units()
+            scale_r = other.to_base_units()
+            result = scale_l * scale_r
+            return self.__class__(values=self._array * result.magnitude,
+                unit=1.0 * result.units)
+
+        return self.__class__(values=self._array*other, unit=self._unit,
+            name=self._name)
 
     def __truediv__(self, other):
-        if isinstance(other, Array):
-            parent = self._get_parent(other)
-            return Array(values=self._array/other._array,unit=self.unit / other.unit,
-                 parent=parent)
-        else:
-            return Array(values=self._array/other, unit=self.unit,
-            parent=self.parent, name=self.name)
+        if isinstance(other, self.__class__):
+            # parent = self._get_parent(other)
+            scale_l = self._unit.to_base_units()
+            scale_r = other._unit.to_base_units()
+            result = scale_l * scale_r
+            # return self.__class__(values=self._array*scale_l.magnitude *
+            #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
+            #      parent=parent)
+            return self.__class__(values=self._array*other._array * result.magnitude,
+                unit=1.0 * result.units)
+        if isinstance(other, Quantity):
+            scale_l = self._unit.to_base_units()
+            scale_r = other.to_base_units()
+            result = scale_l * scale_r
+            return self.__class__(values=self._array * result.magnitude,
+                unit=1.0 * result.units)
+
+        return self.__class__(values=self._array*other, unit=self._unit,
+            name=self._name)
+
+
+
+
+    # def __truediv__(self, other):
+    #     if isinstance(other, Array):
+    #         parent = self._get_parent(other)
+    #         return self.__class__(values=self._array/other._array,unit=self._unit / other.unit,
+    #              parent=parent)
+    #     else:
+    #         return self.__class__(values=self._array/other, unit=self._unit,
+    #         parent=self.parent, name=self._name)
 
     def __rmul__(self, number):
-        return Array(values=self._array*number, unit=self.unit,
-            parent=self.parent, name=self.name)
+        return self.__class__(values=self._array*number, unit=self._unit,
+            parent=self.parent, name=self._name)
 
     def __rtruediv__(self, other):
-        return Array(values=self._array/number, unit=self.unit,
-            parent=self.parent, name=self.name)
+        return self.__class__(values=self._array/number, unit=self._unit,
+            parent=self.parent, name=self._name)
 
 
-    def set_scale(self, scale):
-        new_unit = units(scale)
+    def to(self, unit):
+        new_unit = units(unit)
         ratio = self._unit.to(new_unit) / new_unit
         self._unit = 1.0 * new_unit
         self._array *= ratio.magnitude
