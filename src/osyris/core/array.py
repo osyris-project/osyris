@@ -1,6 +1,6 @@
 import numpy as np
 from pint.quantity import Quantity
-from ..utils import value_to_string
+from .tools import value_to_string
 from .. import units
 
 class Array:
@@ -62,6 +62,10 @@ class Array:
         return self._array.ndim
 
     @property
+    def shape(self):
+        return self._array.shape
+
+    @property
     def parent(self):
         return self._parent
 
@@ -91,22 +95,22 @@ class Array:
 
     @property
     def z(self):
-        if self.ndim > 2:
+        if self.ndim > 1:
             return self.__class__(values=self._array[:, 2], unit=self._unit,
                 parent=self._parent, name=self._name+"_z")
 
 
-    def _expect_same_unit(self, other):
-        if self._unit != other.unit:
-            raise RuntimeError("Units don't agree in operation.")
-        # if self.kind != other.kind:
-        #     raise RuntimeError("Operands are not of the same kind.")
+    # def _expect_same_unit(self, other):
+    #     if self._unit != other.unit:
+    #         raise RuntimeError("Units don't agree in operation.")
+    #     # if self.kind != other.kind:
+    #     #     raise RuntimeError("Operands are not of the same kind.")
 
-    def _get_parent(self, other):
-        if self._parent == other.parent:
-            return self._parent
-        else:
-            return
+    # def _get_parent(self, other):
+    #     if self._parent == other.parent:
+    #         return self._parent
+    #     else:
+    #         return
 
     @property
     def label(self, name=True, unit=True):
@@ -120,15 +124,24 @@ class Array:
     # def _get_kind(self, other):
     #     return
 
+    def _broadcast(self, lhs, rhs):
+        if lhs.ndim == rhs.ndim:
+            return lhs, rhs
+        if lhs.ndim > rhs.ndim:
+            return lhs, rhs.reshape(rhs.shape + tuple([1]))
+        else:
+            return lhs.reshape(lhs.shape + tuple([1])), rhs
+
 
     def __add__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
-            return self.__class__(values=self._array+other._array*scale_r.magnitude,
-                unit=self._unit)
+            lhs = self._array
+            rhs = other._array*scale_r.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+            return self.__class__(values=lhs+rhs, unit=self._unit)
         if isinstance(other, Quantity):
-            scale_r = other.to(self._unit.units)
-            return self.__class__(values=self._array+other.magnitude*scale_r.magnitude,
+            return self.__class__(values=self._array+other.to(self._unit.units).magnitude,
                 unit=self._unit)
         raise TypeError("Could not add types {} and {}.".format(type(self), type(other)))
 
@@ -136,11 +149,12 @@ class Array:
     def __sub__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
-            return self.__class__(values=self._array-other._array*scale_r.magnitude,
-                unit=self._unit)
+            lhs = self._array
+            rhs = other._array*scale_r.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+            return self.__class__(values=lhs - rhs, unit=self._unit)
         if isinstance(other, Quantity):
-            scale_r = other.to(self._unit.units)
-            return self.__class__(values=self._array-other.magnitude*scale_r.magnitude,
+            return self.__class__(values=self._array-other.to(self._unit.units),
                 unit=self._unit)
         raise TypeError("Could not subtract types {} and {}.".format(type(self), type(other)))
 
@@ -154,8 +168,11 @@ class Array:
             # return self.__class__(values=self._array*scale_l.magnitude *
             #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
             #      parent=parent)
-            return self.__class__(values=self._array*other._array * result.magnitude,
-                unit=1.0 * result.units)
+
+            lhs = self._array
+            rhs = other._array*result.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+            return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
         if isinstance(other, Quantity):
             scale_l = self._unit.to_base_units()
             scale_r = other.to_base_units()
@@ -163,29 +180,31 @@ class Array:
             return self.__class__(values=self._array * result.magnitude,
                 unit=1.0 * result.units)
 
-        return self.__class__(values=self._array*other, unit=self._unit,
-            name=self._name)
+        return self.__class__(values=self._array*other, unit=self._unit)
 
     def __truediv__(self, other):
         if isinstance(other, self.__class__):
             # parent = self._get_parent(other)
             scale_l = self._unit.to_base_units()
             scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
+            result = scale_l / scale_r
             # return self.__class__(values=self._array*scale_l.magnitude *
             #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
             #      parent=parent)
-            return self.__class__(values=self._array*other._array * result.magnitude,
-                unit=1.0 * result.units)
+
+            lhs = self._array
+            rhs = other._array / result.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+
+            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
         if isinstance(other, Quantity):
             scale_l = self._unit.to_base_units()
             scale_r = other.to_base_units()
-            result = scale_l * scale_r
+            result = scale_l / scale_r
             return self.__class__(values=self._array * result.magnitude,
                 unit=1.0 * result.units)
 
-        return self.__class__(values=self._array*other, unit=self._unit,
-            name=self._name)
+        return self.__class__(values=self._array/other, unit=self._unit)
 
 
 
@@ -199,13 +218,50 @@ class Array:
     #         return self.__class__(values=self._array/other, unit=self._unit,
     #         parent=self.parent, name=self._name)
 
-    def __rmul__(self, number):
-        return self.__class__(values=self._array*number, unit=self._unit,
-            parent=self.parent, name=self._name)
+    def __rmul__(self, other):
+        return self * other
+        #     # scale_l = self._unit.to_base_units()
+        #     # scale_r = other.to_base_units()
+        #     # result = scale_l * scale_r
+        #     # return self.__class__(values=self._array * result.magnitude,
+        #     #     unit=1.0 * result.units)
+
+        # return self.__class__(values=self._array*other, unit=self._unit,
+        #     name=self._name)
+
+
+
+        # return self.__class__(values=self._array*number, unit=self._unit,
+        #     parent=self.parent, name=self._name)
+
+    # def __rtruediv__(self, other):
+    #     return self.__class__(values=self._array/number, unit=self._unit,
+    #         parent=self.parent, name=self._name)
 
     def __rtruediv__(self, other):
-        return self.__class__(values=self._array/number, unit=self._unit,
-            parent=self.parent, name=self._name)
+        if isinstance(other, self.__class__):
+            # parent = self._get_parent(other)
+            scale_r = self._unit.to_base_units()
+            scale_l = other._unit.to_base_units()
+            result = scale_l / scale_r
+            # return self.__class__(values=self._array*scale_l.magnitude *
+            #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
+            #      parent=parent)
+
+            lhs = self._array
+            rhs = other._array / result.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+
+            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
+        if isinstance(other, Quantity):
+            scale_r = self._unit.to_base_units()
+            scale_l = other.to_base_units()
+            result = scale_l / scale_r
+            return self.__class__(values=self._array * result.magnitude,
+                unit=1.0 * result.units)
+
+        return self.__class__(values=other / self._array, unit=1.0 / self._unit)
+
 
 
     def to(self, unit):

@@ -113,3 +113,16 @@ def perpendicular_vector(v):
         return [-v[1], v[0], 0]
     else:
         return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
+
+
+def value_to_string(val, precision=3):
+    if (not isinstance(val, float)) or (val == 0):
+        text = str(val)
+    elif (abs(val) >= 10.0**(precision)) or \
+         (abs(val) <= 10.0**(-precision)):
+        text = "{val:.{prec}e}".format(val=val, prec=precision)
+    else:
+        text = "{}".format(val)
+        if len(text) > precision + 2 + (text[0] == '-'):
+            text = "{val:.{prec}f}".format(val=val, prec=precision)
+    return text
