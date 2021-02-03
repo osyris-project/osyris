@@ -61,7 +61,7 @@ def read_parameter_file(fname=None, delimiter="="):
 
 
 def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
-                    update=False,variables=None):
+                    update=False,select=None):
 
     # df = pd.DataFrame()
     data = Dict()
@@ -87,7 +87,12 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     data.meta["dy_load"  ] = dy
     data.meta["dz_load"  ] = dz
     data.meta["lmax"     ] = lmax
-    data.meta["variables"] = variables
+    # data.meta["variables"] = variables
+
+    if scale is not None:
+        scale = units(scale)
+        lunit = get_unit("x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
+        scaling = (lunit.to(scale) / scale).magnitude
 
     # # Convert to integers
     # data.meta["ncpu"]         = int(data.meta["ncpu"]        )
@@ -122,6 +127,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     variables_hydro = {}
     variables_grav = {}
     variables_rt = {}
+    if select is None:
+        select = {}
 
 
     # Start with hydro variables ==================================
@@ -138,11 +145,19 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     if hydro:
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
+            read = True
+            if key in select:
+                if select[key] is False:
+                    read = False
+            if "hydro" in select:
+                if select["hydro"] is False:
+                    read = False
             variables_hydro[key] = {
-                "read": (variables is None) or (key in variables) or ("hydro" in variables),
+                "read": read,
                 "type": descriptor[i, 2].strip(),
                 "buffer": None,
-                "pieces": {}}
+                "pieces": {},
+                "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
     data.meta["nvar_hydro"] = len(variables_hydro)
 
 
@@ -197,8 +212,18 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
             descriptor["grav_acceleration_" + "xyz"[n]]: "d"
         # Now add to the list of variables to be read
         for key in descriptor:
+            read = True
+            if key in select:
+                if select[key] is False:
+                    read = False
+            if "gravity" in select:
+                if select["gravity"] is False:
+                    read = False
+            if "grav" in select:
+                if select["grav"] is False:
+                    read = False
             variables_grav[key] = {
-                "read": (variables is None) or (key in variables) or ("gravity" in variables) or ("grav" in variables),
+                "read": read,
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {}}
@@ -215,8 +240,15 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     if rt:
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
+            read = True
+            if key in select:
+                if select[key] is False:
+                    read = False
+            if "rt" in select:
+                if select["rt"] is False:
+                    read = False
             variables_rt[key] = {
-                "read": (variables is None) or (key in variables) or ("rt" in variables),
+                "read": read,
                 "type": descriptor[i, 2].strip(),
                 "buffer": None,
                 "pieces": {}}
@@ -347,43 +379,50 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     # xyz   = np.zeros([data.meta["ngridmax"],twotondim,data.meta["ndim"]],dtype=np.float64)
     ref   = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.bool)
 
-    for item in variables_hydro.values():
-        item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
     for item in variables_amr.values():
         item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
+    if hydro:
+        for item in variables_hydro.values():
+            item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
+    if gravity:
+        for item in variables_grav.values():
+            item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
+    if rt:
+        for item in variables_rt.values():
+            item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
 
     iprog = 1
     istep = 10
     ncells_tot = 0
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
-    for k in range(data.meta["ncpu"]):
+    for cpuid in range(data.meta["ncpu"]):
 
         # Print progress
-        percentage = int(float(k)*100.0/float(data.meta["ncpu"]))
+        percentage = int(float(cpuid)*100.0/float(data.meta["ncpu"]))
         if percentage >= iprog*istep:
             print("%3i%% : read %10i cells" % (percentage,ncells_tot))
             iprog += 1
 
         # Read binary AMR file
-        fname_amr = generate_fname(nout,path,ftype="amr",cpuid=k+1)
+        fname_amr = generate_fname(nout,path,ftype="amr",cpuid=cpuid+1)
         with open(fname_amr, mode='rb') as amr_file:
             bytes_amr = amr_file.read()
 
         # Read binary HYDRO file
-        fname_hydro = generate_fname(nout,path,ftype="hydro",cpuid=k+1)
+        fname_hydro = generate_fname(nout,path,ftype="hydro",cpuid=cpuid+1)
         with open(fname_hydro, mode='rb') as hydro_file:
             bytes_hydro = hydro_file.read()
 
         # Read binary GRAVITY file
         if gravity:
-            fname_grav = generate_fname(nout,path,ftype="grav",cpuid=k+1)
+            fname_grav = generate_fname(nout,path,ftype="grav",cpuid=cpuid+1)
             with open(fname_grav, mode='rb') as grav_file:
                 bytes_grav = grav_file.read()
 
         # Read binary RT file
         if rt:
-            fname_rt = generate_fname(nout,path,ftype="rt",cpuid=k+1)
+            fname_rt = generate_fname(nout,path,ftype="rt",cpuid=cpuid+1)
             with open(fname_rt, mode='rb') as rt_file:
                 bytes_rt = rt_file.read()
 
@@ -515,7 +554,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
         # offsets_amr["n"] += 2*min(1,nboundary)
         offsets_amr["s"] += 128
         # print(offsets_amr["i"], offsets_amr["d"], offsets_amr["n"], offsets_amr["s"])
-        [key_size] = utils.read_binary_data(fmt="i",content=bytes_amr, offsets=offsets_amr, endl=False)
+        [key_size] = utils.read_binary_data(fmt="i",content=bytes_amr, offsets=offsets_amr, skip_head=False, increment=False)
         # print("key_size", key_size)
         # # Determine bound key precision
         # ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(3*nboundary*data.meta["levelmax"])+5
@@ -633,7 +672,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
 
                 if ncache > 0:
 
-                    if j == k:
+                    if j == cpuid:
                         # xg: grid coordinates
                         offsets_amr['i'] += ncache*3
                         offsets_amr['n'] +=  3
@@ -661,11 +700,34 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                             if hydro:
                                 for key, item in variables_hydro.items():
                                     if item["read"]:
-                                        item["buffer"][:ncache,ind] = utils.read_binary_data(
-                                            fmt="{}{}".format(ncache, item["type"]), content=bytes_hydro,offsets=offsets_hydro)
+                                        item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
+                                            fmt="{}{}".format(ncache, item["type"]),
+                                            content=bytes_hydro,offsets=offsets_hydro)) * item["unit"].magnitude
                                     else:
                                         offsets_hydro[item["type"]] += ncache
                                         offsets_hydro["n"] += ncache
+
+                            if gravity:
+                                for key, item in variables_grav.items():
+                                    if item["read"]:
+                                        item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
+                                            fmt="{}{}".format(ncache, item["type"]),
+                                            content=bytes_grav,offsets=offsets_grav))# * get_unit(
+                                        # key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+                                    else:
+                                        offsets_grav[item["type"]] += ncache
+                                        offsets_grav["n"] += ncache
+
+                            if rt:
+                                for key, item in variables_rt.items():
+                                    if item["read"]:
+                                        item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
+                                            fmt="{}{}".format(ncache, item["type"]),
+                                            content=bytes_rt,offsets=offsets_rt))# * get_unit(
+                                        # key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+                                    else:
+                                        offsets_rt[item["type"]] += ncache
+                                        offsets_rt["n"] += ncache
 
                             # jvar = 0
                             # if hydro:
@@ -692,12 +754,15 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                             # var: coordinates and cell sizes
                             # var[:ncache,ind,-6] = float(ilevel+1)
                             variables_amr["level"]["buffer"][:ncache,ind] = ilevel + 1
+                            # scaling = get_unit(
+                            #             "x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
                             for n in range(data.meta["ndim"]):
                                 # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
                                 # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
-                                variables_amr["xyz"[n]]["buffer"][:ncache,ind] = (xg[:ncache,n] + xcent[ind,n]-xbound[n])*data.meta["boxlen"]
-                            variables_amr["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"]
-                            variables_amr["cpu"]["buffer"][:ncache,ind] = k+1
+                                key = "xyz"[n]
+                                variables_amr[key]["buffer"][:ncache,ind] = (xg[:ncache,n] + xcent[ind,n]-xbound[n])*data.meta["boxlen"] * scaling
+                            variables_amr["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * scaling
+                            variables_amr["cpu"]["buffer"][:ncache,ind] = cpuid+1
                             # ref: True if the cell is unrefined
                             ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < lmax-1))
 
@@ -724,35 +789,62 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                         #     print("Bad number of dimensions")
                         #     return 0
                         # cube = np.where(ref[:ncache,:])
-                        cube = ref[:ncache,:] == True
-                        # print(cube)
-                        # print(type(cube))
 
-                        # # cells = var[cube]
-                        # ncells = np.shape(cube)[1]
-                        # ncells = np.shape(cube)[1]
+                        # Is unrefined condition
+                        conditions = {"leaf": ref[:ncache,:] == True}
+                        for key, func in select.items():
+                            if not isinstance(func, bool):
+                                if key in variables_hydro:
+                                    conditions[key] = func(variables_hydro[key]["buffer"][:ncache,:])
+                                elif key in variables_grav:
+                                    conditions[key] = func(variables_grav[key]["buffer"][:ncache,:])
+                                elif key in variables_rt:
+                                    conditions[key] = func(variables_rt[key]["buffer"][:ncache,:])
+                        sel = np.where(np.prod(np.array(list(conditions.values())), axis=0))
+                        # print(sel)
+                        # print(sel.shape)
+
+
+                        # print(cube)
+                        # # print(type(cube))
+
+                        # # # cells = var[cube]
+                        ncells = np.shape(sel)[1]
+                        # # ncells = np.shape(cube)[1]
                         # print(np.shape(cube))
-                        # ncells = len(np.ravel(cube))
-                        if cube.max() > 0:
+                        # # ncells = len(np.ravel(cube))
+                        if ncells > 0:
                             # print(cube[0, :])
-                            # ncells_tot += ncells
+                            ncells_tot += ncells
                             npieces += 1
                             # Add the cells in the pieces dictionaries
                             # data_pieces["piece"+str(npieces)] = cells
                             for key, item in variables_hydro.items():
-                                item["pieces"][npieces] = item["buffer"][:ncache,:][cube]
+                                # piece = item["buffer"][cube]
+                                # if key in select:
+                                #     if not isinstance(select[key], bool):
+                                #         sel = np.where(select[key](piece))
+                                #         piece = piece[sel]
+                                item["pieces"][npieces] = item["buffer"][sel]
                                 # print(item["pieces"][npieces])
                                 # print(item["pieces"][npieces].shape)
                             for key, item in variables_amr.items():
-                                item["pieces"][npieces] = item["buffer"][:ncache,:][cube]
+                                item["pieces"][npieces] = item["buffer"][sel]
                             # ncells = len(variables_amr["x"]["pieces"][npieces])
                             # ncells_tot += len(variables_amr["x"]["pieces"][npieces])
                             # print(ncells)
-                        ncells_tot += cube.sum()
+                        # ncells_tot += cube.sum()
+
+                        # Increment offsets with remainder of the file
+                        offsets_amr['i'] += ncache*2*twotondim
+                        offsets_amr['n'] += 2*twotondim
 
                     else:
 
-                        # Now increment the offsets while looping through the domains
+                        # # Now increment the offsets while looping through the domains
+                        # 'i': 4*ncache + 2*ndim*ncache + 3*twotondim*ncache
+                        # 'd': ndim*ncache + 
+
                         offsets_amr['i'] += ncache*(4+3*twotondim+2*data.meta["ndim"])
                         offsets_amr['d'] += ncache*data.meta["ndim"]
                         offsets_amr['n'] += 4 + 3*twotondim + 3*data.meta["ndim"]
@@ -768,6 +860,29 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                         if rt:
                             offsets_rt['d'] += ncache*twotondim*data.meta_rt["nvar_rt"]
                             offsets_rt['n'] += twotondim*data.meta_rt["nvar_rt"]
+
+
+
+                        # # Now increment the offsets while looping through the domains
+                        # ninteg_amr += ncache*(4+3*twotondim+2*self.info["ndim"])
+                        # nfloat_amr += ncache*self.info["ndim"]
+                        # nlines_amr += 4 + 3*twotondim + 3*self.info["ndim"]
+
+                        # if hydro:
+                        #     nfloat_hydro += ncache*twotondim*self.info["nvar_hydro"]
+                        #     nlines_hydro += twotondim*self.info["nvar_hydro"]
+
+                        # if gravity:
+                        #     nfloat_grav += ncache*twotondim*(self.info["nvar_grav"])
+                        #     nlines_grav += twotondim*(self.info["nvar_grav"])
+
+                        # if rt:
+                        #     nfloat_rt += ncache*twotondim*self.info_rt["nvar_rt"]
+                        #     nlines_rt += twotondim*self.info_rt["nvar_rt"]
+
+
+
+
 
             # # Now increment the offsets while looping through the levels
             # ninteg1 = ninteg_amr
@@ -825,16 +940,26 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     # Merge all the data pieces into the master data array
     # master_data_array = np.concatenate(list(data_pieces.values()), axis=0)
 
-    for key, item in variables_hydro.items():
-        unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
-                data.meta["unit_t"])
-        data[key] = Array(values=np.concatenate(list(item["pieces"].values()))*unit.magnitude,
-            unit=1.0*unit.units)
     for key, item in variables_amr.items():
         unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
                 data.meta["unit_t"])
         data[key] = Array(values=np.concatenate(list(item["pieces"].values()))*unit.magnitude,
             unit=1.0*unit.units)
+    for key, item in variables_hydro.items():
+        # unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
+        #         data.meta["unit_t"])
+        data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
+            unit=1.0*item["unit"].units)
+    # for key, item in variables_grav.items():
+    #     unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
+    #             data.meta["unit_t"])
+    #     data[key] = Array(values=np.concatenate(list(item["pieces"].values()))*unit.magnitude,
+    #         unit=1.0*unit.units)
+    # for key, item in variables_rt.items():
+    #     unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
+    #             data.meta["unit_t"])
+    #     data[key] = Array(values=np.concatenate(list(item["pieces"].values()))*unit.magnitude,
+    #         unit=1.0*unit.units)
 
     # for i, key in enumerate(list_vars):
     #     unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
@@ -890,8 +1015,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
 
     # create_vector_containers(df)
 
-    if scale is not None:
-        data.set_scale(scale)
+    # if scale is not None:
+    #     data.set_scale(scale)
 
     return data
 

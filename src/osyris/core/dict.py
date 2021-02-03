@@ -36,7 +36,7 @@ class Dict:
         return str(self)
 
     def __str__(self):
-        output = ""
+        output = self.meta["infile"] + "\n"
         for key, item in self.items():
             output += str(item) + "\n"
 
