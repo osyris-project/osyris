@@ -118,17 +118,17 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
 
     # print(divider)
 
-    # Now go through all the variables and check if they are to be read or skipped
-    list_vars   = []
-    var_read    = []
-    var_group   = []
-    var_type    = []
-    xyz_strings = "xyz"
+    # # Now go through all the variables and check if they are to be read or skipped
+    # list_vars   = []
+    # var_read    = []
+    # var_group   = []
+    # var_type    = []
+    # xyz_strings = "xyz"
 
-    variables_amr = {}
-    variables_hydro = {}
-    variables_grav = {}
-    variables_rt = {}
+    variables = {}
+    # variables_hydro = {}
+    # variables_grav = {}
+    # variables_rt = {}
     if select is None:
         select = {}
 
@@ -141,7 +141,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     else:
         scaling = length_unit
 
-    variables_amr = {"level": {"read": True, "type": "i", "buffer": None, "pieces": {}, "unit": 1.0*units.dimensionless},
+    variables["amr"] = {"level": {"read": True, "type": "i", "buffer": None, "pieces": {}, "unit": 1.0*units.dimensionless},
                      "cpu": {"read": True, "type": "i", "buffer": None, "pieces": {}, "unit": 1.0*units.dimensionless},
                      "x": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling},
                      "y": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling},
@@ -1129,3 +1129,13 @@ def get_unit(string, ud, ul, ut):
     #         return self.info_rt["unit_np"] * (units.erg/(units.cm**3))
     #     elif string.startswith("photon_flux"):
     #         return self.info_rt["unit_pf"] * (units.erg/(units.cm**2)/units.s)
+
+# def read_cell_data(variables, ):
+#     for key, item in variables.items():
+#         if item["read"]:
+#             item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
+#                 fmt="{}{}".format(ncache, item["type"]),
+#                 content=bytes_hydro,offsets=offsets_hydro)) * item["unit"].magnitude
+#         else:
+#             offsets_hydro[item["type"]] += ncache
+#             offsets_hydro["n"] += ncache
