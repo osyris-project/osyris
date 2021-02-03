@@ -89,10 +89,12 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     data.meta["lmax"     ] = lmax
     # data.meta["variables"] = variables
 
-    if scale is not None:
-        scale = units(scale)
-        lunit = get_unit("x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
-        scaling = (lunit.to(scale) / scale).magnitude
+    # if scale is not None:
+    #     scale = units(scale)
+    #     lunit = get_unit("x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
+    #     scaling = (lunit.to(scale) / scale).magnitude
+    # else:
+    #     scaling = 1.0
 
     # # Convert to integers
     # data.meta["ncpu"]         = int(data.meta["ncpu"]        )
@@ -130,6 +132,27 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     if select is None:
         select = {}
 
+
+    # AMR grid variables
+    length_unit = get_unit("x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
+    if scale is not None:
+        scale = units(scale)
+        scaling = (length_unit.to(scale) / scale).magnitude * scale
+    else:
+        scaling = length_unit
+
+    variables_amr = {"level": {"read": True, "type": "i", "buffer": None, "pieces": {}, "unit": 1.0*units.dimensionless},
+                     "cpu": {"read": True, "type": "i", "buffer": None, "pieces": {}, "unit": 1.0*units.dimensionless},
+                     "x": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling},
+                     "y": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling},
+                     "z": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling},
+                     "dx": {"read": True, "type": "d", "buffer": None, "pieces": {}, "unit": scaling}
+                     }
+    #  for key in ["level", "x", "y", "z", "dx", "cpu"]}
+
+    # variables_amr = {key: {"read": True, "type": "d", "buffer": None, "pieces": {}} for key in ["level", "x", "y", "z", "dx", "cpu"]}
+    # variables_amr["level"]["type"] = "i"
+    # variables_amr["cpu"]["type"] = "i"
 
     # Start with hydro variables ==================================
 
@@ -226,7 +249,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                 "read": read,
                 "type": descriptor[key],
                 "buffer": None,
-                "pieces": {}}
+                "pieces": {},
+                "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
     data.meta["nvar_grav"] = len(variables_grav)
 
     # # Now for rt ==================================
@@ -251,7 +275,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                 "read": read,
                 "type": descriptor[i, 2].strip(),
                 "buffer": None,
-                "pieces": {}}
+                "pieces": {},
+                "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
     data.meta["nvar_rt"] = len(variables_rt)
 
 
@@ -278,11 +303,11 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     #         else:
     #             var_read.append(False)
 
-    # Make sure we always read the coordinates
-    # descriptor = {"grav_potential": "d"}
-    variables_amr = {key: {"read": True, "type": "d", "buffer": None, "pieces": {}} for key in ["level", "x", "y", "z", "dx", "cpu"]}
-    variables_amr["level"]["type"] = "i"
-    variables_amr["cpu"]["type"] = "i"
+    # # Make sure we always read the coordinates
+    # # descriptor = {"grav_potential": "d"}
+    # variables_amr = {key: {"read": True, "type": "d", "buffer": None, "pieces": {}} for key in ["level", "x", "y", "z", "dx", "cpu"]}
+    # variables_amr["level"]["type"] = "i"
+    # variables_amr["cpu"]["type"] = "i"
 
     # list_vars.extend(var_amr)
     # var_read.extend([True] * len(var_amr))
@@ -712,8 +737,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                                     if item["read"]:
                                         item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
                                             fmt="{}{}".format(ncache, item["type"]),
-                                            content=bytes_grav,offsets=offsets_grav))# * get_unit(
-                                        # key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+                                            content=bytes_grav,offsets=offsets_grav)) * item["unit"].magnitude
                                     else:
                                         offsets_grav[item["type"]] += ncache
                                         offsets_grav["n"] += ncache
@@ -723,8 +747,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                                     if item["read"]:
                                         item["buffer"][:ncache,ind] = np.array(utils.read_binary_data(
                                             fmt="{}{}".format(ncache, item["type"]),
-                                            content=bytes_rt,offsets=offsets_rt))# * get_unit(
-                                        # key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+                                            content=bytes_rt,offsets=offsets_rt)) * item["unit"].magnitude
                                     else:
                                         offsets_rt[item["type"]] += ncache
                                         offsets_rt["n"] += ncache
@@ -760,8 +783,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                                 # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
                                 # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
                                 key = "xyz"[n]
-                                variables_amr[key]["buffer"][:ncache,ind] = (xg[:ncache,n] + xcent[ind,n]-xbound[n])*data.meta["boxlen"] * scaling
-                            variables_amr["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * scaling
+                                variables_amr[key]["buffer"][:ncache,ind] = (xg[:ncache,n] + xcent[ind,n]-xbound[n])*data.meta["boxlen"] * variables_amr[key]["unit"].magnitude
+                            variables_amr["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * variables_amr["dx"]["unit"].magnitude
                             variables_amr["cpu"]["buffer"][:ncache,ind] = cpuid+1
                             # ref: True if the cell is unrefined
                             ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < lmax-1))
@@ -943,8 +966,8 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     for key, item in variables_amr.items():
         unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
                 data.meta["unit_t"])
-        data[key] = Array(values=np.concatenate(list(item["pieces"].values()))*unit.magnitude,
-            unit=1.0*unit.units)
+        data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
+            unit=1.0*item["unit"].units)
     for key, item in variables_hydro.items():
         # unit = get_unit(key, data.meta["unit_d"], data.meta["unit_l"],
         #         data.meta["unit_t"])
