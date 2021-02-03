@@ -344,7 +344,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
     xg    = np.zeros([data.meta["ngridmax"],3],dtype=np.float64)
     son   = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.int32)
     # var   = np.zeros([data.meta["ngridmax"],twotondim,nvar_read],dtype=np.float64)
-    xyz   = np.zeros([data.meta["ngridmax"],twotondim,data.meta["ndim"]],dtype=np.float64)
+    # xyz   = np.zeros([data.meta["ngridmax"],twotondim,data.meta["ndim"]],dtype=np.float64)
     ref   = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.bool)
 
     for item in variables_hydro.values():
@@ -422,8 +422,10 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
         # # nboundary
         # ninteg = 7
         # nlines = 5
-        # [nboundary] = utils.read_binary_data(fmt="i",content=bytes_amr,ninteg=ninteg,nlines=nlines)
+        # [nboundary] = utils.get_binary_data(fmt="i",content=bytes_amr,ninteg=ninteg,nlines=nlines)
         # ngridlevel = np.zeros([data.meta["ncpu"]+nboundary,data.meta["levelmax"]],dtype=np.int32)
+        # print(nboundary)
+        # return
 
         # noutput
         offsets_amr["i"] += 1
@@ -474,41 +476,55 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
         offsets_amr["i"] += 2 + (2*data.meta["ncpu"]*data.meta["levelmax"])
         offsets_amr["n"] += 7
         offsets_amr["d"] += 16
+        # print(offsets_amr["i"], offsets_amr["d"], offsets_amr["n"])
         ngridlevel[:data.meta["ncpu"],:] = np.array(utils.read_binary_data(fmt="{}i".format(data.meta["ncpu"]*data.meta["levelmax"]),
              content=bytes_amr,offsets=offsets_amr)).reshape(data.meta["levelmax"],data.meta["ncpu"]).T
-        print("ngridlevel", ngridlevel)
-        # # Read the number of grids
+        # print("ngridlevel1", ngridlevel)
+        # # # Read the number of grids
         # ninteg = 14+(2*data.meta["ncpu"]*data.meta["levelmax"])
         # nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         # nlines = 21
-        # ngridlevel[:data.meta["ncpu"],:] = np.asarray(utils.read_binary_data(fmt="%ii"%(data.meta["ncpu"]*data.meta["levelmax"]),\
+        # print(ninteg, nfloat, nlines)
+        # ngridlevel[:data.meta["ncpu"],:] = np.asarray(utils.get_binary_data(fmt="%ii"%(data.meta["ncpu"]*data.meta["levelmax"]),\
         #      content=bytes_amr,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],data.meta["ncpu"]).T
+        # print("ngridlevel2", ngridlevel)
+        # return
 
         # Read boundary grids if any
+        offsets_amr["i"] += 10*data.meta["levelmax"]
+        offsets_amr["n"] += 3
         if nboundary > 0:
-            offsets_amr["i"] += (10*data.meta["levelmax"])+(2*nboundary*data.meta["levelmax"])
-            offsets_amr["n"] += 4
+            offsets_amr["i"] += (2*nboundary*data.meta["levelmax"])
+            # offsets_amr["n"] += 4
             ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.array(utils.read_binary_data(fmt="{}i".format(nboundary*data.meta["levelmax"]),
                                             content=bytes_amr,offsets=offsets_amr)).reshape(data.meta["levelmax"],nboundary).T
+            # print("111", ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:])
+            offsets_amr["n"] += 2
+        # else:
+        #     offsets_amr["n"] += 3
 
             # ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(2*nboundary*data.meta["levelmax"])
             # nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
             # nlines = 25
-            # ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.asarray(utils.read_binary_data(fmt="%ii"%(nboundary*data.meta["levelmax"]),\
-                                            # content=bytes_amr,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],nboundary).T
+            # ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:] = np.asarray(utils.get_binary_data(fmt="%ii"%(nboundary*data.meta["levelmax"]),\
+            #                                 content=bytes_amr,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(data.meta["levelmax"],nboundary).T
+            # print("222", ngridlevel[data.meta["ncpu"]:data.meta["ncpu"]+nboundary,:])
 
         # Determine bound key precision
         offsets_amr["i"] += 5
-        offsets_amr["n"] += 2*min(1,nboundary)
+        # offsets_amr["n"] += 2*min(1,nboundary)
         offsets_amr["s"] += 128
+        # print(offsets_amr["i"], offsets_amr["d"], offsets_amr["n"], offsets_amr["s"])
         [key_size] = utils.read_binary_data(fmt="i",content=bytes_amr, offsets=offsets_amr, endl=False)
-        print("key_size", key_size)
+        # print("key_size", key_size)
         # # Determine bound key precision
         # ninteg = 14+(3*data.meta["ncpu"]*data.meta["levelmax"])+(10*data.meta["levelmax"])+(3*nboundary*data.meta["levelmax"])+5
         # nfloat = 18+(2*noutput)+(2*data.meta["levelmax"])
         # nlines = 21+2+3*min(1,nboundary)+1+1
         # nstrin = 128
-        # [key_size] = utils.read_binary_data(fmt="i",content=bytes_amr,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
+        # print(ninteg, nfloat, nlines, nstrin)
+        # [key_size] = utils.get_binary_data(fmt="i",content=bytes_amr,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
+        # print("key_size2", key_size)
 
         # Offset for AMR
         offsets_amr["i"] += 3*ncoarse
@@ -526,7 +542,7 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
             offsets_hydro["i"] += 5
             offsets_hydro["n"] += 5
             [data.meta["gamma"]] = utils.read_binary_data(fmt="d",content=bytes_hydro,offsets=offsets_hydro)
-            print(data.meta["gamma"])
+            # print(data.meta["gamma"])
 
         #     ninteg2 = 5
         #     nfloat2 = 1
@@ -707,20 +723,32 @@ def load(nout=1,lmax=0,center=None,dx=0.0,dy=0.0,dz=0.0,scale=None,path="",
                         # else:
                         #     print("Bad number of dimensions")
                         #     return 0
-                        cube = np.where(ref[:ncache,:])
+                        # cube = np.where(ref[:ncache,:])
+                        cube = ref[:ncache,:] == True
+                        # print(cube)
+                        # print(type(cube))
 
-                        # cells = var[cube]
-                        # ncells = np.shape(cells)[0]
-                        ncells = len(cube.ravel())
-                        if ncells > 0:
-                            ncells_tot += ncells
+                        # # cells = var[cube]
+                        # ncells = np.shape(cube)[1]
+                        # ncells = np.shape(cube)[1]
+                        # print(np.shape(cube))
+                        # ncells = len(np.ravel(cube))
+                        if cube.max() > 0:
+                            # print(cube[0, :])
+                            # ncells_tot += ncells
                             npieces += 1
                             # Add the cells in the pieces dictionaries
                             # data_pieces["piece"+str(npieces)] = cells
                             for key, item in variables_hydro.items():
-                                item["pieces"][npieces] = item["buffer"][cube]
+                                item["pieces"][npieces] = item["buffer"][:ncache,:][cube]
+                                # print(item["pieces"][npieces])
+                                # print(item["pieces"][npieces].shape)
                             for key, item in variables_amr.items():
-                                item["pieces"][npieces] = item["buffer"][cube]
+                                item["pieces"][npieces] = item["buffer"][:ncache,:][cube]
+                            # ncells = len(variables_amr["x"]["pieces"][npieces])
+                            # ncells_tot += len(variables_amr["x"]["pieces"][npieces])
+                            # print(ncells)
+                        ncells_tot += cube.sum()
 
                     else:
 
