@@ -1,6 +1,48 @@
 
 import struct
 
+def generate_fname(nout,path="",ftype="",cpuid=1,ext=""):
+
+    if len(path) > 0:
+        if path[-1] != "/":
+            path=path+"/"
+
+    if nout == -1:
+        filelist = sorted(glob.glob(path+"output*"))
+        number = filelist[-1].split("_")[-1]
+    else:
+        number = str(nout).zfill(5)
+
+    infile = path+"output_"+number
+    if len(ftype) > 0:
+        infile += "/"+ftype+"_"+number
+        if cpuid >= 0:
+            infile += ".out"+str(cpuid).zfill(5)
+
+    if len(ext) > 0:
+        infile += ext
+
+    return infile
+
+
+def read_parameter_file(fname=None, delimiter="="):
+    """
+    Read info file and create dictionary
+    """
+    out = {}
+    with open(fname) as f:
+        content = f.readlines()
+    for line in content:
+        sp = line.split(delimiter)
+        if len(sp) > 1:
+            value = sp[1].strip()
+            try:
+                value = eval(value)
+            except NameError:
+                pass
+            out[sp[0].strip()] = value
+    return out
+
 
 def read_binary_data(content=None, fmt=None, offsets=None, skip_head=True, increment=True):
     """

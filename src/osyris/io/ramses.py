@@ -14,49 +14,52 @@ from . import utils
 from ..core import Dict, Array
 from .. import units
 
-divider = "============================================"
-
-def generate_fname(nout,path="",ftype="",cpuid=1,ext=""):
-
-    if len(path) > 0:
-        if path[-1] != "/":
-            path=path+"/"
-
-    if nout == -1:
-        filelist = sorted(glob.glob(path+"output*"))
-        number = filelist[-1].split("_")[-1]
-    else:
-        number = str(nout).zfill(5)
-
-    infile = path+"output_"+number
-    if len(ftype) > 0:
-        infile += "/"+ftype+"_"+number
-        if cpuid >= 0:
-            infile += ".out"+str(cpuid).zfill(5)
-
-    if len(ext) > 0:
-        infile += ext
-
-    return infile
+from .hydro import HydroLoader
 
 
-def read_parameter_file(fname=None, delimiter="="):
-    """
-    Read info file and create dictionary
-    """
-    out = {}
-    with open(fname) as f:
-        content = f.readlines()
-    for line in content:
-        sp = line.split(delimiter)
-        if len(sp) > 1:
-            value = sp[1].strip()
-            try:
-                value = eval(value)
-            except NameError:
-                pass
-            out[sp[0].strip()] = value
-    return out
+# divider = "============================================"
+
+# def utils.generate_fname(nout,path="",ftype="",cpuid=1,ext=""):
+
+#     if len(path) > 0:
+#         if path[-1] != "/":
+#             path=path+"/"
+
+#     if nout == -1:
+#         filelist = sorted(glob.glob(path+"output*"))
+#         number = filelist[-1].split("_")[-1]
+#     else:
+#         number = str(nout).zfill(5)
+
+#     infile = path+"output_"+number
+#     if len(ftype) > 0:
+#         infile += "/"+ftype+"_"+number
+#         if cpuid >= 0:
+#             infile += ".out"+str(cpuid).zfill(5)
+
+#     if len(ext) > 0:
+#         infile += ext
+
+#     return infile
+
+
+# def utils.read_parameter_file(fname=None, delimiter="="):
+#     """
+#     Read info file and create dictionary
+#     """
+#     out = {}
+#     with open(fname) as f:
+#         content = f.readlines()
+#     for line in content:
+#         sp = line.split(delimiter)
+#         if len(sp) > 1:
+#             value = sp[1].strip()
+#             try:
+#                 value = eval(value)
+#             except NameError:
+#                 pass
+#             out[sp[0].strip()] = value
+#     return out
 
 
 
@@ -67,12 +70,16 @@ def load(nout=1,scale=None,path="",select=None):
     # df = pd.DataFrame()
     data = Dict()
 
+    if select is None:
+        select = {}
+
+
     # Generate directory name from output number
-    infile = generate_fname(nout,path)
+    infile = utils.generate_fname(nout,path)
 
     # Read info file and create info dictionary
     infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
-    data.meta.update(read_parameter_file(fname=infofile))
+    data.meta.update(utils.read_parameter_file(fname=infofile))
 
 
     # print(data.meta)
@@ -115,7 +122,7 @@ def load(nout=1,scale=None,path="",select=None):
 
     # # Read namelist file and create namelist dictionary
     # nmlfile = infile+"/namelist.txt"
-    # self.read_parameter_file(fname=nmlfile,dict_name="namelist",evaluate=False)
+    # self.utils.read_parameter_file(fname=nmlfile,dict_name="namelist",evaluate=False)
 
     # print(divider)
 
@@ -130,8 +137,6 @@ def load(nout=1,scale=None,path="",select=None):
     # variables_hydro = {}
     # variables_grav = {}
     # variables_rt = {}
-    if select is None:
-        select = {}
 
 
     # AMR grid variables
@@ -229,7 +234,7 @@ def load(nout=1,scale=None,path="",select=None):
     # # Now for gravity ==================================
 
     # # Check if self-gravity files exist
-    fname_grav = generate_fname(nout,path,ftype="grav",cpuid=1)
+    fname_grav = utils.generate_fname(nout,path,ftype="grav",cpuid=1)
     gravity = os.path.exists(fname_grav)
     # Add gravity fields
     if gravity:
@@ -450,7 +455,7 @@ def load(nout=1,scale=None,path="",select=None):
 
         # Read binary files
         for group, item in loader.items():
-            fname = generate_fname(nout, path, ftype=group, cpuid=cpuid+1)
+            fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpuid+1)
             with open(fname, mode='rb') as f:
                 item["bytes"] = f.read()
 
@@ -460,24 +465,24 @@ def load(nout=1,scale=None,path="",select=None):
 
 
         # # Read binary AMR file
-        # fname_amr = generate_fname(nout,path,ftype="amr",cpuid=cpuid+1)
+        # fname_amr = utils.generate_fname(nout,path,ftype="amr",cpuid=cpuid+1)
         # with open(fname_amr, mode='rb') as amr_file:
         #     bytes_amr = amr_file.read()
 
         # # Read binary HYDRO file
-        # fname_hydro = generate_fname(nout,path,ftype="hydro",cpuid=cpuid+1)
+        # fname_hydro = utils.generate_fname(nout,path,ftype="hydro",cpuid=cpuid+1)
         # with open(fname_hydro, mode='rb') as hydro_file:
         #     loader["hydro"]["bytes"] = hydro_file.read()
 
         # # Read binary GRAVITY file
         # if gravity:
-        #     fname_grav = generate_fname(nout,path,ftype="grav",cpuid=cpuid+1)
+        #     fname_grav = utils.generate_fname(nout,path,ftype="grav",cpuid=cpuid+1)
         #     with open(fname_grav, mode='rb') as grav_file:
         #         loader["grav"]["bytes"] = grav_file.read()
 
         # # Read binary RT file
         # if rt:
-        #     fname_rt = generate_fname(nout,path,ftype="rt",cpuid=cpuid+1)
+        #     fname_rt = utils.generate_fname(nout,path,ftype="rt",cpuid=cpuid+1)
         #     with open(fname_rt, mode='rb') as rt_file:
         #         loader["rt"]["bytes"] = rt_file.read()
 
@@ -994,7 +999,7 @@ def load(nout=1,scale=None,path="",select=None):
         # if particles:
         #     fmt_to_bytes = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
         #     # Read binary PARTICLE file
-        #     pafname_rt = self.generate_fname(nout,path,ftype="part",cpuid=k+1)
+        #     pafname_rt = self.utils.generate_fname(nout,path,ftype="part",cpuid=k+1)
         #     with open(pafname_rt, mode='rb') as part_file:
         #         paloader["rt"]["bytes"] = part_file.read()
         #     # Get number of particles for this cpu
