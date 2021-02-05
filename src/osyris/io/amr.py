@@ -1,3 +1,4 @@
+from .loader import Loader
 from .units import get_unit
 
 class AmrLoader(Loader):

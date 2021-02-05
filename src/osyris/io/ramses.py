@@ -14,6 +14,7 @@ from . import utils
 from ..core import Dict, Array
 from .. import units
 
+from .amr import AmrLoader
 from .hydro import HydroLoader
 
 
@@ -143,16 +144,21 @@ def load(nout=1,scale=None,path="",select=None):
     # variables_rt = {}
 
     loader_list = {"amr": AmrLoader(scale=scale, units=base_units),
-                   "hydro": HydroLoader(select=select, unis=base_units),
-                   "grav": GravLoader(select=select, unis=base_units),
-                   "rt": RtLoader(select=select, unis=base_units)}
+                   "hydro": HydroLoader(infile=infile, select=select, unis=base_units),
+                   # "grav": GravLoader(nout=nout, path=path, select=select, unis=base_units),
+                   # "rt": RtLoader(infile=infile, select=select, unis=base_units)
+                   }
 
-    amr_loader = AmrLoader(scale=scale, units=base_units)
-    hydro_loader = HydroLoader(select=select, unis=base_units)
+    loaders = {}
+    for group, loader in loader_list.items():
+        if loader.initialized:
+            loaders[key] = loader
 
-    
-    if hydro_loader.initialized:
-    	loaders["hydro"]
+    # amr_loader = AmrLoader(scale=scale, units=base_units)
+    # hydro_loader = HydroLoader(select=select, unis=base_units)
+
+    # if hydro_loader.initialized:
+    # 	loaders["hydro"]
 
 
     # # AMR grid variables
@@ -179,33 +185,33 @@ def load(nout=1,scale=None,path="",select=None):
 
     # Start with hydro variables ==================================
 
-    # Read the number of variables from the hydro_file_descriptor.txt
-    # and select the ones to be read if specified by user
-    hydro = True
-    fname_hydro = infile+"/hydro_file_descriptor.txt"
-    try:
-        descriptor = np.loadtxt(fname_hydro, dtype=str, delimiter=",")
-    except IOError:
-        hydro = False
+    # # Read the number of variables from the hydro_file_descriptor.txt
+    # # and select the ones to be read if specified by user
+    # hydro = True
+    # fname_hydro = infile+"/hydro_file_descriptor.txt"
+    # try:
+    #     descriptor = np.loadtxt(fname_hydro, dtype=str, delimiter=",")
+    # except IOError:
+    #     hydro = False
 
-    if hydro:
-        loaders["hydro"] = {"variables": {}, "offsets": {}, "bytes": {}}
-        for i in range(len(descriptor)):
-            key = descriptor[i, 1].strip()
-            read = True
-            if key in select:
-                if select[key] is False:
-                    read = False
-            if "hydro" in select:
-                if select["hydro"] is False:
-                    read = False
-            loaders["hydro"]["variables"][key] = {
-                "read": read,
-                "type": descriptor[i, 2].strip(),
-                "buffer": None,
-                "pieces": {},
-                "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
-    # data.meta["nvar_hydro"] = len(variables_hydro)
+    # if hydro:
+    #     loaders["hydro"] = {"variables": {}, "offsets": {}, "bytes": {}}
+    #     for i in range(len(descriptor)):
+    #         key = descriptor[i, 1].strip()
+    #         read = True
+    #         if key in select:
+    #             if select[key] is False:
+    #                 read = False
+    #         if "hydro" in select:
+    #             if select["hydro"] is False:
+    #                 read = False
+    #         loaders["hydro"]["variables"][key] = {
+    #             "read": read,
+    #             "type": descriptor[i, 2].strip(),
+    #             "buffer": None,
+    #             "pieces": {},
+    #             "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
+    # # data.meta["nvar_hydro"] = len(variables_hydro)
 
 
         # var_read = [True] * len(descriptor)

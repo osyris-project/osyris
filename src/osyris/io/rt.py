@@ -1,7 +1,7 @@
 from .loader import Loader
 from .units import get_unit
 
-class HydroLoader(Loader):
+class RtLoader(Loader):
 
     def __init__(self, infile, select, units):
 
