@@ -36,7 +36,7 @@ class Dict:
         return str(self)
 
     def __str__(self):
-        output = self.meta["infile"] + "\n"
+        output = "{}: {}\n".format(self.meta["infile"], self.print_size())
         for key, item in self.items():
             output += str(item) + "\n"
 
@@ -94,6 +94,15 @@ class Dict:
         for key in ["x", "y", "z", "dx"]:
             if key in self:
                 self[key].to(scale)
+
+    def print_size(self):
+        total_size = np.sum([item._array.nbytes for item in self.values()])
+        multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "B": 1.0}
+        for m, mult in multipliers.items():
+            if total_size >= mult:
+                size = "{:.2f} {}B".format(total_size / mult, m)
+                break
+        return size
 
     # def set_center(self, center):
     #     for key in ["x", "y", "z", "dx"]:
