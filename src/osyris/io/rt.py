@@ -1,3 +1,4 @@
+import numpy as np
 from .loader import Loader
 from .units import get_unit
 
@@ -33,5 +34,12 @@ class RtLoader(Loader):
                     "buffer": None,
                     "pieces": {},
                     "unit": get_unit(key, units["ud"], units["ul"], units["ut"])}
-        # data.meta["nvar_hydro"] = len(variables_hydro)
-        # return hyd
+
+    def read_header(self, info):
+        self.offsets["i"] += 5
+        self.offsets["n"] += 6
+        self.offsets["d"] += 1
+
+    def read_domain_header(self):
+        self.offsets['n'] += 2
+        self.offsets['i'] += 2

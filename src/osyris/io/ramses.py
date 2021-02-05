@@ -3,15 +3,15 @@
 # @author Neil Vaytet
 
 import numpy as np
-import os
 import struct
-import glob
 from .. import config
 from . import utils
 from ..core import Dict, Array
 from ..core.tools import value_to_string
 from .amr import AmrLoader
+from .grav import GravLoader
 from .hydro import HydroLoader
+from .rt import RtLoader
 
 def load(nout=1,scale=None,path="",select=None):
 
@@ -41,8 +41,8 @@ def load(nout=1,scale=None,path="",select=None):
 
     loader_list = {"amr": AmrLoader(scale=scale, code_units=code_units),
                    "hydro": HydroLoader(infile=infile, select=select, code_units=code_units),
-                   # "grav": GravLoader(nout=nout, path=path, select=select, unis=base_units),
-                   # "rt": RtLoader(infile=infile, select=select, unis=base_units)
+                   "grav": GravLoader(nout=nout, path=path, select=select, units=code_units, ndim=data.meta["ndim"]),
+                   "rt": RtLoader(infile=infile, select=select, units=code_units)
                    }
 
     # Initialize loaders
@@ -98,27 +98,6 @@ def load(nout=1,scale=None,path="",select=None):
             loader.offsets.update(null_offsets)
             loader.read_header(data.meta)
 
-
-
-        # Offset for GRAVITY
-        if "gravity" in loaders:
-            loaders["grav"].offsets["n"] += 4
-            loaders["grav"].offsets["i"] += 4
-            # ninteg3 = 4
-            # nfloat3 = 0
-            # nlines3 = 4
-            # nstrin3 = 0
-
-        # Offset for RT
-        if "rt" in loaders:
-            loaders["rt"].offsets["i"] += 5
-            loaders["rt"].offsets["n"] += 6
-            loaders["rt"].offsets["d"] += 1
-            # ninteg4 = 5
-            # nfloat4 = 1
-            # nlines4 = 6
-            # nstrin4 = 0
-
         # Loop over levels
         for ilevel in range(data.meta["levelmax"]):
 
@@ -132,18 +111,6 @@ def load(nout=1,scale=None,path="",select=None):
 
                 for loader in loaders.values():
                     loader.read_domain_header()
-
-
-                if "gravity" in loaders:
-                    loaders["grav"].offsets['n'] += 2
-                    loaders["grav"].offsets['i'] += 2
-                    # nlines_grav += 2
-                    # ninteg_grav += 2
-                if "rt" in loaders:
-                    loaders["rt"].offsets['n'] += 2
-                    loaders["rt"].offsets['i'] += 2
-                    # nlines_rt += 2
-                    # ninteg_rt += 2
 
                 if ncache > 0:
 
