@@ -67,7 +67,10 @@ class AmrLoader(Loader):
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
-        xg = np.zeros([ngridmax,3],dtype=np.float64)
+        self.xcent = np.zeros([8,3],dtype=np.float64)
+        self.xg = np.zeros([ngridmax,3],dtype=np.float64)
+        self.son = np.zeros([ngridmax,twotondim],dtype=np.int32)
+        self.ref = np.zeros([ngridmax,twotondim],dtype=np.bool)
 
 
     def read_header(self, info):
@@ -227,7 +230,19 @@ class AmrLoader(Loader):
         self.offsets["n"] += 3
         self.offsets["s"] += key_size
 
-    def read_domain_header(self, ncache, ndim):
+    def read_level_header(self, ilevel, twotondim):
+        # Geometry
+        self.dxcell = 0.5**(ilevel+1)
+        dx2=0.5*self.dxcell
+        for ind in range(twotondim):
+            iz=int((ind)/4)
+            iy=int((ind-4*iz)/2)
+            ix=int((ind-2*iy-4*iz))
+            self.xcent[ind,0]=(float(ix)-0.5)*self.dxcell
+            self.xcent[ind,1]=(float(iy)-0.5)*self.dxcell
+            self.xcent[ind,2]=(float(iz)-0.5)*self.dxcell
+
+    def read_cacheline_header(self, ncache, ndim):
         # xg: grid coordinates
         self.offsets['i'] += ncache*3
         self.offsets['n'] +=  3
@@ -236,7 +251,7 @@ class AmrLoader(Loader):
         # nlines = nlines_amr + 3
         # nstrin = nstrin_amr
         for n in range(ndim):
-            xg[:ncache,n] = utils.read_binary_data(fmt="{}d".format(ncache),content=self.bytes,offsets=self.offsets)
+            self.xg[:ncache,n] = utils.read_binary_data(fmt="{}d".format(ncache),content=self.bytes,offsets=self.offsets)
             # offset = 4*ninteg + 8*(nlines+nfloat+n*(ncache+1)) + nstrin + 4
             # xg[:ncache,n] = struct.unpack("%id"%(ncache), self.bytes[offset:offset+8*ncache])
 
@@ -248,16 +263,33 @@ class AmrLoader(Loader):
         # nlines = nlines_amr + 4 + 3*data.meta["ndim"]
         # nstrin = nstrin_amr
 
-    def read_variables(self):
-    	loaders["amr"].variables["level"]["buffer"][:ncache,ind] = ilevel + 1
+    def read_variables(self, ncache, ind, ilevel, cpuid, info):
+
+        self.son[:ncache,ind] = utils.read_binary_data(fmt="{}i".format(ncache),content=self.bytes,offsets=self.offsets)
+
+        self.variables["level"]["buffer"][:ncache,ind] = ilevel + 1
         # scaling = get_unit(
         #             "x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
-        for n in range(data.meta["ndim"]):
+        for n in range(info["ndim"]):
             # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
             # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
             key = "xyz"[n]
-            loaders["amr"].variables[key]["buffer"][:ncache,ind] = (
-                xg[:ncache,n] + xcent[ind,n]-loaders["amr"].meta["xbound"][n])*data.meta["boxlen"] * loaders["amr"].variables[key]["unit"].magnitude
-        loaders["amr"].variables["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * loaders["amr"].variables["dx"]["unit"].magnitude
-        loaders["amr"].variables["cpu"]["buffer"][:ncache,ind] = cpuid+1
-        
+            self.variables[key]["buffer"][:ncache,ind] = (
+                self.xg[:ncache,n] + self.xcent[ind,n]-self.meta["xbound"][n])*info["boxlen"] * self.variables[key]["unit"].magnitude
+        self.variables["dx"]["buffer"][:ncache,ind] = self.dxcell*info["boxlen"] * self.variables["dx"]["unit"].magnitude
+        self.variables["cpu"]["buffer"][:ncache,ind] = cpuid+1
+
+        self.ref[:ncache,ind] = np.logical_not(np.logical_and(self.son[:ncache,ind] > 0, ilevel < info["levelmax"]-1))
+
+    def make_conditions(self, select, ncache):
+        return {"leaf": self.ref[:ncache,:] == True}
+
+    def read_footer(self, ncache, twotondim):
+        # Increment offsets with remainder of the file
+        self.offsets['i'] += ncache*2*twotondim
+        self.offsets['n'] += 2*twotondim
+
+    def step_over(self, ncache, twotondim, ndim):
+        self.offsets['i'] += ncache*(4+3*twotondim+2*ndim)
+        self.offsets['d'] += ncache*ndim
+        self.offsets['n'] += 4 + 3*twotondim + 3*ndim

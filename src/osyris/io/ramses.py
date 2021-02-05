@@ -428,14 +428,14 @@ def load(nout=1,scale=None,path="",select=None):
 
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
-    xcent = np.zeros([8,3],dtype=np.float64)
+    # xcent = np.zeros([8,3],dtype=np.float64)
 
     # xg    = np.zeros([data.meta["ngridmax"],3],dtype=np.float64)
-    son = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.int32)
-    ref = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.bool)
+    # son = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.int32)
+    # ref = np.zeros([data.meta["ngridmax"],twotondim],dtype=np.bool)
 
     for loader in loaders.values():
-    	loader.allocate_buffers(ngridmax=ngridmax, twotondim=twotondim)
+    	loader.allocate_buffers(ngridmax=data.meta["ngridmax"], twotondim=twotondim)
         # for item in group.variables.values():
         #     item["buffer"] = np.zeros([data.meta["ngridmax"],twotondim], dtype=np.dtype(item["type"]))
 
@@ -697,16 +697,19 @@ def load(nout=1,scale=None,path="",select=None):
         # Loop over levels
         for ilevel in range(data.meta["levelmax"]):
 
-            # Geometry
-            dxcell=0.5**(ilevel+1)
-            dx2=0.5*dxcell
-            for ind in range(twotondim):
-                iz=int((ind)/4)
-                iy=int((ind-4*iz)/2)
-                ix=int((ind-2*iy-4*iz))
-                xcent[ind,0]=(float(ix)-0.5)*dxcell
-                xcent[ind,1]=(float(iy)-0.5)*dxcell
-                xcent[ind,2]=(float(iz)-0.5)*dxcell
+            # # Geometry
+            # dxcell=0.5**(ilevel+1)
+            # dx2=0.5*dxcell
+            # for ind in range(twotondim):
+            #     iz=int((ind)/4)
+            #     iy=int((ind-4*iz)/2)
+            #     ix=int((ind-2*iy-4*iz))
+            #     xcent[ind,0]=(float(ix)-0.5)*dxcell
+            #     xcent[ind,1]=(float(iy)-0.5)*dxcell
+            #     xcent[ind,2]=(float(iz)-0.5)*dxcell
+
+            for loader in loaders.values():
+                loader.read_level_header(ilevel, twotondim)
 
             # # Cumulative offsets in AMR file
             # ninteg_amr = ninteg1
@@ -741,7 +744,7 @@ def load(nout=1,scale=None,path="",select=None):
                 ncache = loaders["amr"].meta["ngridlevel"][j,ilevel]
 
                 for loader in loaders.values():
-                    loader.read_level_header()
+                    loader.read_domain_header()
 
 
                 # # Skip two lines of integers
@@ -785,18 +788,18 @@ def load(nout=1,scale=None,path="",select=None):
                         # # nstrin = nstrin_amr
 
                         for loader in loaders.values():
-                            loader.read_domain_header()
+                            loader.read_cacheline_header(ncache, data.meta["ndim"])
 
 
 
                         for ind in range(twotondim):
                             # offset = 4*(ninteg+ind*ncache) + 8*(nlines+nfloat+ind) + nstrin + 4
-                            son[:ncache,ind] = utils.read_binary_data(fmt="{}i".format(ncache),content=loaders["amr"].bytes,offsets=loaders["amr"].offsets)
+                            # son[:ncache,ind] = utils.read_binary_data(fmt="{}i".format(ncache),content=loaders["amr"].bytes,offsets=loaders["amr"].offsets)
                             # struct.unpack("%ii"%(ncache), loaders["amr"].bytes[offset:offset+4*ncache])
                             # var: hydro variables
 
                             for loader in loaders.values():
-                                loader.read_variables(ncache, ind)
+                                loader.read_variables(ncache, ind, ilevel, cpuid, data.meta)
 
                             # for group in set(loaders.keys()) - {"amr"}:
                             #     for item in loaders[group].variables.values():
@@ -862,20 +865,20 @@ def load(nout=1,scale=None,path="",select=None):
                             #             var[:ncache,ind,jvar] = struct.unpack("%id"%(ncache), loaders["rt"].bytes[offset:offset+8*ncache])
                             #             jvar += 1
                             # var: coordinates and cell sizes
-                            # var[:ncache,ind,-6] = float(ilevel+1)
-                            loaders["amr"].variables["level"]["buffer"][:ncache,ind] = ilevel + 1
-                            # scaling = get_unit(
-                            #             "x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
-                            for n in range(data.meta["ndim"]):
-                                # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-                                # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
-                                key = "xyz"[n]
-                                loaders["amr"].variables[key]["buffer"][:ncache,ind] = (
-                                    xg[:ncache,n] + xcent[ind,n]-loaders["amr"].meta["xbound"][n])*data.meta["boxlen"] * loaders["amr"].variables[key]["unit"].magnitude
-                            loaders["amr"].variables["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * loaders["amr"].variables["dx"]["unit"].magnitude
-                            loaders["amr"].variables["cpu"]["buffer"][:ncache,ind] = cpuid+1
-                            # ref: True if the cell is unrefined
-                            ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < data.meta["levelmax"]-1))
+                            # # var[:ncache,ind,-6] = float(ilevel+1)
+                            # loaders["amr"].variables["level"]["buffer"][:ncache,ind] = ilevel + 1
+                            # # scaling = get_unit(
+                            # #             "x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+                            # for n in range(data.meta["ndim"]):
+                            #     # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
+                            #     # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
+                            #     key = "xyz"[n]
+                            #     loaders["amr"].variables[key]["buffer"][:ncache,ind] = (
+                            #         xg[:ncache,n] + xcent[ind,n]-loaders["amr"].meta["xbound"][n])*data.meta["boxlen"] * loaders["amr"].variables[key]["unit"].magnitude
+                            # loaders["amr"].variables["dx"]["buffer"][:ncache,ind] = dxcell*data.meta["boxlen"] * loaders["amr"].variables["dx"]["unit"].magnitude
+                            # loaders["amr"].variables["cpu"]["buffer"][:ncache,ind] = cpuid+1
+                            # # ref: True if the cell is unrefined
+                            # ref[:ncache,ind] = np.logical_not(np.logical_and(son[:ncache,ind] > 0, ilevel < data.meta["levelmax"]-1))
 
                         # # Select only the cells that are in the region of interest
                         # if data.meta["ndim"] == 1:
@@ -901,15 +904,18 @@ def load(nout=1,scale=None,path="",select=None):
                         #     return 0
                         # cube = np.where(ref[:ncache,:])
 
-                        # Is unrefined condition
-                        conditions = {"leaf": ref[:ncache,:] == True}
-                        # Then loop through select conditions
-                        for key, func in select.items():
-                            if not isinstance(func, bool):
-                                for item in loaders.values():
-                                    if key in item.variables:
-                                        conditions[key] = func(item.variables[key]["buffer"][:ncache,:])
-                                        break
+                        conditions = {}
+                        for loader in loaders.values():
+                            conditions.update(loader.make_conditions(select, ncache))
+                        # # Is unrefined condition
+                        # conditions = {"leaf": ref[:ncache,:] == True}
+                        # # Then loop through select conditions
+                        # for key, func in select.items():
+                        #     if not isinstance(func, bool):
+                        #         for item in loaders.values():
+                        #             if key in item.variables:
+                        #                 conditions[key] = func(item.variables[key]["buffer"][:ncache,:])
+                        #                 break
 
                                 # if key in variables_hydro:
                                 #     conditions[key] = func(variables_hydro[key]["buffer"][:ncache,:])
@@ -936,8 +942,8 @@ def load(nout=1,scale=None,path="",select=None):
                             ncells_tot += ncells
                             npieces += 1
                             # Add the cells in the pieces dictionaries
-                            for group in loaders.values():
-                                for item in group.variables.values():
+                            for loader in loaders.values():
+                                for item in loader.variables.values():
                                     item["pieces"][npieces] = item["buffer"][sel]
 
                             # # data_pieces["piece"+str(npieces)] = cells
@@ -959,8 +965,10 @@ def load(nout=1,scale=None,path="",select=None):
                         # ncells_tot += cube.sum()
 
                         # Increment offsets with remainder of the file
-                        loaders["amr"].offsets['i'] += ncache*2*twotondim
-                        loaders["amr"].offsets['n'] += 2*twotondim
+                        # loaders["amr"].offsets['i'] += ncache*2*twotondim
+                        # loaders["amr"].offsets['n'] += 2*twotondim
+                        for loader in loaders.values():
+                            loader.read_footer(ncache, twotondim)
 
                     else:
 
@@ -968,25 +976,28 @@ def load(nout=1,scale=None,path="",select=None):
                         # 'i': 4*ncache + 2*ndim*ncache + 3*twotondim*ncache
                         # 'd': ndim*ncache + 
 
-                        loaders["amr"].offsets['i'] += ncache*(4+3*twotondim+2*data.meta["ndim"])
-                        loaders["amr"].offsets['d'] += ncache*data.meta["ndim"]
-                        loaders["amr"].offsets['n'] += 4 + 3*twotondim + 3*data.meta["ndim"]
+                        for loader in loaders.values():
+                            loader.step_over(ncache, twotondim, data.meta["ndim"])
 
-                        for group in set(loaders.keys()) - {"amr"}:
-                            loaders[group].offsets['d'] += ncache*twotondim*len(loaders[group].variables)
-                            loaders[group].offsets['n'] += twotondim*len(loaders[group].variables)
+                        # loaders["amr"].offsets['i'] += ncache*(4+3*twotondim+2*data.meta["ndim"])
+                        # loaders["amr"].offsets['d'] += ncache*data.meta["ndim"]
+                        # loaders["amr"].offsets['n'] += 4 + 3*twotondim + 3*data.meta["ndim"]
 
-                        # if hydro:
-                        #     loaders["hydro"].offsets['d'] += ncache*twotondim*len(loaders["hydro"].variables)
-                        #     loaders["hydro"].offsets['n'] += twotondim*len(loaders["hydro"].variables)
+                        # for group in set(loaders.keys()) - {"amr"}:
+                        #     loaders[group].offsets['d'] += ncache*twotondim*len(loaders[group].variables)
+                        #     loaders[group].offsets['n'] += twotondim*len(loaders[group].variables)
 
-                        # if gravity:
-                        #     loaders["grav"].offsets['d'] += ncache*twotondim*len(loaders["grav"].variables)
-                        #     loaders["grav"].offsets['n'] += twotondim*(data.meta["nvar_grav"])
+                        # # if hydro:
+                        # #     loaders["hydro"].offsets['d'] += ncache*twotondim*len(loaders["hydro"].variables)
+                        # #     loaders["hydro"].offsets['n'] += twotondim*len(loaders["hydro"].variables)
 
-                        # if rt:
-                        #     loaders["rt"].offsets['d'] += ncache*twotondim*data.meta_rt["nvar_rt"]
-                        #     loaders["rt"].offsets['n'] += twotondim*data.meta_rt["nvar_rt"]
+                        # # if gravity:
+                        # #     loaders["grav"].offsets['d'] += ncache*twotondim*len(loaders["grav"].variables)
+                        # #     loaders["grav"].offsets['n'] += twotondim*(data.meta["nvar_grav"])
+
+                        # # if rt:
+                        # #     loaders["rt"].offsets['d'] += ncache*twotondim*data.meta_rt["nvar_rt"]
+                        # #     loaders["rt"].offsets['n'] += twotondim*data.meta_rt["nvar_rt"]
 
 
 
