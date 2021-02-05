@@ -2,20 +2,20 @@
 
 class HydroLoader(Loader):
 
-    def __init__(self, select):
+    def __init__(self, select, units):
 
         super().__init__()
 
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
-        hydro = True
-        fname_hydro = infile+"/hydro_file_descriptor.txt"
+        self.initialized = True
+        fname = infile+"/hydro_file_descriptor.txt"
         try:
-            descriptor = np.loadtxt(fname_hydro, dtype=str, delimiter=",")
+            descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
-            hydro = False
+            self.initialized = False
 
-        if hydro:
+        if self.initialized:
             # loader["hydro"] = {"variables": {}, "offsets": {}, "bytes": {}}
             for i in range(len(descriptor)):
                 key = descriptor[i, 1].strip()
@@ -31,6 +31,6 @@ class HydroLoader(Loader):
                     "type": descriptor[i, 2].strip(),
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])}
+                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])}
         # data.meta["nvar_hydro"] = len(variables_hydro)
         # return hyd
