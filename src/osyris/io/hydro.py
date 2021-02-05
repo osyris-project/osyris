@@ -1,9 +1,11 @@
+import numpy as np
 from .loader import Loader
 from .units import get_unit
+from . import utils
 
 class HydroLoader(Loader):
 
-    def __init__(self, infile, select, units):
+    def __init__(self, infile, select, code_units):
 
         super().__init__()
 
@@ -32,6 +34,18 @@ class HydroLoader(Loader):
                     "type": descriptor[i, 2].strip(),
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])}
+                    "unit": get_unit(key, code_units["ud"], code_units["ul"], code_units["ut"])}
         # data.meta["nvar_hydro"] = len(variables_hydro)
         # return hyd
+
+    def read_header(self, info):
+        # hydro gamma
+        self.offsets["i"] += 5
+        self.offsets["n"] += 5
+        [info["gamma"]] = utils.read_binary_data(
+            fmt="d",content=self.bytes,offsets=self.offsets)
+        # print(data.meta["gamma"])
+
+    def read_level_header(self):
+        self.offsets['n'] += 2
+        self.offsets['i'] += 2

@@ -1,3 +1,7 @@
+import numpy as np
+from .. import units
+
+
 def get_unit(string, ud, ul, ut):
     ramses_units = {
         "density": ud * (units.g / (units.cm**3)),

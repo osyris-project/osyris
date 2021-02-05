@@ -10,7 +10,7 @@ class RtLoader(Loader):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         self.initialized = True
-        fname = infile+"/hydro_file_descriptor.txt"
+        fname = infile+"/rt_file_descriptor.txt"
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
@@ -24,8 +24,8 @@ class RtLoader(Loader):
                 if key in select:
                     if select[key] is False:
                         read = False
-                if "hydro" in select:
-                    if select["hydro"] is False:
+                if "rt" in select:
+                    if select["rt"] is False:
                         read = False
                 self.variables[key] = {
                     "read": read,
