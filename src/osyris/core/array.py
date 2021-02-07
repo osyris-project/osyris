@@ -9,7 +9,7 @@ class Array:
              parent=None, name=""):
 
         self._array = values
-        self._unit = unit
+        self._unit = unit if unit is not None else 1.0 * units.dimensionless
         # self._label = label
         # self.operation = operation
         # self.depth = depth
@@ -21,10 +21,12 @@ class Array:
         # self.group = group
         # self.vector = vector
 
+    def __array__(self):
+        return self._array
 
     def __getitem__(self, slice_):
         return self.__class__(values=self._array[slice_], unit=self._unit,
-                parent=self._parent, name="")
+                parent=self._parent, name=self._name)
 
     def __str__(self):
         name_str = "'"+self._name + "' "
@@ -128,9 +130,17 @@ class Array:
         if lhs.ndim == rhs.ndim:
             return lhs, rhs
         if lhs.ndim > rhs.ndim:
-            return lhs, rhs.reshape(rhs.shape + tuple([1]))
+            ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
+            if ind == 0:
+                return lhs, rhs.reshape(rhs.shape + tuple([1]))
+            else:
+                return lhs, rhs.reshape(tuple([1]) + rhs.shape)
         else:
-            return lhs.reshape(lhs.shape + tuple([1])), rhs
+            ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
+            if ind == 0:
+                return lhs.reshape(lhs.shape + tuple([1])), rhs
+            else:
+                return lhs.reshape(tuple([1]) + lhs.shape), rhs
 
 
     def __add__(self, other):

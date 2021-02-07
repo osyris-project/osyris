@@ -6,7 +6,7 @@ from . import utils
 
 
 class AmrLoader(Loader):
-    def __init__(self, scale, code_units):
+    def __init__(self, scale=None, code_units=None):
 
         super().__init__()
 
@@ -35,21 +35,21 @@ class AmrLoader(Loader):
                 "pieces": {},
                 "unit": 1.0 * units.dimensionless
             },
-            "x": {
+            "xyz_x": {
                 "read": True,
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
                 "unit": scaling
             },
-            "y": {
+            "xyz_y": {
                 "read": True,
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
                 "unit": scaling
             },
-            "z": {
+            "xyz_z": {
                 "read": True,
                 "type": "d",
                 "buffer": None,
@@ -273,7 +273,7 @@ class AmrLoader(Loader):
         for n in range(info["ndim"]):
             # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
             # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
-            key = "xyz"[n]
+            key = "xyz_" + "xyz"[n]
             self.variables[key]["buffer"][:ncache,ind] = (
                 self.xg[:ncache,n] + self.xcent[ind,n]-self.meta["xbound"][n])*info["boxlen"] * self.variables[key]["unit"].magnitude
         self.variables["dx"]["buffer"][:ncache,ind] = self.dxcell*info["boxlen"] * self.variables["dx"]["unit"].magnitude

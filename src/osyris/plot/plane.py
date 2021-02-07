@@ -5,7 +5,7 @@
 import numpy as np
 from .slice import get_slice_direction
 from .render import render
-from ..core.tools import parse_layer
+from .parser import parse_layer
 from ..core import Plot, Array
 
 
@@ -136,38 +136,58 @@ def plane(*layers,
     	parent=parent, dx=0.5*(dx+dy), origin=origin)
 
 
-    # Define equation of a plane
-    a_plane = dir_vecs[0][1][0]
-    b_plane = dir_vecs[0][1][1]
-    c_plane = dir_vecs[0][1][2]
-    d_plane = -dir_vecs[0][1][0]*origin[0] - \
-        dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
+    # # Define equation of a plane
+    # a_plane = dir_vecs[0][1][0]
+    # b_plane = dir_vecs[0][1][1]
+    # c_plane = dir_vecs[0][1][2]
+    # d_plane = -dir_vecs[0][1][0]*origin[0] - \
+    #     dir_vecs[0][1][1]*origin[1]-dir_vecs[0][1][2]*origin[2]
 
-    # Distance to the plane
-    dist1 = (a_plane*parent["x"].values +
-             b_plane*parent["y"].values +
-             c_plane*parent["z"].values +
-             d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+    # # Distance to the plane
+    # dist1 = (a_plane*parent["x"].values +
+    #          b_plane*parent["y"].values +
+    #          c_plane*parent["z"].values +
+    #          d_plane) / np.sqrt(a_plane**2 + b_plane**2 + c_plane**2)
+    # print('1', parent["xyz"] - origin)
+    # print('2', (parent["xyz"] - origin) * dir_vecs[0][1])
+    # print('3', np.sum((parent["xyz"] - origin) * dir_vecs[0][1]))
+    xyz = parent["xyz"] - origin
+    diagonal = parent["dx"] * np.sqrt(3.0) * 0.5
+
+    dist1 = np.sum(xyz * dir_vecs[0][1], axis=1) / np.linalg.norm(dir_vecs[0][1])
+
     # Distance from center
-    dist2 = np.sqrt((parent["x"].values-origin[0])**2 +
-                    (parent["y"].values-origin[1])**2 +
-                    (parent["z"].values-origin[2])**2) - \
-        sqrt3*0.5*parent["dx"].values
+    # dist2 = xyz.values - sqrt3*0.5*parent["dx"].values
+    dist2 = xyz - diagonal
+    print(dist2)
+    # dist2 = np.sqrt((parent["x"].values-origin[0])**2 +
+    #                 (parent["y"].values-origin[1])**2 +
+    #                 (parent["z"].values-origin[2])**2) - \
+    #     sqrt3*0.5*parent["dx"].values
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"].values*sqrt3,
-                                   np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
+    # cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"].values*sqrt3,
+    #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
+    cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 1.0001*diagonal,
+                                   np.abs(dist2.values) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     print(cube)
 
     ncells = len(cube)
 
     # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = np.transpose([parent["x"].values.take(cube)-origin[0],
-                           parent["y"].values.take(cube)-origin[1],
-                           parent["z"].values.take(cube)-origin[2]])
+    # coords = np.transpose([parent["x"].values.take(cube)-origin[0],
+    #                        parent["y"].values.take(cube)-origin[1],
+    #                        parent["z"].values.take(cube)-origin[2]])
+    coords = xyz._array[cube]
+    # print("coords.shape", coords.shape)
+    # print(coords._array)
+    print(dir_vecs)
+    print(dir_vecs[1][1])
+    # print(dir_vecs[2][1])
     datax = np.inner(coords, dir_vecs[1][1])
     datay = np.inner(coords, dir_vecs[2][1])
-    datadx = sqrt3*0.5*parent["dx"].values.take(cube)
+    # datadx = sqrt3*0.5*parent["dx"].values.take(cube)
+    datadx = diagonal[cube]
 
     # Define slice extent and resolution
     # xmin = max(-0.5*dx, box[0])
@@ -288,8 +308,8 @@ def plane(*layers,
 
     figure = render(x=x, y=y, data=to_render)
 
-    figure["ax"].set_xlabel(parent["x"].label)
-    figure["ax"].set_ylabel(parent["y"].label)
+    figure["ax"].set_xlabel(parent["xyz"].x.label)
+    figure["ax"].set_ylabel(parent["xyz"].y.label)
 
     return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 

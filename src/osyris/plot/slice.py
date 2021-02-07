@@ -33,19 +33,30 @@ def get_slice_direction(direction=None, parent=None, dx=None,
     if "auto" in direction:
         view = "side" if "side" in direction else "top"
         sphere_rad = 0.5 * dx
-        x_loc = parent["x"] - origin[0]
-        y_loc = parent["y"] - origin[1]
-        z_loc = parent["z"] - origin[2]
-        r_loc = np.linalg.norm([x_loc, y_loc, z_loc], axis=0)
+        xyz = parent["xyz"] - origin
+        # x_loc = parent["x"] - origin[0]
+        # y_loc = parent["y"] - origin[1]
+        # z_loc = parent["z"] - origin[2]
+        # r_loc = np.linalg.norm([x_loc, y_loc, z_loc], axis=0)
+        # print("r_loc", r_loc)
         # Compute angular momentum vector
-        sphere = np.where(r_loc < sphere_rad)
-        pos = np.vstack((x_loc[sphere], y_loc[sphere],
-                         z_loc[sphere])*parent["mass"][sphere]).T
-        vel = parent["velocity"][sphere]
+        sphere = np.where(xyz.values < sphere_rad)
+        # print(x_loc[sphere])
+        # print(sphere)
+        # print(sphere.shape)
+        # print("===")
+        # print((x_loc[sphere], y_loc[sphere],
+        #                  z_loc[sphere])*parent["mass"][sphere])
+        # pos = np.array([x_loc[sphere], y_loc[sphere],
+        #                  z_loc[sphere]]).T * parent["mass"].values[sphere]
+        pos = xyz * parent["mass"] #.values[sphere]
+        print(pos.shape)
+        vel = parent["velocity"] # [sphere]
+        print(vel.shape)
 
         # vel = np.vstack((parent["velocity_x"][sphere],
         #                  parent["velocity_y"][sphere], holder.get("velocity_z")[sphere])).T
-        AngMom = np.sum(np.cross(pos, vel), axis=0)
+        AngMom = np.sum(np.cross(pos._array[sphere], vel._array[sphere]), axis=0)
         if view == "top":
             dir1 = AngMom
             dir2 = perpendicular_vector(dir1)

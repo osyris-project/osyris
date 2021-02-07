@@ -4,7 +4,7 @@
 
 import numpy as np
 import struct
-from .. import config
+from ..config import config, additional_variables
 from . import utils
 from ..core import Dict, Array
 from ..core.tools import value_to_string
@@ -19,6 +19,9 @@ def load(nout=1,scale=None,path="",select=None):
 
     if select is None:
         select = {}
+
+    if scale is None:
+        scale = config["scale"]
 
 
     # Generate directory name from output number
@@ -163,6 +166,9 @@ def load(nout=1,scale=None,path="",select=None):
 
     # If vector quantities are found, make them into vector Arrays
     make_vector_arrays(data)
+
+    # Create additional variables derived from the ones already loaded
+    additional_variables(data)
 
     print("Total number of cells loaded: {}".format(ncells_tot))
     print("Memory used: {}".format(data.print_size()))
