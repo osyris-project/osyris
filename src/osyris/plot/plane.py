@@ -20,6 +20,7 @@ def plane(*layers,
                # clear=True, plot=True, block=False, interpolation="linear", sink_args={},
                # scalar_args={}, image_args={}, contour_args={}, vec_args={}, stream_args={},
                # outline=False, outline_args={}, lmax=0, slice_direction=None):
+               ax=None,
                **kwargs):
     """
     Plot a 2D slice through the data cube. The arguments are:
@@ -262,8 +263,13 @@ def plane(*layers,
                 # v = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[2][1])
                 uv = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1:3][1])
                 # w = np.sqrt(u**2+v**2)
-                w = np.linalg.norm(uv, axis=1).reshape(ncells, 1)
-                to_process[key] = np.concatenate((uv, w), axis=1)
+                w = None
+                if "color" in to_render[key]["params"]:
+                    if not isinstance(to_render[key]["params"]["color"], str):
+                        w = to_render[key]["params"]["color"]
+                if w is None:
+                    w = np.linalg.norm(uv, axis=1)
+                to_process[key] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
             to_render[key]["data"] = np.zeros([ny, nx, to_process[key].shape[1]])
         else:
             to_process[key] = to_process[key].values.take(cube)
@@ -298,6 +304,7 @@ def plane(*layers,
             counts[j0:j1, i0:i1] += 1.0
 
     # Normalize by counts
+    counts = np.ma.masked_where(counts == 0.0, counts)
     for key in to_process.keys():
         if to_render[key]["data"].ndim > counts.ndim:
             to_render[key]["data"] /= counts.reshape(ny, nx, 1)
@@ -306,7 +313,7 @@ def plane(*layers,
 
     # Render the map
 
-    figure = render(x=x, y=y, data=to_render)
+    figure = render(x=x, y=y, data=to_render, ax=ax)
 
     figure["ax"].set_xlabel(parent["xyz"].x.label)
     figure["ax"].set_ylabel(parent["xyz"].y.label)

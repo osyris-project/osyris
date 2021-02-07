@@ -30,8 +30,7 @@ def get_slice_direction(direction=None, parent=None, dx=None,
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
     dir_type = len(np.shape(direction))
 
-    if "auto" in direction:
-        view = "side" if "side" in direction else "top"
+    if direction in ["auto", "top", "side"]:
         sphere_rad = 0.5 * dx
         xyz = parent["xyz"] - origin
         # x_loc = parent["x"] - origin[0]
@@ -57,17 +56,18 @@ def get_slice_direction(direction=None, parent=None, dx=None,
         # vel = np.vstack((parent["velocity_x"][sphere],
         #                  parent["velocity_y"][sphere], holder.get("velocity_z")[sphere])).T
         AngMom = np.sum(np.cross(pos._array[sphere], vel._array[sphere]), axis=0)
-        if view == "top":
-            dir1 = AngMom
-            dir2 = perpendicular_vector(dir1)
-            dir3 = np.cross(dir1, dir2)
-        elif view == "side":
+        if direction == "side":
             # Choose a vector perpendicular to the angular momentum vector
             dir3 = AngMom
             dir1 = perpendicular_vector(dir3)
             dir2 = np.cross(dir1, dir3)
         else:
-            raise ValueError("Unknown view direction.")
+            dir1 = AngMom
+            dir2 = perpendicular_vector(dir1)
+            dir3 = np.cross(dir1, dir2)
+        # elif view == 
+        # else:
+        #     raise ValueError("Unknown view direction.")
         norm1 = np.linalg.norm(dir1)
         print("Normal slice vector: [%.5e,%.5e,%.5e]" % (
             dir1[0]/norm1, dir1[1]/norm1, dir1[2]/norm1))

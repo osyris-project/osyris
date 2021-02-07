@@ -1,6 +1,6 @@
 import numpy as np
 from pint.quantity import Quantity
-from .tools import value_to_string
+from .tools import value_to_string, make_label
 from .. import units
 
 class Array:
@@ -115,13 +115,8 @@ class Array:
     #         return
 
     @property
-    def label(self, name=True, unit=True):
-        lab = ""
-        if name:
-            lab += self._name + " "
-        if unit:
-            lab += "[{:~}]".format(self._unit.units)
-        return lab.strip()
+    def label(self):
+        return make_label(name=self._name, unit=self._unit.units)
 
     # def _get_kind(self, other):
     #     return

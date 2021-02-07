@@ -242,7 +242,9 @@ def histogram(x, y, *layers,
 
     # print(xedges)
     # print(yedges)
-    binned, _, _, _ = binned_statistic_2d(x=y.values, y=x.values, values=list(to_process.values()), statistic=operation, bins=[yedges, xedges])
+    binned, _, _, _ = binned_statistic_2d(x=y.values, y=x.values,
+        values=list(to_process.values()),
+        statistic=operation, bins=[yedges, xedges])
 
     # Here we assume that dictionary retains order of insertion: counts
     # are the first key
@@ -267,7 +269,7 @@ def histogram(x, y, *layers,
                                                    vmax=vmax),
                                "vmin": vmin,
                                "vmax": vmax},
-                               "unit": 1.0 * units.dimensionless}
+                               "unit": units.dimensionless}
 
 
     figure = render(x=xcenters, y=ycenters,

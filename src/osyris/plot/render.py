@@ -8,6 +8,7 @@ import matplotlib.collections
 from matplotlib.colors import LogNorm, Normalize
 from .. import config as conf
 from . import wrappers
+from ..core.tools import make_label
 
 
 # def perpendicular_vector(v):
@@ -199,7 +200,7 @@ from . import wrappers
 #     return dx, dy, box, dir_vecs, origin
 
 
-def render(x, y, data, logx=False, logy=False):
+def render(x, y, data, logx=False, logy=False, ax=None):
     # norm=None, vmin=None, vmax=None,
     # **kwargs):
     # scalar=False, image=False, contour=False, scatter=False,
@@ -216,7 +217,10 @@ def render(x, y, data, logx=False, logy=False):
     Use matplotlib to plot histogram, slice or column density maps
     """
 
-    fig, ax = plt.subplots()
+    if ax is None:
+        fig, ax = plt.subplots()
+    else:
+        fig = ax.get_figure()
 
     # if norm is not None:
     #     func = LogNorm if norm == "log" else Normalize
@@ -358,7 +362,7 @@ def render(x, y, data, logx=False, logy=False):
         if func in ["contourf", "pcolormesh"] and cbar is None:
             cbar = plt.colorbar(
                 mpl_objects[key], ax=ax, cax=None)
-            cbar.set_label(key + " [{:~}]".format(data[key]["unit"]))
+            cbar.set_label(make_label(name=key, unit=data[key]["unit"]))
                 # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
             cbar.ax.yaxis.set_label_coords(-1.1, 0.5)
             # # if scalar_args_osyris["cbar"]:

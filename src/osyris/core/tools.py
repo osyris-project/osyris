@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib.colors import LogNorm, Normalize
+from .. import units
 
 
 def get_finite_inds(x):
@@ -62,3 +63,14 @@ def value_to_string(val, precision=3):
         if len(text) > precision + 2 + (text[0] == '-'):
             text = "{val:.{prec}f}".format(val=val, prec=precision)
     return text
+
+
+def make_label(name=None, unit=None):
+    lab = ""
+    if name:
+        lab += name
+    if unit and unit != units.dimensionless:
+        if name:
+            lab += " "
+        lab += "[{:~}]".format(unit)
+    return lab.strip()

@@ -1,10 +1,10 @@
 
-def quiver(ax, x, y, z, density=1, **kwargs):
+def quiver(ax, x, y, z, density=1, color="w", **kwargs):
 
     default_args = {
         "angles": "xy",
         "pivot": "mid",
-        "color": "w"
+        # "color": "w"
         }
 
     default_args.update(kwargs)
@@ -12,8 +12,13 @@ def quiver(ax, x, y, z, density=1, **kwargs):
     skip = int(round(4.0 / density))
     skip = (slice(None,None,skip),slice(None,None,skip))
 
-    return ax.quiver(x[skip[0]], y[skip[1]], z[..., 0][skip], z[..., 1][skip],
-        **default_args)
+    args = [x[skip[0]], y[skip[1]], z[..., 0][skip], z[..., 1][skip]]
+    if isinstance(color, str):
+        default_args["color"] = color
+    else:
+        args.append(z[..., 2][skip])
+
+    return ax.quiver(*args, **default_args)
 
 
 def pcolormesh(ax, x, y, z, **kwargs):
