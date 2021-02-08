@@ -7,9 +7,13 @@ class Dict:
     def __init__(self):
         self._container = {}
         self.meta = {}
+        self.shape = None
 
     def __iter__(self):
         return self._container.__iter__()
+
+    def __len__(self):
+        return self._container.__len__()
 
     def __getitem__(self, key):
         if isinstance(key, str):
@@ -22,6 +26,13 @@ class Dict:
             return d
 
     def __setitem__(self, key, value):
+        shape = value.shape[0]
+        if self.shape is None:
+            self.shape = shape
+        else:
+            if self.shape != shape:
+                raise RuntimeError("Size mismatch on element insertion. Item "
+                "shape is {} while container accepts shape {}.".format(shape, self.shape))
         if isinstance(value, Array):
             value.name = key
             value.parent = self
@@ -39,45 +50,6 @@ class Dict:
         output = "{}: {}\n".format(self.meta["infile"], self.print_size())
         for key, item in self.items():
             output += str(item) + "\n"
-
-        # # columns = ["Name", " Type", "  Group", " Unit", "  Min", "     Max"]
-        # columns = ["Name", " Type", "  Unit", "  Min", "     Max"]
-        # maxlen = {}
-        # for col in columns:
-        #     maxlen[col] = 0
-        # print_list = {}
-        # for key, item in self._container.items():
-        #     print_list[key] = {}
-        #     print_list[key][columns[0]] = key
-        #     print_list[key][columns[1]] = "vector" if item.ndim > 1 else "scalar"
-        #     # print_list[key][columns[2]] = getattr(self,key).group
-        #     print_list[key][columns[2]] = "[{:~}]".format(item.unit.units)
-        #     print_list[key][columns[3]] = value_to_string(np.nanmin(item.values))
-        #     print_list[key][columns[4]] = value_to_string(np.nanmax(item.values))
-        #     for col in columns:
-        #         maxlen[col] = max(maxlen[col], len(print_list[key][col]))
-
-        # rule = "-" * (7 + np.sum(list(maxlen.values())))
-        # output = ""
-        # # if full:
-        # #     for key in sorted(self.info.keys()):
-        # #         theShape = np.shape(self.info[key])
-        # #         if len(theShape) > 0:
-        # #             try:
-        # #                 output += key+": ["+str(self.info[key][0])+" ... "+str(self.info[key][-1])+"]\n"
-        # #             except IndexError:
-        # #                 output += key+": "+str(self.info[key])+"\n"
-        # #         else:
-        # #             output += key+": "+str(self.info[key])+"\n"
-        # #     output += "\n"
-        # # output += "The variables are:\n"
-        # for col in columns:
-        #     output += col.ljust(maxlen[col])
-        # output += "\n"
-        # for key in sorted(print_list.keys()):
-        #     for col in columns:
-        #         output += print_list[key][col].ljust(maxlen[col])+" "
-        #     output += "\n"
         return output
 
     def keys(self):
@@ -103,8 +75,3 @@ class Dict:
                 size = "{:.2f} {}B".format(total_size / mult, m)
                 break
         return size
-
-    # def set_center(self, center):
-    #     for key in ["x", "y", "z", "dx"]:
-    #         if key in self:
-    #             self[key].set_scale(scale)

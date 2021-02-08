@@ -14,7 +14,6 @@ class GravLoader(Loader):
         self.initialized = os.path.exists(fname)
         # Add gravity fields
         if self.initialized:
-            # loaders["grav"] = {"variables": {}, "offsets": {}, "bytes": {}}
             descriptor = {"grav_potential": "d"}
             for n in range(ndim):
                 descriptor["grav_acceleration_" + "xyz"[n]]: "d"

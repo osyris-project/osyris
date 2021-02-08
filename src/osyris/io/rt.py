@@ -8,7 +8,7 @@ class RtLoader(Loader):
 
         super().__init__()
 
-        # Read the number of variables from the hydro_file_descriptor.txt
+        # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
         self.initialized = True
         fname = infile+"/rt_file_descriptor.txt"
@@ -18,7 +18,6 @@ class RtLoader(Loader):
             self.initialized = False
 
         if self.initialized:
-            # loader["hydro"] = {"variables": {}, "offsets": {}, "bytes": {}}
             for i in range(len(descriptor)):
                 key = descriptor[i, 1].strip()
                 read = True

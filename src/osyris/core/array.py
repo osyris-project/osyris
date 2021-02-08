@@ -274,3 +274,7 @@ class Array:
         ratio = self._unit.to(new_unit) / new_unit
         self._unit = 1.0 * new_unit
         self._array *= ratio.magnitude
+
+
+    # def sum(self):
+    #     return self._array.sum() * self._unit
