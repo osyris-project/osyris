@@ -176,34 +176,36 @@ def histogram(x, y, *layers,
     # # Use numpy histogram2d function to make image
     # z_scal = z_imag = z_cont = z_outl = False
 
-    to_render = {}
+    to_render = []
     # "contf": None, "image": None, "contour": None,
     #              "outline": None, "scatter": None}
 
-    to_process = {"counts": np.ones_like(x.values)}
+    # Buffer for counts
+    to_process = [np.ones_like(x.values)]
+    operations = ["sum"]
 
     empty = True
 
     # cell_count = OsyrisField(name=default_var,
     #                    unit="", label="Number of cells")
 
-    operations = {}
     if layers is not None:
         for layer in layers:
             data, settings, params = parse_layer(layer, mode=mode, norm=norm,
                 vmin=vmin, vmax=vmax, operation=operation, **kwargs)
-            to_process[data.name] = data.values
-            to_render[data.name] = {"mode": settings["mode"],
+            to_process.append(data.values)
+            to_render.append({"mode": settings["mode"],
                                     "params": params,
-                                    "unit": data.unit.units}
-            operations[data.name] = settings["operation"]
+                                    "unit": data.unit.units,
+                                    "name": data.name})
+            operations.append(settings["operation"])
 
     # print("========")
     # print(to_process)
     # print(to_render)
     # print("========")
 
-    if (operation == "mean") and "sum" in operations.values():
+    if (operation == "mean") and "sum" in operations:
         counts, _, _ = np.histogram2d(y.values, x.values, bins=(yedges, xedges))
 
 
@@ -243,33 +245,35 @@ def histogram(x, y, *layers,
     # print(xedges)
     # print(yedges)
     binned, _, _, _ = binned_statistic_2d(x=y.values, y=x.values,
-        values=list(to_process.values()),
+        values=to_process,
         statistic=operation, bins=[yedges, xedges])
 
     # Here we assume that dictionary retains order of insertion: counts
     # are the first key
     mask = binned[0] == 0.0
-    for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
-        data = binned[i + 1]
-        print(key, operations[key], operation)
-        if operations[key] != operation:
+    # for i, key in enumerate(set(to_process.keys()) - set(["counts"])):
+    for ind in range(1, len(to_process)):
+        # data = binned[ind]
+        print(ind, operations[ind], operation)
+        if operations[ind] != operation:
             if operation == "sum":
                 with np.errstate(invalid="ignore"):
-                    data /= binned[0]
+                    binned[ind] /= binned[0]
             else:
-                data *= counts
-        to_render[key]["data"] = np.ma.masked_where(mask, data)
+                binned[ind] *= counts
+        to_render[ind - 1]["data"] = np.ma.masked_where(mask, binned[ind])
 
     if len(to_render) == 0:
-        to_render["counts"] = {"data": np.ma.masked_where(mask, binned[0]),
+        to_render.append({"data": np.ma.masked_where(mask, binned[0]),
                                "mode": mode,
+                               "name": "counts",
                                "params":{
                                "norm": get_norm(norm=norm,
                                                    vmin=vmin,
                                                    vmax=vmax),
                                "vmin": vmin,
                                "vmax": vmax},
-                               "unit": units.dimensionless}
+                               "unit": units.dimensionless})
 
 
     figure = render(x=xcenters, y=ycenters,

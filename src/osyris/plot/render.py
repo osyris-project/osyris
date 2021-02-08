@@ -272,12 +272,12 @@ def render(x, y, data, logx=False, logy=False, ax=None):
 
     # scaling = np.sqrt((x[-1] - x[0])**2 + (y[-1] - y[0])**2)
 
-    mpl_objects = {}
+    mpl_objects = []
     cbar = None
-    for key in data:
+    for item in data:
 
         # layer_kwargs = {}
-        func = data[key]["mode"]
+        func = item["mode"]
         if func in function_map:
             func = function_map[func]
         #     if func in default_args:
@@ -335,7 +335,7 @@ def render(x, y, data, logx=False, logy=False, ax=None):
 #         # layer_kwargs.update(data[key]["params"])
 #         # mpl_objects[key] = getattr(wrappers, func)(*args, **data[key]["params"])
 
-        mpl_objects[key] = getattr(wrappers, func)(ax, x, y, data[key]["data"], **data[key]["params"])
+        mpl_objects.append(getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
 
 
 
@@ -361,8 +361,8 @@ def render(x, y, data, logx=False, logy=False, ax=None):
 
         if func in ["contourf", "pcolormesh"] and cbar is None:
             cbar = plt.colorbar(
-                mpl_objects[key], ax=ax, cax=None)
-            cbar.set_label(make_label(name=key, unit=data[key]["unit"]))
+                mpl_objects[-1], ax=ax, cax=None)
+            cbar.set_label(make_label(name=item["name"], unit=item["unit"]))
                 # scalar.label+(" ["+scalar.unit+"]" if len(scalar.unit) > 0 else ""))
             cbar.ax.yaxis.set_label_coords(-1.1, 0.5)
             # # if scalar_args_osyris["cbar"]:
@@ -377,7 +377,7 @@ def render(x, y, data, logx=False, logy=False, ax=None):
     if logy:
         ax.set_yscale("log")
 
-    return {"fig": fig, "ax": ax}
+    return {"fig": fig, "ax": ax, "objects": mpl_objects}
 
 
     func_map = {"contf": contourf}

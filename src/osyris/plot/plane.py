@@ -37,12 +37,13 @@ def plane(*layers,
     - resolution : number of pixels in the slice.
     - fname      : if specified, the figure is saved to file.
     """
+    print(layers)
 
     if isinstance(layers, Array):
         layers = [layers]
 
-    to_process = {}
-    to_render = {}
+    to_process = []
+    to_render = []
     for layer in layers:
         data, settings, params = parse_layer(layer, mode=mode, norm=norm,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
@@ -67,17 +68,18 @@ def plane(*layers,
     #     to_process["w_vect"] = np.sqrt(datau1**2+datav1**2)
 
 
-        to_process[data.name] = data
-        to_render[data.name] = {"mode": settings["mode"],
+        to_process.append(data)
+        to_render.append({"mode": settings["mode"],
                                 "params": params,
-                                "unit": data.unit.units}
+                                "unit": data.unit.units,
+                                "name": data.name})
         # operations[data.name] = settings["operation"]
 
 
     # # Find parent container of object to plot
     # print(to_process)
-    key = list(to_process.keys())[0]
-    parent = to_process[key].parent
+    # key = list(to_process.keys())[0]
+    parent = to_process[0].parent
     # parent = layers[0].parent
 
 
@@ -124,7 +126,7 @@ def plane(*layers,
     # else:
     # inter_3d = False
     # size_fact = 1.0
-    sqrt3 = np.sqrt(3.0)
+    # sqrt3 = np.sqrt(3.0)
 
     # # Get slice extent and direction vectors
     # if slice_direction is not None:
@@ -251,29 +253,29 @@ def plane(*layers,
     #     to_process["w_strm"] = np.sqrt(datau2**2+datav2**2)
 
     counts = np.zeros([ny, nx])
-    for key in to_process:
+    for ind in range(len(to_process)):
         # to_render[data.name] = {"mode": settings["mode"]
-        if to_render[key]["mode"] in ["vec", "stream"]:
-            if to_process[key].ndim < 3:
-                to_process[key] = to_process[key]._array[cube]
+        if to_render[ind]["mode"] in ["vec", "stream"]:
+            if to_process[ind].ndim < 3:
+                to_process[ind] = to_process[ind]._array[cube]
             else:
                 # vectors = np.transpose(
                 #     [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
                 # u = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1][1])
                 # v = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[2][1])
-                uv = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1:3][1])
+                uv = np.inner(to_process[ind]._array.take(cube, axis=0), dir_vecs[1:3][1])
                 # w = np.sqrt(u**2+v**2)
                 w = None
-                if "color" in to_render[key]["params"]:
-                    if not isinstance(to_render[key]["params"]["color"], str):
-                        w = to_render[key]["params"]["color"]
+                if "color" in to_render[ind]["params"]:
+                    if not isinstance(to_render[ind]["params"]["color"], str):
+                        w = to_render[ind]["params"]["color"]
                 if w is None:
                     w = np.linalg.norm(uv, axis=1)
-                to_process[key] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
-            to_render[key]["data"] = np.zeros([ny, nx, to_process[key].shape[1]])
+                to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
+            to_render[ind]["data"] = np.zeros([ny, nx, to_process[ind].shape[1]])
         else:
-            to_process[key] = to_process[key].values.take(cube)
-            to_render[key]["data"] = np.zeros([ny, nx])
+            to_process[ind] = to_process[ind].values.take(cube)
+            to_render[ind]["data"] = np.zeros([ny, nx])
 
     datax -= xmin
     datay -= ymin
@@ -298,18 +300,18 @@ def plane(*layers,
             i1 = min(i1, nx)
             j0 = max(j0, 0)
             j1 = min(j1, ny)
-            for key in to_process.keys():
+            for ind in range(len(to_process)):
                 # print(to_render[key]["data"].shape)
-                to_render[key]["data"][j0:j1, i0:i1] += to_process[key][i]
+                to_render[ind]["data"][j0:j1, i0:i1] += to_process[ind][i]
             counts[j0:j1, i0:i1] += 1.0
 
     # Normalize by counts
     counts = np.ma.masked_where(counts == 0.0, counts)
-    for key in to_process.keys():
-        if to_render[key]["data"].ndim > counts.ndim:
-            to_render[key]["data"] /= counts.reshape(ny, nx, 1)
+    for ind in range(len(to_process)):
+        if to_render[ind]["data"].ndim > counts.ndim:
+            to_render[ind]["data"] /= counts.reshape(ny, nx, 1)
         else:
-            to_render[key]["data"] /= counts
+            to_render[ind]["data"] /= counts
 
     # Render the map
 
