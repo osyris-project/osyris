@@ -37,7 +37,7 @@ def plane(*layers,
     - resolution : number of pixels in the slice.
     - fname      : if specified, the figure is saved to file.
     """
-    print(layers)
+    # print(layers)
 
     if isinstance(layers, Array):
         layers = [layers]
@@ -47,7 +47,7 @@ def plane(*layers,
     for layer in layers:
         data, settings, params = parse_layer(layer, mode=mode, norm=norm,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
-        print(data, settings, params)
+        # print(data, settings, params)
         # if settings["mode"] in ["vec", "stream"]:
         #     to_process[data.name] = data._array
         # else:
@@ -162,7 +162,7 @@ def plane(*layers,
     # Distance from center
     # dist2 = xyz.values - sqrt3*0.5*parent["dx"].values
     dist2 = xyz - diagonal
-    print(dist2)
+    # print(dist2)
     # dist2 = np.sqrt((parent["x"].values-origin[0])**2 +
     #                 (parent["y"].values-origin[1])**2 +
     #                 (parent["z"].values-origin[2])**2) - \
@@ -173,7 +173,7 @@ def plane(*layers,
     #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 1.0001*diagonal,
                                    np.abs(dist2.values) <= max(dx, dy)*0.5*np.sqrt(2.0))))
-    print(cube)
+    # print(cube)
 
     ncells = len(cube)
 
@@ -184,8 +184,8 @@ def plane(*layers,
     coords = xyz._array[cube]
     # print("coords.shape", coords.shape)
     # print(coords._array)
-    print(dir_vecs)
-    print(dir_vecs[1][1])
+    # print(dir_vecs)
+    # print(dir_vecs[1][1])
     # print(dir_vecs[2][1])
     datax = np.inner(coords, dir_vecs[1][1])
     datay = np.inner(coords, dir_vecs[2][1])
@@ -284,11 +284,11 @@ def plane(*layers,
     jstart = ((datay - datadx) / dpy).astype(np.int)
     jend = ((datay + datadx) / dpy + 1).astype(np.int)
 
-    print("=============")
-    print(istart)
-    print(type(istart))
-    print(istart[0])
-    print("=============")
+    # print("=============")
+    # print(istart)
+    # print(type(istart))
+    # print(istart[0])
+    # print("=============")
 
     for i in range(len(istart)):
         i0 = istart[i]
