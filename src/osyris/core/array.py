@@ -20,9 +20,10 @@ class Array:
         self._name = name
         # self.group = group
         # self.vector = vector
+        self.special_functions = {"sqrt": self._sqrt}
 
-    def __array__(self):
-        return self._array
+    # def __array__(self):
+    #     return self._array
 
     def __getitem__(self, slice_):
         return self.__class__(values=self._array[slice_], unit=self._unit,
@@ -276,5 +277,26 @@ class Array:
         self._array *= ratio.magnitude
 
 
-    # def sum(self):
-    #     return self._array.sum() * self._unit
+    def _wrap_numpy(self, func, *args, **kwargs):
+        if func.__name__ in self.special_functions:
+            unit = self.special_functions[func.__name__]()
+        else:
+            unit = self._unit
+        args = (args[0]._array,) + args[1:]
+        result = func(*args, **kwargs)
+        return self.__class__(values=result, unit=unit)
+
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if method != "__call__":
+            # Only handle ufuncs as callables
+            return NotImplemented
+        return self._wrap_numpy(ufunc, *inputs, **kwargs)
+
+
+    def __array_function__(self, func, types, args, kwargs):
+        return self._wrap_numpy(func, *args, **kwargs)
+
+
+    def _sqrt(self):
+        return np.sqrt(self._unit)
