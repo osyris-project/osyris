@@ -14,7 +14,8 @@ config = {
     "time_scale"   : "kyr",
     "path"        : ""   ,
     "variables"   : []   ,
-    "colormap"    : "viridis"
+    "colormap"    : "viridis",
+    "render_mode" : "pcolormesh"
 }
 
 

@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections
 from matplotlib.colors import LogNorm, Normalize
-from .. import config as conf
+from ..config import config
 from . import wrappers
 from ..core.tools import make_label
 
@@ -244,7 +244,7 @@ def render(x, y, data, logx=False, logy=False, ax=None):
 
 
     function_map = {"vec": "quiver", "vector": "quiver", "stream": "streamplot",
-        None: "contourf", "image": "pcolormesh", "imshow": "pcolormesh"}
+        None: config["render_mode"], "image": "pcolormesh", "imshow": "pcolormesh"}
 
     # default_args = {
     #     "quiver": {

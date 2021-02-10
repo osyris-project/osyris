@@ -1,7 +1,21 @@
 import numpy as np
 from pint.quantity import Quantity
+from pint.unit import Unit
 from .tools import value_to_string, make_label
 from .. import units
+
+
+
+def _comparison_operator(lhs, rhs, op):
+    func = getattr(np, op)
+    if isinstance(rhs, Array):
+        scale_r = rhs.unit.to(lhs._unit.units)
+        return func(lhs._array, rhs._array*scale_r.magnitude)
+    if isinstance(rhs, Quantity):
+        return func(lhs._array < rhs.to(lhs._unit.units).magnitude)
+    return func(lhs._array, rhs)
+
+
 
 class Array:
     def __init__(self, values=None, unit=None,
@@ -9,7 +23,17 @@ class Array:
              parent=None, name=""):
 
         self._array = values
-        self._unit = unit if unit is not None else 1.0 * units.dimensionless
+
+        if unit is None:
+            self._unit = 1.0 * units.dimensionless
+        elif isinstance(unit, str):
+            self._unit = units(unit)
+        elif isinstance(unit, Quantity):
+            self._unit = unit
+        elif isinstance(unit, Unit):
+            self._unit = 1.0 * unit
+        else:
+            raise TypeError("Unsupported unit type {}".format(type(unit)))
         # self._label = label
         # self.operation = operation
         # self.depth = depth
@@ -268,6 +292,23 @@ class Array:
 
         return self.__class__(values=other / self._array, unit=1.0 / self._unit)
 
+    def __lt__(self, other):
+        return _comparison_operator(self, other, "less")
+
+    def __le__(self, other):
+        return _comparison_operator(self, other, "less_equal")
+
+    def __gt__(self, other):
+        return _comparison_operator(self, other, "greater")
+
+    def __ge__(self, other):
+        return _comparison_operator(self, other, "greater_equal")
+
+    def __eq__(self, other):
+        return _comparison_operator(self, other, "equal")
+
+    def __ne__(self, other):
+        return _comparison_operator(self, other, "not_equal")
 
 
     def to(self, unit):
@@ -288,6 +329,9 @@ class Array:
 
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        """
+        Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
+        """
         if method != "__call__":
             # Only handle ufuncs as callables
             return NotImplemented
@@ -295,8 +339,14 @@ class Array:
 
 
     def __array_function__(self, func, types, args, kwargs):
+        """
+        Numpy array_function protocol to allow Array to work with numpy functions.
+        """
         return self._wrap_numpy(func, *args, **kwargs)
 
 
     def _sqrt(self):
+        """
+        Handle unit in sqrt operation.
+        """
         return np.sqrt(self._unit)
