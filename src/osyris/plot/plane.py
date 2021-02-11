@@ -3,10 +3,12 @@
 # @author Neil Vaytet
 
 import numpy as np
+from pint.quantity import Quantity
 from .slice import get_slice_direction
 from .render import render
 from .parser import parse_layer
 from ..core import Plot, Array
+from .. import units
 
 
 
@@ -49,7 +51,7 @@ def plane(*layers,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
         # print(data, settings, params)
         # if settings["mode"] in ["vec", "stream"]:
-        #     to_process[data.name] = data._array
+        #     to_process[data.name] = data.array
         # else:
 
 
@@ -112,6 +114,10 @@ def plane(*layers,
     # Make it possible to call with only one size in the arguments
     if dy == 0.0:
         dy = dx
+    if not isinstance(dx, Quantity):
+        dx *= parent["xyz"].unit
+    if not isinstance(dy, Quantity):
+        dy *= parent["xyz"].unit
 
 
     # # Determine if interpolation is to be done in 2d or 3d
@@ -172,7 +178,7 @@ def plane(*layers,
     # cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"].values*sqrt3,
     #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 1.0001*diagonal,
-                                   np.abs(dist2.values) <= max(dx, dy)*0.5*np.sqrt(2.0))))
+                                   np.abs(dist2.values) <= max(dx.magnitude, dy.magnitude)*0.5*np.sqrt(2.0))))
     # print(cube)
 
     ncells = len(cube)
@@ -181,9 +187,10 @@ def plane(*layers,
     # coords = np.transpose([parent["x"].values.take(cube)-origin[0],
     #                        parent["y"].values.take(cube)-origin[1],
     #                        parent["z"].values.take(cube)-origin[2]])
-    coords = xyz._array[cube]
+    # coords = xyz.array[cube]
+    coords = xyz[cube]
     # print("coords.shape", coords.shape)
-    # print(coords._array)
+    # print(coords.array)
     # print(dir_vecs)
     # print(dir_vecs[1][1])
     # print(dir_vecs[2][1])
@@ -207,6 +214,10 @@ def plane(*layers,
     dpy = (ymax-ymin)/float(ny)
     x = np.linspace(xmin+0.5*dpx, xmax-0.5*dpx, nx)
     y = np.linspace(ymin+0.5*dpy, ymax-0.5*dpy, ny)
+    # print("====")
+    # print(x)
+    # print(y)
+    # print("====")
 
 
     # to_render = {"scalar": None, "image": None, "contour": None,
@@ -257,13 +268,13 @@ def plane(*layers,
         # to_render[data.name] = {"mode": settings["mode"]
         if to_render[ind]["mode"] in ["vec", "stream"]:
             if to_process[ind].ndim < 3:
-                to_process[ind] = to_process[ind]._array[cube]
+                to_process[ind] = to_process[ind].array[cube]
             else:
                 # vectors = np.transpose(
                 #     [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
-                # u = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[1][1])
-                # v = np.inner(to_process[key]._array.take(cube, axis=0), dir_vecs[2][1])
-                uv = np.inner(to_process[ind]._array.take(cube, axis=0), dir_vecs[1:3][1])
+                # u = np.inner(to_process[key].array.take(cube, axis=0), dir_vecs[1][1])
+                # v = np.inner(to_process[key].array.take(cube, axis=0), dir_vecs[2][1])
+                uv = np.inner(to_process[ind].array.take(cube, axis=0), dir_vecs[1:3][1])
                 # w = np.sqrt(u**2+v**2)
                 w = None
                 if "color" in to_render[ind]["params"]:
@@ -277,12 +288,18 @@ def plane(*layers,
             to_process[ind] = to_process[ind].values.take(cube)
             to_render[ind]["data"] = np.zeros([ny, nx])
 
+    print(datax, datax.unit)
+    print(xmin, xmin.units)
     datax -= xmin
     datay -= ymin
-    istart = ((datax - datadx) / dpx).astype(np.int)
-    iend = ((datax + datadx) / dpx + 1).astype(np.int)
-    jstart = ((datay - datadx) / dpy).astype(np.int)
-    jend = ((datay + datadx) / dpy + 1).astype(np.int)
+    # istart = ((datax - datadx) / dpx).array.astype(np.int)
+    # iend = ((datax + datadx) / dpx + 1).array.astype(np.int)
+    # jstart = ((datay - datadx) / dpy).array.astype(np.int)
+    # jend = ((datay + datadx) / dpy + 1).array.astype(np.int)
+    istart = ((datax - datadx) / dpx).array.astype(np.int)
+    iend = ((datax + datadx) / dpx).array.astype(np.int) + 1
+    jstart = ((datay - datadx) / dpy).array.astype(np.int)
+    jend = ((datay + datadx) / dpy).array.astype(np.int) + 1
 
     # print("=============")
     # print(istart)
@@ -315,12 +332,12 @@ def plane(*layers,
 
     # Render the map
 
-    figure = render(x=x, y=y, data=to_render, ax=ax)
+    figure = render(x=x.array, y=y.array, data=to_render, ax=ax)
 
     figure["ax"].set_xlabel(parent["xyz"].x.label)
     figure["ax"].set_ylabel(parent["xyz"].y.label)
 
-    return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return Plot(x=x.array, y=y.array, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],

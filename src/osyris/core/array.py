@@ -77,6 +77,14 @@ class Array:
         self._array = values_
 
     @property
+    def array(self):
+        return self._array
+
+    @array.setter
+    def array(self, array_):
+        self._array = array_
+
+    @property
     def unit(self):
         return self._unit
 
@@ -162,6 +170,10 @@ class Array:
             else:
                 return lhs.reshape(tuple([1]) + lhs.shape), rhs
 
+    def _raise_incompatible_units_error(other, op):
+        raise TypeError("Could not {} types {} and {}.".format(
+            op, type(self), type(other)))
+
 
     def __add__(self, other):
         if isinstance(other, self.__class__):
@@ -173,7 +185,23 @@ class Array:
         if isinstance(other, Quantity):
             return self.__class__(values=self._array+other.to(self._unit.units).magnitude,
                 unit=self._unit)
-        raise TypeError("Could not add types {} and {}.".format(type(self), type(other)))
+        self._raise_incompatible_units_error(other, "add")
+
+    def __iadd__(self, other):
+        if isinstance(other, self.__class__):
+            scale_r = other.unit.to(self._unit.units)
+            # lhs = self._array
+            rhs = other._array*scale_r.magnitude
+            # lhs, rhs = self._broadcast(lhs, rhs)
+            # return self.__class__(values=lhs+rhs, unit=self._unit)
+            self._array += rhs
+        elif isinstance(other, Quantity):
+            self._array += other.to(self._unit.units).magnitude
+            # return self.__class__(values=self._array+other.to(self._unit.units).magnitude,
+            #     unit=self._unit)
+        else:
+            self._raise_incompatible_units_error(other, "add")
+        return self
 
 
     def __sub__(self, other):
@@ -186,7 +214,19 @@ class Array:
         if isinstance(other, Quantity):
             return self.__class__(values=self._array-other.to(self._unit.units),
                 unit=self._unit)
-        raise TypeError("Could not subtract types {} and {}.".format(type(self), type(other)))
+        self._raise_incompatible_units_error(other, "subtract")
+
+
+    def __isub__(self, other):
+        if isinstance(other, self.__class__):
+            scale_r = other.unit.to(self._unit.units)
+            rhs = other._array*scale_r.magnitude
+            self._array -= rhs
+        elif isinstance(other, Quantity):
+            self._array -= other.to(self._unit.units).magnitude
+        else:
+            self._raise_incompatible_units_error(other, "subtract")
+        return self
 
 
     def __mul__(self, other):
@@ -211,6 +251,30 @@ class Array:
                 unit=1.0 * result.units)
 
         return self.__class__(values=self._array*other, unit=self._unit)
+
+    def __imul__(self, other):
+        if isinstance(other, self.__class__):
+            scale_l = self._unit.to_base_units()
+            scale_r = other._unit.to_base_units()
+            result = scale_l * scale_r
+            # lhs = self._array
+            rhs = other._array*result.magnitude
+            # lhs, rhs = self._broadcast(lhs, rhs)
+            # return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
+            self._array *= rhs
+            self._unit = 1.0 * result.units
+        elif isinstance(other, Quantity):
+            scale_l = self._unit.to_base_units()
+            scale_r = other.to_base_units()
+            result = scale_l * scale_r
+            self._array *= result.magnitude
+            self._unit = 1.0 * result.units
+            # return self.__class__(values=self._array * result.magnitude,
+            #     unit=1.0 * result.units)
+        else:
+            self._array *= other
+        return self
+
 
     def __truediv__(self, other):
         if isinstance(other, self.__class__):
@@ -237,6 +301,32 @@ class Array:
         return self.__class__(values=self._array/other, unit=self._unit)
 
 
+    def __itruediv__(self, other):
+        if isinstance(other, self.__class__):
+            # parent = self._get_parent(other)
+            scale_l = self._unit.to_base_units()
+            scale_r = other._unit.to_base_units()
+            result = scale_l / scale_r
+            # return self.__class__(values=self._array*scale_l.magnitude *
+            #     other._array * scale_r.magnitude ,unit=1.0 * result.units,
+            #      parent=parent)
+            # lhs = self._array
+            rhs = other._array / result.magnitude
+            # lhs, rhs = self._broadcast(lhs, rhs)
+            self._array /= rhs
+            self._unit = 1.0 * result.units
+            # return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
+        elif isinstance(other, Quantity):
+            scale_l = self._unit.to_base_units()
+            scale_r = other.to_base_units()
+            result = scale_l / scale_r
+            self._array *= result.magnitude
+            self._unit = 1.0 * result.units
+            # return self.__class__(values=self._array * result.magnitude,
+            #     unit=1.0 * result.units)
+        else:
+            self._array /= other
+        return self
 
 
     # def __truediv__(self, other):
