@@ -212,8 +212,8 @@ def plane(*layers,
     ny = resolution
     dpx = (xmax-xmin)/float(nx)
     dpy = (ymax-ymin)/float(ny)
-    x = np.linspace(xmin+0.5*dpx, xmax-0.5*dpx, nx)
-    y = np.linspace(ymin+0.5*dpy, ymax-0.5*dpy, ny)
+    x = np.linspace(xmin+0.5*dpx, xmax-0.5*dpx, nx).magnitude
+    y = np.linspace(ymin+0.5*dpy, ymax-0.5*dpy, ny).magnitude
     # print("====")
     # print(x)
     # print(y)
@@ -332,12 +332,12 @@ def plane(*layers,
 
     # Render the map
 
-    figure = render(x=x.array, y=y.array, data=to_render, ax=ax)
+    figure = render(x=x, y=y, data=to_render, ax=ax)
 
     figure["ax"].set_xlabel(parent["xyz"].x.label)
     figure["ax"].set_ylabel(parent["xyz"].y.label)
 
-    return Plot(x=x.array, y=y.array, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
 
 
     # figure = render(scalar=scalar, image=image, contour=contour, vec=vec, stream=stream, x=x, y=y, z_scal=to_render["scalar"],
