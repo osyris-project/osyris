@@ -2,8 +2,8 @@ import numpy as np
 from .loader import Loader
 from .units import get_unit
 
-class RtLoader(Loader):
 
+class RtLoader(Loader):
     def __init__(self, infile, select, units):
 
         super().__init__()
@@ -11,7 +11,7 @@ class RtLoader(Loader):
         # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
         self.initialized = True
-        fname = infile+"/rt_file_descriptor.txt"
+        fname = infile + "/rt_file_descriptor.txt"
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
@@ -32,7 +32,9 @@ class RtLoader(Loader):
                     "type": descriptor[i, 2].strip(),
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])}
+                    "unit": get_unit(key, units["ud"], units["ul"],
+                                     units["ut"])
+                }
 
     def read_header(self, info):
         self.offsets["i"] += 5

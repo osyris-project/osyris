@@ -6,12 +6,12 @@ def quiver(ax, x, y, z, density=1, color="w", **kwargs):
     default_args = {
         "angles": "xy",
         "pivot": "mid",
-        }
+    }
 
     default_args.update(kwargs)
 
     skips = np.around(np.array(z.shape) * 4.0 / 128.0 / density).astype(np.int)
-    skip = (slice(None,None,skips[0]),slice(None,None,skips[1]))
+    skip = (slice(None, None, skips[0]), slice(None, None, skips[1]))
 
     args = [x[skip[0]], y[skip[1]], z[..., 0][skip], z[..., 1][skip]]
     if isinstance(color, str):
@@ -26,7 +26,7 @@ def pcolormesh(ax, x, y, z, **kwargs):
 
     default_args = {
         "shading": "nearest",
-        }
+    }
 
     default_args.update(kwargs)
 
@@ -40,6 +40,7 @@ def contour(ax, x, y, z, labels=True, **kwargs):
         ax.clabel(cs, inline=1, fontsize=10)
     return cs
 
+
 def contourf(ax, x, y, z, **kwargs):
 
     return ax.contourf(x, y, z, **kwargs)
@@ -47,9 +48,7 @@ def contourf(ax, x, y, z, **kwargs):
 
 def streamplot(ax, x, y, z, **kwargs):
 
-    default_args = {
-        "color": "w"
-        }
+    default_args = {"color": "w"}
 
     default_args.update(kwargs)
 

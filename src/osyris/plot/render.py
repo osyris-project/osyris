@@ -21,8 +21,14 @@ def render(x, y, data, logx=False, logy=False, ax=None):
     else:
         fig = ax.get_figure()
 
-    function_map = {"vec": "quiver", "vector": "quiver", "stream": "streamplot",
-        None: config["render_mode"], "image": "pcolormesh", "imshow": "pcolormesh"}
+    function_map = {
+        "vec": "quiver",
+        "vector": "quiver",
+        "stream": "streamplot",
+        None: config["render_mode"],
+        "image": "pcolormesh",
+        "imshow": "pcolormesh"
+    }
 
     mpl_objects = []
     cbar = None
@@ -31,11 +37,11 @@ def render(x, y, data, logx=False, logy=False, ax=None):
         if func in function_map:
             func = function_map[func]
 
-        mpl_objects.append(getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
+        mpl_objects.append(
+            getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
 
         if func in ["contourf", "pcolormesh"] and cbar is None:
-            cbar = plt.colorbar(
-                mpl_objects[-1], ax=ax, cax=None)
+            cbar = plt.colorbar(mpl_objects[-1], ax=ax, cax=None)
             cbar.set_label(make_label(name=item["name"], unit=item["unit"]))
             cbar.ax.yaxis.set_label_coords(-1.1, 0.5)
 

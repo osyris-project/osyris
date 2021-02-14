@@ -31,8 +31,10 @@ class Dict:
             self.shape = shape
         else:
             if self.shape != shape:
-                raise RuntimeError("Size mismatch on element insertion. Item "
-                "shape is {} while container accepts shape {}.".format(shape, self.shape))
+                raise RuntimeError(
+                    "Size mismatch on element insertion. Item "
+                    "shape is {} while container accepts shape {}.".format(
+                        shape, self.shape))
         if isinstance(value, Array):
             value.name = key
             value.parent = self
@@ -60,7 +62,6 @@ class Dict:
 
     def values(self):
         return self._container.values()
-
 
     def set_scale(self, scale):
         for key in ["x", "y", "z", "dx"]:

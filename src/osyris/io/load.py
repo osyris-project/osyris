@@ -13,7 +13,8 @@ from .grav import GravLoader
 from .hydro import HydroLoader
 from .rt import RtLoader
 
-def load(nout=1,scale=None,path="",select=None):
+
+def load(nout=1, scale=None, path="", select=None):
 
     data = Dict()
 
@@ -23,30 +24,40 @@ def load(nout=1,scale=None,path="",select=None):
     if scale is None:
         scale = config["scale"]
 
-
     # Generate directory name from output number
-    infile = utils.generate_fname(nout,path)
+    infile = utils.generate_fname(nout, path)
 
     # Read info file and create info dictionary
-    infofile = infile+"/info_"+infile.split("_")[-1]+".txt"
+    infofile = infile + "/info_" + infile.split("_")[-1] + ".txt"
     data.meta.update(utils.read_parameter_file(fname=infofile))
 
     # Add additional information
-    data.meta["scale"    ] = scale
-    data.meta["infile"   ] = infile
-    data.meta["path"     ] = path
-    data.meta["boxsize"  ] = data.meta["boxlen"]*data.meta["unit_l"]
-    data.meta["time"     ] = data.meta["time"]*data.meta["unit_t"]
+    data.meta["scale"] = scale
+    data.meta["infile"] = infile
+    data.meta["path"] = path
+    data.meta["boxsize"] = data.meta["boxlen"] * data.meta["unit_l"]
+    data.meta["time"] = data.meta["time"] * data.meta["unit_t"]
 
-    code_units = {"ud": data.meta["unit_d"],
-                  "ul": data.meta["unit_l"],
-                  "ut": data.meta["unit_t"]}
+    code_units = {
+        "ud": data.meta["unit_d"],
+        "ul": data.meta["unit_l"],
+        "ut": data.meta["unit_t"]
+    }
 
-    loader_list = {"amr": AmrLoader(scale=scale, code_units=code_units),
-                   "hydro": HydroLoader(infile=infile, select=select, code_units=code_units),
-                   "grav": GravLoader(nout=nout, path=path, select=select, units=code_units, ndim=data.meta["ndim"]),
-                   "rt": RtLoader(infile=infile, select=select, units=code_units)
-                   }
+    loader_list = {
+        "amr":
+        AmrLoader(scale=scale, code_units=code_units),
+        "hydro":
+        HydroLoader(infile=infile, select=select, code_units=code_units),
+        "grav":
+        GravLoader(nout=nout,
+                   path=path,
+                   select=select,
+                   units=code_units,
+                   ndim=data.meta["ndim"]),
+        "rt":
+        RtLoader(infile=infile, select=select, units=code_units)
+    }
 
     # Initialize loaders
     loaders = {}
@@ -66,7 +77,8 @@ def load(nout=1,scale=None,path="",select=None):
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
     for loader in loaders.values():
-    	loader.allocate_buffers(ngridmax=data.meta["ngridmax"], twotondim=twotondim)
+        loader.allocate_buffers(ngridmax=data.meta["ngridmax"],
+                                twotondim=twotondim)
 
     iprog = 1
     istep = 10
@@ -78,21 +90,24 @@ def load(nout=1,scale=None,path="",select=None):
         "n": 0,  # line
         "s": 0,  # string
         "q": 0,  # quad
-        "l": 0   # long
+        "l": 0  # long
     }
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
     for cpuid in range(data.meta["ncpu"]):
 
         # Print progress
-        percentage = int(float(cpuid)*100.0/float(data.meta["ncpu"]))
-        if percentage >= iprog*istep:
-            print("%3i%% : read %10i cells" % (percentage,ncells_tot))
+        percentage = int(float(cpuid) * 100.0 / float(data.meta["ncpu"]))
+        if percentage >= iprog * istep:
+            print("%3i%% : read %10i cells" % (percentage, ncells_tot))
             iprog += 1
 
         # Read binary files
         for group, loader in loaders.items():
-            fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpuid+1)
+            fname = utils.generate_fname(nout,
+                                         path,
+                                         ftype=group,
+                                         cpuid=cpuid + 1)
             with open(fname, mode='rb') as f:
                 loader.bytes = f.read()
 
@@ -108,9 +123,10 @@ def load(nout=1,scale=None,path="",select=None):
                 loader.read_level_header(ilevel, twotondim)
 
             # Loop over domains
-            for domain in range(loaders["amr"].meta["nboundary"]+data.meta["ncpu"]):
+            for domain in range(loaders["amr"].meta["nboundary"] +
+                                data.meta["ncpu"]):
 
-                ncache = loaders["amr"].meta["ngridlevel"][domain,ilevel]
+                ncache = loaders["amr"].meta["ngridlevel"][domain, ilevel]
 
                 for loader in loaders.values():
                     loader.read_domain_header()
@@ -120,21 +136,26 @@ def load(nout=1,scale=None,path="",select=None):
                     if domain == cpuid:
 
                         for loader in loaders.values():
-                            loader.read_cacheline_header(ncache, data.meta["ndim"])
+                            loader.read_cacheline_header(
+                                ncache, data.meta["ndim"])
 
                         for ind in range(twotondim):
 
                             # Read variables in cells
                             for loader in loaders.values():
-                                loader.read_variables(ncache, ind, ilevel, cpuid, data.meta)
+                                loader.read_variables(ncache, ind, ilevel,
+                                                      cpuid, data.meta)
 
                         # Apply selection criteria: select only leaf cells and
                         # add any criteria requested by the user via select.
                         conditions = {}
                         for loader in loaders.values():
-                            conditions.update(loader.make_conditions(select, ncache))
+                            conditions.update(
+                                loader.make_conditions(select, ncache))
                         # Combine all selection criteria together with AND operation by using a product on bools
-                        sel = np.where(np.prod(np.array(list(conditions.values())), axis=0))
+                        sel = np.where(
+                            np.prod(np.array(list(conditions.values())),
+                                    axis=0))
 
                         # Count the number of cells
                         ncells = np.shape(sel)[1]
@@ -144,7 +165,8 @@ def load(nout=1,scale=None,path="",select=None):
                             # Add the cells in the pieces dictionaries
                             for loader in loaders.values():
                                 for item in loader.variables.values():
-                                    item["pieces"][npieces] = item["buffer"][sel]
+                                    item["pieces"][npieces] = item["buffer"][
+                                        sel]
 
                         # Increment offsets with remainder of the file
                         for loader in loaders.values():
@@ -153,7 +175,8 @@ def load(nout=1,scale=None,path="",select=None):
                     else:
 
                         for loader in loaders.values():
-                            loader.step_over(ncache, twotondim, data.meta["ndim"])
+                            loader.step_over(ncache, twotondim,
+                                             data.meta["ndim"])
 
     # Store the number of cells
     data.meta["ncells"] = ncells_tot
@@ -161,8 +184,9 @@ def load(nout=1,scale=None,path="",select=None):
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
-                unit=1.0*item["unit"].units)
+            data[key] = Array(values=np.concatenate(
+                list(item["pieces"].values())),
+                              unit=1.0 * item["unit"].units)
 
     # If vector quantities are found, make them into vector Arrays
     make_vector_arrays(data)
@@ -175,6 +199,7 @@ def load(nout=1,scale=None,path="",select=None):
 
     return data
 
+
 def make_vector_arrays(data):
     """
     Merge vector components in 2d arrays.
@@ -184,19 +209,20 @@ def make_vector_arrays(data):
         for key in list(data.keys()):
             if key.endswith("_x") and key not in skip:
                 rawkey = key[:-2]
-                ok = rawkey+"_y" in data
+                ok = rawkey + "_y" in data
                 if data.meta["ndim"] > 2:
-                    ok = ok and rawkey+"_z" in data
+                    ok = ok and rawkey + "_z" in data
 
                 if ok:
-                    values = np.array([data[rawkey+'_x'].values,
-                                  data[rawkey+'_y'].values,
-                                  data[rawkey+'_z'].values]).T
+                    values = np.array([
+                        data[rawkey + '_x'].values, data[rawkey + '_y'].values,
+                        data[rawkey + '_z'].values
+                    ]).T
 
                     data[rawkey] = Array(values=values, unit=data[key].unit)
                     del data[key]
-                    del data[rawkey+"_y"]
-                    skip.append(rawkey+"_y")
+                    del data[rawkey + "_y"]
+                    skip.append(rawkey + "_y")
                     if data.meta["ndim"] > 2:
-                        del data[rawkey+"_z"]
-                        skip.append(rawkey+"_z")
+                        del data[rawkey + "_z"]
+                        skip.append(rawkey + "_z")

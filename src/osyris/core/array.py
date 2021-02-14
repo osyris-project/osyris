@@ -5,22 +5,24 @@ from .tools import value_to_string, make_label
 from .. import units
 
 
-
 def _comparison_operator(lhs, rhs, op):
     func = getattr(np, op)
     if isinstance(rhs, Array):
         scale_r = rhs.unit.to(lhs._unit.units)
-        return func(lhs._array, rhs._array*scale_r.magnitude)
+        return func(lhs._array, rhs._array * scale_r.magnitude)
     if isinstance(rhs, Quantity):
         return func(lhs._array < rhs.to(lhs._unit.units).magnitude)
     return func(lhs._array, rhs)
 
 
-
 class Array:
-    def __init__(self, values=None, unit=None,
-        # label=None,norm=1.0,
-             parent=None, name=""):
+    def __init__(
+            self,
+            values=None,
+            unit=None,
+            # label=None,norm=1.0,
+            parent=None,
+            name=""):
 
         self._array = values
 
@@ -45,7 +47,7 @@ class Array:
         if self._array.shape:
             self._ndim = self._array.shape[-1]
         else:
-        	self._ndim = 0
+            self._ndim = 0
         # self.group = group
         # self.vector = vector
         self.special_functions = {"sqrt": self._sqrt}
@@ -54,14 +56,15 @@ class Array:
     #     return self._array
 
     def __getitem__(self, slice_):
-        return self.__class__(values=self._array[slice_], unit=self._unit,
-                parent=self._parent, name=self._name)
+        return self.__class__(values=self._array[slice_],
+                              unit=self._unit,
+                              parent=self._parent,
+                              name=self._name)
 
     def __str__(self):
-        name_str = "'"+self._name + "' "
+        name_str = "'" + self._name + "' "
         values_str = "Min: " + value_to_string(
-            self.values.min()) + " Max: " + value_to_string(
-            self.values.max())
+            self.values.min()) + " Max: " + value_to_string(self.values.max())
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
@@ -127,21 +130,26 @@ class Array:
     @property
     def x(self):
         if self.ndim > 1:
-            return self.__class__(values=self._array[:, 0], unit=self._unit,
-                parent=self._parent, name=self._name+"_x")
+            return self.__class__(values=self._array[:, 0],
+                                  unit=self._unit,
+                                  parent=self._parent,
+                                  name=self._name + "_x")
 
     @property
     def y(self):
         if self.ndim > 1:
-            return self.__class__(values=self._array[:, 1], unit=self._unit,
-                parent=self._parent, name=self._name+"_y")
+            return self.__class__(values=self._array[:, 1],
+                                  unit=self._unit,
+                                  parent=self._parent,
+                                  name=self._name + "_y")
 
     @property
     def z(self):
         if self.ndim > 1:
-            return self.__class__(values=self._array[:, 2], unit=self._unit,
-                parent=self._parent, name=self._name+"_z")
-
+            return self.__class__(values=self._array[:, 2],
+                                  unit=self._unit,
+                                  parent=self._parent,
+                                  name=self._name + "_z")
 
     # def _expect_same_unit(self, other):
     #     if self._unit != other.unit:
@@ -182,24 +190,24 @@ class Array:
         raise TypeError("Could not {} types {} and {}.".format(
             op, type(self), type(other)))
 
-
     def __add__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
             lhs = self._array
-            rhs = other._array*scale_r.magnitude
+            rhs = other._array * scale_r.magnitude
             lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs+rhs, unit=self._unit)
+            return self.__class__(values=lhs + rhs, unit=self._unit)
         if isinstance(other, Quantity):
-            return self.__class__(values=self._array+other.to(self._unit.units).magnitude,
-                unit=self._unit)
+            return self.__class__(values=self._array +
+                                  other.to(self._unit.units).magnitude,
+                                  unit=self._unit)
         self._raise_incompatible_units_error(other, "add")
 
     def __iadd__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
             # lhs = self._array
-            rhs = other._array*scale_r.magnitude
+            rhs = other._array * scale_r.magnitude
             # lhs, rhs = self._broadcast(lhs, rhs)
             # return self.__class__(values=lhs+rhs, unit=self._unit)
             self._array += rhs
@@ -211,31 +219,29 @@ class Array:
             self._raise_incompatible_units_error(other, "add")
         return self
 
-
     def __sub__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
             lhs = self._array
-            rhs = other._array*scale_r.magnitude
+            rhs = other._array * scale_r.magnitude
             lhs, rhs = self._broadcast(lhs, rhs)
             return self.__class__(values=lhs - rhs, unit=self._unit)
         if isinstance(other, Quantity):
-            return self.__class__(values=self._array-other.to(self._unit.units),
-                unit=self._unit)
+            return self.__class__(values=self._array -
+                                  other.to(self._unit.units),
+                                  unit=self._unit)
         self._raise_incompatible_units_error(other, "subtract")
-
 
     def __isub__(self, other):
         if isinstance(other, self.__class__):
             scale_r = other.unit.to(self._unit.units)
-            rhs = other._array*scale_r.magnitude
+            rhs = other._array * scale_r.magnitude
             self._array -= rhs
         elif isinstance(other, Quantity):
             self._array -= other.to(self._unit.units).magnitude
         else:
             self._raise_incompatible_units_error(other, "subtract")
         return self
-
 
     def __mul__(self, other):
         if isinstance(other, self.__class__):
@@ -248,7 +254,7 @@ class Array:
             #      parent=parent)
 
             lhs = self._array
-            rhs = other._array*result.magnitude
+            rhs = other._array * result.magnitude
             lhs, rhs = self._broadcast(lhs, rhs)
             return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
         if isinstance(other, Quantity):
@@ -256,9 +262,9 @@ class Array:
             scale_r = other.to_base_units()
             result = scale_l * scale_r
             return self.__class__(values=self._array * result.magnitude,
-                unit=1.0 * result.units)
+                                  unit=1.0 * result.units)
 
-        return self.__class__(values=self._array*other, unit=self._unit)
+        return self.__class__(values=self._array * other, unit=self._unit)
 
     def __imul__(self, other):
         if isinstance(other, self.__class__):
@@ -266,7 +272,7 @@ class Array:
             scale_r = other._unit.to_base_units()
             result = scale_l * scale_r
             # lhs = self._array
-            rhs = other._array*result.magnitude
+            rhs = other._array * result.magnitude
             # lhs, rhs = self._broadcast(lhs, rhs)
             # return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
             self._array *= rhs
@@ -282,7 +288,6 @@ class Array:
         else:
             self._array *= other
         return self
-
 
     def __truediv__(self, other):
         if isinstance(other, self.__class__):
@@ -304,10 +309,9 @@ class Array:
             scale_r = other.to_base_units()
             result = scale_l / scale_r
             return self.__class__(values=self._array * result.magnitude,
-                unit=1.0 * result.units)
+                                  unit=1.0 * result.units)
 
-        return self.__class__(values=self._array/other, unit=self._unit)
-
+        return self.__class__(values=self._array / other, unit=self._unit)
 
     def __itruediv__(self, other):
         if isinstance(other, self.__class__):
@@ -336,7 +340,6 @@ class Array:
             self._array /= other
         return self
 
-
     # def __truediv__(self, other):
     #     if isinstance(other, Array):
     #         parent = self._get_parent(other)
@@ -356,8 +359,6 @@ class Array:
 
         # return self.__class__(values=self._array*other, unit=self._unit,
         #     name=self._name)
-
-
 
         # return self.__class__(values=self._array*number, unit=self._unit,
         #     parent=self.parent, name=self._name)
@@ -386,9 +387,10 @@ class Array:
             scale_l = other.to_base_units()
             result = scale_l / scale_r
             return self.__class__(values=self._array * result.magnitude,
-                unit=1.0 * result.units)
+                                  unit=1.0 * result.units)
 
-        return self.__class__(values=other / self._array, unit=1.0 / self._unit)
+        return self.__class__(values=other / self._array,
+                              unit=1.0 / self._unit)
 
     def __lt__(self, other):
         return _comparison_operator(self, other, "less")
@@ -408,7 +410,6 @@ class Array:
     def __ne__(self, other):
         return _comparison_operator(self, other, "not_equal")
 
-
     def to(self, unit):
         new_unit = units(unit)
         ratio = self._unit.to(new_unit) / new_unit
@@ -416,16 +417,14 @@ class Array:
         self._array *= ratio.magnitude
         return self
 
-
     def _wrap_numpy(self, func, *args, **kwargs):
         if func.__name__ in self.special_functions:
             unit = self.special_functions[func.__name__]()
         else:
             unit = self._unit
-        args = (args[0]._array,) + args[1:]
+        args = (args[0]._array, ) + args[1:]
         result = func(*args, **kwargs)
         return self.__class__(values=result, unit=unit)
-
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
@@ -436,13 +435,11 @@ class Array:
             return NotImplemented
         return self._wrap_numpy(ufunc, *inputs, **kwargs)
 
-
     def __array_function__(self, func, types, args, kwargs):
         """
         Numpy array_function protocol to allow Array to work with numpy functions.
         """
         return self._wrap_numpy(func, *args, **kwargs)
-
 
     def _sqrt(self):
         """

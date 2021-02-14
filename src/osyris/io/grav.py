@@ -3,14 +3,14 @@ from .loader import Loader
 from .units import get_unit
 from . import utils
 
-class GravLoader(Loader):
 
+class GravLoader(Loader):
     def __init__(self, nout, path, select, units, ndim):
 
         super().__init__()
 
         # Check if self-gravity files exist
-        fname = utils.generate_fname(nout,path,ftype="grav",cpuid=1)
+        fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
         self.initialized = os.path.exists(fname)
         # Add gravity fields
         if self.initialized:
@@ -34,7 +34,9 @@ class GravLoader(Loader):
                     "type": descriptor[key],
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])}
+                    "unit": get_unit(key, units["ud"], units["ul"],
+                                     units["ut"])
+                }
 
     def read_header(self, info):
         self.offsets["i"] += 4

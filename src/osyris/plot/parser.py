@@ -14,11 +14,19 @@ def get_norm(norm=None, vmin=None, vmax=None):
     return norm
 
 
-
-def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
+def parse_layer(entry,
+                mode=None,
+                norm=None,
+                vmin=None,
+                vmax=None,
+                operation=None,
+                **kwargs):
 
     if isinstance(entry, dict):
-        params = {key: entry[key] for key in set(entry.keys()) - set(["data", "mode", "operation"])}
+        params = {
+            key: entry[key]
+            for key in set(entry.keys()) - set(["data", "mode", "operation"])
+        }
         if "norm" not in params:
             params["norm"] = norm
         if "vmin" in params:
@@ -28,10 +36,7 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
             vmax = params["vmax"]
             del params["vmax"]
 
-        params["norm"] = get_norm(norm=params["norm"],
-            vmin=vmin, vmax=vmax)
-
-        print(vmin, vmax, params["norm"].vmin, params["norm"].vmax)
+        params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
 
         for key, arg in kwargs.items():
             if key not in params:

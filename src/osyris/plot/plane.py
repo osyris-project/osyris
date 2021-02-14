@@ -12,12 +12,22 @@ from .. import units
 
 
 def plane(*layers,
-               direction="z", dx=0.0, dy=0.0, fname=None, title=None, sinks=True, copy=False,
-               mode=None, norm=None, vmin=None, vmax=None,operation="mean",
-               origin=[0, 0, 0],
-               resolution=256,
-               ax=None,
-               **kwargs):
+          direction="z",
+          dx=0.0,
+          dy=0.0,
+          fname=None,
+          title=None,
+          sinks=True,
+          copy=False,
+          mode=None,
+          norm=None,
+          vmin=None,
+          vmax=None,
+          operation="mean",
+          origin=[0, 0, 0],
+          resolution=256,
+          ax=None,
+          **kwargs):
     """
     Plot a 2D slice through the data domain.
     """
@@ -28,14 +38,21 @@ def plane(*layers,
     to_process = []
     to_render = []
     for layer in layers:
-        data, settings, params = parse_layer(layer, mode=mode, norm=norm,
-            vmin=vmin, vmax=vmax, operation=operation, **kwargs)
+        data, settings, params = parse_layer(layer,
+                                             mode=mode,
+                                             norm=norm,
+                                             vmin=vmin,
+                                             vmax=vmax,
+                                             operation=operation,
+                                             **kwargs)
 
         to_process.append(data)
-        to_render.append({"mode": settings["mode"],
-                                "params": params,
-                                "unit": data.unit.units,
-                                "name": data.name})
+        to_render.append({
+            "mode": settings["mode"],
+            "params": params,
+            "unit": data.unit.units,
+            "name": data.name
+        })
 
     parent = to_process[0].parent
 
@@ -48,19 +65,26 @@ def plane(*layers,
         dy *= parent["xyz"].unit
 
     dir_vecs, origin = get_slice_direction(direction=direction,
-    	parent=parent, dx=0.5*(dx+dy), origin=origin)
+                                           parent=parent,
+                                           dx=0.5 * (dx + dy),
+                                           origin=origin)
 
     # Distance to the plane
     xyz = parent["xyz"] - origin
     diagonal = parent["dx"] * np.sqrt(3.0) * 0.5
-    dist1 = np.sum(xyz * dir_vecs[0], axis=1)# / np.linalg.norm(dir_vecs[0][1])
+    dist1 = np.sum(xyz * dir_vecs[0],
+                   axis=1)  # / np.linalg.norm(dir_vecs[0][1])
 
     # Distance from center
     dist2 = xyz - diagonal
 
     # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
-    cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 1.0001*diagonal,
-                                   np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude)*0.5*np.sqrt(2.0))))
+    cube = np.ravel(
+        np.where(
+            np.logical_and(
+                np.abs(dist1) <= 1.0001 * diagonal,
+                np.abs(dist2.norm) <=
+                max(dx.magnitude, dy.magnitude) * 0.5 * np.sqrt(2.0))))
 
     ncells = len(cube)
 
@@ -77,10 +101,10 @@ def plane(*layers,
     ymax = ymin + dy
     nx = resolution
     ny = resolution
-    dpx = (xmax-xmin)/float(nx)
-    dpy = (ymax-ymin)/float(ny)
-    x = np.linspace(xmin+0.5*dpx, xmax-0.5*dpx, nx).magnitude
-    y = np.linspace(ymin+0.5*dpy, ymax-0.5*dpy, ny).magnitude
+    dpx = (xmax - xmin) / float(nx)
+    dpy = (ymax - ymin) / float(ny)
+    x = np.linspace(xmin + 0.5 * dpx, xmax - 0.5 * dpx, nx).magnitude
+    y = np.linspace(ymin + 0.5 * dpy, ymax - 0.5 * dpy, ny).magnitude
 
     counts = np.zeros([ny, nx])
     for ind in range(len(to_process)):
@@ -88,19 +112,23 @@ def plane(*layers,
             if to_process[ind].ndim < 3:
                 to_process[ind] = to_process[ind].array[cube]
             else:
-                uv = np.inner(to_process[ind].array.take(cube, axis=0), dir_vecs[1:])
+                uv = np.inner(to_process[ind].array.take(cube, axis=0),
+                              dir_vecs[1:])
                 w = None
                 if "color" in to_render[ind]["params"]:
                     if isinstance(to_render[ind]["params"]["color"], Array):
                         w = to_render[ind]["params"]["color"].norm
-                    elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
+                    elif isinstance(to_render[ind]["params"]["color"],
+                                    np.ndarray):
                         w = to_render[ind]["params"]["color"]
                 if w is None:
                     w = np.linalg.norm(uv, axis=1)
                 else:
                     w = w.take(cube, axis=0)
-                to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
-            to_render[ind]["data"] = np.zeros([ny, nx, to_process[ind].shape[1]])
+                to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)),
+                                                 axis=1)
+            to_render[ind]["data"] = np.zeros(
+                [ny, nx, to_process[ind].shape[1]])
         else:
             to_process[ind] = to_process[ind].array[cube]
             to_render[ind]["data"] = np.zeros([ny, nx])
@@ -135,7 +163,7 @@ def plane(*layers,
                                 to_render[ind]["data"].shape),
                 to_render[ind]["data"]) / counts.reshape(ny, nx, 1)
         else:
-             to_render[ind]["data"] = np.ma.masked_where(
+            to_render[ind]["data"] = np.ma.masked_where(
                 mask, to_render[ind]["data"]) / counts
 
     # Render the map

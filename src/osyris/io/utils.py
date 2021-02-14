@@ -1,23 +1,23 @@
-
 import struct
 
-def generate_fname(nout,path="",ftype="",cpuid=1,ext=""):
+
+def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
 
     if len(path) > 0:
         if path[-1] != "/":
-            path=path+"/"
+            path = path + "/"
 
     if nout == -1:
-        filelist = sorted(glob.glob(path+"output*"))
+        filelist = sorted(glob.glob(path + "output*"))
         number = filelist[-1].split("_")[-1]
     else:
         number = str(nout).zfill(5)
 
-    infile = path+"output_"+number
+    infile = path + "output_" + number
     if len(ftype) > 0:
-        infile += "/"+ftype+"_"+number
+        infile += "/" + ftype + "_" + number
         if cpuid >= 0:
-            infile += ".out"+str(cpuid).zfill(5)
+            infile += ".out" + str(cpuid).zfill(5)
 
     if len(ext) > 0:
         infile += ext
@@ -44,14 +44,29 @@ def read_parameter_file(fname=None, delimiter="="):
     return out
 
 
-def read_binary_data(content=None, fmt=None, offsets=None, skip_head=True, increment=True):
+def read_binary_data(content=None,
+                     fmt=None,
+                     offsets=None,
+                     skip_head=True,
+                     increment=True):
     """
     Unpack binary data from a content buffer using a dict of offsets.
     Also increment the offsets of the corresponding data read, as well as
     increase the line count by 1.
     """
 
-    byte_size = {"b": 1, "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8, "n": 8, "l": 8, "s": 1}
+    byte_size = {
+        "b": 1,
+        "h": 2,
+        "i": 4,
+        "q": 8,
+        "f": 4,
+        "d": 8,
+        "e": 8,
+        "n": 8,
+        "l": 8,
+        "s": 1
+    }
 
     offset = 0
     for key in offsets:
@@ -59,7 +74,7 @@ def read_binary_data(content=None, fmt=None, offsets=None, skip_head=True, incre
     # if offset is None:
     #     offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16
     if skip_head:
-        offset += 4# + correction
+        offset += 4  # + correction
 
     # byte_size = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
     if len(fmt) == 1:
@@ -72,8 +87,7 @@ def read_binary_data(content=None, fmt=None, offsets=None, skip_head=True, incre
         offsets[fmt[-1]] += mult
     offsets["n"] += 1
 
-
-    return struct.unpack(fmt, content[offset:offset+pack_size])
+    return struct.unpack(fmt, content[offset:offset + pack_size])
 
 
 # def get_binary_data(fmt="",ninteg=0,nlines=0,nfloat=0,nstrin=0,nquadr=0,nlongi=0,offset=None,content=None,correction=0):
@@ -89,4 +103,3 @@ def read_binary_data(content=None, fmt=None, offsets=None, skip_head=True, incre
 #     pack_size = mult*byte_size[fmt[-1]]
 
 #     return struct.unpack(fmt, content[offset:offset+pack_size])
-

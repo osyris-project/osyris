@@ -9,11 +9,13 @@ def get_finite_inds(x):
     """
     return np.where(np.isfinite(x))[0]
 
+
 def finmin(x):
     """
     Finite minimum.
     """
     return np.amin(x.take(get_finite_inds(x)))
+
 
 def finmax(x):
     """
@@ -21,11 +23,13 @@ def finmax(x):
     """
     return np.amax(x.take(get_finite_inds(x)))
 
+
 def to_bin_centers(x):
     """
     Convert array edges to centers
     """
     return 0.5 * (x[1:] + x[:-1])
+
 
 def to_bin_edges(x):
     """

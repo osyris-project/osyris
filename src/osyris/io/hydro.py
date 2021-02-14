@@ -3,8 +3,8 @@ from .loader import Loader
 from .units import get_unit
 from . import utils
 
-class HydroLoader(Loader):
 
+class HydroLoader(Loader):
     def __init__(self, infile, select, code_units):
 
         super().__init__()
@@ -12,7 +12,7 @@ class HydroLoader(Loader):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         self.initialized = True
-        fname = infile+"/hydro_file_descriptor.txt"
+        fname = infile + "/hydro_file_descriptor.txt"
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
@@ -30,11 +30,17 @@ class HydroLoader(Loader):
                     if select["hydro"] is False:
                         read = False
                 self.variables[key] = {
-                    "read": read,
-                    "type": descriptor[i, 2].strip(),
-                    "buffer": None,
+                    "read":
+                    read,
+                    "type":
+                    descriptor[i, 2].strip(),
+                    "buffer":
+                    None,
                     "pieces": {},
-                    "unit": get_unit(key, code_units["ud"], code_units["ul"], code_units["ut"])}
+                    "unit":
+                    get_unit(key, code_units["ud"], code_units["ul"],
+                             code_units["ut"])
+                }
         # data.meta["nvar_hydro"] = len(variables_hydro)
         # return hyd
 
@@ -42,8 +48,9 @@ class HydroLoader(Loader):
         # hydro gamma
         self.offsets["i"] += 5
         self.offsets["n"] += 5
-        [info["gamma"]] = utils.read_binary_data(
-            fmt="d",content=self.bytes,offsets=self.offsets)
+        [info["gamma"]] = utils.read_binary_data(fmt="d",
+                                                 content=self.bytes,
+                                                 offsets=self.offsets)
         # print(data.meta["gamma"])
 
     def read_domain_header(self):

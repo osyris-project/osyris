@@ -67,11 +67,10 @@ class AmrLoader(Loader):
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
-        self.xcent = np.zeros([8,3],dtype=np.float64)
-        self.xg = np.zeros([ngridmax,3],dtype=np.float64)
-        self.son = np.zeros([ngridmax,twotondim],dtype=np.int32)
-        self.ref = np.zeros([ngridmax,twotondim],dtype=np.bool)
-
+        self.xcent = np.zeros([8, 3], dtype=np.float64)
+        self.xg = np.zeros([ngridmax, 3], dtype=np.float64)
+        self.son = np.zeros([ngridmax, twotondim], dtype=np.int32)
+        self.ref = np.zeros([ngridmax, twotondim], dtype=np.bool)
 
     def read_header(self, info):
         # nx,ny,nz
@@ -96,14 +95,6 @@ class AmrLoader(Loader):
         self.meta["ngridlevel"] = np.zeros(
             [info["ncpu"] + self.meta["nboundary"], info["levelmax"]],
             dtype=np.int32)
-        # print(self.meta["nboundary"])
-        # # self.meta["nboundary"]
-        # ninteg = 7
-        # nlines = 5
-        # [self.meta["nboundary"]] = utils.get_binary_data(fmt="i",content=self.bytes,ninteg=ninteg,nlines=nlines)
-        # ngridlevel = np.zeros([info["ncpu"]+self.meta["nboundary"],info["levelmax"]],dtype=np.int32)
-        # print(self.meta["nboundary"])
-        # return
 
         # noutput
         self.offsets["i"] += 1
@@ -112,118 +103,57 @@ class AmrLoader(Loader):
         [noutput] = utils.read_binary_data(fmt="i",
                                            content=self.bytes,
                                            offsets=self.offsets)
-        # print(noutput)
-        # # noutput
-        # ninteg = 9
-        # nfloat = 1
-        # nlines = 8
-        # [noutput] = utils.read_binary_data(fmt="i",content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-
         # dtold, dtnew
         self.offsets["i"] += 2
         self.offsets["n"] += 3
         self.offsets["d"] += 1 + 2 * noutput
         info["dtold"] = utils.read_binary_data(fmt="{}d".format(
             info["levelmax"]),
-                                                    content=self.bytes,
-                                                    offsets=self.offsets)
-        # nfloat += 1+info["levelmax"]
-        # nlines += 1
+                                               content=self.bytes,
+                                               offsets=self.offsets)
         info["dtnew"] = utils.read_binary_data(fmt="{}d".format(
             info["levelmax"]),
-                                                    content=self.bytes,
-                                                    offsets=self.offsets)
-        # print(info)
-        # return
-        # # dtold, dtnew
-        # ninteg = 12
-        # nfloat = 2+2*noutput
-        # nlines = 12
-        # info["dtold"] = utils.read_binary_data(fmt="%id"%(info["levelmax"]),\
-        #                      content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-        # nfloat += 1+info["levelmax"]
-        # nlines += 1
-        # info["dtnew"] = utils.read_binary_data(fmt="%id"%(info["levelmax"]),\
-        #                      content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
-
-        # # hydro gamma
-        # offsets_hydro["i"] += 5
-        # offsets_hydro["n"] += 5
-        # [info["gamma"]] = utils.read_binary_data(fmt="d",content=loaders["hydro"].bytes,offsets=offsets_hydro)
-        # # hydro gamma
-        # ninteg = 5
-        # nfloat = 0
-        # nlines = 5
-        # [info["gamma"]] = utils.read_binary_data(fmt="d",content=loaders["hydro"].bytes,ninteg=ninteg,nlines=nlines)
+                                               content=self.bytes,
+                                               offsets=self.offsets)
 
         # Read the number of grids
-        self.offsets["i"] += 2 + (2 * info["ncpu"] *
-                                  info["levelmax"])
+        self.offsets["i"] += 2 + (2 * info["ncpu"] * info["levelmax"])
         self.offsets["n"] += 7
         self.offsets["d"] += 16
-        # print(self.offsets["i"], self.offsets["d"], self.offsets["n"])
         self.meta["ngridlevel"][:info["ncpu"], :] = np.array(
             utils.read_binary_data(
                 fmt="{}i".format(info["ncpu"] * info["levelmax"]),
                 content=self.bytes,
                 offsets=self.offsets)).reshape(info["levelmax"],
                                                info["ncpu"]).T
-        # print("ngridlevel1", ngridlevel)
-        # # # Read the number of grids
-        # ninteg = 14+(2*info["ncpu"]*info["levelmax"])
-        # nfloat = 18+(2*noutput)+(2*info["levelmax"])
-        # nlines = 21
-        # print(ninteg, nfloat, nlines)
-        # ngridlevel[:info["ncpu"],:] = np.asarray(utils.get_binary_data(fmt="%ii"%(info["ncpu"]*info["levelmax"]),\
-        #      content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(info["levelmax"],info["ncpu"]).T
-        # print("ngridlevel2", ngridlevel)
-        # return
 
         # Read boundary grids if any
         self.offsets["i"] += 10 * info["levelmax"]
         self.offsets["n"] += 3
         if self.meta["nboundary"] > 0:
-            self.offsets["i"] += (2 * self.meta["nboundary"] * info["levelmax"])
+            self.offsets["i"] += (2 * self.meta["nboundary"] *
+                                  info["levelmax"])
             # self.offsets["n"] += 4
             self.meta["ngridlevel"][info["ncpu"]:info["ncpu"] +
-                       self.meta["nboundary"], :] = np.array(
-                           utils.read_binary_data(
-                               fmt="{}i".format(self.meta["nboundary"] *
+                                    self.meta["nboundary"], :] = np.array(
+                                        utils.read_binary_data(
+                                            fmt="{}i".format(
+                                                self.meta["nboundary"] *
                                                 info["levelmax"]),
-                               content=self.bytes,
-                               offsets=self.offsets)).reshape(
-                                   info["levelmax"], self.meta["nboundary"]).T
-            # print("111", ngridlevel[info["ncpu"]:info["ncpu"]+self.meta["nboundary"],:])
+                                            content=self.bytes,
+                                            offsets=self.offsets)).reshape(
+                                                info["levelmax"],
+                                                self.meta["nboundary"]).T
             self.offsets["n"] += 2
-        # else:
-        #     self.offsets["n"] += 3
-
-        # ninteg = 14+(3*info["ncpu"]*info["levelmax"])+(10*info["levelmax"])+(2*self.meta["nboundary"]*info["levelmax"])
-        # nfloat = 18+(2*noutput)+(2*info["levelmax"])
-        # nlines = 25
-        # ngridlevel[info["ncpu"]:info["ncpu"]+self.meta["nboundary"],:] = np.asarray(utils.get_binary_data(fmt="%ii"%(self.meta["nboundary"]*info["levelmax"]),\
-        #                                 content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat)).reshape(info["levelmax"],self.meta["nboundary"]).T
-        # print("222", ngridlevel[info["ncpu"]:info["ncpu"]+self.meta["nboundary"],:])
 
         # Determine bound key precision
         self.offsets["i"] += 5
-        # self.offsets["n"] += 2*min(1,self.meta["nboundary"])
         self.offsets["s"] += 128
-        # print(self.offsets["i"], self.offsets["d"], self.offsets["n"], self.offsets["s"])
         [key_size] = utils.read_binary_data(fmt="i",
                                             content=self.bytes,
                                             offsets=self.offsets,
                                             skip_head=False,
                                             increment=False)
-        # print("key_size", key_size)
-        # # Determine bound key precision
-        # ninteg = 14+(3*info["ncpu"]*info["levelmax"])+(10*info["levelmax"])+(3*self.meta["nboundary"]*info["levelmax"])+5
-        # nfloat = 18+(2*noutput)+(2*info["levelmax"])
-        # nlines = 21+2+3*min(1,self.meta["nboundary"])+1+1
-        # nstrin = 128
-        # print(ninteg, nfloat, nlines, nstrin)
-        # [key_size] = utils.get_binary_data(fmt="i",content=self.bytes,ninteg=ninteg,nlines=nlines,nfloat=nfloat,nstrin=nstrin,correction=-4)
-        # print("key_size2", key_size)
 
         # Offset for AMR
         self.offsets["i"] += 3 * ncoarse
@@ -232,64 +162,61 @@ class AmrLoader(Loader):
 
     def read_level_header(self, ilevel, twotondim):
         # Geometry
-        self.dxcell = 0.5**(ilevel+1)
-        dx2=0.5*self.dxcell
+        self.dxcell = 0.5**(ilevel + 1)
+        dx2 = 0.5 * self.dxcell
         for ind in range(twotondim):
-            iz=int((ind)/4)
-            iy=int((ind-4*iz)/2)
-            ix=int((ind-2*iy-4*iz))
-            self.xcent[ind,0]=(float(ix)-0.5)*self.dxcell
-            self.xcent[ind,1]=(float(iy)-0.5)*self.dxcell
-            self.xcent[ind,2]=(float(iz)-0.5)*self.dxcell
+            iz = int((ind) / 4)
+            iy = int((ind - 4 * iz) / 2)
+            ix = int((ind - 2 * iy - 4 * iz))
+            self.xcent[ind, 0] = (float(ix) - 0.5) * self.dxcell
+            self.xcent[ind, 1] = (float(iy) - 0.5) * self.dxcell
+            self.xcent[ind, 2] = (float(iz) - 0.5) * self.dxcell
 
     def read_cacheline_header(self, ncache, ndim):
         # xg: grid coordinates
-        self.offsets['i'] += ncache*3
-        self.offsets['n'] +=  3
-        # ninteg = ninteg_amr + ncache*3
-        # nfloat = nfloat_amr
-        # nlines = nlines_amr + 3
-        # nstrin = nstrin_amr
+        self.offsets['i'] += ncache * 3
+        self.offsets['n'] += 3
         for n in range(ndim):
-            self.xg[:ncache,n] = utils.read_binary_data(fmt="{}d".format(ncache),content=self.bytes,offsets=self.offsets)
-            # offset = 4*ninteg + 8*(nlines+nfloat+n*(ncache+1)) + nstrin + 4
-            # xg[:ncache,n] = struct.unpack("%id"%(ncache), self.bytes[offset:offset+8*ncache])
+            self.xg[:ncache,
+                    n] = utils.read_binary_data(fmt="{}d".format(ncache),
+                                                content=self.bytes,
+                                                offsets=self.offsets)
 
         # son indices
-        self.offsets['i'] += ncache*(1 + 2*ndim)
-        self.offsets['n'] += 1 + 2*ndim
-        # ninteg = ninteg_amr + ncache*(4+2*data.meta["ndim"])
-        # nfloat = nfloat_amr + ncache*data.meta["ndim"]
-        # nlines = nlines_amr + 4 + 3*data.meta["ndim"]
-        # nstrin = nstrin_amr
+        self.offsets['i'] += ncache * (1 + 2 * ndim)
+        self.offsets['n'] += 1 + 2 * ndim
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
 
-        self.son[:ncache,ind] = utils.read_binary_data(fmt="{}i".format(ncache),content=self.bytes,offsets=self.offsets)
+        self.son[:ncache,
+                 ind] = utils.read_binary_data(fmt="{}i".format(ncache),
+                                               content=self.bytes,
+                                               offsets=self.offsets)
 
-        self.variables["level"]["buffer"][:ncache,ind] = ilevel + 1
-        # scaling = get_unit(
-        #             "x", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"]).magnitude
+        self.variables["level"]["buffer"][:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
-            # xyz[:ncache,ind,n] = xg[:ncache,n] + xcent[ind,n]-xbound[n]
-            # var[:ncache,ind,-5+n] = xyz[:ncache,ind,n]*data.meta["boxlen"]
             key = "xyz_" + "xyz"[n]
-            self.variables[key]["buffer"][:ncache,ind] = (
-                self.xg[:ncache,n] + self.xcent[ind,n]-self.meta["xbound"][n])*info["boxlen"] * self.variables[key]["unit"].magnitude
-        self.variables["dx"]["buffer"][:ncache,ind] = self.dxcell*info["boxlen"] * self.variables["dx"]["unit"].magnitude
-        self.variables["cpu"]["buffer"][:ncache,ind] = cpuid+1
+            self.variables[key]["buffer"][:ncache, ind] = (
+                self.xg[:ncache, n] + self.xcent[ind, n] -
+                self.meta["xbound"][n]
+            ) * info["boxlen"] * self.variables[key]["unit"].magnitude
+        self.variables["dx"]["buffer"][:ncache, ind] = self.dxcell * info[
+            "boxlen"] * self.variables["dx"]["unit"].magnitude
+        self.variables["cpu"]["buffer"][:ncache, ind] = cpuid + 1
 
-        self.ref[:ncache,ind] = np.logical_not(np.logical_and(self.son[:ncache,ind] > 0, ilevel < info["levelmax"]-1))
+        self.ref[:ncache, ind] = np.logical_not(
+            np.logical_and(self.son[:ncache, ind] > 0,
+                           ilevel < info["levelmax"] - 1))
 
     def make_conditions(self, select, ncache):
-        return {"leaf": self.ref[:ncache,:] == True}
+        return {"leaf": self.ref[:ncache, :] == True}
 
     def read_footer(self, ncache, twotondim):
         # Increment offsets with remainder of the file
-        self.offsets['i'] += ncache*2*twotondim
-        self.offsets['n'] += 2*twotondim
+        self.offsets['i'] += ncache * 2 * twotondim
+        self.offsets['n'] += 2 * twotondim
 
     def step_over(self, ncache, twotondim, ndim):
-        self.offsets['i'] += ncache*(4+3*twotondim+2*ndim)
-        self.offsets['d'] += ncache*ndim
-        self.offsets['n'] += 4 + 3*twotondim + 3*ndim
+        self.offsets['i'] += ncache * (4 + 3 * twotondim + 2 * ndim)
+        self.offsets['d'] += ncache * ndim
+        self.offsets['n'] += 4 + 3 * twotondim + 3 * ndim

@@ -5,8 +5,11 @@
 import numpy as np
 from ..core.tools import perpendicular_vector
 
-def get_slice_direction(direction=None, parent=None, dx=None,
-    origin=[0, 0, 0]):
+
+def get_slice_direction(direction=None,
+                        parent=None,
+                        dx=None,
+                        origin=[0, 0, 0]):
     """
     Find direction vectors for slice.
 
@@ -16,7 +19,6 @@ def get_slice_direction(direction=None, parent=None, dx=None,
     The origin can be either a vector of 3 numbers (xyz), or it can be "sink17"
     for sink particles.
     """
-
 
     # # Transform origin to coordinates if sink is requested
     # try:
@@ -49,9 +51,9 @@ def get_slice_direction(direction=None, parent=None, dx=None,
         #                  z_loc[sphere])*parent["mass"][sphere])
         # pos = np.array([x_loc[sphere], y_loc[sphere],
         #                  z_loc[sphere]]).T * parent["mass"].values[sphere]
-        pos = xyz * parent["mass"] #.values[sphere]
+        pos = xyz * parent["mass"]  #.values[sphere]
         print(pos.shape)
-        vel = parent["velocity"] # [sphere]
+        vel = parent["velocity"]  # [sphere]
         print(vel.shape)
 
         # vel = np.vstack((parent["velocity_x"][sphere],
@@ -66,12 +68,12 @@ def get_slice_direction(direction=None, parent=None, dx=None,
             dir1 = AngMom
             dir2 = perpendicular_vector(dir1)
             dir3 = np.cross(dir1, dir2)
-        # elif view == 
+        # elif view ==
         # else:
         #     raise ValueError("Unknown view direction.")
         norm1 = np.linalg.norm(dir1)
-        print("Normal slice vector: [%.5e,%.5e,%.5e]" % (
-            dir1[0]/norm1, dir1[1]/norm1, dir1[2]/norm1))
+        print("Normal slice vector: [%.5e,%.5e,%.5e]" %
+              (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
         # dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
         dir_vecs = np.array([dir1, dir2, dir3])
 
@@ -80,9 +82,10 @@ def get_slice_direction(direction=None, parent=None, dx=None,
             # dir_vecs = [[direction[0], dir_list[direction[0]]],
             #             [direction[1], dir_list[direction[1]]],
             #             [direction[2], dir_list[direction[2]]]]
-            dir_vecs = np.array([dir_list[direction[0]],
-                                 dir_list[direction[1]],
-                                 dir_list[direction[2]]])
+            dir_vecs = np.array([
+                dir_list[direction[0]], dir_list[direction[1]],
+                dir_list[direction[2]]
+            ])
         elif direction == "x":
             # dir_vecs = [["x", dir_list["x"]], [
             #     "y", dir_list["y"]], ["z", dir_list["z"]]]
@@ -104,8 +107,9 @@ def get_slice_direction(direction=None, parent=None, dx=None,
         # dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
     # This is the case where two vectors are specified: direction = [[1,0,1],[0,1,0]]
     elif len(direction) == 2:
-        dir_vecs = np.array([direction[0], direction[1],
-            np.cross(direction[0], direction[1])])
+        dir_vecs = np.array(
+            [direction[0], direction[1],
+             np.cross(direction[0], direction[1])])
         # dir_vecs = [["z", direction[0]],
         #             ["x", direction[1]],
         #             ["y", np.cross(direction[0], direction[1]).tolist()]]
