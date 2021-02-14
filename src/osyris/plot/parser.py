@@ -4,10 +4,10 @@ from matplotlib.colors import LogNorm, Normalize
 
 def get_norm(norm=None, vmin=None, vmax=None):
     if norm == "log":
-        if vmin is not None:
-            vmin = np.log10(vmin)
-        if vmax is not None:
-            vmax = np.log10(vmax)
+        # if vmin is not None:
+        #     vmin = np.log10(vmin)
+        # if vmax is not None:
+        #     vmax = np.log10(vmax)
         norm = LogNorm(vmin=vmin, vmax=vmax)
     else:
         norm = Normalize(vmin=vmin, vmax=vmax)
@@ -16,9 +16,6 @@ def get_norm(norm=None, vmin=None, vmax=None):
 
 
 def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs):
-    # mode = get_mode(mode)
-    
-    # print("NORM IS", norm)
 
     if isinstance(entry, dict):
         params = {key: entry[key] for key in set(entry.keys()) - set(["data", "mode", "operation"])}
