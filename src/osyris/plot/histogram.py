@@ -59,6 +59,9 @@ def histogram(x, y, *layers,
     nx = resolution
     ny = resolution
 
+    xvals = x.norm
+    yvals = y.norm
+
     # # Get the data values and units
     # datax = holder.get(var_x.name)
     # datay = holder.get(var_y.name)
@@ -73,16 +76,16 @@ def histogram(x, y, *layers,
     autoymax = False
 
     if xmin is None:
-        xmin = finmin(x.values)
+        xmin = finmin(xvals)
         autoxmin = True
     if xmax is None:
-        xmax = finmax(x.values)
+        xmax = finmax(xvals)
         autoxmax = True
     if ymin is None:
-        ymin = finmin(y.values)
+        ymin = finmin(yvals)
         autoymin = True
     if ymax is None:
-        ymax = finmax(y.values)
+        ymax = finmax(yvals)
         autoymax = True
 
     if logx:
@@ -181,7 +184,7 @@ def histogram(x, y, *layers,
     #              "outline": None, "scatter": None}
 
     # Buffer for counts
-    to_process = [np.ones_like(x.values)]
+    to_process = [np.ones_like(xvals)]
     operations = ["sum"]
 
     empty = True
@@ -193,7 +196,7 @@ def histogram(x, y, *layers,
         for layer in layers:
             data, settings, params = parse_layer(layer, mode=mode, norm=norm,
                 vmin=vmin, vmax=vmax, operation=operation, **kwargs)
-            to_process.append(data.values)
+            to_process.append(data.norm)
             to_render.append({"mode": settings["mode"],
                                     "params": params,
                                     "unit": data.unit.units,
@@ -206,7 +209,7 @@ def histogram(x, y, *layers,
     # print("========")
 
     if (operation == "mean") and "sum" in operations:
-        counts, _, _ = np.histogram2d(y.values, x.values, bins=(yedges, xedges))
+        counts, _, _ = np.histogram2d(yvals, xvals, bins=(yedges, xedges))
 
 
 
@@ -244,7 +247,7 @@ def histogram(x, y, *layers,
 
     # print(xedges)
     # print(yedges)
-    binned, _, _, _ = binned_statistic_2d(x=y.values, y=x.values,
+    binned, _, _, _ = binned_statistic_2d(x=yvals, y=xvals,
         values=to_process,
         statistic=operation, bins=[yedges, xedges])
 

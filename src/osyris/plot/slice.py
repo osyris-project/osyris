@@ -39,7 +39,8 @@ def get_slice_direction(direction=None, parent=None, dx=None,
         # r_loc = np.linalg.norm([x_loc, y_loc, z_loc], axis=0)
         # print("r_loc", r_loc)
         # Compute angular momentum vector
-        sphere = np.where(xyz.values < sphere_rad)
+        sphere = np.where(xyz.norm < sphere_rad.magnitude)
+        # sphere = np.where(xyz.values < sphere_rad)
         # print(x_loc[sphere])
         # print(sphere)
         # print(sphere.shape)
@@ -55,7 +56,7 @@ def get_slice_direction(direction=None, parent=None, dx=None,
 
         # vel = np.vstack((parent["velocity_x"][sphere],
         #                  parent["velocity_y"][sphere], holder.get("velocity_z")[sphere])).T
-        AngMom = np.sum(np.cross(pos._array[sphere], vel._array[sphere]), axis=0)
+        AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
         if direction == "side":
             # Choose a vector perpendicular to the angular momentum vector
             dir3 = AngMom
@@ -71,33 +72,43 @@ def get_slice_direction(direction=None, parent=None, dx=None,
         norm1 = np.linalg.norm(dir1)
         print("Normal slice vector: [%.5e,%.5e,%.5e]" % (
             dir1[0]/norm1, dir1[1]/norm1, dir1[2]/norm1))
-        dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
+        # dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
+        dir_vecs = np.array([dir1, dir2, dir3])
 
     elif isinstance(direction, str):
         if len(direction) == 3:  # This is the case where direction = "xyz"
-            dir_vecs = [[direction[0], dir_list[direction[0]]],
-                        [direction[1], dir_list[direction[1]]],
-                        [direction[2], dir_list[direction[2]]]]
+            # dir_vecs = [[direction[0], dir_list[direction[0]]],
+            #             [direction[1], dir_list[direction[1]]],
+            #             [direction[2], dir_list[direction[2]]]]
+            dir_vecs = np.array([dir_list[direction[0]],
+                                 dir_list[direction[1]],
+                                 dir_list[direction[2]]])
         elif direction == "x":
-            dir_vecs = [["x", dir_list["x"]], [
-                "y", dir_list["y"]], ["z", dir_list["z"]]]
+            # dir_vecs = [["x", dir_list["x"]], [
+            #     "y", dir_list["y"]], ["z", dir_list["z"]]]
+            dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
         elif direction == "y":
-            dir_vecs = [["y", dir_list["y"]], [
-                "z", dir_list["z"]], ["x", dir_list["x"]]]
+            dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
+            # dir_vecs = [["y", dir_list["y"]], [
+            #     "z", dir_list["z"]], ["x", dir_list["x"]]]
         elif direction == "z":
-            dir_vecs = [["z", dir_list["z"]], [
-                "x", dir_list["x"]], ["y", dir_list["y"]]]
+            dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
+            # dir_vecs = [["z", dir_list["z"]], [
+            #     "x", dir_list["x"]], ["y", dir_list["y"]]]
     # This is the case where direction = [1,1,2] (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
         dir1 = direction
         dir2 = perpendicular_vector(dir1)
         dir3 = np.cross(dir1, dir2).tolist()
-        dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
+        dir_vecs = np.array([dir1, dir2, dir3])
+        # dir_vecs = [["z", dir1], ["x", dir2], ["y", dir3]]
     # This is the case where two vectors are specified: direction = [[1,0,1],[0,1,0]]
     elif len(direction) == 2:
-        dir_vecs = [["z", direction[0]],
-                    ["x", direction[1]],
-                    ["y", np.cross(direction[0], direction[1]).tolist()]]
+        dir_vecs = np.array([direction[0], direction[1],
+            np.cross(direction[0], direction[1])])
+        # dir_vecs = [["z", direction[0]],
+        #             ["x", direction[1]],
+        #             ["y", np.cross(direction[0], direction[1]).tolist()]]
     else:
         print("Bad direction for slice: ", direction)
         return
@@ -112,8 +123,20 @@ def get_slice_direction(direction=None, parent=None, dx=None,
     # elif dx == 0.0:
     #     dx = dy
 
-    for i in range(3):
-        dir_vecs[i][1] /= np.linalg.norm(dir_vecs[i][1])
+    # for i in range(3):
+    #     dir_vecs[i][1] /= np.linalg.norm(dir_vecs[i][1])
+    # dir_vecs = np.transpose(dir_vecs)
+
+    print("+++++++++++++++")
+    print(dir_vecs)
+    # print(np.linalg.norm(dir_vecs, axis=0))
+    # print(np.linalg.norm(dir_vecs, axis=1))
+    print(np.linalg.norm(dir_vecs, axis=1).reshape(3, 1))
+    print("################")
+    dir_vecs = dir_vecs / np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
+    print(dir_vecs)
+    print("~~~~~~~~~~~~~")
+
 
     # box = [boxmin_x, boxmax_x, boxmin_y, boxmax_y]
 

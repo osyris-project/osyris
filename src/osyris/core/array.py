@@ -42,6 +42,10 @@ class Array:
         # self._vector = values.ndim > 1
         self._parent = parent
         self._name = name
+        if self._array.shape:
+            self._ndim = self._array.shape[-1]
+        else:
+        	self._ndim = 0
         # self.group = group
         # self.vector = vector
         self.special_functions = {"sqrt": self._sqrt}
@@ -67,10 +71,7 @@ class Array:
 
     @property
     def values(self):
-        if self._array.ndim < 2:
-            return self._array
-        else:
-            return np.linalg.norm(self._array, axis=1)
+        return self._array
 
     @values.setter
     def values(self, values_):
@@ -85,6 +86,13 @@ class Array:
         self._array = array_
 
     @property
+    def norm(self):
+        if self._array.ndim < 2:
+            return self._array
+        else:
+            return np.linalg.norm(self._array, axis=1)
+
+    @property
     def unit(self):
         return self._unit
 
@@ -94,7 +102,7 @@ class Array:
 
     @property
     def ndim(self):
-        return self._array.ndim
+        return self._ndim
 
     @property
     def shape(self):

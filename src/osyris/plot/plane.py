@@ -163,7 +163,7 @@ def plane(*layers,
     xyz = parent["xyz"] - origin
     diagonal = parent["dx"] * np.sqrt(3.0) * 0.5
 
-    dist1 = np.sum(xyz * dir_vecs[0][1], axis=1) / np.linalg.norm(dir_vecs[0][1])
+    dist1 = np.sum(xyz * dir_vecs[0], axis=1)# / np.linalg.norm(dir_vecs[0][1])
 
     # Distance from center
     # dist2 = xyz.values - sqrt3*0.5*parent["dx"].values
@@ -178,7 +178,7 @@ def plane(*layers,
     # cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 0.5001*parent["dx"].values*sqrt3,
     #                                np.abs(dist2) <= max(dx, dy)*0.5*np.sqrt(2.0))))
     cube = np.ravel(np.where(np.logical_and(np.abs(dist1) <= 1.0001*diagonal,
-                                   np.abs(dist2.values) <= max(dx.magnitude, dy.magnitude)*0.5*np.sqrt(2.0))))
+                                   np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude)*0.5*np.sqrt(2.0))))
     # print(cube)
 
     ncells = len(cube)
@@ -191,11 +191,13 @@ def plane(*layers,
     coords = xyz[cube]
     # print("coords.shape", coords.shape)
     # print(coords.array)
-    # print(dir_vecs)
+    print("===========")
+    print(dir_vecs)
+    print("===========")
     # print(dir_vecs[1][1])
     # print(dir_vecs[2][1])
-    datax = np.inner(coords, dir_vecs[1][1])
-    datay = np.inner(coords, dir_vecs[2][1])
+    datax = np.inner(coords, dir_vecs[1])
+    datay = np.inner(coords, dir_vecs[2])
     # datadx = sqrt3*0.5*parent["dx"].values.take(cube)
     datadx = diagonal[cube]
 
@@ -274,8 +276,11 @@ def plane(*layers,
                 #     [vec.x.values[cube], vec.y.values[cube], vec.z.values[cube]])
                 # u = np.inner(to_process[key].array.take(cube, axis=0), dir_vecs[1][1])
                 # v = np.inner(to_process[key].array.take(cube, axis=0), dir_vecs[2][1])
-                uv = np.inner(to_process[ind].array.take(cube, axis=0), dir_vecs[1:3][1])
+                # print(to_process[ind].array.take(cube, axis=0).dtype)
+                print(dir_vecs, dir_vecs.shape)
+                uv = np.inner(to_process[ind].array.take(cube, axis=0), dir_vecs[1:])
                 # w = np.sqrt(u**2+v**2)
+                print("uv.shape", uv.shape)
                 w = None
                 if "color" in to_render[ind]["params"]:
                     if not isinstance(to_render[ind]["params"]["color"], str):
@@ -285,11 +290,11 @@ def plane(*layers,
                 to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
             to_render[ind]["data"] = np.zeros([ny, nx, to_process[ind].shape[1]])
         else:
-            to_process[ind] = to_process[ind].values.take(cube)
+            to_process[ind] = to_process[ind].array[cube]
             to_render[ind]["data"] = np.zeros([ny, nx])
 
-    print(datax, datax.unit)
-    print(xmin, xmin.units)
+    # print(datax, datax.unit)
+    # print(xmin, xmin.units)
     datax -= xmin
     datay -= ymin
     # istart = ((datax - datadx) / dpx).array.astype(np.int)
@@ -323,12 +328,17 @@ def plane(*layers,
             counts[j0:j1, i0:i1] += 1.0
 
     # Normalize by counts
-    counts = np.ma.masked_where(counts == 0.0, counts)
+    # counts = np.ma.masked_where(counts == 0.0, counts)
+    mask = counts == 0.0
     for ind in range(len(to_process)):
         if to_render[ind]["data"].ndim > counts.ndim:
-            to_render[ind]["data"] /= counts.reshape(ny, nx, 1)
+            to_render[ind]["data"] = np.ma.masked_where(
+                np.broadcast_to(mask.reshape(ny, nx, 1),
+                                to_render[ind]["data"].shape),
+                to_render[ind]["data"]) / counts.reshape(ny, nx, 1)
         else:
-            to_render[ind]["data"] /= counts
+             to_render[ind]["data"] = np.ma.masked_where(
+                mask, to_render[ind]["data"]) / counts
 
     # Render the map
 
