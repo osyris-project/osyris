@@ -24,13 +24,17 @@ def parse_layer(entry, mode=None, norm=None, vmin=None, vmax=None, operation=Non
         params = {key: entry[key] for key in set(entry.keys()) - set(["data", "mode", "operation"])}
         if "norm" not in params:
             params["norm"] = norm
-        # if "vmin" not in params:
-        #     params["vmin"] = vmin
-        # if "vmax" not in params:
-        #     params["vmax"] = vmax
+        if "vmin" in params:
+            vmin = params["vmin"]
+            del params["vmin"]
+        if "vmax" in params:
+            vmax = params["vmax"]
+            del params["vmax"]
 
         params["norm"] = get_norm(norm=params["norm"],
             vmin=vmin, vmax=vmax)
+
+        print(vmin, vmax, params["norm"].vmin, params["norm"].vmax)
 
         for key, arg in kwargs.items():
             if key not in params:

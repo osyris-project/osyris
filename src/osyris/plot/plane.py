@@ -49,7 +49,7 @@ def plane(*layers,
     for layer in layers:
         data, settings, params = parse_layer(layer, mode=mode, norm=norm,
             vmin=vmin, vmax=vmax, operation=operation, **kwargs)
-        # print(data, settings, params)
+        print(params)
         # if settings["mode"] in ["vec", "stream"]:
         #     to_process[data.name] = data.array
         # else:
@@ -283,10 +283,15 @@ def plane(*layers,
                 print("uv.shape", uv.shape)
                 w = None
                 if "color" in to_render[ind]["params"]:
-                    if not isinstance(to_render[ind]["params"]["color"], str):
+                    # if not isinstance(to_render[ind]["params"]["color"], str):
+                    if isinstance(to_render[ind]["params"]["color"], Array):
+                        w = to_render[ind]["params"]["color"].norm
+                    elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
                         w = to_render[ind]["params"]["color"]
                 if w is None:
                     w = np.linalg.norm(uv, axis=1)
+                else:
+                    w = w.take(cube, axis=0)
                 to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)), axis=1)
             to_render[ind]["data"] = np.zeros([ny, nx, to_process[ind].shape[1]])
         else:
