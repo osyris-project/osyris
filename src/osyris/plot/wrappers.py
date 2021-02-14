@@ -6,14 +6,11 @@ def quiver(ax, x, y, z, density=1, color="w", **kwargs):
     default_args = {
         "angles": "xy",
         "pivot": "mid",
-        # "color": "w"
         }
 
     default_args.update(kwargs)
 
     skips = np.around(np.array(z.shape) * 4.0 / 128.0 / density).astype(np.int)
-    # skipx = int(round(4.0 / density))
-    # skipy = int(round(4.0 / density))
     skip = (slice(None,None,skips[0]),slice(None,None,skips[1]))
 
     args = [x[skip[0]], y[skip[1]], z[..., 0][skip], z[..., 1][skip]]
