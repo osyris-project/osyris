@@ -72,6 +72,11 @@ class Array:
     def __repr__(self):
         return str(self)
 
+    def copy(self):
+        return self.__class__(values=self._array.copy(),
+                              unit=self._unit.copy(),
+                              name=self._name)
+
     @property
     def values(self):
         return self._array

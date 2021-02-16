@@ -18,7 +18,7 @@ def plane(*layers,
           fname=None,
           title=None,
           sinks=True,
-          copy=False,
+          plot=True,
           mode=None,
           norm=None,
           vmin=None,
@@ -37,6 +37,7 @@ def plane(*layers,
 
     to_process = []
     to_render = []
+    operations = []
     for layer in layers:
         data, settings, params = parse_layer(layer,
                                              mode=mode,
@@ -53,6 +54,8 @@ def plane(*layers,
             "unit": data.unit.units,
             "name": data.name
         })
+        operations.append(settings["operation"])
+
 
     parent = to_process[0].parent
 
@@ -166,10 +169,12 @@ def plane(*layers,
             to_render[ind]["data"] = np.ma.masked_where(
                 mask, to_render[ind]["data"]) / counts
 
-    # Render the map
-    figure = render(x=x, y=y, data=to_render, ax=ax)
+    to_return = {"x": x, "y": y, "layers": to_render}
+    if plot:
+        # Render the map
+        figure = render(x=x, y=y, data=to_render, ax=ax)
+        figure["ax"].set_xlabel(parent["xyz"].x.label)
+        figure["ax"].set_ylabel(parent["xyz"].y.label)
+        to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
-    figure["ax"].set_xlabel(parent["xyz"].x.label)
-    figure["ax"].set_ylabel(parent["xyz"].y.label)
-
-    return Plot(x=x, y=y, layers=to_render, fig=figure["fig"], ax=figure["ax"])
+    return Plot(**to_return)
