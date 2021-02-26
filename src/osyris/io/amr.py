@@ -209,7 +209,9 @@ class AmrLoader(Loader):
                            ilevel < info["levelmax"] - 1))
 
     def make_conditions(self, select, ncache):
-        return {"leaf": self.ref[:ncache, :] == True}
+        conditions = super().make_conditions(select, ncache)
+        conditions.update({"leaf": self.ref[:ncache, :] == True})
+        return conditions
 
     def read_footer(self, ncache, twotondim):
         # Increment offsets with remainder of the file
