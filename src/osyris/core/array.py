@@ -36,20 +36,12 @@ class Array:
             self._unit = 1.0 * unit
         else:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
-        # self._label = label
-        # self.operation = operation
-        # self.depth = depth
-        # self.norm = norm
-        # self._kind = "vector" if values.ndim > 1 else "scalar"
-        # self._vector = values.ndim > 1
         self._parent = parent
         self._name = name
         if self._array.shape:
             self._ndim = self._array.shape[-1]
         else:
             self._ndim = 0
-        # self.group = group
-        # self.vector = vector
         self.special_functions = ["sqrt", "power"]
 
     # def __array__(self):
@@ -61,10 +53,20 @@ class Array:
                               parent=self._parent,
                               name=self._name)
 
+    def __len__(self):
+        if self._array.shape:
+            return len(self._array)
+        else:
+            return 0
+
     def __str__(self):
         name_str = "'" + self._name + "' "
-        values_str = "Min: " + value_to_string(
-            self.values.min()) + " Max: " + value_to_string(self.values.max())
+        if len(self) == 0:
+            values_str = "Value: " + value_to_string(self.values)
+        else:
+            values_str = "Min: " + value_to_string(
+                self.values.min()) + " Max: " + value_to_string(
+                    self.values.max())
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
