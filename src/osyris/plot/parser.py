@@ -4,14 +4,9 @@ from matplotlib.colors import LogNorm, Normalize
 
 def get_norm(norm=None, vmin=None, vmax=None):
     if norm == "log":
-        # if vmin is not None:
-        #     vmin = np.log10(vmin)
-        # if vmax is not None:
-        #     vmax = np.log10(vmax)
-        norm = LogNorm(vmin=vmin, vmax=vmax)
+        return LogNorm(vmin=vmin, vmax=vmax)
     else:
-        norm = Normalize(vmin=vmin, vmax=vmax)
-    return norm
+        return Normalize(vmin=vmin, vmax=vmax)
 
 
 def parse_layer(entry,
@@ -41,28 +36,14 @@ def parse_layer(entry,
         for key, arg in kwargs.items():
             if key not in params:
                 params[key] = arg
-        # print(params)
-        # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
 
         settings = {}
         for key in ["mode", "operation"]:
             settings[key] = entry[key] if key in entry else eval(key)
-            # if key in entry:
-            #     settings[key] = entry["mode"]
-            # else:
-            #     layer_mode = mode
-        # if settings["mode"] == "image":
-        #     settings["mode"] = "imshow"
-        # settings["mode"] = get_mode(settings["mode"])
 
         return entry["data"], settings, params
-        # params = {key: entry[key] for key in set(entry.keys() - set(["data"]))}
-        # return entry["data"], kwargs
-        # ret
     else:
         params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
-        # if settings["mode"] == "image":
-        #     settings["mode"] = "imshow"
         return entry, settings, params

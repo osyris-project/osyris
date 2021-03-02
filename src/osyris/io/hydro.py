@@ -19,7 +19,6 @@ class HydroLoader(Loader):
             self.initialized = False
 
         if self.initialized:
-            # loader["hydro"] = {"variables": {}, "offsets": {}, "bytes": {}}
             for i in range(len(descriptor)):
                 key = descriptor[i, 1].strip()
                 read = True
@@ -41,8 +40,6 @@ class HydroLoader(Loader):
                     get_unit(key, code_units["ud"], code_units["ul"],
                              code_units["ut"])
                 }
-        # data.meta["nvar_hydro"] = len(variables_hydro)
-        # return hyd
 
     def read_header(self, info):
         # hydro gamma
@@ -51,7 +48,6 @@ class HydroLoader(Loader):
         [info["gamma"]] = utils.read_binary_data(fmt="d",
                                                  content=self.bytes,
                                                  offsets=self.offsets)
-        # print(data.meta["gamma"])
 
     def read_domain_header(self):
         self.offsets['n'] += 2

@@ -8,7 +8,6 @@ from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 from .parser import parse_layer, get_norm
-# from .engine import OsyrisField
 from scipy.stats import binned_statistic_2d
 
 
@@ -45,10 +44,9 @@ def histogram(x,
     xvals = x.norm
     yvals = y.norm
 
-    # # Get the data values and units
-    xlabel = x.name  # var_x.label+" ["+var_x.unit+"]"
-    ylabel = y.name  # var_y.label+" ["+var_y.unit+"]"
-    default_var = "histo_cell_density"
+    # Get the data values and units
+    xlabel = x.name
+    ylabel = y.name
 
     # Define plotting range
     autoxmin = False
@@ -111,7 +109,8 @@ def histogram(x,
     else:
         yedges = np.linspace(ymin, ymax, ny + 1)
 
-    # In the contour plots, x and y are the centers of the cells, instead of the edges.
+    # In the contour plots, x and y are the centers of the cells, instead of
+    # the edges.
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 

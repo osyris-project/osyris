@@ -86,7 +86,7 @@ class AmrLoader(Loader):
             float(int(nz / 2))
         ]
 
-        # self.meta["nboundary"]
+        # nboundary
         self.offsets["i"] += 2
         self.offsets["n"] += 2
         [self.meta["nboundary"]] = utils.read_binary_data(fmt="i",

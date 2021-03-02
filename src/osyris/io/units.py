@@ -28,7 +28,4 @@ def get_unit(string, ud, ul, ut):
         if key in string:
             return ramses_units[key]
 
-    # print(string)
     return 1.0 * units.dimensionless
-
-    # if string == "density":

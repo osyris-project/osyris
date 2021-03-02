@@ -84,14 +84,8 @@ def load(nout=1, scale=None, path="", select=None):
     istep = 10
     ncells_tot = 0
 
-    null_offsets = {
-        "i": 0,  # integer
-        "d": 0,  # double
-        "n": 0,  # line
-        "s": 0,  # string
-        "q": 0,  # quad
-        "l": 0  # long
-    }
+    # integer, double, line, string, quad, long
+    null_offsets = {key: 0 for key in "idnsql"}
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
     for cpuid in range(data.meta["ncpu"]):
