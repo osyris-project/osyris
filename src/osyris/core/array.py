@@ -50,7 +50,7 @@ class Array:
             self._ndim = 0
         # self.group = group
         # self.vector = vector
-        self.special_functions = {"sqrt": self._sqrt}
+        self.special_functions = ["sqrt", "power"]
 
     # def __array__(self):
     #     return self._array
@@ -397,6 +397,9 @@ class Array:
         return self.__class__(values=other / self._array,
                               unit=1.0 / self._unit)
 
+    def __pow__(self, number):
+        return np.power(self, number)
+
     def __lt__(self, other):
         return _comparison_operator(self, other, "less")
 
@@ -424,7 +427,7 @@ class Array:
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if func.__name__ in self.special_functions:
-            unit = self.special_functions[func.__name__]()
+            unit = func(self.unit, *args[1:], **kwargs)
         else:
             unit = self._unit
         args = (args[0]._array, ) + args[1:]
@@ -445,9 +448,3 @@ class Array:
         Numpy array_function protocol to allow Array to work with numpy functions.
         """
         return self._wrap_numpy(func, *args, **kwargs)
-
-    def _sqrt(self):
-        """
-        Handle unit in sqrt operation.
-        """
-        return np.sqrt(self._unit)
