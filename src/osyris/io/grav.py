@@ -16,7 +16,7 @@ class GravLoader(Loader):
         if self.initialized:
             descriptor = {"grav_potential": "d"}
             for n in range(ndim):
-                descriptor["grav_acceleration_" + "xyz"[n]]: "d"
+                descriptor["grav_acceleration_" + "xyz"[n]] = "d"
             # Now add to the list of variables to be read
             for key in descriptor:
                 read = True
