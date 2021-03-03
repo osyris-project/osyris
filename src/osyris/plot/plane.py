@@ -56,7 +56,6 @@ def plane(*layers,
         })
         operations.append(settings["operation"])
 
-
     parent = to_process[0].parent
 
     # Make it possible to call with only one size in the arguments
@@ -175,6 +174,8 @@ def plane(*layers,
         figure = render(x=x, y=y, data=to_render, ax=ax)
         figure["ax"].set_xlabel(parent["xyz"].x.label)
         figure["ax"].set_ylabel(parent["xyz"].y.label)
+        if ax is None:
+            figure["ax"].set_aspect("equal")
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)
