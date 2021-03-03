@@ -36,7 +36,7 @@ def get_slice_direction(direction=None,
         sphere_rad = 0.5 * dx
         xyz = parent["xyz"] - origin
         # Compute angular momentum vector
-        sphere = np.argwhere(xyz.norm < sphere_rad.magnitude)
+        sphere = np.where(xyz.norm < sphere_rad.magnitude)
         pos = xyz * parent["mass"]
         vel = parent["velocity"]
 
