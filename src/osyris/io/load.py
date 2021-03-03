@@ -4,7 +4,7 @@
 
 import numpy as np
 import struct
-from ..config import config, additional_variables
+from ..config import parameters, additional_variables
 from . import utils
 from ..core import Dict, Array
 from ..core.tools import value_to_string
@@ -22,7 +22,7 @@ def load(nout=1, scale=None, path="", select=None):
         select = {}
 
     if scale is None:
-        scale = config["scale"]
+        scale = parameters["scale"]
 
     # Generate directory name from output number
     infile = utils.generate_fname(nout, path)

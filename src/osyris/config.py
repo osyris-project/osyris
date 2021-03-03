@@ -4,7 +4,7 @@
 """
 Define default values so that you don't have to specify them every time.
 """
-config = {
+parameters = {
     "scale": "au",
     "path": None,
     "select": None,
