@@ -4,10 +4,20 @@
 API Reference
 *************
 
+I/O
+===
+
+.. autosummary::
+   :toctree: generated
+
+   load
+
+
 Plotting
 ========
 
 .. autosummary::
    :toctree: generated
 
-   plot_histogram
+   histogram
+   plane
