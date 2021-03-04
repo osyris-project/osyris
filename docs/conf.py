@@ -20,7 +20,7 @@ sys.path.insert(0, src)
 # -- Project information -----------------------------------------------------
 
 project = 'osyris'
-copyright = '2020, Osyris contributors'
+copyright = '2021, Osyris contributors'
 author = 'Neil Vaytet'
 
 
@@ -73,3 +73,6 @@ html_favicon = "images/favicon.ico"
 html_static_path = ['_static']
 
 nbsphinx_timeout = 300
+
+# Get the data files
+os.system('git clone https://github.com/nvaytet/osyrisdata.git')
