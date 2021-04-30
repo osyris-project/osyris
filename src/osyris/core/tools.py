@@ -38,7 +38,7 @@ def to_bin_edges(x):
     centers = to_bin_centers(x)
     left = centers[0] - (x[1] - x[0])
     right = centers[-1] + (x[-1] - x[-2])
-    return np.concatenate(np.concatenate(left, center), right)
+    return np.concatenate(np.concatenate(left, centers), right)
 
 
 def perpendicular_vector(v):

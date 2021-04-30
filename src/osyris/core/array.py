@@ -172,7 +172,7 @@ class Array:
             else:
                 return lhs.reshape(tuple([1]) + lhs.shape), rhs
 
-    def _raise_incompatible_units_error(other, op):
+    def _raise_incompatible_units_error(self, other, op):
         raise TypeError("Could not {} types {} and {}.".format(
             op, type(self), type(other)))
 
