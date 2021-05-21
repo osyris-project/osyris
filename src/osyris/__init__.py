@@ -28,8 +28,7 @@ config.additional_units(units)
 # from .load_ramses import RamsesData
 from .io import load
 from .plot import histogram, plane
-
-from .core import Plot, Array, Dict
+from .core import Array, Dataset, Plot
 
 # from .plot_histogram import plot_histogram
 # from .plot_slice import plot_slice

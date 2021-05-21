@@ -7,7 +7,7 @@ from ..core.tools import perpendicular_vector
 
 
 def get_slice_direction(direction=None,
-                        parent=None,
+                        dataset=None,
                         dx=None,
                         origin=[0, 0, 0]):
     """
@@ -34,11 +34,11 @@ def get_slice_direction(direction=None,
 
     if direction in ["auto", "top", "side"]:
         sphere_rad = 0.5 * dx
-        xyz = parent["xyz"] - origin
+        xyz = dataset["xyz"] - origin
         # Compute angular momentum vector
         sphere = np.where(xyz.norm < sphere_rad.magnitude)
-        pos = xyz * parent["mass"]
-        vel = parent["velocity"]
+        pos = xyz * dataset["mass"]
+        vel = dataset["velocity"]
 
         AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
         if direction == "side":

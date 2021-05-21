@@ -35,6 +35,24 @@ def plane(*layers,
     if isinstance(layers, Array):
         layers = [layers]
 
+    if isinstance(layers[0], dict):
+        dataset = layers[0]["data"].parent
+    else:
+        dataset = layers[0].parent
+
+    # Set window size
+    if dy == 0.0:
+        dy = dx
+    if not isinstance(dx, Quantity):
+        dx *= dataset["xyz"].unit
+    if not isinstance(dy, Quantity):
+        dy *= dataset["xyz"].unit
+
+    # First cell selection based on cell size
+    selection = np.ravel(
+        np.where(dataset["dx"] > 0.5 * min(dx, dy) / resolution))
+    dataset = dataset[selection]
+
     to_process = []
     to_render = []
     operations = []
@@ -45,6 +63,7 @@ def plane(*layers,
                                              vmin=vmin,
                                              vmax=vmax,
                                              operation=operation,
+                                             selection=selection,
                                              **kwargs)
 
         to_process.append(data)
@@ -56,24 +75,30 @@ def plane(*layers,
         })
         operations.append(settings["operation"])
 
-    parent = to_process[0].parent
+    # dataset = to_process[0].parent
 
-    # Make it possible to call with only one size in the arguments
-    if dy == 0.0:
-        dy = dx
-    if not isinstance(dx, Quantity):
-        dx *= parent["xyz"].unit
-    if not isinstance(dy, Quantity):
-        dy *= parent["xyz"].unit
+    # # Make it possible to call with only one size in the arguments
+    # if dy == 0.0:
+    #     dy = dx
+    # if not isinstance(dx, Quantity):
+    #     dx *= dataset["xyz"].unit
+    # if not isinstance(dy, Quantity):
+    #     dy *= dataset["xyz"].unit
+
+    # # First cell selection based on cell size
+    # print(min(dx, dy))
+    # selection = np.ravel(
+    #     np.where(dataset["dx"] > 0.5 * min(dx, dy) / resolution))
+    # dataset = dataset[selection]
 
     dir_vecs, origin = get_slice_direction(direction=direction,
-                                           parent=parent,
+                                           dataset=dataset,
                                            dx=0.5 * (dx + dy),
                                            origin=origin)
 
     # Distance to the plane
-    xyz = parent["xyz"] - origin
-    diagonal = parent["dx"] * np.sqrt(3.0) * 0.5
+    xyz = dataset["xyz"] - origin
+    diagonal = dataset["dx"] * np.sqrt(3.0) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0],
                    axis=1)  # / np.linalg.norm(dir_vecs[0][1])
 
@@ -137,10 +162,10 @@ def plane(*layers,
 
     datax -= xmin
     datay -= ymin
-    istart = ((datax - datadx) / dpx).array.astype(np.int)
-    iend = ((datax + datadx) / dpx).array.astype(np.int) + 1
-    jstart = ((datay - datadx) / dpy).array.astype(np.int)
-    jend = ((datay + datadx) / dpy).array.astype(np.int) + 1
+    istart = ((datax - datadx) / dpx).array.astype(np.int64)
+    iend = ((datax + datadx) / dpx).array.astype(np.int64) + 1
+    jstart = ((datay - datadx) / dpy).array.astype(np.int64)
+    jend = ((datay + datadx) / dpy).array.astype(np.int64) + 1
 
     for i in range(len(istart)):
         i0 = istart[i]
@@ -172,8 +197,8 @@ def plane(*layers,
     if plot:
         # Render the map
         figure = render(x=x, y=y, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(parent["xyz"].x.label)
-        figure["ax"].set_ylabel(parent["xyz"].y.label)
+        figure["ax"].set_xlabel(dataset["xyz"].x.label)
+        figure["ax"].set_ylabel(dataset["xyz"].y.label)
         if ax is None:
             figure["ax"].set_aspect("equal")
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})

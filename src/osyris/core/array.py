@@ -11,7 +11,7 @@ def _comparison_operator(lhs, rhs, op):
         scale_r = rhs.unit.to(lhs._unit.units)
         return func(lhs._array, rhs._array * scale_r.magnitude)
     if isinstance(rhs, Quantity):
-        return func(lhs._array < rhs.to(lhs._unit.units).magnitude)
+        return func(lhs._array, rhs.to(lhs._unit.units).magnitude)
     return func(lhs._array, rhs)
 
 

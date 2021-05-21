@@ -6,7 +6,7 @@ import numpy as np
 import struct
 from ..config import parameters, additional_variables
 from . import utils
-from ..core import Dict, Array
+from ..core import Dataset, Array
 from ..core.tools import value_to_string
 from .amr import AmrLoader
 from .grav import GravLoader
@@ -16,7 +16,7 @@ from .rt import RtLoader
 
 def load(nout=1, scale=None, path="", select=None):
 
-    data = Dict()
+    data = Dataset()
 
     if select is None:
         select = {}
@@ -93,7 +93,8 @@ def load(nout=1, scale=None, path="", select=None):
         # Print progress
         percentage = int(float(cpuid) * 100.0 / float(data.meta["ncpu"]))
         if percentage >= iprog * istep:
-            print("%3i%% : read %10i cells" % (percentage, ncells_tot))
+            print("{:>3d}% : read {:>10d} cells".format(
+                percentage, ncells_tot))
             iprog += 1
 
         # Read binary files

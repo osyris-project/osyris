@@ -1,3 +1,3 @@
 from .array import Array
-from .dict import Dict
+from .dataset import Dataset
 from .plot import Plot

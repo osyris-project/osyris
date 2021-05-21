@@ -3,7 +3,7 @@ from .array import Array
 # from ..utils import value_to_string
 
 
-class Dict:
+class Dataset:
     def __init__(self):
         self._container = {}
         self.meta = {}
@@ -19,7 +19,7 @@ class Dict:
         if isinstance(key, str):
             return self._container[key]
         else:
-            d = Dict()
+            d = Dataset()
             for name, val in self.items():
                 d[name] = val[key]
             d.meta.update(self.meta)
