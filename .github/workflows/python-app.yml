@@ -33,5 +33,6 @@ jobs:
         cd docs
         export PATH=$CONDA/bin:$PATH
         which python
-        if [ -f requirements.txt ]; then conda install -c conda-forge --file requirements.txt; fi
+        which conda
+        if [ -f requirements.txt ]; then conda install -c conda-forge $( cat requirements.txt ); fi
         sphinx-build -b html . build
