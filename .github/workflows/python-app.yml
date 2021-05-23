@@ -18,8 +18,9 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
+        which python
         python -m pip install --upgrade pip
-        pip install flake8 yapf sphinx nbsphinx
+        pip install flake8 yapf
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
@@ -30,5 +31,6 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        which python
+        if [ -f requirements.txt ]; then conda install --file requirements.txt; fi
         sphinx-build -b html . build
