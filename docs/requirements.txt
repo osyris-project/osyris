@@ -4,3 +4,4 @@ scipy
 nbsphinx
 jupyter
 pint
+sphinx_rtd_theme
