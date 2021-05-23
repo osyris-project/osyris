@@ -35,24 +35,6 @@ def plane(*layers,
     if isinstance(layers, Array):
         layers = [layers]
 
-    if isinstance(layers[0], dict):
-        dataset = layers[0]["data"].parent
-    else:
-        dataset = layers[0].parent
-
-    # Set window size
-    if dy == 0.0:
-        dy = dx
-    if not isinstance(dx, Quantity):
-        dx *= dataset["xyz"].unit
-    if not isinstance(dy, Quantity):
-        dy *= dataset["xyz"].unit
-
-    # First cell selection based on cell size
-    selection = np.ravel(
-        np.where(dataset["dx"] > 0.5 * min(dx, dy) / resolution))
-    dataset = dataset[selection]
-
     to_process = []
     to_render = []
     operations = []
@@ -63,7 +45,6 @@ def plane(*layers,
                                              vmin=vmin,
                                              vmax=vmax,
                                              operation=operation,
-                                             selection=selection,
                                              **kwargs)
 
         to_process.append(data)
@@ -75,21 +56,15 @@ def plane(*layers,
         })
         operations.append(settings["operation"])
 
-    # dataset = to_process[0].parent
+    dataset = to_process[0].parent
 
-    # # Make it possible to call with only one size in the arguments
-    # if dy == 0.0:
-    #     dy = dx
-    # if not isinstance(dx, Quantity):
-    #     dx *= dataset["xyz"].unit
-    # if not isinstance(dy, Quantity):
-    #     dy *= dataset["xyz"].unit
-
-    # # First cell selection based on cell size
-    # print(min(dx, dy))
-    # selection = np.ravel(
-    #     np.where(dataset["dx"] > 0.5 * min(dx, dy) / resolution))
-    # dataset = dataset[selection]
+    # Set window size
+    if dy == 0.0:
+        dy = dx
+    if not isinstance(dx, Quantity):
+        dx *= dataset["xyz"].unit
+    if not isinstance(dy, Quantity):
+        dy *= dataset["xyz"].unit
 
     dir_vecs, origin = get_slice_direction(direction=direction,
                                            dataset=dataset,

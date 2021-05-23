@@ -15,7 +15,6 @@ def parse_layer(entry,
                 vmin=None,
                 vmax=None,
                 operation=None,
-                selection=None,
                 **kwargs):
 
     if isinstance(entry, dict):
@@ -41,15 +40,9 @@ def parse_layer(entry,
         settings = {}
         for key in ["mode", "operation"]:
             settings[key] = entry[key] if key in entry else eval(key)
-        data = entry["data"]
-        if selection is not None:
-            data = data[selection]
-        return data, settings, params
+        return entry["data"], settings, params
     else:
         params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
-        data = entry
-        if selection is not None:
-            data = data[selection]
-        return data, settings, params
+        return entry, settings, params

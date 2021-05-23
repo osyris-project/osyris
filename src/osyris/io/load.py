@@ -14,7 +14,7 @@ from .hydro import HydroLoader
 from .rt import RtLoader
 
 
-def load(nout=1, scale=None, path="", select=None):
+def load(nout=1, scale=None, path="", select=None, lmax=None):
 
     data = Dataset()
 
@@ -37,6 +37,12 @@ def load(nout=1, scale=None, path="", select=None):
     data.meta["path"] = path
     data.meta["boxsize"] = data.meta["boxlen"] * data.meta["unit_l"]
     data.meta["time"] = data.meta["time"] * data.meta["unit_t"]
+
+    # Take into account user specified lmax
+    if lmax is not None:
+        data.meta["lmax"] = lmax
+    else:
+        data.meta["lmax"] = data.meta["levelmax"]
 
     code_units = {
         "ud": data.meta["unit_d"],
@@ -112,7 +118,7 @@ def load(nout=1, scale=None, path="", select=None):
             loader.read_header(data.meta)
 
         # Loop over levels
-        for ilevel in range(data.meta["levelmax"]):
+        for ilevel in range(data.meta["lmax"]):
 
             for loader in loaders.values():
                 loader.read_level_header(ilevel, twotondim)

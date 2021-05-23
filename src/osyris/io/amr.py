@@ -204,9 +204,12 @@ class AmrLoader(Loader):
             "boxlen"] * self.variables["dx"]["unit"].magnitude
         self.variables["cpu"]["buffer"][:ncache, ind] = cpuid + 1
 
+        # Note: use lmax here instead of levelmax because the user might not
+        # want to load all levels. levelmax is always the max level in the
+        # entire simulation.
         self.ref[:ncache, ind] = np.logical_not(
             np.logical_and(self.son[:ncache, ind] > 0,
-                           ilevel < info["levelmax"] - 1))
+                           ilevel < info["lmax"] - 1))
 
     def make_conditions(self, select, ncache):
         conditions = super().make_conditions(select, ncache)
