@@ -36,3 +36,8 @@ jobs:
         which conda
         if [ -f requirements.txt ]; then conda install -c conda-forge $( cat requirements.txt ); fi
         sphinx-build -b html . build
+    - name: Archive documentation artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: DocumentationHTML
+        path: docs/build
