@@ -3,7 +3,13 @@
 
 name: Python application
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   build:
@@ -41,3 +47,7 @@ jobs:
       with:
         name: DocumentationHTML
         path: docs/build
+    - name: Deploy to Pypi
+      run: |
+        echo "DEPLOYMENT!"
+      if: github.event_name == 'release' && github.event.action == 'created'
