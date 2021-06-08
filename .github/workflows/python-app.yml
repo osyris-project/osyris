@@ -37,7 +37,7 @@ jobs:
     - name: Build documentation
       run: |
         export PATH=$CONDA/bin:$PATH
-        if [ -f requirements.txt ]; then conda install -c conda-forge $( cat requirements.txt ); fi
+        if [ -f docs/requirements.txt ]; then conda install -c conda-forge $( cat docs/requirements.txt ); fi
         sphinx-build -b html docs/. docs/build
     - name: Archive documentation artifacts
       uses: actions/upload-artifact@v2
