@@ -20,9 +20,8 @@ sys.path.insert(0, src)
 # -- Project information -----------------------------------------------------
 
 project = 'osyris'
-copyright = '2020, Osyris contributors'
+copyright = '2021, Osyris contributors'
 author = 'Neil Vaytet'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -30,9 +29,7 @@ author = 'Neil Vaytet'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.mathjax',
+    'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.mathjax',
     'nbsphinx'
 ]
 
@@ -59,17 +56,17 @@ master_doc = 'index'
 #
 html_theme = "sphinx_rtd_theme"
 
-html_theme_options = {
-    'logo_only': True
-}
+html_theme_options = {'logo_only': True}
 
 html_logo = "images/logo_osyris.png"
 html_favicon = "images/favicon.ico"
 
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ['_static']
 
 nbsphinx_timeout = 300
+
+# Get the data files
+os.system('git clone https://github.com/nvaytet/osyrisdata.git')

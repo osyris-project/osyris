@@ -1,9 +1,15 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python application
+name: Build pipeline for Osyris
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   build:
@@ -18,8 +24,9 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
+        which python
         python -m pip install --upgrade pip
-        pip install flake8 yapf sphinx nbsphinx
+        pip install flake8 yapf build
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Lint with flake8
       run: |
@@ -29,5 +36,20 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Build documentation
       run: |
-        cd docs
-        sphinx-build -b html . build
+        export PATH=$CONDA/bin:$PATH
+        if [ -f docs/requirements.txt ]; then conda install -c conda-forge $( cat docs/requirements.txt ); fi
+        sphinx-build -b html docs/. docs/build
+    - name: Archive documentation artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: DocumentationHTML
+        path: docs/build
+    - name: Build a binary wheel and a source tarball
+      if: startsWith(github.ref, 'refs/tags')
+      run: |
+        python -m build --sdist --wheel --outdir dist/ .
+    - name: Publish to PyPI
+      if: startsWith(github.ref, 'refs/tags')
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}

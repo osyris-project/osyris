@@ -25,13 +25,13 @@ Installation
 
    installation
 
-Basic usage
-===========
+Basics
+======
 
 .. toctree::
    :maxdepth: 2
 
-   basic-usage
+   basics
 
 Configuration
 =============
@@ -41,13 +41,29 @@ Configuration
 
    configuration
 
-Examples
+Data structures
+===============
+
+.. toctree::
+   :maxdepth: 2
+
+   data_structures
+
+Loading data
+============
+
+.. toctree::
+   :maxdepth: 2
+
+   loading_data
+
+Plotting
 ========
 
 .. toctree::
    :maxdepth: 2
 
-   examples
+   plotting
 
 API
 ===
