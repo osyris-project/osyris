@@ -31,7 +31,6 @@ jobs:
     - name: Check yapf formatting
       run: |
         yapf --diff --recursive .
-        yapf --quiet --recursive .
     - name: Lint with flake8
       run: |
         flake8 . --count --statistics
