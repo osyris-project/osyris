@@ -1,10 +1,9 @@
 import osyris
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def test_1d_array():
-    a =  np.arange(100.)
+    a = np.arange(100.)
     array = osyris.Array(values=a, unit="m")
     assert array.unit == osyris.units('m')
     assert len(array) == len(a)
