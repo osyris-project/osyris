@@ -38,7 +38,7 @@ jobs:
       run: |
         pip install numpy
         pip install -r docs/requirements.txt
-        export PYTHONPATH=$(pwd)/src/osyris:$PYTHONPATH
+        export PYTHONPATH=$PYTHONPATH:$(pwd)/src/osyris
         python -m pytest test
     - name: Build documentation
       run: |
