@@ -36,10 +36,8 @@ jobs:
         flake8 . --count --statistics
     - name: Run python tests
       run: |
-        which python
-        python -m pip install numpy
-        python -m pip install -r docs/requirements.txt
-        export PYTHONPATH=$PYTHONPATH:$(pwd)/src/osyris
+        pip install -r docs/requirements.txt
+        ln -s $(pwd)/src/osyris .
         python -m pytest test
     - name: Build documentation
       run: |
