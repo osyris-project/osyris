@@ -1,4 +1,6 @@
-import numpy as np
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
+
 from matplotlib.colors import LogNorm, Normalize
 
 

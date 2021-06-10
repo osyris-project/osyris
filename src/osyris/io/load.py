@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
 
 import numpy as np
-import struct
 from ..config import parameters, additional_variables
 from . import utils
 from ..core import Dataset, Array
-from ..core.tools import value_to_string
 from .amr import AmrLoader
 from .grav import GravLoader
 from .hydro import HydroLoader
@@ -76,9 +73,9 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     # We will store the cells in a dictionary which we build as we go along.
     # The final concatenation into a single array will be done once at the end.
     npieces = 0
-    part_pieces = {}
-    npieces_part = 0
-    npart_count = 0
+    # part_pieces = {}
+    # npieces_part = 0
+    # npart_count = 0
 
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
@@ -153,7 +150,8 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                         for loader in loaders.values():
                             conditions.update(
                                 loader.make_conditions(select, ncache))
-                        # Combine all selection criteria together with AND operation by using a product on bools
+                        # Combine all selection criteria together with AND
+                        # operation by using a product on bools
                         sel = np.where(
                             np.prod(np.array(list(conditions.values())),
                                     axis=0))
