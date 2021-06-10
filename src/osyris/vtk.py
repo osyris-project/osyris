@@ -1,6 +1,5 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 # flake8: noqa
 
