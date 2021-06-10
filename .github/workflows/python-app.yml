@@ -36,8 +36,7 @@ jobs:
         flake8 . --count --statistics
     - name: Run python tests
       run: |
-        export PATH=$CONDA/bin:$PATH
-        if [ -f docs/requirements.txt ]; then conda install -c conda-forge $( cat docs/requirements.txt ); fi
+        pip install -r docs/requirements.txt
         python -m pytest test
     - name: Build documentation
       run: |

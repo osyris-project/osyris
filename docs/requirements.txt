@@ -5,5 +5,5 @@ sphinx
 nbsphinx
 jupyter
 pint
-sphinx_rtd_theme
+sphinx-rtd-theme
 pandoc
