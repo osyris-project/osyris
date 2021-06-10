@@ -26,6 +26,7 @@ jobs:
       run: |
         which python
         python -m pip install --upgrade pip
+        python -m pip install flake8 yapf build pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Check yapf formatting
       run: |
@@ -35,8 +36,9 @@ jobs:
         flake8 . --count --statistics
     - name: Run python tests
       run: |
-        pip install numpy
-        pip install -r docs/requirements.txt
+        which python
+        python -m pip install numpy
+        python -m pip install -r docs/requirements.txt
         export PYTHONPATH=$PYTHONPATH:$(pwd)/src/osyris
         python -m pytest test
     - name: Build documentation
