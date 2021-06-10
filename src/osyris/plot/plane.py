@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
 
 import numpy as np
 from pint.quantity import Quantity
@@ -8,7 +7,6 @@ from .slice import get_slice_direction
 from .render import render
 from .parser import parse_layer
 from ..core import Plot, Array
-from .. import units
 
 
 def plane(*layers,
@@ -80,7 +78,8 @@ def plane(*layers,
     # Distance from center
     dist2 = xyz - diagonal
 
-    # Select only the cells in contact with the slice., i.e. at a distance less than dx/2
+    # Select only the cells in contact with the slice,
+    # at a distance less than dx/2
     cube = np.ravel(
         np.where(
             np.logical_and(
@@ -90,7 +89,8 @@ def plane(*layers,
 
     ncells = len(cube)
 
-    # Project coordinates onto the plane by taking dot product with axes vectors
+    # Project coordinates onto the plane by taking dot product with axes
+    # vectors
     coords = xyz[cube]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])

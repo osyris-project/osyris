@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
 
 import numpy as np
 from ..core.tools import perpendicular_vector
@@ -23,14 +22,15 @@ def get_slice_direction(direction=None,
     # # Transform origin to coordinates if sink is requested
     # try:
     #     if origin.startswith("sink"):
-    #         isink = np.where(holder.sinks["id"] == int(origin.split(":")[1]))[0][0]
+    #         isink = np.where(holder.sinks["id"] ==
+    #          int(origin.split(":")[1]))[0][0]
     #         origin = [holder.sinks["x"][isink], holder.sinks["y"]
     #                   [isink], holder.sinks["z"][isink]]
     # except AttributeError:
     #     pass
 
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
-    dir_type = len(np.shape(direction))
+    # dir_type = len(np.shape(direction))
 
     if direction in ["auto", "top", "side"]:
         sphere_rad = 0.5 * dx
@@ -70,13 +70,15 @@ def get_slice_direction(direction=None,
             dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
         elif direction == "z":
             dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
-    # This is the case where direction = [1,1,2] (i.e. is a vector with 3 numbers)
+    # This is the case where direction = [1,1,2]
+    # (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
         dir1 = direction
         dir2 = perpendicular_vector(dir1)
         dir3 = np.cross(dir1, dir2).tolist()
         dir_vecs = np.array([dir1, dir2, dir3])
-    # This is the case where two vectors are specified: direction = [[1,0,1],[0,1,0]]
+    # This is the case where two vectors are specified:
+    # direction = [[1,0,1],[0,1,0]]
     elif len(direction) == 2:
         dir_vecs = np.array(
             [direction[0], direction[1],

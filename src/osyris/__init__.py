@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
+
+# flake8: noqa
+
 # Import the config from "/home/user/.osyris/config if it exists.
 # If it doesn't, try to create one by copying the default from the source.
 # If that fails, just load the default.
@@ -25,15 +30,6 @@ except ImportError:
 
 config.additional_units(units)
 
-# from .load_ramses import RamsesData
 from .io import load
 from .plot import histogram, plane
 from .core import Array, Dataset, Plot
-
-# from .plot_histogram import plot_histogram
-# from .plot_slice import plot_slice
-# from .plot_column_density import plot_column_density
-# from .plot_3d import plot_volume, plot_quiver
-# from . import ism_physics
-# from .vtk import to_vtk
-# from .interpolate import interpolate

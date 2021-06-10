@@ -163,7 +163,6 @@ class AmrLoader(Loader):
     def read_level_header(self, ilevel, twotondim):
         # Geometry
         self.dxcell = 0.5**(ilevel + 1)
-        dx2 = 0.5 * self.dxcell
         for ind in range(twotondim):
             iz = int((ind) / 4)
             iy = int((ind - 4 * iz) / 2)
@@ -213,7 +212,7 @@ class AmrLoader(Loader):
 
     def make_conditions(self, select, ncache):
         conditions = super().make_conditions(select, ncache)
-        conditions.update({"leaf": self.ref[:ncache, :] == True})
+        conditions.update({"leaf": self.ref[:ncache, :]})
         return conditions
 
     def read_footer(self, ncache, twotondim):

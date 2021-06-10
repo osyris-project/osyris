@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2019 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
 
 import numpy as np
 from ..core import Plot
@@ -43,10 +42,6 @@ def histogram(x,
 
     xvals = x.norm
     yvals = y.norm
-
-    # Get the data values and units
-    xlabel = x.name
-    ylabel = y.name
 
     # Define plotting range
     autoxmin = False

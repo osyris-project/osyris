@@ -1,11 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
-# @author Neil Vaytet
 
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.collections
-from matplotlib.colors import LogNorm, Normalize
 from ..config import parameters
 from . import wrappers
 from ..core.tools import make_label
