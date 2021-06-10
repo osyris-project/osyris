@@ -6,4 +6,3 @@ nbsphinx
 jupyter
 pint
 sphinx-rtd-theme
-pandoc

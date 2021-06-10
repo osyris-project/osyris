@@ -37,6 +37,7 @@ jobs:
     - name: Run python tests
       run: |
         pip install -r docs/requirements.txt
+        apt install pandoc
         ln -s $(pwd)/src/osyris .
         python -m pytest test
     - name: Build documentation
