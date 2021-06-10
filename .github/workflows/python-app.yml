@@ -26,7 +26,7 @@ jobs:
       run: |
         which python
         python -m pip install --upgrade pip
-        pip install flake8 yapf build
+        pip install flake8 yapf build pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Check yapf formatting
       run: |
@@ -34,10 +34,13 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 . --count --statistics
-    - name: Build documentation
+    - name: Run python tests
       run: |
         export PATH=$CONDA/bin:$PATH
         if [ -f docs/requirements.txt ]; then conda install -c conda-forge $( cat docs/requirements.txt ); fi
+        python -m pytest test
+    - name: Build documentation
+      run: |
         sphinx-build -b html docs/. docs/build
     - name: Archive documentation artifacts
       uses: actions/upload-artifact@v2
