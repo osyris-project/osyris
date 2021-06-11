@@ -49,7 +49,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
 
     loader_list = {
         "amr":
-        AmrLoader(scale=scale, code_units=code_units),
+        AmrLoader(scale=scale, code_units=code_units, ndim=data.meta["ndim"]),
         "hydro":
         HydroLoader(infile=infile, select=select, code_units=code_units),
         "grav":
@@ -203,25 +203,18 @@ def make_vector_arrays(data):
     """
     Merge vector components in 2d arrays.
     """
-    if data.meta["ndim"] > 1:
+    components = list("xyz"[:data.meta["ndim"]])
+    if len(components) > 1:
         skip = []
         for key in list(data.keys()):
             if key.endswith("_x") and key not in skip:
                 rawkey = key[:-2]
-                ok = rawkey + "_y" in data
-                if data.meta["ndim"] > 2:
-                    ok = ok and rawkey + "_z" in data
-
-                if ok:
-                    values = np.array([
-                        data[rawkey + '_x'].values, data[rawkey + '_y'].values,
-                        data[rawkey + '_z'].values
-                    ]).T
-
-                    data[rawkey] = Array(values=values, unit=data[key].unit)
-                    del data[key]
-                    del data[rawkey + "_y"]
-                    skip.append(rawkey + "_y")
-                    if data.meta["ndim"] > 2:
-                        del data[rawkey + "_z"]
-                        skip.append(rawkey + "_z")
+                comps_found = [rawkey + "_" + c in data for c in components]
+                if all(comps_found):
+                    data[rawkey] = Array(values=np.array(
+                        [data[rawkey + "_" + c].values for c in components]).T,
+                                         unit=data[key].unit)
+                    for c in components:
+                        comp = rawkey + "_" + c
+                        del data[comp]
+                        skip.append(comp)
