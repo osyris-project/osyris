@@ -3,12 +3,10 @@
 
 import numpy as np
 from ..core.tools import perpendicular_vector
+from ..core import Array
 
 
-def get_slice_direction(direction=None,
-                        dataset=None,
-                        dx=None,
-                        origin=[0, 0, 0]):
+def get_slice_direction(direction=None, dataset=None, dx=None, origin=None):
     """
     Find direction vectors for slice.
 
@@ -29,10 +27,15 @@ def get_slice_direction(direction=None,
     # except AttributeError:
     #     pass
 
+    ndim = dataset.meta["ndim"]
+
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
     # dir_type = len(np.shape(direction))
 
-    if direction in ["auto", "top", "side"]:
+    if ndim < 3:
+        dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
+
+    elif direction in ["auto", "top", "side"]:
         sphere_rad = 0.5 * dx
         xyz = dataset["xyz"] - origin
         # Compute angular momentum vector
@@ -87,5 +90,12 @@ def get_slice_direction(direction=None,
         print("Bad direction for slice: ", direction)
         return
 
-    dir_vecs = dir_vecs / np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
+    # Avoid division by zero in norm
+    norm = np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
+    norm[norm == 0.] = 1.0
+    dir_vecs = dir_vecs / norm
+
+    if origin is None:
+        origin = Array(values=np.zeros([1, ndim]), unit=dataset["xyz"].unit)
+
     return dir_vecs, origin

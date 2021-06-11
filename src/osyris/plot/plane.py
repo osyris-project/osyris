@@ -22,7 +22,7 @@ def plane(*layers,
           vmin=None,
           vmax=None,
           operation="mean",
-          origin=[0, 0, 0],
+          origin=None,
           resolution=256,
           ax=None,
           **kwargs):
@@ -71,7 +71,7 @@ def plane(*layers,
 
     # Distance to the plane
     xyz = dataset["xyz"] - origin
-    diagonal = dataset["dx"] * np.sqrt(3.0) * 0.5
+    diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0],
                    axis=1)  # / np.linalg.norm(dir_vecs[0][1])
 

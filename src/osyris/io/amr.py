@@ -6,7 +6,7 @@ from . import utils
 
 
 class AmrLoader(Loader):
-    def __init__(self, scale=None, code_units=None):
+    def __init__(self, scale=None, code_units=None, ndim=1):
 
         super().__init__()
 
@@ -35,27 +35,6 @@ class AmrLoader(Loader):
                 "pieces": {},
                 "unit": 1.0 * units.dimensionless
             },
-            "xyz_x": {
-                "read": True,
-                "type": "d",
-                "buffer": None,
-                "pieces": {},
-                "unit": scaling
-            },
-            "xyz_y": {
-                "read": True,
-                "type": "d",
-                "buffer": None,
-                "pieces": {},
-                "unit": scaling
-            },
-            "xyz_z": {
-                "read": True,
-                "type": "d",
-                "buffer": None,
-                "pieces": {},
-                "unit": scaling
-            },
             "dx": {
                 "read": True,
                 "type": "d",
@@ -63,6 +42,16 @@ class AmrLoader(Loader):
                 "pieces": {},
                 "unit": scaling
             }
+        })
+        self.variables.update({
+            "xyz_{}".format(c): {
+                "read": True,
+                "type": "d",
+                "buffer": None,
+                "pieces": {},
+                "unit": scaling
+            }
+            for c in "xyz"[:ndim]
         })
 
     def allocate_buffers(self, ngridmax, twotondim):
