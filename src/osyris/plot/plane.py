@@ -94,7 +94,7 @@ def plane(*layers,
     coords = xyz[cube]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
-    datadx = diagonal[cube]
+    datadx = diagonal[cube] / np.sqrt(dataset.meta["ndim"])
 
     # Define slice extent and resolution
     xmin = -0.5 * dx
@@ -167,6 +167,11 @@ def plane(*layers,
         else:
             to_render[ind]["data"] = np.ma.masked_where(
                 mask, to_render[ind]["data"]) / counts
+
+    import matplotlib.pyplot as plt
+    fig1, ax1 = plt.subplots()
+    ax1.imshow(counts, origin="lower", cmap="jet")
+    fig1.show()
 
     to_return = {"x": x, "y": y, "layers": to_render}
     if plot:
