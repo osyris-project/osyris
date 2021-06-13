@@ -7,6 +7,9 @@ from .slice import get_slice_direction
 from .render import render
 from .parser import parse_layer
 from ..core import Plot, Array
+from ..core.tools import to_bin_centers
+from scipy.stats import binned_statistic_2d
+from scipy import ndimage as nd
 
 
 def plane(*layers,
@@ -97,86 +100,176 @@ def plane(*layers,
     datadx = diagonal[cube] / np.sqrt(dataset.meta["ndim"])
 
     # Define slice extent and resolution
-    xmin = -0.5 * dx
-    xmax = xmin + dx
-    ymin = -0.5 * dy
-    ymax = ymin + dy
+    xmin = -0.5 * dx.magnitude
+    xmax = xmin + dx.magnitude
+    ymin = -0.5 * dy.magnitude
+    ymax = ymin + dy.magnitude
     nx = resolution
     ny = resolution
-    dpx = (xmax - xmin) / float(nx)
-    dpy = (ymax - ymin) / float(ny)
-    x = np.linspace(xmin + 0.5 * dpx, xmax - 0.5 * dpx, nx).magnitude
-    y = np.linspace(ymin + 0.5 * dpy, ymax - 0.5 * dpy, ny).magnitude
+    # dpx = (xmax - xmin) / float(nx)
+    # dpy = (ymax - ymin) / float(ny)
+    # x = np.linspace(xmin + 0.5 * dpx, xmax - 0.5 * dpx, nx).magnitude
+    # y = np.linspace(ymin + 0.5 * dpy, ymax - 0.5 * dpy, ny).magnitude
 
-    counts = np.zeros([ny, nx])
+    # counts = np.zeros([ny, nx])
+    scalar_layer = []
+    to_binning = []
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream"]:
             if to_process[ind].ndim < 3:
-                to_process[ind] = to_process[ind].array[cube]
+                uv = to_process[ind].array[cube]
+                # to_binning.append(uv[:, 0])
+                # to_binning.append(uv[:, 1])
             else:
                 uv = np.inner(to_process[ind].array.take(cube, axis=0),
                               dir_vecs[1:])
-                w = None
-                if "color" in to_render[ind]["params"]:
-                    if isinstance(to_render[ind]["params"]["color"], Array):
-                        w = to_render[ind]["params"]["color"].norm
-                    elif isinstance(to_render[ind]["params"]["color"],
-                                    np.ndarray):
-                        w = to_render[ind]["params"]["color"]
-                if w is None:
-                    w = np.linalg.norm(uv, axis=1)
-                else:
-                    w = w.take(cube, axis=0)
-                to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)),
-                                                 axis=1)
-            to_render[ind]["data"] = np.zeros(
-                [ny, nx, to_process[ind].shape[1]])
+            w = None
+            if "color" in to_render[ind]["params"]:
+                if isinstance(to_render[ind]["params"]["color"], Array):
+                    w = to_render[ind]["params"]["color"].norm
+                elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
+                    w = to_render[ind]["params"]["color"]
+            if w is None:
+                w = np.linalg.norm(uv, axis=1)
+            else:
+                w = w.take(cube, axis=0)
+            print("uv.shape", uv.shape)
+            to_binning.append(uv[:, 0])
+            to_binning.append(uv[:, 1])
+            to_binning.append(w)
+            # to_process[ind] = np.concatenate((uv, w.reshape(ncells, 1)),
+            #                                  axis=1)
+
+            scalar_layer.append(False)
+            # to_render[ind]["data"] = np.zeros(
+            #     [ny, nx, to_process[ind].shape[1]])
         else:
-            to_process[ind] = to_process[ind].array[cube]
-            to_render[ind]["data"] = np.zeros([ny, nx])
+            # to_process[ind] = to_process[ind].array[cube]
+            to_binning.append(to_process[ind].array[cube])
+            # to_render[ind]["data"] = np.zeros([ny, nx])
+            scalar_layer.append(True)
 
-    datax -= xmin
-    datay -= ymin
-    istart = ((datax - datadx) / dpx).array.astype(np.int64)
-    iend = ((datax + datadx) / dpx).array.astype(np.int64) + 1
-    jstart = ((datay - datadx) / dpy).array.astype(np.int64)
-    jend = ((datay + datadx) / dpy).array.astype(np.int64) + 1
+    # Buffer for counts
+    to_binning.append(np.ones_like(to_binning[0]))
 
-    for i in range(len(istart)):
-        i0 = istart[i]
-        i1 = iend[i]
-        j0 = jstart[i]
-        j1 = jend[i]
-        if i0 <= nx and j0 <= ny and i1 > 0 and j1 > 0:
-            i0 = max(i0, 0)
-            i1 = min(i1, nx)
-            j0 = max(j0, 0)
-            j1 = min(j1, ny)
-            for ind in range(len(to_process)):
-                to_render[ind]["data"][j0:j1, i0:i1] += to_process[ind][i]
-            counts[j0:j1, i0:i1] += 1.0
+    # Construct some bin edges
+    xedges = np.linspace(xmin, xmax, nx + 1)
+    yedges = np.linspace(ymin, ymax, ny + 1)
 
-    # Normalize by counts
-    mask = counts == 0.0
-    for ind in range(len(to_process)):
-        if to_render[ind]["data"].ndim > counts.ndim:
-            to_render[ind]["data"] = np.ma.masked_where(
-                np.broadcast_to(mask.reshape(ny, nx, 1),
-                                to_render[ind]["data"].shape),
-                to_render[ind]["data"]) / counts.reshape(ny, nx, 1)
+    # In the contour plots, x and y are the centers of the cells, instead of
+    # the edges.
+    xcenters = to_bin_centers(xedges)
+    ycenters = to_bin_centers(yedges)
+
+    print(datax.shape)
+    print(datay.shape)
+    print(to_binning[0].shape)
+    print(to_binning[0])
+    # print(to_process[1].shape)
+    print(xedges.shape)
+    print(yedges.shape)
+    print(len(to_binning))
+    print(datax)
+    print(xedges)
+    print(type(xedges))
+    print(type(yedges))
+
+    # binned = []
+    # for i in range(len(to_process)):
+    #     binned[i], _, _ = np.histogram2d(datay,
+    #                                      datax,
+    #                                      bins=(yedges, xedges),
+    #                                      weights=to_process[i])
+
+    binned, _, _, _ = binned_statistic_2d(x=datay.values,
+                                          y=datax.values,
+                                          values=to_binning,
+                                          statistic="mean",
+                                          bins=[yedges, xedges])
+
+    # print(binned[0])
+    # mask = binned[0] == 0.0
+    # print(mask)
+    transform = tuple(
+        nd.distance_transform_edt(np.isnan(binned[-1]),
+                                  return_distances=False,
+                                  return_indices=True))
+    # inds = tuple(inds)
+    counter = 0
+    for ind in range(len(to_render)):
+        # if operations[ind] != operation:
+        #     if operation == "sum":
+        #         with np.errstate(invalid="ignore"):
+        #             binned[ind] /= binned[0]
+        #     else:
+        #         binned[ind] *= counts
+        # binned[ind][mask] = np.nan
+        # print(binned[ind])
+        # inds = nd.distance_transform_edt(mask,
+        #                                  return_distances=False,
+        #                                  return_indices=True)
+
+        # to_render[ind - 1]["data"] = np.ma.masked_where(mask, binned[ind])
+        # print(inds)
+        if scalar_layer[ind]:
+            to_render[ind]["data"] = binned[counter][transform]
+            counter += 1
         else:
-            to_render[ind]["data"] = np.ma.masked_where(
-                mask, to_render[ind]["data"]) / counts
+            to_render[ind]["data"] = np.array([
+                binned[counter + 1][transform], binned[counter][transform],
+                binned[counter + 2][transform]
+            ]).T
+            counter += 3
 
-    import matplotlib.pyplot as plt
-    fig1, ax1 = plt.subplots()
-    ax1.imshow(counts, origin="lower", cmap="jet")
-    fig1.show()
+        # print(to_render[ind - 1]["data"].shape)
 
-    to_return = {"x": x, "y": y, "layers": to_render}
+    # ind = nd.distance_transform_edt(invalid,
+    #                                 return_distances=False,
+    #                                 return_indices=True)
+    # return data[tuple(ind)]
+
+    # datax -= xmin
+    # datay -= ymin
+    # istart = ((datax - datadx) / dpx).array.astype(np.int64)
+    # iend = ((datax + datadx) / dpx).array.astype(np.int64) + 1
+    # jstart = ((datay - datadx) / dpy).array.astype(np.int64)
+    # jend = ((datay + datadx) / dpy).array.astype(np.int64) + 1
+
+    # for i in range(len(istart)):
+    #     i0 = istart[i]
+    #     i1 = iend[i]
+    #     j0 = jstart[i]
+    #     j1 = jend[i]
+    #     if i0 <= nx and j0 <= ny and i1 > 0 and j1 > 0:
+    #         i0 = max(i0, 0)
+    #         i1 = min(i1, nx)
+    #         j0 = max(j0, 0)
+    #         j1 = min(j1, ny)
+    #         for ind in range(len(to_process)):
+    #             to_render[ind]["data"][j0:j1, i0:i1] += to_process[ind][i]
+    #         counts[j0:j1, i0:i1] += 1.0
+
+    # # Normalize by counts
+    # mask = counts == 0.0
+    # for ind in range(len(to_process)):
+    #     if to_render[ind]["data"].ndim > counts.ndim:
+    #         to_render[ind]["data"] = np.ma.masked_where(
+    #             np.broadcast_to(mask.reshape(ny, nx, 1),
+    #                             to_render[ind]["data"].shape),
+    #             to_render[ind]["data"]) / counts.reshape(ny, nx, 1)
+    #     else:
+    #         to_render[ind]["data"] = np.ma.masked_where(
+    #             mask, to_render[ind]["data"]) / counts
+
+    # import matplotlib.pyplot as plt
+    # fig1, ax1 = plt.subplots()
+    # ax1.imshow(counts, origin="lower", cmap="jet")
+    # fig1.show()
+
+    to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
     if plot:
         # Render the map
-        figure = render(x=x, y=y, data=to_render, ax=ax)
+        figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
         figure["ax"].set_xlabel(dataset["xyz"].x.label)
         figure["ax"].set_ylabel(dataset["xyz"].y.label)
         if ax is None:

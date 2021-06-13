@@ -135,6 +135,13 @@ def histogram(x,
     if (operation == "mean") and "sum" in operations:
         counts, _, _ = np.histogram2d(yvals, xvals, bins=(yedges, xedges))
 
+    print(xvals)
+    print(xvals.shape)
+    print(yvals.shape)
+    print(to_process[0].shape)
+    print(xedges.shape)
+    print(yedges.shape)
+
     binned, _, _, _ = binned_statistic_2d(x=yvals,
                                           y=xvals,
                                           values=to_process,
