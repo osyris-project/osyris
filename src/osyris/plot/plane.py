@@ -9,7 +9,7 @@ from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers
 from scipy.stats import binned_statistic_2d
-from scipy import ndimage as nd
+from scipy.ndimage import distance_transform_edt
 
 
 def plane(*layers,
@@ -151,9 +151,9 @@ def plane(*layers,
 
     # Use Scipy's distance transform to fill blanks with nearest neighbours
     transform = tuple(
-        nd.distance_transform_edt(np.isnan(binned[-1]),
-                                  return_distances=False,
-                                  return_indices=True))
+        distance_transform_edt(np.isnan(binned[-1]),
+                               return_distances=False,
+                               return_indices=True))
     counter = 0
     for ind in range(len(to_render)):
         if scalar_layer[ind]:
