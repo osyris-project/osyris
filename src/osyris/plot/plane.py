@@ -90,8 +90,6 @@ def plane(*layers,
                 np.abs(dist2.norm) <=
                 max(dx.magnitude, dy.magnitude) * 0.5 * np.sqrt(2.0))))
 
-    ncells = len(cube)
-
     # Project coordinates onto the plane by taking dot product with axes
     # vectors
     coords = xyz[cube]
