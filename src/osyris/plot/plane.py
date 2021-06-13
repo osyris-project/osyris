@@ -97,7 +97,6 @@ def plane(*layers,
     coords = xyz[cube]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
-    datadx = diagonal[cube] / np.sqrt(dataset.meta["ndim"])
 
     scalar_layer = []
     to_binning = []
