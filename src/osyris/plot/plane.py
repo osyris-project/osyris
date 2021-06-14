@@ -7,15 +7,15 @@ from .slice import get_slice_direction
 from .render import render
 from .parser import parse_layer
 from ..core import Plot, Array
-from ..core.tools import to_bin_centers
+from ..core.tools import to_bin_centers, apply_mask
 from scipy.stats import binned_statistic_2d
 from scipy.ndimage import distance_transform_edt
 
 
 def plane(*layers,
           direction="z",
-          dx=0.0,
-          dy=0.0,
+          dx=None,
+          dy=None,
           fname=None,
           title=None,
           sinks=True,
@@ -60,16 +60,17 @@ def plane(*layers,
     dataset = to_process[0].parent
 
     # Set window size
-    if dy == 0.0:
+    if dy is None:
         dy = dx
-    if not isinstance(dx, Quantity):
+    if dx is not None and not isinstance(dx, Quantity):
         dx *= dataset["xyz"].unit
-    if not isinstance(dy, Quantity):
+    if dy is not None and not isinstance(dy, Quantity):
         dy *= dataset["xyz"].unit
 
     dir_vecs, origin = get_slice_direction(direction=direction,
                                            dataset=dataset,
-                                           dx=0.5 * (dx + dy),
+                                           dx=dx,
+                                           dy=dy,
                                            origin=origin)
 
     # Distance to the plane
@@ -78,32 +79,47 @@ def plane(*layers,
     dist1 = np.sum(xyz * dir_vecs[0],
                    axis=1)  # / np.linalg.norm(dir_vecs[0][1])
 
-    # Distance from center
-    dist2 = xyz - diagonal
-
-    # Select only the cells in contact with the slice,
-    # at a distance less than dx/2
-    cube = np.ravel(
-        np.where(
-            np.logical_and(
-                np.abs(dist1) <= 1.0001 * diagonal,
-                np.abs(dist2.norm) <=
-                max(dx.magnitude, dy.magnitude) * 0.5 * np.sqrt(2.0))))
-
+    # Select cells in contact with plane
+    cells_in_plane = np.abs(dist1) <= diagonal
     # Project coordinates onto the plane by taking dot product with axes
     # vectors
-    coords = xyz[cube]
+    select = np.ravel(np.where(cells_in_plane))
+    coords = xyz[select]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
+    datadx = 0.5 * dataset["dx"][select]
+
+    # Define slice extent
+    if dx is None:
+        xmin = np.amin(datax - datadx).values
+        xmax = np.amax(datax + datadx).values
+        ymin = np.amin(datay - datadx).values
+        ymax = np.amax(datay + datadx).values
+    else:
+        xmin = -0.5 * dx.magnitude
+        xmax = xmin + dx.magnitude
+        ymin = -0.5 * dy.magnitude
+        ymax = ymin + dy.magnitude
+        # Limit selection further by using distance from center
+        dist2 = xyz - diagonal
+        select = np.ravel(
+            np.where(
+                np.logical_and(
+                    cells_in_plane,
+                    np.abs(dist2.norm) <=
+                    max(dx.magnitude, dy.magnitude) * 0.5 * np.sqrt(2.0))))
+        coords = xyz[select]
+        datax = np.inner(coords, dir_vecs[1])
+        datay = np.inner(coords, dir_vecs[2])
 
     scalar_layer = []
     to_binning = []
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream"]:
             if to_process[ind].ndim < 3:
-                uv = to_process[ind].array[cube]
+                uv = to_process[ind].array[select]
             else:
-                uv = np.inner(to_process[ind].array.take(cube, axis=0),
+                uv = np.inner(to_process[ind].array.take(select, axis=0),
                               dir_vecs[1:])
             w = None
             if "color" in to_render[ind]["params"]:
@@ -114,37 +130,29 @@ def plane(*layers,
             if w is None:
                 w = np.linalg.norm(uv, axis=1)
             else:
-                w = w.take(cube, axis=0)
-            to_binning.append(uv[:, 0])
-            to_binning.append(uv[:, 1])
-            to_binning.append(w)
+                w = w.take(select, axis=0)
+            to_binning.append(apply_mask(uv[:, 0]))
+            to_binning.append(apply_mask(uv[:, 1]))
+            to_binning.append(apply_mask(w))
             scalar_layer.append(False)
         else:
-            to_binning.append(to_process[ind].array[cube])
+            to_binning.append(apply_mask(to_process[ind].array[select]))
             scalar_layer.append(True)
 
     # Buffer for counts
     to_binning.append(np.ones_like(to_binning[0]))
 
-    # Define slice extent and resolution
-    xmin = -0.5 * dx.magnitude
-    xmax = xmin + dx.magnitude
-    ymin = -0.5 * dy.magnitude
-    ymax = ymin + dy.magnitude
-    nx = resolution
-    ny = resolution
-
     # Construct some bin edges
-    xedges = np.linspace(xmin, xmax, nx + 1)
-    yedges = np.linspace(ymin, ymax, ny + 1)
+    xedges = np.linspace(xmin, xmax, resolution + 1)
+    yedges = np.linspace(ymin, ymax, resolution + 1)
 
     # In the contour plots, x and y are the centers of the cells, instead of
     # the edges.
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 
-    binned, _, _, _ = binned_statistic_2d(x=datay.values,
-                                          y=datax.values,
+    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay.array),
+                                          y=apply_mask(datax.array),
                                           values=to_binning,
                                           statistic="mean",
                                           bins=[yedges, xedges])

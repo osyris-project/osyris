@@ -6,7 +6,11 @@ from ..core.tools import perpendicular_vector
 from ..core import Array
 
 
-def get_slice_direction(direction=None, dataset=None, dx=None, origin=None):
+def get_slice_direction(direction=None,
+                        dataset=None,
+                        dx=None,
+                        dy=None,
+                        origin=None):
     """
     Find direction vectors for slice.
 
@@ -36,7 +40,10 @@ def get_slice_direction(direction=None, dataset=None, dx=None, origin=None):
         dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
 
     elif direction in ["auto", "top", "side"]:
-        sphere_rad = 0.5 * dx
+        if dx is None or dy is None:
+            raise RuntimeError("When using automatic slice orientation, "
+                               "dx cannot be None.")
+        sphere_rad = 0.25 * (dx + dy)
         xyz = dataset["xyz"] - origin
         # Compute angular momentum vector
         sphere = np.where(xyz.norm < sphere_rad.magnitude)
