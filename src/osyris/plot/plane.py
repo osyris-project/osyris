@@ -89,12 +89,20 @@ def plane(*layers,
     datay = np.inner(coords, dir_vecs[2])
     datadx = 0.5 * dataset["dx"][select]
 
+    # Get limits
+    limits = {
+        'xmin': np.amin(datax - datadx).values,
+        'xmax': np.amax(datax + datadx).values,
+        'ymin': np.amin(datay - datadx).values,
+        'ymax': np.amax(datay + datadx).values
+    }
+
     # Define slice extent
     if dx is None:
-        xmin = np.amin(datax - datadx).values
-        xmax = np.amax(datax + datadx).values
-        ymin = np.amin(datay - datadx).values
-        ymax = np.amax(datay + datadx).values
+        xmin = limits['xmin']
+        xmax = limits['xmax']
+        ymin = limits['ymin']
+        ymax = limits['ymax']
     else:
         xmin = -0.5 * dx.magnitude
         xmax = xmin + dx.magnitude
@@ -158,10 +166,27 @@ def plane(*layers,
                                           bins=[yedges, xedges])
 
     # Use Scipy's distance transform to fill blanks with nearest neighbours
+    # print(np.isnan(binned[-1]))
+    # print(datax.array > xmin)
+    # print(
+    #     np.logical_and.reduce(
+    #         (np.isnan(binned[-1]), datax.array > xmin, datax.array < xmax,
+    #          datay.array > ymin, datay.array < ymax)))
+    xx = np.broadcast_to(xcenters, [resolution, resolution])
+    yy = np.broadcast_to(ycenters, [resolution, resolution]).T
     transform = tuple(
-        distance_transform_edt(np.isnan(binned[-1]),
+        distance_transform_edt(np.logical_and.reduce(
+            (np.isnan(binned[-1]), xx > limits['xmin'], xx < limits['xmax'],
+             yy > limits['ymin'], yy < limits['ymax'])),
                                return_distances=False,
                                return_indices=True))
+
+    # transform = tuple(
+    #     distance_transform_edt(np.logical_and(np.isnan(binned[-1]),
+    #                                           xx > limits['xmin']),
+    #                            return_distances=False,
+    #                            return_indices=True))
+
     counter = 0
     for ind in range(len(to_render)):
         if scalar_layer[ind]:

@@ -3,6 +3,7 @@
 
 # flake8: noqa
 
+from .column_density import column_density
 from .histogram import histogram
 from .render import render
 from .plane import plane
