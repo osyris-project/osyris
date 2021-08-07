@@ -179,6 +179,8 @@ def plane(*layers,
     yy = np.broadcast_to(ycenters, [resolution, resolution]).T
     mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
                                  yy < limits['ymin'], yy > limits['ymax']))
+    mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1),
+                               mask.shape + (3, ))
 
     counter = 0
     for ind in range(len(to_render)):
@@ -187,16 +189,14 @@ def plane(*layers,
                 mask, binned[counter][transform], copy=False)
             counter += 1
         else:
-            to_render[ind]["data"] = np.array([
-                ma.masked_where(mask, binned[counter][transform],
-                                copy=False).T,
-                ma.masked_where(mask,
-                                binned[counter + 1][transform],
-                                copy=False).T,
-                ma.masked_where(mask,
-                                binned[counter + 2][transform],
-                                copy=False).T
-            ]).T
+            to_render[ind]["data"] = ma.masked_where(
+                mask_vec,
+                np.array([
+                    binned[counter][transform].T,
+                    binned[counter + 1][transform].T,
+                    binned[counter + 2][transform].T
+                ]).T,
+                copy=False)
             counter += 3
 
     to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
