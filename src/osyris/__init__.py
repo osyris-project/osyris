@@ -31,5 +31,5 @@ except ImportError:
 config.additional_units(units)
 
 from .io import load
-from .plot import histogram, plane, column_density
+from .plot import histogram, plane
 from .core import Array, Dataset, Plot

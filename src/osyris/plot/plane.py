@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+import numpy.ma as ma
 from pint.quantity import Quantity
 from .slice import get_slice_direction
 from .render import render
@@ -166,36 +167,35 @@ def plane(*layers,
                                           bins=[yedges, xedges])
 
     # Use Scipy's distance transform to fill blanks with nearest neighbours
-    # print(np.isnan(binned[-1]))
-    # print(datax.array > xmin)
-    # print(
-    #     np.logical_and.reduce(
-    #         (np.isnan(binned[-1]), datax.array > xmin, datax.array < xmax,
-    #          datay.array > ymin, datay.array < ymax)))
-    xx = np.broadcast_to(xcenters, [resolution, resolution])
-    yy = np.broadcast_to(ycenters, [resolution, resolution]).T
+    condition = np.isnan(binned[-1])
     transform = tuple(
-        distance_transform_edt(np.logical_and.reduce(
-            (np.isnan(binned[-1]), xx > limits['xmin'], xx < limits['xmax'],
-             yy > limits['ymin'], yy < limits['ymax'])),
+        distance_transform_edt(condition,
                                return_distances=False,
                                return_indices=True))
 
-    # transform = tuple(
-    #     distance_transform_edt(np.logical_and(np.isnan(binned[-1]),
-    #                                           xx > limits['xmin']),
-    #                            return_distances=False,
-    #                            return_indices=True))
+    # Define a mask to mask aread outside of the domain range, which have
+    # been filled by the previous transform step
+    xx = np.broadcast_to(xcenters, [resolution, resolution])
+    yy = np.broadcast_to(ycenters, [resolution, resolution]).T
+    mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
+                                 yy < limits['ymin'], yy > limits['ymax']))
 
     counter = 0
     for ind in range(len(to_render)):
         if scalar_layer[ind]:
-            to_render[ind]["data"] = binned[counter][transform]
+            to_render[ind]["data"] = ma.masked_where(
+                mask, binned[counter][transform], copy=False)
             counter += 1
         else:
             to_render[ind]["data"] = np.array([
-                binned[counter][transform].T, binned[counter + 1][transform].T,
-                binned[counter + 2][transform].T
+                ma.masked_where(mask, binned[counter][transform],
+                                copy=False).T,
+                ma.masked_where(mask,
+                                binned[counter + 1][transform],
+                                copy=False).T,
+                ma.masked_where(mask,
+                                binned[counter + 2][transform],
+                                copy=False).T
             ]).T
             counter += 3
 
