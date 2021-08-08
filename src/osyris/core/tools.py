@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+
 import numpy as np
 from .. import units
 
@@ -56,6 +59,9 @@ def perpendicular_vector(v):
 
 
 def value_to_string(val, precision=3):
+    """
+    Convert a number to a human readable string.
+    """
     if (not isinstance(val, float)) or (val == 0):
         text = str(val)
     elif (abs(val) >= 10.0**(precision)) or \
@@ -69,6 +75,9 @@ def value_to_string(val, precision=3):
 
 
 def make_label(name=None, unit=None):
+    """
+    Make an axis label from a name and a unit.
+    """
     lab = ""
     if name:
         lab += name
@@ -77,3 +86,13 @@ def make_label(name=None, unit=None):
             lab += " "
         lab += "[{:~}]".format(unit)
     return lab.strip()
+
+
+def apply_mask(array, fill=np.nan):
+    """
+    Apply the mask on a numpy array if it exists, converting the masked values
+    to the `fill` value (np.nan by default).
+    """
+    if hasattr(array, "mask"):
+        return array.filled(fill)
+    return array

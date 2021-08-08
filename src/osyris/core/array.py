@@ -209,7 +209,7 @@ class Array:
             return self.__class__(values=lhs - rhs, unit=self._unit)
         if isinstance(other, Quantity):
             return self.__class__(values=self._array -
-                                  other.to(self._unit.units),
+                                  other.to(self._unit.units).magnitude,
                                   unit=self._unit)
         self._raise_incompatible_units_error(other, "subtract")
 
