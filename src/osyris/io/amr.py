@@ -82,8 +82,7 @@ class AmrLoader(Loader):
                                                           content=self.bytes,
                                                           offsets=self.offsets)
         self.meta["ngridlevel"] = np.zeros(
-            [info["ncpu"] + self.meta["nboundary"], info["levelmax"]],
-            dtype=np.int32)
+            [info["ncpu"] + self.meta["nboundary"], info["levelmax"]], dtype=np.int32)
 
         # noutput
         self.offsets["i"] += 1
@@ -96,12 +95,10 @@ class AmrLoader(Loader):
         self.offsets["i"] += 2
         self.offsets["n"] += 3
         self.offsets["d"] += 1 + 2 * noutput
-        info["dtold"] = utils.read_binary_data(fmt="{}d".format(
-            info["levelmax"]),
+        info["dtold"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
                                                content=self.bytes,
                                                offsets=self.offsets)
-        info["dtnew"] = utils.read_binary_data(fmt="{}d".format(
-            info["levelmax"]),
+        info["dtnew"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
                                                content=self.bytes,
                                                offsets=self.offsets)
 
@@ -110,25 +107,22 @@ class AmrLoader(Loader):
         self.offsets["n"] += 7
         self.offsets["d"] += 16
         self.meta["ngridlevel"][:info["ncpu"], :] = np.array(
-            utils.read_binary_data(
-                fmt="{}i".format(info["ncpu"] * info["levelmax"]),
-                content=self.bytes,
-                offsets=self.offsets)).reshape(info["levelmax"],
-                                               info["ncpu"]).T
+            utils.read_binary_data(fmt="{}i".format(info["ncpu"] * info["levelmax"]),
+                                   content=self.bytes,
+                                   offsets=self.offsets)).reshape(
+                                       info["levelmax"], info["ncpu"]).T
 
         # Read boundary grids if any
         self.offsets["i"] += 10 * info["levelmax"]
         self.offsets["n"] += 3
         if self.meta["nboundary"] > 0:
-            self.offsets["i"] += (2 * self.meta["nboundary"] *
-                                  info["levelmax"])
+            self.offsets["i"] += (2 * self.meta["nboundary"] * info["levelmax"])
             # self.offsets["n"] += 4
             self.meta["ngridlevel"][info["ncpu"]:info["ncpu"] +
                                     self.meta["nboundary"], :] = np.array(
                                         utils.read_binary_data(
-                                            fmt="{}i".format(
-                                                self.meta["nboundary"] *
-                                                info["levelmax"]),
+                                            fmt="{}i".format(self.meta["nboundary"] *
+                                                             info["levelmax"]),
                                             content=self.bytes,
                                             offsets=self.offsets)).reshape(
                                                 info["levelmax"],
@@ -165,10 +159,9 @@ class AmrLoader(Loader):
         self.offsets['i'] += ncache * 3
         self.offsets['n'] += 3
         for n in range(ndim):
-            self.xg[:ncache,
-                    n] = utils.read_binary_data(fmt="{}d".format(ncache),
-                                                content=self.bytes,
-                                                offsets=self.offsets)
+            self.xg[:ncache, n] = utils.read_binary_data(fmt="{}d".format(ncache),
+                                                         content=self.bytes,
+                                                         offsets=self.offsets)
 
         # son indices
         self.offsets['i'] += ncache * (1 + 2 * ndim)
@@ -176,17 +169,15 @@ class AmrLoader(Loader):
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
 
-        self.son[:ncache,
-                 ind] = utils.read_binary_data(fmt="{}i".format(ncache),
-                                               content=self.bytes,
-                                               offsets=self.offsets)
+        self.son[:ncache, ind] = utils.read_binary_data(fmt="{}i".format(ncache),
+                                                        content=self.bytes,
+                                                        offsets=self.offsets)
 
         self.variables["level"]["buffer"][:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
             key = "xyz_" + "xyz"[n]
             self.variables[key]["buffer"][:ncache, ind] = (
-                self.xg[:ncache, n] + self.xcent[ind, n] -
-                self.meta["xbound"][n]
+                self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
             ) * info["boxlen"] * self.variables[key]["unit"].magnitude
         self.variables["dx"]["buffer"][:ncache, ind] = self.dxcell * info[
             "boxlen"] * self.variables["dx"]["unit"].magnitude
@@ -196,8 +187,7 @@ class AmrLoader(Loader):
         # want to load all levels. levelmax is always the max level in the
         # entire simulation.
         self.ref[:ncache, ind] = np.logical_not(
-            np.logical_and(self.son[:ncache, ind] > 0,
-                           ilevel < info["lmax"] - 1))
+            np.logical_and(self.son[:ncache, ind] > 0, ilevel < info["lmax"] - 1))
 
     def make_conditions(self, select, ncache):
         conditions = super().make_conditions(select, ncache)

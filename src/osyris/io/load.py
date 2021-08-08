@@ -80,8 +80,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
     for loader in loaders.values():
-        loader.allocate_buffers(ngridmax=data.meta["ngridmax"],
-                                twotondim=twotondim)
+        loader.allocate_buffers(ngridmax=data.meta["ngridmax"], twotondim=twotondim)
 
     iprog = 1
     istep = 10
@@ -96,16 +95,12 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
         # Print progress
         percentage = int(float(cpuid) * 100.0 / float(data.meta["ncpu"]))
         if percentage >= iprog * istep:
-            print("{:>3d}% : read {:>10d} cells".format(
-                percentage, ncells_tot))
+            print("{:>3d}% : read {:>10d} cells".format(percentage, ncells_tot))
             iprog += 1
 
         # Read binary files
         for group, loader in loaders.items():
-            fname = utils.generate_fname(nout,
-                                         path,
-                                         ftype=group,
-                                         cpuid=cpuid + 1)
+            fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpuid + 1)
             with open(fname, mode='rb') as f:
                 loader.bytes = f.read()
 
@@ -121,8 +116,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                 loader.read_level_header(ilevel, twotondim)
 
             # Loop over domains
-            for domain in range(loaders["amr"].meta["nboundary"] +
-                                data.meta["ncpu"]):
+            for domain in range(loaders["amr"].meta["nboundary"] + data.meta["ncpu"]):
 
                 ncache = loaders["amr"].meta["ngridlevel"][domain, ilevel]
 
@@ -134,27 +128,24 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                     if domain == cpuid:
 
                         for loader in loaders.values():
-                            loader.read_cacheline_header(
-                                ncache, data.meta["ndim"])
+                            loader.read_cacheline_header(ncache, data.meta["ndim"])
 
                         for ind in range(twotondim):
 
                             # Read variables in cells
                             for loader in loaders.values():
-                                loader.read_variables(ncache, ind, ilevel,
-                                                      cpuid, data.meta)
+                                loader.read_variables(ncache, ind, ilevel, cpuid,
+                                                      data.meta)
 
                         # Apply selection criteria: select only leaf cells and
                         # add any criteria requested by the user via select.
                         conditions = {}
                         for loader in loaders.values():
-                            conditions.update(
-                                loader.make_conditions(select, ncache))
+                            conditions.update(loader.make_conditions(select, ncache))
                         # Combine all selection criteria together with AND
                         # operation by using a product on bools
                         sel = np.where(
-                            np.prod(np.array(list(conditions.values())),
-                                    axis=0))
+                            np.prod(np.array(list(conditions.values())), axis=0))
 
                         # Count the number of cells
                         ncells = np.shape(sel)[1]
@@ -164,8 +155,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                             # Add the cells in the pieces dictionaries
                             for loader in loaders.values():
                                 for item in loader.variables.values():
-                                    item["pieces"][npieces] = item["buffer"][
-                                        sel]
+                                    item["pieces"][npieces] = item["buffer"][sel]
 
                         # Increment offsets with remainder of the file
                         for loader in loaders.values():
@@ -174,8 +164,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                     else:
 
                         for loader in loaders.values():
-                            loader.step_over(ncache, twotondim,
-                                             data.meta["ndim"])
+                            loader.step_over(ncache, twotondim, data.meta["ndim"])
 
     # Store the number of cells
     data.meta["ncells"] = ncells_tot
@@ -183,8 +172,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            data[key] = Array(values=np.concatenate(
-                list(item["pieces"].values())),
+            data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
                               unit=1.0 * item["unit"].units)
 
     # If vector quantities are found, make them into vector Arrays

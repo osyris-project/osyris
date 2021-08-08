@@ -6,11 +6,7 @@ from ..core.tools import perpendicular_vector
 from ..core import Array
 
 
-def get_slice_direction(direction=None,
-                        dataset=None,
-                        dx=None,
-                        dy=None,
-                        origin=None):
+def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     """
     Find direction vectors for slice.
 
@@ -71,8 +67,7 @@ def get_slice_direction(direction=None,
     elif isinstance(direction, str):
         if len(direction) == 3:  # This is the case where direction = "xyz"
             dir_vecs = np.array([
-                dir_list[direction[0]], dir_list[direction[1]],
-                dir_list[direction[2]]
+                dir_list[direction[0]], dir_list[direction[1]], dir_list[direction[2]]
             ])
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
