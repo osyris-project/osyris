@@ -59,8 +59,7 @@ class Array:
             values_str = "Value: " + value_to_string(self.values)
         else:
             values_str = "Min: " + value_to_string(
-                self.values.min()) + " Max: " + value_to_string(
-                    self.values.max())
+                self.values.min()) + " Max: " + value_to_string(self.values.max())
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
@@ -312,8 +311,7 @@ class Array:
             result = scale_l / scale_r
             return self.__class__(values=self._array * result.magnitude,
                                   unit=1.0 * result.units)
-        return self.__class__(values=other / self._array,
-                              unit=1.0 / self._unit)
+        return self.__class__(values=other / self._array, unit=1.0 / self._unit)
 
     def __pow__(self, number):
         return np.power(self, number)

@@ -34,8 +34,7 @@ class GravLoader(Loader):
                     "type": descriptor[key],
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, units["ud"], units["ul"],
-                                     units["ut"])
+                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])
                 }
 
     def read_header(self, info):

@@ -37,8 +37,7 @@ class HydroLoader(Loader):
                     None,
                     "pieces": {},
                     "unit":
-                    get_unit(key, code_units["ud"], code_units["ul"],
-                             code_units["ut"])
+                    get_unit(key, code_units["ud"], code_units["ul"], code_units["ut"])
                 }
 
     def read_header(self, info):

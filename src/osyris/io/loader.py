@@ -44,8 +44,7 @@ class Loader():
         for key, func in select.items():
             if not isinstance(func, bool):
                 if key in self.variables:
-                    conditions[key] = func(
-                        self.variables[key]["buffer"][:ncache, :])
+                    conditions[key] = func(self.variables[key]["buffer"][:ncache, :])
         return conditions
 
     def read_footer(self, *args, **kwargs):
