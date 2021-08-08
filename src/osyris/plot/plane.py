@@ -77,14 +77,17 @@ def plane(*layers,
     # Distance to the plane
     xyz = dataset["xyz"] - origin
     diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
-    dist1 = np.sum(xyz * dir_vecs[0],
-                   axis=1)  # / np.linalg.norm(dir_vecs[0][1])
+    dist1 = np.sum(xyz * dir_vecs[0], axis=1)
 
     # Select cells in contact with plane
     cells_in_plane = np.abs(dist1) <= diagonal
     # Project coordinates onto the plane by taking dot product with axes
     # vectors
     select = np.ravel(np.where(cells_in_plane))
+
+    if len(select) == 0:
+        raise RuntimeError("No cells were selected to construct the plane. "
+                           "The resulting figure would be empty.")
     coords = xyz[select]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])

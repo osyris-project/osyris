@@ -11,7 +11,7 @@ from .hydro import HydroLoader
 from .rt import RtLoader
 
 
-def load(nout=1, scale=None, path="", select=None, lmax=None):
+def load(nout=1, scale=None, path="", select=None, lmax=None, cpu_list=None):
 
     data = Dataset()
 
@@ -41,6 +41,10 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     else:
         data.meta["lmax"] = data.meta["levelmax"]
 
+    # Take into account user specified cpu list
+    if cpu_list is None:
+        cpu_list = range(1, data.meta["ncpu"] + 1)
+
     code_units = {
         "ud": data.meta["unit_d"],
         "ul": data.meta["unit_l"],
@@ -68,14 +72,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
         if loader.initialized:
             loaders[group] = loader
 
-    print("Processing %i files in " % (data.meta["ncpu"]) + infile)
-
-    # We will store the cells in a dictionary which we build as we go along.
-    # The final concatenation into a single array will be done once at the end.
-    npieces = 0
-    # part_pieces = {}
-    # npieces_part = 0
-    # npart_count = 0
+    print("Processing {} files in {}".format(data.meta["ncpu"], infile))
 
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
@@ -86,15 +83,16 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     iprog = 1
     istep = 10
     ncells_tot = 0
+    npieces = 0
 
     # integer, double, line, string, quad, long
     null_offsets = {key: 0 for key in "idnsql"}
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
-    for cpuid in range(data.meta["ncpu"]):
+    for cpu_ind, cpu_num in enumerate(cpu_list):
 
         # Print progress
-        percentage = int(float(cpuid) * 100.0 / float(data.meta["ncpu"]))
+        percentage = int(float(cpu_ind) * 100.0 / float(len(cpu_list)))
         if percentage >= iprog * istep:
             print("{:>3d}% : read {:>10d} cells".format(
                 percentage, ncells_tot))
@@ -105,7 +103,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
             fname = utils.generate_fname(nout,
                                          path,
                                          ftype=group,
-                                         cpuid=cpuid + 1)
+                                         cpuid=cpu_num)
             with open(fname, mode='rb') as f:
                 loader.bytes = f.read()
 
@@ -131,7 +129,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
 
                 if ncache > 0:
 
-                    if domain == cpuid:
+                    if domain == cpu_num - 1:
 
                         for loader in loaders.values():
                             loader.read_cacheline_header(
@@ -142,7 +140,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
                             # Read variables in cells
                             for loader in loaders.values():
                                 loader.read_variables(ncache, ind, ilevel,
-                                                      cpuid, data.meta)
+                                                      cpu_num - 1, data.meta)
 
                         # Apply selection criteria: select only leaf cells and
                         # add any criteria requested by the user via select.
