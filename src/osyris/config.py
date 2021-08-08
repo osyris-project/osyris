@@ -17,9 +17,7 @@ def additional_units(ureg):
     Define additional useful units and constants
     """
     ureg.define('solar_mass = 1.9889e+33 * g = msun')
-    ureg.define(
-        'radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar'
-    )
+    ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
 def additional_variables(data):

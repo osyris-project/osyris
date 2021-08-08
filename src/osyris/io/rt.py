@@ -32,8 +32,7 @@ class RtLoader(Loader):
                     "type": descriptor[i, 2].strip(),
                     "buffer": None,
                     "pieces": {},
-                    "unit": get_unit(key, units["ud"], units["ul"],
-                                     units["ut"])
+                    "unit": get_unit(key, units["ud"], units["ul"], units["ut"])
                 }
 
     def read_header(self, info):

@@ -17,8 +17,7 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
         from scipy.spatial import Delaunay
     except ImportError:
         print(
-            "Scipy Delaunay library not found. This is needed for VTK output. Exiting."
-        )
+            "Scipy Delaunay library not found. This is needed for VTK output. Exiting.")
 
     # Print status
     if not fname.endswith(".vtu"):
@@ -41,16 +40,13 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
                             np.logical_and(holder.get("y")<= 0.5*dy, \
                             np.logical_and(holder.get("z")>=-0.5*dz, \
                                            holder.get("z")<= 0.5*dz))))))
-        points = np.array([
-            holder.get("x")[cube],
-            holder.get("y")[cube],
-            holder.get("z")[cube]
-        ]).T
+        points = np.array(
+            [holder.get("x")[cube],
+             holder.get("y")[cube],
+             holder.get("z")[cube]]).T
     else:
         # Coordinates ot RAMSES cell centers
-        points = np.array([holder.get("x"),
-                           holder.get("y"),
-                           holder.get("z")]).T
+        points = np.array([holder.get("x"), holder.get("y"), holder.get("z")]).T
 
     # Compute Delaunay tetrahedralization from cell nodes
     # Note that this step can take a lot of time!
@@ -68,8 +64,8 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
     varlist = []
     for key in key_list:
         thisVar = getattr(holder, key)
-        if (not thisVar.vector_component) and (thisVar.group != "amr") and (
-                thisVar.group != "part"):
+        if (not thisVar.vector_component) and (thisVar.group !=
+                                               "amr") and (thisVar.group != "part"):
             if thisVar.kind == "vector":
                 n_components.append(3)
             elif thisVar.kind == "scalar":
@@ -110,9 +106,8 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
             ))
         f.write(string_to_binary('   <UnstructuredGrid>'))
         f.write(
-            string_to_binary(
-                '   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">' %
-                (ncells, ntetra)))
+            string_to_binary('   <Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">' %
+                             (ncells, ntetra)))
         f.write(string_to_binary('      <Points>'))
         f.write(
             string_to_binary(
@@ -137,8 +132,7 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
         for i in range(nvars):
             f.write(
                 string_to_binary(
-                    '         <DataArray type=\"Float64\" Name=\"' +
-                    varlist[i] +
+                    '         <DataArray type=\"Float64\" Name=\"' + varlist[i] +
                     '\" NumberOfComponents=\"%i\" format=\"appended\" offset=\"%i\" />'
                     % (n_components[i], offsets[i + 4])))
         f.write(string_to_binary('      </PointData>'))
@@ -162,8 +156,7 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
 
         # Cell types: number 10 is tetrahedron in VTK file format
         f.write(struct.pack('<i', *[nbytes_cellt]))
-        f.write(
-            struct.pack('<%ii' % ntetra, *np.full(ntetra, 10, dtype=np.int32)))
+        f.write(struct.pack('<%ii' % ntetra, *np.full(ntetra, 10, dtype=np.int32)))
 
         # Cell variables
         for i in range(nvars):
@@ -188,8 +181,7 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
                 else:
                     celldata = holder.get(varlist[i])
             f.write(struct.pack('<i', *[nbytes_vars[i]]))
-            f.write(struct.pack('<%id' % (ncells * n_components[i]),
-                                *celldata))
+            f.write(struct.pack('<%id' % (ncells * n_components[i]), *celldata))
 
         # Close file
         f.write(string_to_binary('   </AppendedData>'))
@@ -211,8 +203,7 @@ def to_vtk(holder, fname="osyris_data.vtu", dx=None, dy=None, dz=None):
         fsize = float(fsize_raw)
         funit = "B"
 
-    print("File " + fname + (" of size %.1f" % fsize) + funit +
-          " succesfully written.")
+    print("File " + fname + (" of size %.1f" % fsize) + funit + " succesfully written.")
 
     return
 

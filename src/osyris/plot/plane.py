@@ -77,8 +77,7 @@ def plane(*layers,
     # Distance to the plane
     xyz = dataset["xyz"] - origin
     diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
-    dist1 = np.sum(xyz * dir_vecs[0],
-                   axis=1)  # / np.linalg.norm(dir_vecs[0][1])
+    dist1 = np.sum(xyz * dir_vecs[0], axis=1)  # / np.linalg.norm(dir_vecs[0][1])
 
     # Select cells in contact with plane
     cells_in_plane = np.abs(dist1) <= diagonal
@@ -128,8 +127,7 @@ def plane(*layers,
             if to_process[ind].ndim < 3:
                 uv = to_process[ind].array[select]
             else:
-                uv = np.inner(to_process[ind].array.take(select, axis=0),
-                              dir_vecs[1:])
+                uv = np.inner(to_process[ind].array.take(select, axis=0), dir_vecs[1:])
             w = None
             if "color" in to_render[ind]["params"]:
                 if isinstance(to_render[ind]["params"]["color"], Array):
@@ -169,9 +167,7 @@ def plane(*layers,
     # Use Scipy's distance transform to fill blanks with nearest neighbours
     condition = np.isnan(binned[-1])
     transform = tuple(
-        distance_transform_edt(condition,
-                               return_distances=False,
-                               return_indices=True))
+        distance_transform_edt(condition, return_distances=False, return_indices=True))
 
     # Define a mask to mask aread outside of the domain range, which have
     # been filled by the previous transform step
@@ -179,21 +175,20 @@ def plane(*layers,
     yy = np.broadcast_to(ycenters, [resolution, resolution]).T
     mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
                                  yy < limits['ymin'], yy > limits['ymax']))
-    mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1),
-                               mask.shape + (3, ))
+    mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
 
     counter = 0
     for ind in range(len(to_render)):
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(
-                mask, binned[counter][transform], copy=False)
+            to_render[ind]["data"] = ma.masked_where(mask,
+                                                     binned[counter][transform],
+                                                     copy=False)
             counter += 1
         else:
             to_render[ind]["data"] = ma.masked_where(
                 mask_vec,
                 np.array([
-                    binned[counter][transform].T,
-                    binned[counter + 1][transform].T,
+                    binned[counter][transform].T, binned[counter + 1][transform].T,
                     binned[counter + 2][transform].T
                 ]).T,
                 copy=False)
