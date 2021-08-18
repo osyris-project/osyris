@@ -3,6 +3,7 @@
 
 import numpy as np
 from ..config import parameters, additional_variables
+from .hilbert import hilbert_cpu_list
 from . import utils
 from ..core import Dataset, Array
 from .amr import AmrLoader
@@ -11,7 +12,13 @@ from .hydro import HydroLoader
 from .rt import RtLoader
 
 
-def load(nout=1, scale=None, path="", select=None, lmax=None, cpu_list=None):
+def load(nout=1,
+         scale=None,
+         path="",
+         select=None,
+         lmax=None,
+         cpu_list=None,
+         bounding_box=None):
 
     data = Dataset()
 
@@ -43,7 +50,15 @@ def load(nout=1, scale=None, path="", select=None, lmax=None, cpu_list=None):
 
     # Take into account user specified cpu list
     if cpu_list is None:
-        cpu_list = range(1, data.meta["ncpu"] + 1)
+        if bounding_box is not None and data.meta["ordering type"] == "hilbert":
+            cpu_list = hilbert_cpu_list(bounding_box=bounding_box,
+                                        lmax=data.meta["lmax"],
+                                        levelmax=data.meta["levelmax"],
+                                        infofile=infofile,
+                                        ncpu=data.meta["ncpu"])
+            print(cpu_list)
+        else:
+            cpu_list = range(1, data.meta["ncpu"] + 1)
 
     code_units = {
         "ud": data.meta["unit_d"],
