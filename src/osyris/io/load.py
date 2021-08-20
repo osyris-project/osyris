@@ -55,7 +55,8 @@ def load(nout=1,
                                         lmax=data.meta["lmax"],
                                         levelmax=data.meta["levelmax"],
                                         infofile=infofile,
-                                        ncpu=data.meta["ncpu"])
+                                        ncpu=data.meta["ncpu"],
+                                        ndim=data.meta["ndim"])
             print(cpu_list)
         else:
             cpu_list = range(1, data.meta["ncpu"] + 1)
