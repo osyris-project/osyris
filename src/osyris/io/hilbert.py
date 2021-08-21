@@ -43,6 +43,8 @@ def _hilbert3d(x, y, z, bit_length):
     #  write(*,*)'stop in hilbert3d'
     #  stop
     # endif
+    # print('============')
+    # print(x, y, z, bit_length)
 
     i_bit_mask = np.zeros(3 * bit_length, dtype=bool)
     x_bit_mask = np.zeros(bit_length, dtype=bool)
@@ -86,7 +88,7 @@ def _hilbert3d(x, y, z, bit_length):
         1, 1, 10, 3, 5, 9, 2, 5, 3, 4, 1, 6, 0, 7, 4, 4, 8, 8, 2, 7, 2, 3, 2, 1, 5, 6,
         3, 0, 4, 7, 7, 2, 11, 2, 7, 5, 8, 5, 4, 5, 7, 6, 3, 2, 0, 1, 10, 3, 2, 6, 10, 3,
         4, 4, 6, 1, 7, 0, 5, 2, 4, 3
-    ]).reshape(8, 2, 12)
+    ]).reshape((8, 2, 12), order='F')
 
     # convert to binary
     for i in range(bit_length):
@@ -94,15 +96,22 @@ def _hilbert3d(x, y, z, bit_length):
         y_bit_mask[i] = _btest(y, i)
         z_bit_mask[i] = _btest(z, i)
 
+    # print(x_bit_mask)
+    # print(y_bit_mask)
+    # print(z_bit_mask)
+
     # interleave bits
     for i in range(bit_length):
         i_bit_mask[3 * i + 2] = x_bit_mask[i]
         i_bit_mask[3 * i + 1] = y_bit_mask[i]
         i_bit_mask[3 * i] = z_bit_mask[i]
 
+    # print(i_bit_mask)
+
     # build Hilbert ordering using state diagram
+    # print('cstate')
     cstate = 0
-    for i in range(bit_length - 1, 1, -1):
+    for i in range(bit_length - 1, -1, -1):
         b2 = 0
         if i_bit_mask[3 * i + 2]:
             b2 = 1
@@ -119,6 +128,12 @@ def _hilbert3d(x, y, z, bit_length):
         i_bit_mask[3 * i + 1] = _btest(hdigit, 1)
         i_bit_mask[3 * i] = _btest(hdigit, 0)
         cstate = nstate
+    #     print(i)
+    #     print(b2, b1, b0)
+    #     print(sdigit, nstate, hdigit)
+    #     print(i_bit_mask)
+    #     print(cstate)
+    # print('end cstate ---------')
 
     # save Hilbert key as double precision real ??
     order = 0
@@ -128,6 +143,7 @@ def _hilbert3d(x, y, z, bit_length):
             b0 = 1
         order = order + b0 * (2**i)
 
+    # print(order, type(order))
     return order
 
 
@@ -135,7 +151,6 @@ def hilbert_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
 
     # Read bound key
     bound_key = _read_bound_key(infofile=infofile, ncpu=ncpu)
-    print(bound_key)
 
     xmin = bounding_box["xmin"]
     xmax = bounding_box["xmax"]
@@ -175,14 +190,21 @@ def hilbert_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
     #     kmax = kmin + 1
     # endif
 
-    dkey = (2**(levelmax + 1) / maxdom)**ndim
+    # print(dmax, bit_length, maxdom, lmin)
+    # print(imin, imax, jmin, jmax, kmin, kmax)
+
+    dkey = (2**(levelmax + 1) // maxdom)**ndim
     ndom = 1
     if bit_length > 0:
         ndom = 8
     idom = [imin, imax] * 4
-    jdom = [jmin, jmax] * 4
-    kdom = [kmin, kmax] * 4
+    jdom = [jmin, jmin, jmax, jmax] * 2
+    kdom = [kmin] * 4 + [kmax] * 4
 
+    # print(dkey, ndim)
+    # print(idom)
+    # print(jdom)
+    # print(kdom)
     # idom(1)=imin; idom(2)=imax
     # idom(3)=imin; idom(4)=imax
     # idom(5)=imin; idom(6)=imax
@@ -200,14 +222,24 @@ def hilbert_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
 
     bounding_min = [0, 0, 0, 0, 0, 0, 0, 0]
     bounding_max = [0, 0, 0, 0, 0, 0, 0, 0]
+    bounding = None
     for i in range(ndom):
+        # print(i)
         if bit_length > 0:
             bounding = _hilbert3d(idom[i], jdom[i], kdom[i], bit_length)
             order_min = bounding
+            # print('hilbert', order_min)
         else:
             order_min = 0
+            # print('zero', order_min)
+        # print(order_min, bounding)
         bounding_min[i] = order_min * dkey
         bounding_max[i] = (order_min + 1) * dkey
+    # return
+
+    # print(bounding_min)
+    # print(bounding_max)
+    # return
 
     cpu_min = [0, 0, 0, 0, 0, 0, 0, 0]
     cpu_max = [0, 0, 0, 0, 0, 0, 0, 0]
@@ -228,7 +260,7 @@ def hilbert_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
             if j + 1 not in cpu_list:
                 cpu_list.append(j + 1)
 
-    print(cpu_list)
+    # print(cpu_list)
     return cpu_list
 
 
