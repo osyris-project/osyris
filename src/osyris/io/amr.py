@@ -173,15 +173,15 @@ class AmrLoader(Loader):
                                                         content=self.bytes,
                                                         offsets=self.offsets)
 
-        self.variables["level"]["buffer"][:ncache, ind] = ilevel + 1
+        self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
             key = "xyz_" + "xyz"[n]
-            self.variables[key]["buffer"][:ncache, ind] = (
+            self.variables[key]["buffer"]._array[:ncache, ind] = (
                 self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
             ) * info["boxlen"] * self.variables[key]["unit"].magnitude
-        self.variables["dx"]["buffer"][:ncache, ind] = self.dxcell * info[
+        self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
             "boxlen"] * self.variables["dx"]["unit"].magnitude
-        self.variables["cpu"]["buffer"][:ncache, ind] = cpuid + 1
+        self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
 
         # Note: use lmax here instead of levelmax because the user might not
         # want to load all levels. levelmax is always the max level in the

@@ -44,7 +44,7 @@ def load(nout=1,
 
     # Take into account user specified lmax
     if lmax is not None:
-        data.meta["lmax"] = lmax
+        data.meta["lmax"] = min(lmax, data.meta["levelmax"])
     else:
         data.meta["lmax"] = data.meta["levelmax"]
 
@@ -186,8 +186,9 @@ def load(nout=1,
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
-                              unit=1.0 * item["unit"].units)
+            # data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
+            #                   unit=1.0 * item["unit"].units)
+            data[key] = np.concatenate(list(item["pieces"].values()))
 
     # If vector quantities are found, make them into vector Arrays
     make_vector_arrays(data)
