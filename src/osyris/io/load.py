@@ -3,13 +3,14 @@
 
 import numpy as np
 from ..config import parameters, additional_variables
-from .hilbert import hilbert_cpu_list
+# from .hilbert import hilbert_cpu_list
 from . import utils
 from ..core import Dataset, Array
 from .amr import AmrLoader
 from .grav import GravLoader
 from .hydro import HydroLoader
 from .rt import RtLoader
+from .units import get_unit
 
 
 def load(nout=1,
@@ -39,8 +40,9 @@ def load(nout=1,
     data.meta["scale"] = scale
     data.meta["infile"] = infile
     data.meta["path"] = path
-    data.meta["boxsize"] = data.meta["boxlen"] * data.meta["unit_l"]
-    data.meta["time"] = data.meta["time"] * data.meta["unit_t"]
+    # data.meta["boxsize"] = data.meta["boxlen"] * data.meta["unit_l"]
+    data.meta["time"] = data.meta["time"] * get_unit(
+        "time", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
 
     # Take into account user specified lmax
     if lmax is not None:
@@ -48,18 +50,18 @@ def load(nout=1,
     else:
         data.meta["lmax"] = data.meta["levelmax"]
 
-    # Take into account user specified cpu list
-    if cpu_list is None:
-        if bounding_box is not None and data.meta["ordering type"] == "hilbert":
-            cpu_list = hilbert_cpu_list(bounding_box=bounding_box,
-                                        lmax=data.meta["lmax"],
-                                        levelmax=data.meta["levelmax"],
-                                        infofile=infofile,
-                                        ncpu=data.meta["ncpu"],
-                                        ndim=data.meta["ndim"])
-            print(cpu_list)
-        else:
-            cpu_list = range(1, data.meta["ncpu"] + 1)
+    # # Take into account user specified cpu list
+    # if cpu_list is None:
+    #     if bounding_box is not None and data.meta["ordering type"] == "hilbert":
+    #         cpu_list = hilbert_cpu_list(bounding_box=bounding_box,
+    #                                     lmax=data.meta["lmax"],
+    #                                     levelmax=data.meta["levelmax"],
+    #                                     infofile=infofile,
+    #                                     ncpu=data.meta["ncpu"],
+    #                                     ndim=data.meta["ndim"])
+    #         print(cpu_list)
+    #     else:
+    #         cpu_list = range(1, data.meta["ncpu"] + 1)
 
     code_units = {
         "ud": data.meta["unit_d"],
@@ -69,7 +71,15 @@ def load(nout=1,
 
     loader_list = {
         "amr":
-        AmrLoader(scale=scale, code_units=code_units, ndim=data.meta["ndim"]),
+        AmrLoader(scale=scale,
+                  select=select,
+                  code_units=code_units,
+                  meta=data.meta,
+                  infofile=infofile),
+        # ndim=data.meta["ndim"],
+        # ordering=data.meta["ordering type"],
+        # boxlen=data.meta["boxlen"],
+        # levelmax=data.meta["levelmax"]),
         "hydro":
         HydroLoader(infile=infile, select=select, code_units=code_units),
         "grav":
@@ -88,7 +98,30 @@ def load(nout=1,
         if loader.initialized:
             loaders[group] = loader
 
-    print("Processing {} files in {}".format(data.meta["ncpu"], infile))
+    # # Take into account user specified lmax
+    # if lmax is not None:
+    #     data.meta["lmax"] = min(lmax, data.meta["levelmax"])
+    # else:
+    #     data.meta["lmax"] = data.meta["levelmax"]
+
+    # Take into account user specified cpu list
+    if cpu_list is None:
+        cpu_list = loader_list["amr"].cpu_list if loader_list[
+            "amr"].cpu_list is not None else range(1, data.meta["ncpu"] + 1)
+    print(cpu_list)
+
+    # if bounding_box is not None and data.meta["ordering type"] == "hilbert":
+    #     cpu_list = hilbert_cpu_list(bounding_box=bounding_box,
+    #                                 lmax=data.meta["lmax"],
+    #                                 levelmax=data.meta["levelmax"],
+    #                                 infofile=infofile,
+    #                                 ncpu=data.meta["ncpu"],
+    #                                 ndim=data.meta["ndim"])
+    #     print(cpu_list)
+    # else:
+    #     cpu_list = range(1, data.meta["ncpu"] + 1)
+
+    print("Processing {} files in {}".format(len(cpu_list), infile))
 
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]

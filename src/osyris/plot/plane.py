@@ -216,8 +216,8 @@ def plane(*layers,
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
         figure["ax"].set_xlabel(dataset["xyz"].x.label)
         figure["ax"].set_ylabel(dataset["xyz"].y.label)
-        if ax is None:
-            figure["ax"].set_aspect("equal")
+        # if ax is None:
+        #     figure["ax"].set_aspect("equal")
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)
