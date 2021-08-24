@@ -1,5 +1,4 @@
 import numpy as np
-from ..core import Array
 from .hilbert import hilbert_cpu_list
 from .loader import Loader
 from .units import get_unit
@@ -9,12 +8,10 @@ from . import utils
 
 class AmrLoader(Loader):
     def __init__(self, scale, select, code_units, meta, infofile):
-        # ndim, ordering, boxlen, levelmax):
 
         super().__init__()
 
         self.initialized = True
-        self.cpu_list = None
         # AMR grid variables
         length_unit = get_unit("x", code_units["ud"], code_units["ul"],
                                code_units["ut"])
@@ -58,49 +55,10 @@ class AmrLoader(Loader):
             for c in "xyz"[:meta["ndim"]]
         })
 
-        if meta["ordering type"] == "hilbert":
-            bounding_box = {
-                "xmin": 0,
-                "xmax": 1,
-                "ymin": 0,
-                "ymax": 1,
-                "zmin": 0,
-                "zmax": 1
-            }
-            # Make an array of cell centers according to lmax
-            box_size = (meta["boxlen"] * scaling).magnitude
-            ncells = 2**min(meta["levelmax"], 18)  # limit to 262000 cells
-            half_dxmin = 0.5 * box_size / ncells
-            xyz_centers = Array(values=np.linspace(half_dxmin, box_size - half_dxmin,
-                                                   ncells),
-                                unit=1.0 * scaling.units)
-            # print(xyz_centers)
-            # print(xyz_centers.values)
-            # raise RuntimeError(' ')
-            new_bbox = False
-            for c in "xyz":
-                print(c, c in select, select)
-                if c in select:
-                    new_bbox = True
-                    # func_test = np.vectorize(select["x"])
-                    # func_test = np.vectorize(select["x"])(xyz_centers)
-                    func_test = select[c](xyz_centers)
-                    inds = np.argwhere(func_test).ravel()
-                    start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
-                    end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
-                    bounding_box["{}min".format(c)] = start._array / box_size
-                    bounding_box["{}max".format(c)] = end._array / box_size
-                    select["xyz_{}".format(c)] = select.pop(c)
-                    # del select[c]
-            print(bounding_box)
-
-            if new_bbox:
-                self.cpu_list = hilbert_cpu_list(bounding_box=bounding_box,
-                                                 lmax=meta["lmax"],
-                                                 levelmax=meta["levelmax"],
-                                                 infofile=infofile,
-                                                 ncpu=meta["ncpu"],
-                                                 ndim=meta["ndim"])
+        self.cpu_list = hilbert_cpu_list(meta=meta,
+                                         scaling=scaling,
+                                         select=select,
+                                         infofile=infofile)
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)

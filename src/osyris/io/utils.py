@@ -3,6 +3,8 @@
 
 import glob
 import struct
+import numpy as np
+from ..core import Array
 
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
@@ -92,3 +94,37 @@ def read_binary_data(content=None,
     offsets["n"] += 1
 
     return struct.unpack(fmt, content[offset:offset + pack_size])
+
+
+def make_vector_arrays(data):
+    """
+    Merge vector components in 2d arrays.
+    """
+    components = list("xyz"[:data.meta["ndim"]])
+    if len(components) > 1:
+        skip = []
+        for key in list(data.keys()):
+            if key.endswith("_x") and key not in skip:
+                rawkey = key[:-2]
+                comps_found = [rawkey + "_" + c in data for c in components]
+                if all(comps_found):
+                    for c in components:
+                        print(rawkey + "_" + c, data[rawkey + "_" + c].values.shape)
+                    data[rawkey] = Array(values=np.array(
+                        [data[rawkey + "_" + c].values for c in components]).T,
+                                         unit=data[key].unit)
+                    for c in components:
+                        comp = rawkey + "_" + c
+                        del data[comp]
+                        skip.append(comp)
+
+
+def find_max_amr_level(levelmax, select):
+    """
+    Test the selection function in `select` on the range of possible AMR levels
+    to determine the max level to read.
+    """
+    possible_levels = np.arange(1, levelmax + 1, dtype=int)
+    func_test = select["level"](possible_levels)
+    inds = np.argwhere(func_test).ravel()
+    return possible_levels[inds.max()]

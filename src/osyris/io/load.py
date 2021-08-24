@@ -13,13 +13,14 @@ from .rt import RtLoader
 from .units import get_unit
 
 
-def load(nout=1,
-         scale=None,
-         path="",
-         select=None,
-         lmax=None,
-         cpu_list=None,
-         bounding_box=None):
+def load(
+        nout=1,
+        scale=None,
+        path="",
+        select=None,
+        # lmax=None,
+        cpu_list=None,
+        bounding_box=None):
 
     data = Dataset()
 
@@ -45,8 +46,12 @@ def load(nout=1,
         "time", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
 
     # Take into account user specified lmax
-    if lmax is not None:
-        data.meta["lmax"] = min(lmax, data.meta["levelmax"])
+    # if lmax is not None:
+    if "level" in select:
+        data.meta["lmax"] = utils.find_max_amr_level(levelmax=data.meta["levelmax"],
+                                                     select=select)
+        # data.meta["lmax"] = min(lmax, data.meta["levelmax"])
+        print(data.meta["lmax"])
     else:
         data.meta["lmax"] = data.meta["levelmax"]
 
@@ -224,7 +229,7 @@ def load(nout=1,
             data[key] = np.concatenate(list(item["pieces"].values()))
 
     # If vector quantities are found, make them into vector Arrays
-    make_vector_arrays(data)
+    utils.make_vector_arrays(data)
 
     # Create additional variables derived from the ones already loaded
     additional_variables(data)
@@ -233,24 +238,3 @@ def load(nout=1,
     print("Memory used: {}".format(data.print_size()))
 
     return data
-
-
-def make_vector_arrays(data):
-    """
-    Merge vector components in 2d arrays.
-    """
-    components = list("xyz"[:data.meta["ndim"]])
-    if len(components) > 1:
-        skip = []
-        for key in list(data.keys()):
-            if key.endswith("_x") and key not in skip:
-                rawkey = key[:-2]
-                comps_found = [rawkey + "_" + c in data for c in components]
-                if all(comps_found):
-                    data[rawkey] = Array(values=np.array(
-                        [data[rawkey + "_" + c].values for c in components]).T,
-                                         unit=data[key].unit)
-                    for c in components:
-                        comp = rawkey + "_" + c
-                        del data[comp]
-                        skip.append(comp)
