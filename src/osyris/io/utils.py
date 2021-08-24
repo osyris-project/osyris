@@ -114,17 +114,12 @@ def make_vector_arrays(data):
                 rawkey = key.replace("_x", "")
                 comp_list = [key.replace("_x_", "_{}_".format(c)) for c in components]
 
-            # comps_found = [rawkey + "_" + c in data for c in components]
-
             if comp_list is not None:
                 if all([item in data for item in comp_list]):
-                    # for c in components:
-                    #     print(rawkey + "_" + c, data[rawkey + "_" + c].values.shape)
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
                                          unit=data[key].unit)
                     for c in comp_list:
-                        # comp = rawkey + "_" + c
                         del data[c]
                         skip.append(c)
 

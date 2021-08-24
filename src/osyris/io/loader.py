@@ -46,7 +46,6 @@ class Loader():
         for key, func in select.items():
             if not isinstance(func, bool):
                 if key in self.variables:
-                    #print(self.variables[key]["buffer"][:ncache, :])
                     conditions[key] = func(self.variables[key]["buffer"][:ncache, :])
         return conditions
 
