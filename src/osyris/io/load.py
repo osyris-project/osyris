@@ -177,8 +177,6 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            # data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
-            #                   unit=1.0 * item["unit"].units)
             data[key] = np.concatenate(list(item["pieces"].values()))
 
     # If vector quantities are found, make them into vector Arrays

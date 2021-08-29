@@ -172,14 +172,6 @@ def plane(*layers,
     condition = np.isnan(binned[-1])
     transform = tuple(
         distance_transform_edt(condition, return_distances=False, return_indices=True))
-    # print(distances)
-    # print(distances.shape)
-
-    # im_dx = xedges[1] - xedges[0]
-    # dx_max = 2.0 * np.amax(datadx.array / im_dx)
-
-    # transform = tuple(transform)
-    # transform = [...]
 
     # Define a mask to mask aread outside of the domain range, which have
     # been filled by the previous transform step
@@ -187,10 +179,6 @@ def plane(*layers,
     yy = np.broadcast_to(ycenters, [resolution, resolution]).T
     mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
                                  yy < limits['ymin'], yy > limits['ymax']))
-    # mask = np.logical_or.reduce(
-    #     (xx < limits['xmin'], xx > limits['xmax'], yy < limits['ymin'],
-    #      yy > limits['ymax'], distances > dx_max))
-    # mask = distances > dx_max
     mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
 
     counter = 0
