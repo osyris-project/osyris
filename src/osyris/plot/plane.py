@@ -187,6 +187,7 @@ def plane(*layers,
     pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
            ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]) + origin.array
     print('pos', pos.shape)
+    print('binned', binned[-1].shape)
     fil = np.ravel(np.where(datadx >= xedges[1] - xedges[0]))
     print(len(fil))
 
@@ -196,16 +197,37 @@ def plane(*layers,
 
     times = [0, 0, 0, 0]
     import time
-    print('indices.shape[0]', indices.shape[-1])
+    print('indices.shape', indices.shape)
 
-    for i in range(indices.shape[-1]):
+    for i in range(indices.shape[0]):
         # Make a line from the two end points and compute distance to the line to filter out all points
-        row = np.ravel(np.where(np.abs(xcoords - pos[i, ..., 0:1]) < filtered_dx))
+        # first and last points in row
+        x1 = pos[0, i, :]
+        x2 = pos[-1, i, :]
+        x0_minus_x1 = coords.array[fil] - x1
+        x0_minus_x2 = coords.array[fil] - x2
+        x2_minus_x1 = x2 - x1
+        print('x1', x1, x1.shape, 'x2', x2, x2.shape)
+        print(coords.array[fil].shape)
+        print('x0_minus_x1.shape', x0_minus_x1.shape)
+        print('x0_minus_x2.shape', x0_minus_x2.shape)
+        distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
+        if distance_to_line.ndim > 1:
+            distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
+        else:
+            distance_to_line = np.abs(distance_to_line)
+        distance_to_line /= np.linalg.norm(x2_minus_x1)
+        print('cross', np.cross(x0_minus_x1, x0_minus_x2).shape)
+        # print('outer', np.outer(x0_minus_x1, x0_minus_x2).shape)
+        print(distance_to_line.shape)
+        print('min/max', distance_to_line.min(), distance_to_line.max())
+        row = np.ravel(np.where(distance_to_line < np.sqrt(3.0) * filtered_dx))
         # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
         print(i, len(row))
+        print(xcoords[row].min(), xcoords[row].max())
         start = time.time()
-        distx = pos[i, ..., 0:1] - xcoords[row]  #.reshape((len(coords.x.array), 1))
-        disty = pos[i, ..., 1:2] - ycoords[row]  #.reshape((len(coords.y.array), 1))
+        distx = pos[..., i, 0:1] - xcoords[row]  #.reshape((len(coords.x.array), 1))
+        disty = pos[..., i, 1:2] - ycoords[row]  #.reshape((len(coords.y.array), 1))
         end = time.time()
         times[0] += end - start
         start = end
@@ -219,6 +241,7 @@ def plane(*layers,
         ind = np.logical_and(
             np.abs(distx) <= filtered_dx[row],
             np.abs(disty) <= filtered_dx[row])
+        print('ind.shape', ind.shape)
         end = time.time()
         times[1] += end - start
         start = end
@@ -231,11 +254,12 @@ def plane(*layers,
         start = end
 
         cond = index_found == True
-        indices[i][cond] = index_value[cond]
-        mask[i][np.logical_and(~cond, condition[i])] = True
+        indices[:, i][cond] = index_value[cond]
+        mask[:, i][np.logical_and(~cond, condition[:, i])] = True
         end = time.time()
         times[3] += end - start
         start = end
+        break
 
     print('times', times)
     # print(indices.shape)
