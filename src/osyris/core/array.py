@@ -352,10 +352,18 @@ class Array:
                     self._raise_incompatible_units_error(a, func.__name__)
             args = (tuple(a._array for a in args[0]), ) + args[1:]
         elif (len(args) > 1 and hasattr(args[1], "_array")):
-            # Case of a binary operation, e.g. `dot`.
-            # TODO: what should we do with the unit? Apply the func to it?
-            args = (args[0]._array, args[1]._array) + args[2:]
-            unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+            if hasattr(args[0], "_array"):
+                # Case of a binary operation, with two Arrays, e.g. `dot`
+                # TODO: what should we do with the unit? Apply the func to it?
+                args = (args[0]._array, args[1]._array) + args[2:]
+                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+            else:
+                # Case of a binary operation: ndarray with Array
+                # In this case, only multiply is allowed?
+                if func.__name__ != "multiply":
+                    raise RuntimeError("Cannot use operation {} between ndarray and "
+                                       "Array".format(func.__name__))
+                args = (args[0], args[1]._array) + args[2:]
         else:
             args = (args[0]._array, ) + args[1:]
         result = func(*args, **kwargs)

@@ -123,6 +123,7 @@ def plane(*layers,
         coords = xyz[select]
         datax = np.inner(coords, dir_vecs[1])
         datay = np.inner(coords, dir_vecs[2])
+        datadx = 0.5 * dataset["dx"][select]
 
     scalar_layer = []
     to_binning = []
@@ -170,32 +171,83 @@ def plane(*layers,
 
     # Use Scipy's distance transform to fill blanks with nearest neighbours
     condition = np.isnan(binned[-1])
-    transform = tuple(
-        distance_transform_edt(condition, return_distances=False, return_indices=True))
+    print(len(binned[-1]), np.sum(condition))
+    nempty = np.sum(condition)
 
-    # Define a mask to mask aread outside of the domain range, which have
-    # been filled by the previous transform step
-    xx = np.broadcast_to(xcenters, [resolution, resolution])
-    yy = np.broadcast_to(ycenters, [resolution, resolution]).T
-    mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
-                                 yy < limits['ymin'], yy > limits['ymax']))
+    xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
+    xgrid = Array(values=xgrid, unit=xyz.unit)
+    ygrid = Array(values=ygrid, unit=xyz.unit)
+
+    indices = np.zeros_like(binned[-1], dtype=int)
+    mask = np.zeros_like(binned[-1], dtype=bool)
+
+    for index, x in np.ndenumerate(condition):
+        if x:
+            # print(xgrid[index] * dir_vecs[1])
+            # print(ygrid[index] * dir_vecs[2])
+            pos = (xgrid[index] * dir_vecs[1] + ygrid[index] * dir_vecs[2]) + origin
+            # print(pos)
+            # print(pos[0])
+            # print(pos.array)
+            distx = pos.x - coords[..., 0]
+            disty = pos.y - coords[..., 1]
+            # print(distx.shape, disty.shape, datadx.shape)
+            # distz = pos.z - coords[..., 2]
+            # print(distx)
+            # ind = np.where(
+            #     np.logical_and(
+            #         np.abs(distx) <= datadx,
+            #         np.logical_and(np.abs(disty) <= datadx,
+            #                        np.abs(distz) <= datadx)))
+            ind = np.ravel(
+                np.where(
+                    np.logical_and(np.abs(distx) <= datadx,
+                                   np.abs(disty) <= datadx)))
+            # print(ind)
+            if len(ind) > 0:
+                indices[index] = ind[0]
+            else:
+                # print('masking', index)
+                mask[index] = True
+
+    # for i in range(len(binned) - 1):
+    #     binned[i][condition] = to_binning[i][indices][condition]
+    #     binned[i] = np.ma.masked_where(mask, binned[i], copy=False)
+    #     print(i, binned[i])
+    #     print(np.ma.masked_where(mask, binned[i], copy=False))
+
+    # transform = tuple(
+    #     distance_transform_edt(condition, return_distances=False, return_indices=True))
+
+    # # Define a mask to mask aread outside of the domain range, which have
+    # # been filled by the previous transform step
+    # xx = np.broadcast_to(xcenters, [resolution, resolution])
+    # yy = np.broadcast_to(ycenters, [resolution, resolution]).T
+    # mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
+    #                              yy < limits['ymin'], yy > limits['ymax']))
     mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
+    # print('=====')
+    # print(binned[0])
+    # print(mask)
 
     counter = 0
     for ind in range(len(to_render)):
+        binned[ind][condition] = to_binning[ind][indices][condition]
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(mask,
-                                                     binned[counter][transform],
-                                                     copy=False)
+            to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
+            # to_render[ind]["data"] = binned[counter]
             counter += 1
         else:
-            to_render[ind]["data"] = ma.masked_where(
-                mask_vec,
-                np.array([
-                    binned[counter][transform].T, binned[counter + 1][transform].T,
-                    binned[counter + 2][transform].T
-                ]).T,
-                copy=False)
+            to_render[ind]["data"] = ma.masked_where(mask_vec,
+                                                     np.array([
+                                                         binned[counter].T,
+                                                         binned[counter + 1].T,
+                                                         binned[counter + 2].T
+                                                     ]).T,
+                                                     copy=False)
+            # to_render[ind]["data"] = np.array(
+            #     [binned[counter].T, binned[counter + 1].T, binned[counter + 2].T]).T
+
             counter += 3
 
     to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
