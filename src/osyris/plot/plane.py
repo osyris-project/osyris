@@ -175,40 +175,79 @@ def plane(*layers,
     nempty = np.sum(condition)
 
     xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
-    xgrid = Array(values=xgrid, unit=xyz.unit)
-    ygrid = Array(values=ygrid, unit=xyz.unit)
+    # xgrid = Array(values=xgrid, unit=xyz.unit)
+    # ygrid = Array(values=ygrid, unit=xyz.unit)
 
     indices = np.zeros_like(binned[-1], dtype=int)
     mask = np.zeros_like(binned[-1], dtype=bool)
 
-    for index, x in np.ndenumerate(condition):
-        if x:
-            # print(xgrid[index] * dir_vecs[1])
-            # print(ygrid[index] * dir_vecs[2])
-            pos = (xgrid[index] * dir_vecs[1] + ygrid[index] * dir_vecs[2]) + origin
-            # print(pos)
-            # print(pos[0])
-            # print(pos.array)
-            distx = pos.x - coords[..., 0]
-            disty = pos.y - coords[..., 1]
-            # print(distx.shape, disty.shape, datadx.shape)
-            # distz = pos.z - coords[..., 2]
-            # print(distx)
-            # ind = np.where(
-            #     np.logical_and(
-            #         np.abs(distx) <= datadx,
-            #         np.logical_and(np.abs(disty) <= datadx,
-            #                        np.abs(distz) <= datadx)))
-            ind = np.ravel(
-                np.where(
-                    np.logical_and(np.abs(distx) <= datadx,
-                                   np.abs(disty) <= datadx)))
-            # print(ind)
-            if len(ind) > 0:
-                indices[index] = ind[0]
-            else:
-                # print('masking', index)
-                mask[index] = True
+    pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
+           ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]) + origin.array
+    print('pos', pos.shape)
+    fil = np.ravel(np.where(datadx > 0.9 * (xedges[1] - xedges[0])))
+    print(len(fil))
+
+    for i in range(indices.shape[-1]):
+
+        distx = pos[..., i,
+                    0:1] - coords.x.array[fil]  #.reshape((len(coords.x.array), 1))
+        disty = pos[..., i,
+                    1:2] - coords.y.array[fil]  #.reshape((len(coords.y.array), 1))
+        # print(distx.shape)
+
+        # ind = np.where(
+        #     np.logical_and(
+        #         np.abs(distx) <= datadx.array[fil],
+        #         np.abs(disty) <= datadx.array[fil]))
+
+        ind = np.logical_and(
+            np.abs(distx) <= datadx.array[fil],
+            np.abs(disty) <= datadx.array[fil])
+        # print(ind.shape)
+        # print(ind.max(axis=-1))
+        index_found = ind.max(axis=-1)
+
+        index_value = ind.argmax(axis=-1)
+
+        cond = index_found == True
+        indices[i][cond] = index_value[cond]
+        mask[i][np.logical_and(~cond, condition[i])] = True
+
+    # print(indices.shape)
+    # if len(ind) > 0:
+    #     indices[index] = ind[0]
+    # else:
+    #     # print('masking', index)
+    #     mask[index] = True
+
+    # for index, x in np.ndenumerate(condition):
+    #     if x:
+    #         # print(xgrid[index] * dir_vecs[1])
+    #         # print(ygrid[index] * dir_vecs[2])
+    #         pos = (xgrid[index] * dir_vecs[1] + ygrid[index] * dir_vecs[2]) + origin
+    #         # print(pos)
+    #         # print(pos[0])
+    #         # print(pos.array)
+    #         distx = pos.x - coords[..., 0]
+    #         disty = pos.y - coords[..., 1]
+    #         # print(distx.shape, disty.shape, datadx.shape)
+    #         # distz = pos.z - coords[..., 2]
+    #         # print(distx)
+    #         # ind = np.where(
+    #         #     np.logical_and(
+    #         #         np.abs(distx) <= datadx,
+    #         #         np.logical_and(np.abs(disty) <= datadx,
+    #         #                        np.abs(distz) <= datadx)))
+    #         ind = np.ravel(
+    #             np.where(
+    #                 np.logical_and(np.abs(distx) <= datadx,
+    #                                np.abs(disty) <= datadx)))
+    #         # print(ind)
+    #         if len(ind) > 0:
+    #             indices[index] = ind[0]
+    #         else:
+    #             # print('masking', index)
+    #             mask[index] = True
 
     # for i in range(len(binned) - 1):
     #     binned[i][condition] = to_binning[i][indices][condition]
