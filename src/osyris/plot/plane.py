@@ -155,8 +155,10 @@ def plane(*layers,
     to_binning.append(np.ones_like(to_binning[0]))
 
     # Construct some bin edges
-    xedges = np.linspace(xmin, xmax, resolution + 1)
-    yedges = np.linspace(ymin, ymax, resolution + 1)
+    if isinstance(resolution, int):
+        resolution = {'x': resolution, 'y': resolution}
+    xedges = np.linspace(xmin, xmax, resolution['x'] + 1)
+    yedges = np.linspace(ymin, ymax, resolution['y'] + 1)
 
     # In the contour plots, x and y are the centers of the cells, instead of
     # the edges.
@@ -175,6 +177,7 @@ def plane(*layers,
     nempty = np.sum(condition)
 
     xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
+    # ygrid, xgrid = np.meshgrid(ycenters, xcenters, indexing='xy')
     # xgrid = Array(values=xgrid, unit=xyz.unit)
     # ygrid = Array(values=ygrid, unit=xyz.unit)
 
@@ -184,15 +187,28 @@ def plane(*layers,
     pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
            ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]) + origin.array
     print('pos', pos.shape)
-    fil = np.ravel(np.where(datadx > 0.9 * (xedges[1] - xedges[0])))
+    fil = np.ravel(np.where(datadx >= xedges[1] - xedges[0]))
     print(len(fil))
 
-    for i in range(indices.shape[-1]):
+    xcoords = coords.x.array[fil]
+    ycoords = coords.y.array[fil]
+    filtered_dx = datadx.array[fil]
 
-        distx = pos[..., i,
-                    0:1] - coords.x.array[fil]  #.reshape((len(coords.x.array), 1))
-        disty = pos[..., i,
-                    1:2] - coords.y.array[fil]  #.reshape((len(coords.y.array), 1))
+    times = [0, 0, 0, 0]
+    import time
+    print('indices.shape[0]', indices.shape[-1])
+
+    for i in range(indices.shape[-1]):
+        # Make a line from the two end points and compute distance to the line to filter out all points
+        row = np.ravel(np.where(np.abs(xcoords - pos[i, ..., 0:1]) < filtered_dx))
+        # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
+        print(i, len(row))
+        start = time.time()
+        distx = pos[i, ..., 0:1] - xcoords[row]  #.reshape((len(coords.x.array), 1))
+        disty = pos[i, ..., 1:2] - ycoords[row]  #.reshape((len(coords.y.array), 1))
+        end = time.time()
+        times[0] += end - start
+        start = end
         # print(distx.shape)
 
         # ind = np.where(
@@ -201,18 +217,27 @@ def plane(*layers,
         #         np.abs(disty) <= datadx.array[fil]))
 
         ind = np.logical_and(
-            np.abs(distx) <= datadx.array[fil],
-            np.abs(disty) <= datadx.array[fil])
+            np.abs(distx) <= filtered_dx[row],
+            np.abs(disty) <= filtered_dx[row])
+        end = time.time()
+        times[1] += end - start
+        start = end
         # print(ind.shape)
         # print(ind.max(axis=-1))
         index_found = ind.max(axis=-1)
-
         index_value = ind.argmax(axis=-1)
+        end = time.time()
+        times[2] += end - start
+        start = end
 
         cond = index_found == True
         indices[i][cond] = index_value[cond]
         mask[i][np.logical_and(~cond, condition[i])] = True
+        end = time.time()
+        times[3] += end - start
+        start = end
 
+    print('times', times)
     # print(indices.shape)
     # if len(ind) > 0:
     #     indices[index] = ind[0]
