@@ -79,11 +79,14 @@ def plane(*layers,
     diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
 
+    global_selection = np.arange(len(dataset["dx"]))
+
     # Select cells in contact with plane
     cells_in_plane = np.abs(dist1) <= diagonal
     # Project coordinates onto the plane by taking dot product with axes
     # vectors
     select = np.ravel(np.where(cells_in_plane))
+    global_selection = global_selection[select]
 
     if len(select) == 0:
         raise RuntimeError("No cells were selected to construct the plane. "
@@ -113,26 +116,37 @@ def plane(*layers,
         ymin = -0.5 * dy.magnitude
         ymax = ymin + dy.magnitude
         # Limit selection further by using distance from center
-        dist2 = xyz - diagonal
-        select = np.ravel(
+        # dist2 = xyz - diagonal
+        dist2 = coords - datadx * np.sqrt(dataset.meta["ndim"])
+        select2 = np.ravel(
             np.where(
-                np.logical_and(
-                    cells_in_plane,
-                    np.abs(dist2.norm) <=
-                    max(dx.magnitude, dy.magnitude) * 0.5 * np.sqrt(2.0))))
-        coords = xyz[select]
-        datax = np.inner(coords, dir_vecs[1])
-        datay = np.inner(coords, dir_vecs[2])
-        datadx = 0.5 * dataset["dx"][select]
+                np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude) * 0.6 *
+                np.sqrt(2.0)))
+        # select = np.ravel(
+        #     np.where(
+        #         np.logical_and(
+        #             cells_in_plane,
+        #             np.abs(dist2.norm) <=
+        #             max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))))
+        # coords = xyz[select]
+        # datax = np.inner(coords, dir_vecs[1])
+        # datay = np.inner(coords, dir_vecs[2])
+        # datadx = 0.5 * dataset["dx"][select]
+        coords = coords[select2]
+        datax = datax[select2]
+        datay = datay[select2]
+        datadx = datadx[select2]
+        global_selection = global_selection[select2]
 
     scalar_layer = []
     to_binning = []
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream"]:
             if to_process[ind].ndim < 3:
-                uv = to_process[ind].array[select]
+                uv = to_process[ind].array[global_selection]
             else:
-                uv = np.inner(to_process[ind].array.take(select, axis=0), dir_vecs[1:])
+                uv = np.inner(to_process[ind].array.take(global_selection, axis=0),
+                              dir_vecs[1:])
             w = None
             if "color" in to_render[ind]["params"]:
                 if isinstance(to_render[ind]["params"]["color"], Array):
@@ -142,13 +156,13 @@ def plane(*layers,
             if w is None:
                 w = np.linalg.norm(uv, axis=1)
             else:
-                w = w.take(select, axis=0)
+                w = w.take(global_selection, axis=0)
             to_binning.append(apply_mask(uv[:, 0]))
             to_binning.append(apply_mask(uv[:, 1]))
             to_binning.append(apply_mask(w))
             scalar_layer.append(False)
         else:
-            to_binning.append(apply_mask(to_process[ind].array[select]))
+            to_binning.append(apply_mask(to_process[ind].array[global_selection]))
             scalar_layer.append(True)
 
     # Buffer for counts
@@ -186,10 +200,11 @@ def plane(*layers,
     mask = np.zeros_like(binned[-1], dtype=bool)
 
     pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
-           ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]) + origin.array
+           ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2])  # + origin.array
     # print('dir_vecs', dir_vecs[1], dir_vecs[2])
     # print('pos', pos.shape)
-    # print(pos)
+    # print(pos[0, 0, :])
+    # print(coords.array.min(axis=0), coords.array.max(axis=0))
     # print('binned', binned[-1].shape)
     fil = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
     # print(len(fil))
@@ -205,6 +220,7 @@ def plane(*layers,
     times = [0, 0, 0, 0]
     import time
     # print('indices.shape', indices.shape)
+    # return
 
     for i in range(indices.shape[-1]):
         # Make a line from the two end points and compute distance to the line to filter out all points
@@ -230,7 +246,10 @@ def plane(*layers,
         # print('outer', np.outer(x0_minus_x1, x0_minus_x2).shape)
         # print(distance_to_line.shape)
         # print('min/max', distance_to_line.min(), distance_to_line.max())
-        row = np.ravel(np.where(distance_to_line < np.sqrt(3.0) * filtered_dx))
+
+        row = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * filtered_dx))
+        # row = np.ravel(np.where(filtered_dx > 0))
+
         # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
         # print(i, len(row))
         # print(xcoords[row].min(), xcoords[row].max())
@@ -239,11 +258,18 @@ def plane(*layers,
 
             start = time.time()
             distance_to_cell = []
-            # for n in range(xyz.ndim):
-            distx = pos[..., i,
-                        0:1] - coords.x.array[row]  #.reshape((len(coords.x.array), 1))
-            disty = pos[..., i,
-                        1:2] - coords.y.array[row]  #.reshape((len(coords.y.array), 1))
+            for n, c in enumerate("xyz"[:xyz.ndim]):
+                # print(c)
+                distance_to_cell.append(pos[..., i, n:n + 1] -
+                                        getattr(coords, c).array[row])
+                # print(np.abs(distance_to_cell).min(), np.abs(distance_to_cell).max())
+                # print(filtered_dx.min(), filtered_dx.max())
+                #.reshape((len(coords.x.array), 1))
+
+            # distx = pos[..., i,
+            #             0:1] - coords.x.array[row]  #.reshape((len(coords.x.array), 1))
+            # disty = pos[..., i,
+            #             1:2] - coords.y.array[row]  #.reshape((len(coords.y.array), 1))
             end = time.time()
             times[0] += end - start
             start = end
@@ -254,9 +280,12 @@ def plane(*layers,
             #         np.abs(distx) <= datadx.array[fil],
             #         np.abs(disty) <= datadx.array[fil]))
 
-            ind = np.logical_and(
-                np.abs(distx) <= filtered_dx[row],
-                np.abs(disty) <= filtered_dx[row])
+            # ind = np.logical_and(
+            #     np.abs(distx) <= filtered_dx[row],
+            #     np.abs(disty) <= filtered_dx[row])
+
+            ind = np.logical_and.reduce(
+                [np.abs(d) <= filtered_dx[row] for d in distance_to_cell])
             # print('ind.shape', ind.shape)
             end = time.time()
             times[1] += end - start
@@ -341,12 +370,15 @@ def plane(*layers,
 
     counter = 0
     for ind in range(len(to_render)):
-        binned[ind][condition] = to_binning[ind][indices][condition]
+        # binned[ind][condition] = to_binning[ind][indices][condition]
+        binned[counter][condition] = to_binning[counter][indices][condition]
         if scalar_layer[ind]:
             to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
             # to_render[ind]["data"] = binned[counter]
             counter += 1
         else:
+            for j in range(counter + 1, counter + 3):
+                binned[j][condition] = to_binning[j][indices][condition]
             to_render[ind]["data"] = ma.masked_where(mask_vec,
                                                      np.array([
                                                          binned[counter].T,
