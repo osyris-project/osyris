@@ -180,26 +180,30 @@ def plane(*layers,
     # ygrid, xgrid = np.meshgrid(ycenters, xcenters, indexing='xy')
     # xgrid = Array(values=xgrid, unit=xyz.unit)
     # ygrid = Array(values=ygrid, unit=xyz.unit)
+    print('xgrid.shape', xgrid.shape)
 
     indices = np.zeros_like(binned[-1], dtype=int)
     mask = np.zeros_like(binned[-1], dtype=bool)
 
     pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
            ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]) + origin.array
+    print('dir_vecs', dir_vecs[1], dir_vecs[2])
     print('pos', pos.shape)
+    print(pos)
     print('binned', binned[-1].shape)
-    fil = np.ravel(np.where(datadx >= xedges[1] - xedges[0]))
+    fil = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
     print(len(fil))
 
     xcoords = coords.x.array[fil]
     ycoords = coords.y.array[fil]
     filtered_dx = datadx.array[fil]
+    global_indices = np.arange(len(datadx))[fil]
 
     times = [0, 0, 0, 0]
     import time
     print('indices.shape', indices.shape)
 
-    for i in range(indices.shape[0]):
+    for i in range(indices.shape[-1]):
         # Make a line from the two end points and compute distance to the line to filter out all points
         # first and last points in row
         x1 = pos[0, i, :]
@@ -207,24 +211,24 @@ def plane(*layers,
         x0_minus_x1 = coords.array[fil] - x1
         x0_minus_x2 = coords.array[fil] - x2
         x2_minus_x1 = x2 - x1
-        print('x1', x1, x1.shape, 'x2', x2, x2.shape)
-        print(coords.array[fil].shape)
-        print('x0_minus_x1.shape', x0_minus_x1.shape)
-        print('x0_minus_x2.shape', x0_minus_x2.shape)
+        # print('x1', x1, x1.shape, 'x2', x2, x2.shape)
+        # print(coords.array[fil].shape)
+        # print('x0_minus_x1.shape', x0_minus_x1.shape)
+        # print('x0_minus_x2.shape', x0_minus_x2.shape)
         distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
         if distance_to_line.ndim > 1:
             distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
         else:
             distance_to_line = np.abs(distance_to_line)
         distance_to_line /= np.linalg.norm(x2_minus_x1)
-        print('cross', np.cross(x0_minus_x1, x0_minus_x2).shape)
+        # print('cross', np.cross(x0_minus_x1, x0_minus_x2).shape)
         # print('outer', np.outer(x0_minus_x1, x0_minus_x2).shape)
-        print(distance_to_line.shape)
-        print('min/max', distance_to_line.min(), distance_to_line.max())
+        # print(distance_to_line.shape)
+        # print('min/max', distance_to_line.min(), distance_to_line.max())
         row = np.ravel(np.where(distance_to_line < np.sqrt(3.0) * filtered_dx))
         # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
-        print(i, len(row))
-        print(xcoords[row].min(), xcoords[row].max())
+        # print(i, len(row))
+        # print(xcoords[row].min(), xcoords[row].max())
         start = time.time()
         distx = pos[..., i, 0:1] - xcoords[row]  #.reshape((len(coords.x.array), 1))
         disty = pos[..., i, 1:2] - ycoords[row]  #.reshape((len(coords.y.array), 1))
@@ -241,25 +245,28 @@ def plane(*layers,
         ind = np.logical_and(
             np.abs(distx) <= filtered_dx[row],
             np.abs(disty) <= filtered_dx[row])
-        print('ind.shape', ind.shape)
+        # print('ind.shape', ind.shape)
         end = time.time()
         times[1] += end - start
         start = end
         # print(ind.shape)
         # print(ind.max(axis=-1))
         index_found = ind.max(axis=-1)
-        index_value = ind.argmax(axis=-1)
+        index_value = global_indices[row][ind.argmax(axis=-1)]
         end = time.time()
         times[2] += end - start
         start = end
 
         cond = index_found == True
+        # print('cond', cond)
+        # print('index_found', index_found)
+        # print('index_value', index_value)
         indices[:, i][cond] = index_value[cond]
-        mask[:, i][np.logical_and(~cond, condition[:, i])] = True
+        # mask[:, i][np.logical_and(~cond, condition[:, i])] = True
         end = time.time()
         times[3] += end - start
         start = end
-        break
+        # break
 
     print('times', times)
     # print(indices.shape)
