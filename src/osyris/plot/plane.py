@@ -199,23 +199,24 @@ def plane(*layers,
     indices = np.zeros_like(binned[-1], dtype=int)
     mask = np.zeros_like(binned[-1], dtype=bool)
 
-    pos = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
-           ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2])  # + origin.array
+    pixel_positions = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
+                       ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]
+                       )  # + origin.array
     # print('dir_vecs', dir_vecs[1], dir_vecs[2])
     # print('pos', pos.shape)
     # print(pos[0, 0, :])
     # print(coords.array.min(axis=0), coords.array.max(axis=0))
     # print('binned', binned[-1].shape)
-    fil = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
-    # print(len(fil))
+    large_cells = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
+    # print(len(large_cells))
 
-    # xcoords = coords.x.array[fil]
-    # ycoords = coords.y.array[fil]
+    # xcoords = coords.x.array[large_cells]
+    # ycoords = coords.y.array[large_cells]
 
-    coords = coords[fil]
+    coords = coords[large_cells]
 
-    filtered_dx = datadx.array[fil]
-    global_indices = np.arange(len(datadx))[fil]
+    large_cells_dx = datadx.array[large_cells]
+    global_indices = np.arange(len(datadx))[large_cells]
 
     times = [0, 0, 0, 0]
     import time
@@ -225,8 +226,8 @@ def plane(*layers,
     for i in range(indices.shape[-1]):
         # Make a line from the two end points and compute distance to the line to filter out all points
         # first and last points in row
-        x1 = pos[0, i, :]
-        x2 = pos[-1, i, :]
+        x1 = pixel_positions[0, i, :]
+        x2 = pixel_positions[-1, i, :]
         # x0_minus_x1 = coords.array[fil] - x1
         # x0_minus_x2 = coords.array[fil] - x2
         x0_minus_x1 = coords.array - x1
@@ -247,7 +248,7 @@ def plane(*layers,
         # print(distance_to_line.shape)
         # print('min/max', distance_to_line.min(), distance_to_line.max())
 
-        row = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * filtered_dx))
+        row = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
         # row = np.ravel(np.where(filtered_dx > 0))
 
         # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
@@ -260,7 +261,7 @@ def plane(*layers,
             distance_to_cell = []
             for n, c in enumerate("xyz"[:xyz.ndim]):
                 # print(c)
-                distance_to_cell.append(pos[..., i, n:n + 1] -
+                distance_to_cell.append(pixel_positions[..., i, n:n + 1] -
                                         getattr(coords, c).array[row])
                 # print(np.abs(distance_to_cell).min(), np.abs(distance_to_cell).max())
                 # print(filtered_dx.min(), filtered_dx.max())
@@ -285,7 +286,7 @@ def plane(*layers,
             #     np.abs(disty) <= filtered_dx[row])
 
             ind = np.logical_and.reduce(
-                [np.abs(d) <= filtered_dx[row] for d in distance_to_cell])
+                [np.abs(d) <= large_cells_dx[row] for d in distance_to_cell])
             # print('ind.shape', ind.shape)
             end = time.time()
             times[1] += end - start
@@ -308,7 +309,7 @@ def plane(*layers,
             times[3] += end - start
             start = end
         else:
-            mask[:, i] = True
+            mask[:, i][condition[:, i]] = True
         # break
 
     print('times', times)
@@ -370,7 +371,6 @@ def plane(*layers,
 
     counter = 0
     for ind in range(len(to_render)):
-        # binned[ind][condition] = to_binning[ind][indices][condition]
         binned[counter][condition] = to_binning[counter][indices][condition]
         if scalar_layer[ind]:
             to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
