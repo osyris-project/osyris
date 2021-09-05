@@ -78,19 +78,18 @@ def plane(*layers,
     xyz = dataset["xyz"] - origin
     diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
-
+    # Create an array of indices to allow further narrowing of the selection below
     global_selection = np.arange(len(dataset["dx"]))
 
     # Select cells in contact with plane
-    cells_in_plane = np.abs(dist1) <= diagonal
-    # Project coordinates onto the plane by taking dot product with axes
-    # vectors
-    select = np.ravel(np.where(cells_in_plane))
+    select = np.ravel(np.where(np.abs(dist1) <= diagonal))
     global_selection = global_selection[select]
 
     if len(select) == 0:
         raise RuntimeError("No cells were selected to construct the plane. "
                            "The resulting figure would be empty.")
+
+    # Project coordinates onto the plane by taking dot product with axes vectors
     coords = xyz[select]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
@@ -116,22 +115,11 @@ def plane(*layers,
         ymin = -0.5 * dy.magnitude
         ymax = ymin + dy.magnitude
         # Limit selection further by using distance from center
-        # dist2 = xyz - diagonal
         dist2 = coords - datadx * np.sqrt(dataset.meta["ndim"])
         select2 = np.ravel(
             np.where(
                 np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude) * 0.6 *
                 np.sqrt(2.0)))
-        # select = np.ravel(
-        #     np.where(
-        #         np.logical_and(
-        #             cells_in_plane,
-        #             np.abs(dist2.norm) <=
-        #             max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))))
-        # coords = xyz[select]
-        # datax = np.inner(coords, dir_vecs[1])
-        # datay = np.inner(coords, dir_vecs[2])
-        # datadx = 0.5 * dataset["dx"][select]
         coords = coords[select2]
         datax = datax[select2]
         datay = datay[select2]
@@ -174,207 +162,73 @@ def plane(*layers,
     xedges = np.linspace(xmin, xmax, resolution['x'] + 1)
     yedges = np.linspace(ymin, ymax, resolution['y'] + 1)
 
-    # In the contour plots, x and y are the centers of the cells, instead of
-    # the edges.
+    # In the contour plots, x and y are the centers of the cells, instead of the edges
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 
+    # First histogram the cell centers into the grid bins
     binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay.array),
                                           y=apply_mask(datax.array),
                                           values=to_binning,
                                           statistic="mean",
                                           bins=[yedges, xedges])
 
-    # Use Scipy's distance transform to fill blanks with nearest neighbours
+    # Next, find all the empty pixels, find the cell is lies in a apply the value
     condition = np.isnan(binned[-1])
-    # print(len(binned[-1]), np.sum(condition))
-    nempty = np.sum(condition)
-
     xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
-    # ygrid, xgrid = np.meshgrid(ycenters, xcenters, indexing='xy')
-    # xgrid = Array(values=xgrid, unit=xyz.unit)
-    # ygrid = Array(values=ygrid, unit=xyz.unit)
-    # print('xgrid.shape', xgrid.shape)
-
+    # Make array of cell indices (in original array of cells) with image shape
     indices = np.zeros_like(binned[-1], dtype=int)
+    # We also need a mask for pixels that find no cells (outside of the data range)
     mask = np.zeros_like(binned[-1], dtype=bool)
 
-    pixel_positions = (xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] +
-                       ygrid.reshape(ygrid.shape + (1, )) * dir_vecs[2]
-                       )  # + origin.array
-    # print('dir_vecs', dir_vecs[1], dir_vecs[2])
-    # print('pos', pos.shape)
-    # print(pos[0, 0, :])
-    # print(coords.array.min(axis=0), coords.array.max(axis=0))
-    # print('binned', binned[-1].shape)
+    pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
+        ygrid.shape + (1, )) * dir_vecs[2]
+    # We only need to search in the cells above a certain size
     large_cells = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
-    # print(len(large_cells))
-
-    # xcoords = coords.x.array[large_cells]
-    # ycoords = coords.y.array[large_cells]
-
     coords = coords[large_cells]
-
     large_cells_dx = datadx.array[large_cells]
     global_indices = np.arange(len(datadx))[large_cells]
 
-    times = [0, 0, 0, 0]
-    import time
-    # print('indices.shape', indices.shape)
-    # return
-
+    # To keep memory usage down to a minimum, we process the image one column at a time
     for i in range(indices.shape[-1]):
-        # Make a line from the two end points and compute distance to the line to filter out all points
-        # first and last points in row
+        # We know we are looking only at a column of cells, so we make a line from the two
+        # end points, compute distance to the line to filter out the cells
         x1 = pixel_positions[0, i, :]
         x2 = pixel_positions[-1, i, :]
-        # x0_minus_x1 = coords.array[fil] - x1
-        # x0_minus_x2 = coords.array[fil] - x2
         x0_minus_x1 = coords.array - x1
         x0_minus_x2 = coords.array - x2
         x2_minus_x1 = x2 - x1
-        # print('x1', x1, x1.shape, 'x2', x2, x2.shape)
-        # print(coords.array[fil].shape)
-        # print('x0_minus_x1.shape', x0_minus_x1.shape)
-        # print('x0_minus_x2.shape', x0_minus_x2.shape)
         distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
         if distance_to_line.ndim > 1:
             distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
         else:
             distance_to_line = np.abs(distance_to_line)
         distance_to_line /= np.linalg.norm(x2_minus_x1)
-        # print('cross', np.cross(x0_minus_x1, x0_minus_x2).shape)
-        # print('outer', np.outer(x0_minus_x1, x0_minus_x2).shape)
-        # print(distance_to_line.shape)
-        # print('min/max', distance_to_line.min(), distance_to_line.max())
+        column = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
 
-        row = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
-        # row = np.ravel(np.where(filtered_dx > 0))
-
-        # row = np.ravel(np.where(np.abs(ycoords - ycenters[i]) < filtered_dx))
-        # print(i, len(row))
-        # print(xcoords[row].min(), xcoords[row].max())
-
-        if len(row) > 0:
-
-            start = time.time()
+        if len(column) > 0:
             distance_to_cell = []
             for n, c in enumerate("xyz"[:xyz.ndim]):
-                # print(c)
                 distance_to_cell.append(pixel_positions[..., i, n:n + 1] -
-                                        getattr(coords, c).array[row])
-                # print(np.abs(distance_to_cell).min(), np.abs(distance_to_cell).max())
-                # print(filtered_dx.min(), filtered_dx.max())
-                #.reshape((len(coords.x.array), 1))
-
-            # distx = pos[..., i,
-            #             0:1] - coords.x.array[row]  #.reshape((len(coords.x.array), 1))
-            # disty = pos[..., i,
-            #             1:2] - coords.y.array[row]  #.reshape((len(coords.y.array), 1))
-            end = time.time()
-            times[0] += end - start
-            start = end
-            # print(distx.shape)
-
-            # ind = np.where(
-            #     np.logical_and(
-            #         np.abs(distx) <= datadx.array[fil],
-            #         np.abs(disty) <= datadx.array[fil]))
-
-            # ind = np.logical_and(
-            #     np.abs(distx) <= filtered_dx[row],
-            #     np.abs(disty) <= filtered_dx[row])
-
-            ind = np.logical_and.reduce(
-                [np.abs(d) <= large_cells_dx[row] for d in distance_to_cell])
-            # print('ind.shape', ind.shape)
-            end = time.time()
-            times[1] += end - start
-            start = end
-            # print(ind.shape)
-            # print(ind.max(axis=-1))
-            index_found = ind.max(axis=-1)
-            index_value = global_indices[row][ind.argmax(axis=-1)]
-            end = time.time()
-            times[2] += end - start
-            start = end
-
-            # cond = index_found == True
-            # print('cond', cond)
-            # print('index_found', index_found)
-            # print('index_value', index_value)
+                                        getattr(coords, c).array[column])
+            # Find the cell where the x, y, z distance is smaller than dx/2
+            inds = np.logical_and.reduce(
+                [np.abs(d) <= large_cells_dx[column] for d in distance_to_cell])
+            index_found = inds.max(axis=-1)
+            index_value = global_indices[column][inds.argmax(axis=-1)]
             indices[:, i][index_found] = index_value[index_found]
             mask[:, i][np.logical_and(~index_found, condition[:, i])] = True
-            end = time.time()
-            times[3] += end - start
-            start = end
         else:
             mask[:, i][condition[:, i]] = True
-        # break
 
-    print('times', times)
-    # print(indices.shape)
-    # if len(ind) > 0:
-    #     indices[index] = ind[0]
-    # else:
-    #     # print('masking', index)
-    #     mask[index] = True
-
-    # for index, x in np.ndenumerate(condition):
-    #     if x:
-    #         # print(xgrid[index] * dir_vecs[1])
-    #         # print(ygrid[index] * dir_vecs[2])
-    #         pos = (xgrid[index] * dir_vecs[1] + ygrid[index] * dir_vecs[2]) + origin
-    #         # print(pos)
-    #         # print(pos[0])
-    #         # print(pos.array)
-    #         distx = pos.x - coords[..., 0]
-    #         disty = pos.y - coords[..., 1]
-    #         # print(distx.shape, disty.shape, datadx.shape)
-    #         # distz = pos.z - coords[..., 2]
-    #         # print(distx)
-    #         # ind = np.where(
-    #         #     np.logical_and(
-    #         #         np.abs(distx) <= datadx,
-    #         #         np.logical_and(np.abs(disty) <= datadx,
-    #         #                        np.abs(distz) <= datadx)))
-    #         ind = np.ravel(
-    #             np.where(
-    #                 np.logical_and(np.abs(distx) <= datadx,
-    #                                np.abs(disty) <= datadx)))
-    #         # print(ind)
-    #         if len(ind) > 0:
-    #             indices[index] = ind[0]
-    #         else:
-    #             # print('masking', index)
-    #             mask[index] = True
-
-    # for i in range(len(binned) - 1):
-    #     binned[i][condition] = to_binning[i][indices][condition]
-    #     binned[i] = np.ma.masked_where(mask, binned[i], copy=False)
-    #     print(i, binned[i])
-    #     print(np.ma.masked_where(mask, binned[i], copy=False))
-
-    # transform = tuple(
-    #     distance_transform_edt(condition, return_distances=False, return_indices=True))
-
-    # # Define a mask to mask aread outside of the domain range, which have
-    # # been filled by the previous transform step
-    # xx = np.broadcast_to(xcenters, [resolution, resolution])
-    # yy = np.broadcast_to(ycenters, [resolution, resolution]).T
-    # mask = np.logical_or.reduce((xx < limits['xmin'], xx > limits['xmax'],
-    #                              yy < limits['ymin'], yy > limits['ymax']))
     mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
-    # print('=====')
-    # print(binned[0])
-    # print(mask)
 
+    # Now we fill the arrays to be sent to the renderer, also constructing vectors
     counter = 0
     for ind in range(len(to_render)):
         binned[counter][condition] = to_binning[counter][indices][condition]
         if scalar_layer[ind]:
             to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
-            # to_render[ind]["data"] = binned[counter]
             counter += 1
         else:
             for j in range(counter + 1, counter + 3):
@@ -386,9 +240,6 @@ def plane(*layers,
                                                          binned[counter + 2].T
                                                      ]).T,
                                                      copy=False)
-            # to_render[ind]["data"] = np.array(
-            #     [binned[counter].T, binned[counter + 1].T, binned[counter + 2].T]).T
-
             counter += 3
 
     to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
