@@ -10,7 +10,6 @@ from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
 from scipy.stats import binned_statistic_2d
-from scipy.ndimage import distance_transform_edt
 
 
 def plane(*layers,
@@ -191,8 +190,8 @@ def plane(*layers,
 
     # To keep memory usage down to a minimum, we process the image one column at a time
     for i in range(indices.shape[-1]):
-        # We know we are looking only at a column of cells, so we make a line from the two
-        # end points, compute distance to the line to filter out the cells
+        # We know we are looking only at a column of cells, so we make a line from the
+        # two end points, compute distance to the line to filter out the cells
         x1 = pixel_positions[0, i, :]
         x2 = pixel_positions[-1, i, :]
         x0_minus_x1 = coords.array - x1
