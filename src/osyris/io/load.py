@@ -4,14 +4,15 @@
 import numpy as np
 from ..config import parameters, additional_variables
 from . import utils
-from ..core import Dataset, Array
+from ..core import Dataset
 from .amr import AmrLoader
 from .grav import GravLoader
 from .hydro import HydroLoader
 from .rt import RtLoader
+from .units import get_unit
 
 
-def load(nout=1, scale=None, path="", select=None, lmax=None):
+def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=None):
 
     data = Dataset()
 
@@ -32,12 +33,13 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     data.meta["scale"] = scale
     data.meta["infile"] = infile
     data.meta["path"] = path
-    data.meta["boxsize"] = data.meta["boxlen"] * data.meta["unit_l"]
-    data.meta["time"] = data.meta["time"] * data.meta["unit_t"]
+    data.meta["time"] = data.meta["time"] * get_unit(
+        "time", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
 
     # Take into account user specified lmax
-    if lmax is not None:
-        data.meta["lmax"] = lmax
+    if "level" in select:
+        data.meta["lmax"] = utils.find_max_amr_level(levelmax=data.meta["levelmax"],
+                                                     select=select)
     else:
         data.meta["lmax"] = data.meta["levelmax"]
 
@@ -49,7 +51,11 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
 
     loader_list = {
         "amr":
-        AmrLoader(scale=scale, code_units=code_units, ndim=data.meta["ndim"]),
+        AmrLoader(scale=scale,
+                  select=select,
+                  code_units=code_units,
+                  meta=data.meta,
+                  infofile=infofile),
         "hydro":
         HydroLoader(infile=infile, select=select, code_units=code_units),
         "grav":
@@ -68,14 +74,12 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
         if loader.initialized:
             loaders[group] = loader
 
-    print("Processing %i files in " % (data.meta["ncpu"]) + infile)
+    # Take into account user specified cpu list
+    if cpu_list is None:
+        cpu_list = loader_list["amr"].cpu_list if loader_list[
+            "amr"].cpu_list is not None else range(1, data.meta["ncpu"] + 1)
 
-    # We will store the cells in a dictionary which we build as we go along.
-    # The final concatenation into a single array will be done once at the end.
-    npieces = 0
-    # part_pieces = {}
-    # npieces_part = 0
-    # npart_count = 0
+    print("Processing {} files in {}".format(len(cpu_list), infile))
 
     # Allocate work arrays
     twotondim = 2**data.meta["ndim"]
@@ -85,22 +89,23 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     iprog = 1
     istep = 10
     ncells_tot = 0
+    npieces = 0
 
     # integer, double, line, string, quad, long
     null_offsets = {key: 0 for key in "idnsql"}
 
     # Loop over the cpus and read the AMR and HYDRO files in binary format
-    for cpuid in range(data.meta["ncpu"]):
+    for cpu_ind, cpu_num in enumerate(cpu_list):
 
         # Print progress
-        percentage = int(float(cpuid) * 100.0 / float(data.meta["ncpu"]))
+        percentage = int(float(cpu_ind) * 100.0 / float(len(cpu_list)))
         if percentage >= iprog * istep:
             print("{:>3d}% : read {:>10d} cells".format(percentage, ncells_tot))
             iprog += 1
 
         # Read binary files
         for group, loader in loaders.items():
-            fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpuid + 1)
+            fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpu_num)
             with open(fname, mode='rb') as f:
                 loader.bytes = f.read()
 
@@ -125,7 +130,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
 
                 if ncache > 0:
 
-                    if domain == cpuid:
+                    if domain == cpu_num - 1:
 
                         for loader in loaders.values():
                             loader.read_cacheline_header(ncache, data.meta["ndim"])
@@ -134,7 +139,7 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
 
                             # Read variables in cells
                             for loader in loaders.values():
-                                loader.read_variables(ncache, ind, ilevel, cpuid,
+                                loader.read_variables(ncache, ind, ilevel, cpu_num - 1,
                                                       data.meta)
 
                         # Apply selection criteria: select only leaf cells and
@@ -172,11 +177,10 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            data[key] = Array(values=np.concatenate(list(item["pieces"].values())),
-                              unit=1.0 * item["unit"].units)
+            data[key] = np.concatenate(list(item["pieces"].values()))
 
     # If vector quantities are found, make them into vector Arrays
-    make_vector_arrays(data)
+    utils.make_vector_arrays(data)
 
     # Create additional variables derived from the ones already loaded
     additional_variables(data)
@@ -185,24 +189,3 @@ def load(nout=1, scale=None, path="", select=None, lmax=None):
     print("Memory used: {}".format(data.print_size()))
 
     return data
-
-
-def make_vector_arrays(data):
-    """
-    Merge vector components in 2d arrays.
-    """
-    components = list("xyz"[:data.meta["ndim"]])
-    if len(components) > 1:
-        skip = []
-        for key in list(data.keys()):
-            if key.endswith("_x") and key not in skip:
-                rawkey = key[:-2]
-                comps_found = [rawkey + "_" + c in data for c in components]
-                if all(comps_found):
-                    data[rawkey] = Array(values=np.array(
-                        [data[rawkey + "_" + c].values for c in components]).T,
-                                         unit=data[key].unit)
-                    for c in components:
-                        comp = rawkey + "_" + c
-                        del data[comp]
-                        skip.append(comp)

@@ -1,4 +1,5 @@
 import numpy as np
+from .hilbert import hilbert_cpu_list
 from .loader import Loader
 from .units import get_unit
 from .. import units
@@ -6,7 +7,7 @@ from . import utils
 
 
 class AmrLoader(Loader):
-    def __init__(self, scale=None, code_units=None, ndim=1):
+    def __init__(self, scale, select, code_units, meta, infofile):
 
         super().__init__()
 
@@ -51,8 +52,13 @@ class AmrLoader(Loader):
                 "pieces": {},
                 "unit": scaling
             }
-            for c in "xyz"[:ndim]
+            for c in "xyz"[:meta["ndim"]]
         })
+
+        self.cpu_list = hilbert_cpu_list(meta=meta,
+                                         scaling=scaling,
+                                         select=select,
+                                         infofile=infofile)
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
@@ -173,15 +179,15 @@ class AmrLoader(Loader):
                                                         content=self.bytes,
                                                         offsets=self.offsets)
 
-        self.variables["level"]["buffer"][:ncache, ind] = ilevel + 1
+        self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
             key = "xyz_" + "xyz"[n]
-            self.variables[key]["buffer"][:ncache, ind] = (
+            self.variables[key]["buffer"]._array[:ncache, ind] = (
                 self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
             ) * info["boxlen"] * self.variables[key]["unit"].magnitude
-        self.variables["dx"]["buffer"][:ncache, ind] = self.dxcell * info[
+        self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
             "boxlen"] * self.variables["dx"]["unit"].magnitude
-        self.variables["cpu"]["buffer"][:ncache, ind] = cpuid + 1
+        self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
 
         # Note: use lmax here instead of levelmax because the user might not
         # want to load all levels. levelmax is always the max level in the

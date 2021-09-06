@@ -1,5 +1,6 @@
 import numpy as np
 from . import utils
+from ..core import Array
 
 
 class Loader():
@@ -12,8 +13,9 @@ class Loader():
 
     def allocate_buffers(self, ngridmax, twotondim):
         for item in self.variables.values():
-            item["buffer"] = np.zeros([ngridmax, twotondim],
-                                      dtype=np.dtype(item["type"]))
+            item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
+                                                   dtype=np.dtype(item["type"])),
+                                   unit=1.0 * item["unit"].units)
 
     def read_header(self, *args, **kwargs):
         return
@@ -30,7 +32,7 @@ class Loader():
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"][:ncache, ind] = np.array(
+                item["buffer"]._array[:ncache, ind] = np.array(
                     utils.read_binary_data(
                         fmt="{}{}".format(ncache, item["type"]),
                         content=self.bytes,
