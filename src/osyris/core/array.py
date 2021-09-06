@@ -18,7 +18,10 @@ def _comparison_operator(lhs, rhs, op):
 class Array:
     def __init__(self, values=None, unit=None, parent=None, name=""):
 
-        self._array = np.asarray(values)
+        if isinstance(values, np.ndarray):
+            self._array = values
+        else:
+            self._array = np.asarray(values)
 
         if unit is None:
             self._unit = 1.0 * units.dimensionless
