@@ -183,7 +183,8 @@ def plane(*layers,
     pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
         ygrid.shape + (1, )) * dir_vecs[2]
     # We only need to search in the cells above a certain size
-    large_cells = np.ravel(np.where(datadx >= 0.5 * (xedges[1] - xedges[0])))
+    large_cells = np.ravel(
+        np.where(datadx >= 0.25 * (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
     coords = coords[large_cells]
     large_cells_dx = datadx.array[large_cells]
     global_indices = np.arange(len(datadx))[large_cells]
