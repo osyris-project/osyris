@@ -159,8 +159,10 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
                             npieces += 1
                             # Add the cells in the pieces dictionaries
                             for loader in loaders.values():
+                                # print(list(loader.variables.keys()))
                                 for item in loader.variables.values():
-                                    item["pieces"][npieces] = item["buffer"][sel]
+                                    if item["read"]:
+                                        item["pieces"][npieces] = item["buffer"][sel]
 
                         # Increment offsets with remainder of the file
                         for loader in loaders.values():
@@ -177,7 +179,9 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            data[key] = np.concatenate(list(item["pieces"].values()))
+            print(key)
+            if item["read"]:
+                data[key] = np.concatenate(list(item["pieces"].values()))
 
     # If vector quantities are found, make them into vector Arrays
     utils.make_vector_arrays(data)
