@@ -13,9 +13,10 @@ class Loader():
 
     def allocate_buffers(self, ngridmax, twotondim):
         for item in self.variables.values():
-            item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
-                                                   dtype=np.dtype(item["type"])),
-                                   unit=1.0 * item["unit"].units)
+            if item["read"]:
+                item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
+                                                       dtype=np.dtype(item["type"])),
+                                       unit=1.0 * item["unit"].units)
 
     def read_header(self, *args, **kwargs):
         return
@@ -39,7 +40,7 @@ class Loader():
                         offsets=self.offsets)) * item["unit"].magnitude
             else:
                 self.offsets[item["type"]] += ncache
-                self.offsets["n"] += ncache
+                self.offsets["n"] += 1
 
     def make_conditions(self, select, ncache):
         conditions = {}

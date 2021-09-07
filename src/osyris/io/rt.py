@@ -21,12 +21,12 @@ class RtLoader(Loader):
             for i in range(len(descriptor)):
                 key = descriptor[i, 1].strip()
                 read = True
-                if key in select:
-                    if select[key] is False:
-                        read = False
                 if "rt" in select:
                     if select["rt"] is False:
                         read = False
+                if key in select:
+                    if isinstance(select[key], bool):
+                        read = select[key]
                 self.variables[key] = {
                     "read": read,
                     "type": descriptor[i, 2].strip(),
