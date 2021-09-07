@@ -179,7 +179,6 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
     # Merge all the data pieces into the Arrays
     for group in loaders.values():
         for key, item in group.variables.items():
-            print(key)
             if item["read"]:
                 data[key] = np.concatenate(list(item["pieces"].values()))
 

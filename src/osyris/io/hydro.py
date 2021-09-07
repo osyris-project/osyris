@@ -39,7 +39,6 @@ class HydroLoader(Loader):
                     "unit":
                     get_unit(key, code_units["ud"], code_units["ul"], code_units["ut"])
                 }
-        print(self.variables)
 
     def read_header(self, info):
         # hydro gamma
