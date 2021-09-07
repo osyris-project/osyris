@@ -159,7 +159,6 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
                             npieces += 1
                             # Add the cells in the pieces dictionaries
                             for loader in loaders.values():
-                                # print(list(loader.variables.keys()))
                                 for item in loader.variables.values():
                                     if item["read"]:
                                         item["pieces"][npieces] = item["buffer"][sel]
