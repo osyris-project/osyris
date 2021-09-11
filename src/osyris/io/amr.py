@@ -101,12 +101,14 @@ class AmrLoader(Loader):
         self.offsets["i"] += 2
         self.offsets["n"] += 3
         self.offsets["d"] += 1 + 2 * noutput
-        info["dtold"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
-                                               content=self.bytes,
-                                               offsets=self.offsets)
-        info["dtnew"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
-                                               content=self.bytes,
-                                               offsets=self.offsets)
+        info["dtold"] = np.array(
+            utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
+                                   content=self.bytes,
+                                   offsets=self.offsets))
+        info["dtnew"] = np.array(
+            utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
+                                   content=self.bytes,
+                                   offsets=self.offsets))
 
         # Read the number of grids
         self.offsets["i"] += 2 + (2 * info["ncpu"] * info["levelmax"])

@@ -33,8 +33,8 @@ def load(nout=1, scale=None, path="", select=None, cpu_list=None, bounding_box=N
     data.meta["scale"] = scale
     data.meta["infile"] = infile
     data.meta["path"] = path
-    data.meta["time"] = data.meta["time"] * get_unit(
-        "time", data.meta["unit_d"], data.meta["unit_l"], data.meta["unit_t"])
+    data.meta["time"] *= get_unit("time", data.meta["unit_d"], data.meta["unit_l"],
+                                  data.meta["unit_t"])
 
     # Take into account user specified lmax
     if "level" in select:
