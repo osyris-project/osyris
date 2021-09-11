@@ -30,17 +30,18 @@ class Loader:
         # Add additional information
         self.data.meta["scale"] = scale
         self.data.meta["infile"] = infile
+        self.data.meta["nout"] = nout
         self.data.meta["path"] = path
         self.data.meta["time"] *= get_unit("time", self.data.meta["unit_d"],
                                            self.data.meta["unit_l"],
                                            self.data.meta["unit_t"])
 
-        # Take into account user specified lmax
-        if "level" in select:
-            self.data.meta["lmax"] = utils.find_max_amr_level(
-                levelmax=self.data.meta["levelmax"], select=select)
-        else:
-            self.data.meta["lmax"] = self.data.meta["levelmax"]
+        # # Take into account user specified lmax
+        # if "level" in select:
+        #     self.data.meta["lmax"] = utils.find_max_amr_level(
+        #         levelmax=self.data.meta["levelmax"], select=select)
+        # else:
+        #     self.data.meta["lmax"] = self.data.meta["levelmax"]
 
         code_units = {
             "ud": self.data.meta["unit_d"],
@@ -69,10 +70,21 @@ class Loader:
             RtReader(infile=infile, code_units=code_units)
         }
 
+    @property
+    def meta(self):
+        return self.data.meta
+
     def load(self, select=None, cpu_list=None):
 
         if select is None:
             select = {}
+
+        # Take into account user specified lmax
+        if "level" in select:
+            self.data.meta["lmax"] = utils.find_max_amr_level(
+                levelmax=self.data.meta["levelmax"], select=select)
+        else:
+            self.data.meta["lmax"] = self.data.meta["levelmax"]
 
         # Initialize readers
         readers = {}
@@ -85,7 +97,8 @@ class Loader:
             cpu_list = self.reader_list["amr"].cpu_list if self.reader_list[
                 "amr"].cpu_list is not None else range(1, self.data.meta["ncpu"] + 1)
 
-        print("Processing {} files in {}".format(len(cpu_list), infile))
+        print("Processing {} files in {}".format(len(cpu_list),
+                                                 self.data.meta["infile"]))
 
         # Allocate work arrays
         twotondim = 2**self.data.meta["ndim"]
@@ -112,7 +125,10 @@ class Loader:
 
             # Read binary files
             for group, reader in readers.items():
-                fname = utils.generate_fname(nout, path, ftype=group, cpuid=cpu_num)
+                fname = utils.generate_fname(self.data.meta["nout"],
+                                             self.data.meta["path"],
+                                             ftype=group,
+                                             cpuid=cpu_num)
                 with open(fname, mode='rb') as f:
                     reader.bytes = f.read()
 

@@ -4,7 +4,7 @@ from .units import get_unit
 
 
 class RtReader(Reader):
-    def __init__(self, infile, select, code_units):
+    def __init__(self, infile, code_units):
         super().__init__(code_units=code_units)
         self.fname = infile + "/rt_file_descriptor.txt"
 

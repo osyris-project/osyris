@@ -30,6 +30,6 @@ except ImportError:
 
 config.additional_units(units)
 
-from .io import load
+from .io import Loader
 from .plot import histogram, plane
 from .core import Array, Dataset, Plot

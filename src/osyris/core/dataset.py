@@ -71,6 +71,7 @@ class Dataset:
     def print_size(self):
         total_size = np.sum([item._array.nbytes for item in self.values()])
         multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "B": 1.0}
+        size = "0B"
         for m, mult in multipliers.items():
             if total_size >= mult:
                 size = "{:.2f} {}B".format(total_size / mult, m)

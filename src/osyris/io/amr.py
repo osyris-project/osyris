@@ -7,7 +7,7 @@ from . import utils
 
 
 class AmrReader(Reader):
-    def __init__(self, scale, select, code_units, meta, infofile):
+    def __init__(self, scale, code_units, meta, infofile):
         super().__init__()
         self.meta = meta
         self.infofile = infofile
