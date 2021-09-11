@@ -3,12 +3,14 @@ from . import utils
 from ..core import Array
 
 
-class Loader():
-    def __init__(self):
+class Reader():
+    def __init__(self, code_units=None):
         self.variables = {}
         self.offsets = {}
         self.meta = {}
         self.bytes = None
+        self.code_units = code_units
+        # self.select = None
         return
 
     def allocate_buffers(self, ngridmax, twotondim):

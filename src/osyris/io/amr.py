@@ -1,26 +1,26 @@
 import numpy as np
 from .hilbert import hilbert_cpu_list
-from .loader import Loader
+from .reader import Reader
 from .units import get_unit
 from .. import units
 from . import utils
 
 
-class AmrLoader(Loader):
+class AmrReader(Reader):
     def __init__(self, scale, select, code_units, meta, infofile):
-
         super().__init__()
+        self.meta = meta
+        self.infofile = infofile
 
-        self.initialized = True
-        # AMR grid variables
         length_unit = get_unit("x", code_units["ud"], code_units["ul"],
                                code_units["ut"])
         if scale is not None:
             scale = units(scale)
-            scaling = (length_unit.to(scale) / scale).magnitude * scale
+            self.scaling = (length_unit.to(scale) / scale).magnitude * scale
         else:
-            scaling = length_unit
+            self.scaling = length_unit
 
+        # AMR grid variables
         self.variables.update({
             "level": {
                 "read": True,
@@ -41,7 +41,7 @@ class AmrLoader(Loader):
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
-                "unit": scaling
+                "unit": self.scaling
             }
         })
         self.variables.update({
@@ -50,15 +50,17 @@ class AmrLoader(Loader):
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
-                "unit": scaling
+                "unit": self.scaling
             }
-            for c in "xyz"[:meta["ndim"]]
+            for c in "xyz"[:self.meta["ndim"]]
         })
 
-        self.cpu_list = hilbert_cpu_list(meta=meta,
-                                         scaling=scaling,
+    def initialize(self, select):
+        self.cpu_list = hilbert_cpu_list(meta=self.meta,
+                                         scaling=self.scaling,
                                          select=select,
-                                         infofile=infofile)
+                                         infofile=self.infofile)
+        return True
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
