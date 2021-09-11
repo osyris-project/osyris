@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import glob
+import os
 import struct
 import numpy as np
 from ..core import Array
@@ -9,20 +10,20 @@ from ..core import Array
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
 
-    if len(path) > 0:
-        if path[-1] != "/":
-            path = path + "/"
+    # if len(path) > 0:
+    #     if path[-1] != "/":
+    #         path = path + "/"
 
     if nout == -1:
-        filelist = sorted(glob.glob(path + "output*"))
+        filelist = sorted(glob.glob(os.path.join(path, "output*")))
         number = filelist[-1].split("_")[-1]
     else:
         number = str(nout).zfill(5)
 
-    infile = path + "output_" + number
+    infile = os.path.join(path, "output_" + number)
     if len(ftype) > 0:
-        infile += "/" + ftype + "_" + number
-        if cpuid >= 0:
+        infile = os.path.join(infile, ftype + "_" + number)
+        if cpuid > 0:
             infile += ".out" + str(cpuid).zfill(5)
 
     if len(ext) > 0:

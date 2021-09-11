@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
+import os
 from .reader import Reader
 from .units import get_unit
 from . import utils
@@ -8,7 +11,7 @@ class HydroReader(Reader):
     def __init__(self, infile, code_units):
         super().__init__(code_units=code_units)
         # self.infile = infile
-        self.fname = infile + "/hydro_file_descriptor.txt"
+        self.fname = os.path.join(infile, "hydro_file_descriptor.txt")
         # self.code_units = code_units
 
     def initialize(self, select):

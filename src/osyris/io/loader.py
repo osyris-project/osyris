@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+import os
 from ..config import parameters, additional_variables
 from . import utils
 from ..core import Dataset
@@ -9,6 +10,7 @@ from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
 from .rt import RtReader
+from .sinks import read_sinks
 from .units import get_unit
 
 
@@ -24,7 +26,7 @@ class Loader:
         infile = utils.generate_fname(nout, path)
 
         # Read info file and create info dictionary
-        infofile = infile + "/info_" + infile.split("_")[-1] + ".txt"
+        infofile = os.path.join(infile, "info_" + infile.split("_")[-1] + ".txt")
         self.data.meta.update(utils.read_parameter_file(fname=infofile))
 
         # Add additional information
@@ -69,6 +71,8 @@ class Loader:
             "rt":
             RtReader(infile=infile, code_units=code_units)
         }
+
+        self.sinks = read_sinks(nout, path)
 
     @property
     def meta(self):
