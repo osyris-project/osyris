@@ -12,24 +12,25 @@ from pint import UnitRegistry
 
 units = UnitRegistry(system="cgs")
 
-config_dir = os.path.join(os.path.expanduser("~"), ".osyris")
-sys.path.append(config_dir)
-try:
-    import config_osyris as config
-except ImportError:
-    from shutil import copyfile
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-    if not os.path.exists(config_dir):
-        os.mkdir(config_dir)
-    copyfile(os.path.join(this_dir, "config.py"),
-             os.path.join(config_dir, "config_osyris.py"))
-    try:
-        import config_osyris as config
-    except ImportError:
-        from . import config
+# config_dir = os.path.join(os.path.expanduser("~"), ".osyris")
+# sys.path.append(config_dir)
+# try:
+#     import config_osyris as config
+# except ImportError:
+#     from shutil import copyfile
+#     this_dir = os.path.dirname(os.path.abspath(__file__))
+#     if not os.path.exists(config_dir):
+#         os.mkdir(config_dir)
+#     copyfile(os.path.join(this_dir, "config.py"),
+#              os.path.join(config_dir, "config_osyris.py"))
+#     try:
+#         import config_osyris as config
+#     except ImportError:
+#         from . import config
 
-config.additional_units(units)
+# config.additional_units(units)
 
+from .config import config
 from .io import Loader
 from .plot import histogram, plane
 from .core import Array, Dataset, Plot
