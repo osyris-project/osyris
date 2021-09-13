@@ -4,6 +4,9 @@
 Define default values so that you don't have to specify them every time.
 """
 import math
+from pint import UnitRegistry
+
+ureg = UnitRegistry(system="cgs")
 
 parameters = {
     'scale': 'au',
@@ -14,7 +17,7 @@ parameters = {
 }
 
 
-def variable_units(string, ureg, ud, ul, ut):
+def get_unit(string, ud, ul, ut):
 
     density = ud * (ureg.g / (ureg.cm**3))
     velocity = (ul / ut) * (ureg.cm / ureg.s)
@@ -68,9 +71,9 @@ def variable_units(string, ureg, ud, ul, ut):
         return 1.0 * ureg.dimensionless
 
 
-def additional_units(ureg):
+def additional_units():
     """
-    Define additional useful units and constants
+    Define additional useful ureg and constants
     """
     ureg.define('solar_mass = 1.9889e+33 * g = msun')
     ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')

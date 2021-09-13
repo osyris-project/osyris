@@ -3,13 +3,7 @@
 
 # flake8: noqa
 
-from pint import UnitRegistry
-
-units = UnitRegistry(system="cgs")
-
-from .config import config
-config.additional_units(units)
-
+from .config import config, units
 from .io import Loader
 from .plot import histogram, plane
 from .core import Array, Dataset, Plot

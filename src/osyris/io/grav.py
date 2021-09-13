@@ -2,7 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import os
 from .reader import Reader
-from .units import get_unit
+from .. import config
 from . import utils
 
 
@@ -47,8 +47,8 @@ class GravReader(Reader):
                 None,
                 "pieces": {},
                 "unit":
-                get_unit(key, self.code_units["ud"], self.code_units["ul"],
-                         self.code_units["ut"])
+                config.get_unit(key, self.code_units["ud"], self.code_units["ul"],
+                                self.code_units["ut"])
             }
         return True
 

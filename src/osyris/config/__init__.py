@@ -26,12 +26,19 @@ class Config:
     pass
 
 
+if hasattr(user_config, 'ureg'):
+    units = getattr(user_config, 'ureg')
+else:
+    units = getattr(default_config, 'ureg')
+
 config = Config()
 
 # Import list of object from user config if present, if not, load from defaults.
-objects = ['parameters', 'variable_units', 'additional_units', 'additional_variables']
+objects = ['parameters', 'get_unit', 'additional_units', 'additional_variables']
 for obj in objects:
     if hasattr(user_config, obj):
         setattr(config, obj, getattr(user_config, obj))
     else:
         setattr(config, obj, getattr(default_config, obj))
+
+config.additional_units()

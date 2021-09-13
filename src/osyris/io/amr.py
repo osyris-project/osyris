@@ -1,7 +1,9 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from .hilbert import hilbert_cpu_list
 from .reader import Reader
-from .units import get_unit
+from .. import config
 from .. import units
 from . import utils
 
@@ -12,8 +14,8 @@ class AmrReader(Reader):
         self.meta = meta
         self.infofile = infofile
 
-        length_unit = get_unit("x", code_units["ud"], code_units["ul"],
-                               code_units["ut"])
+        length_unit = config.get_unit("x", code_units["ud"], code_units["ul"],
+                                      code_units["ut"])
         if scale is not None:
             scale = units(scale)
             self.scaling = (length_unit.to(scale) / scale).magnitude * scale

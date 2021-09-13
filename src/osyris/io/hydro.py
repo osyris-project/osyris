@@ -3,7 +3,7 @@
 import numpy as np
 import os
 from .reader import Reader
-from .units import get_unit
+from .. import config
 from . import utils
 
 
@@ -43,8 +43,8 @@ class HydroReader(Reader):
                 None,
                 "pieces": {},
                 "unit":
-                get_unit(key, self.code_units["ud"], self.code_units["ul"],
-                         self.code_units["ut"])
+                config.get_unit(key, self.code_units["ud"], self.code_units["ul"],
+                                self.code_units["ut"])
             }
         return True
 

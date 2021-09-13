@@ -5,13 +5,13 @@ import numpy as np
 import os
 from .. import config  # import parameters, additional_variables
 from . import utils
+from .. import config
 from ..core import Dataset
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
 from .rt import RtReader
 from .sinks import read_sinks
-from .units import get_unit
 
 
 class Loader:
@@ -34,9 +34,9 @@ class Loader:
         self.data.meta["infile"] = infile
         self.data.meta["nout"] = nout
         self.data.meta["path"] = path
-        self.data.meta["time"] *= get_unit("time", self.data.meta["unit_d"],
-                                           self.data.meta["unit_l"],
-                                           self.data.meta["unit_t"])
+        self.data.meta["time"] *= config.get_unit("time", self.data.meta["unit_d"],
+                                                  self.data.meta["unit_l"],
+                                                  self.data.meta["unit_t"])
 
         # # Take into account user specified lmax
         # if "level" in select:
