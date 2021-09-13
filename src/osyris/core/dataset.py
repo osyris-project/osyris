@@ -26,7 +26,10 @@ class Dataset:
             return d
 
     def __setitem__(self, key, value):
-        shape = value.shape[0]
+        if len(value.shape) > 0:
+            shape = value.shape[0]
+        else:
+            shape = 1
         if self.shape is None:
             self.shape = shape
         else:
@@ -49,7 +52,10 @@ class Dataset:
         return str(self)
 
     def __str__(self):
-        output = "{}: {}\n".format(self.meta["infile"], self.print_size())
+        output = "Dataset: "
+        if "infile" in self.meta:
+            output += "{}: ".format(self.meta["infile"])
+        output += "{}\n".format(self.print_size())
         for key, item in self.items():
             output += str(item) + "\n"
         return output

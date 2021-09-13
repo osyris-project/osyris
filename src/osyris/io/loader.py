@@ -72,7 +72,7 @@ class Loader:
             RtReader(infile=infile, code_units=code_units)
         }
 
-        self.sinks = read_sinks(nout, path)
+        self.sinks = read_sinks(nout=nout, path=path, code_units=code_units)
 
     @property
     def meta(self):
