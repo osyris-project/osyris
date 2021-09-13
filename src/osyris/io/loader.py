@@ -3,7 +3,7 @@
 
 import numpy as np
 import os
-from ..config import parameters, additional_variables
+from .. import config  # import parameters, additional_variables
 from . import utils
 from ..core import Dataset
 from .amr import AmrReader
@@ -20,7 +20,7 @@ class Loader:
         self.data = Dataset()
 
         if scale is None:
-            scale = parameters["scale"]
+            scale = config.parameters["scale"]
 
         # Generate directory name from output number
         infile = utils.generate_fname(nout, path)
@@ -217,7 +217,7 @@ class Loader:
         utils.make_vector_arrays(self.data)
 
         # Create additional variables derived from the ones already loaded
-        additional_variables(self.data)
+        config.additional_variables(self.data)
 
         print("Total number of cells loaded: {}".format(ncells_tot))
         print("Memory used: {}".format(self.data.print_size()))

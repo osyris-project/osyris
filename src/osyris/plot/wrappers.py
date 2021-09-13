@@ -1,5 +1,5 @@
 import numpy as np
-from ..config import parameters
+from .. import config
 
 
 def quiver(ax, x, y, z, density=1, color="w", **kwargs):
@@ -38,7 +38,7 @@ def pcolormesh(ax, x, y, z, **kwargs):
     }
     default_args.update(kwargs)
     if "cmap" not in kwargs:
-        kwargs["cmap"] = parameters["cmap"]
+        kwargs["cmap"] = config.parameters["cmap"]
     return ax.pcolormesh(x, y, z, **default_args)
 
 
@@ -60,7 +60,7 @@ def contourf(ax, x, y, z, **kwargs):
     Wrapper around Matplotlib's contourf plot.
     """
     if "cmap" not in kwargs:
-        kwargs["cmap"] = parameters["cmap"]
+        kwargs["cmap"] = config.parameters["cmap"]
     return ax.contourf(x, y, z, **kwargs)
 
 

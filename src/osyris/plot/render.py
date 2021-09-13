@@ -2,7 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import matplotlib.pyplot as plt
-from ..config import parameters
+from .. import config  #  import parameters
 from . import wrappers
 from ..core.tools import make_label
 
@@ -21,7 +21,7 @@ def render(x, y, data, logx=False, logy=False, ax=None):
         "vec": "quiver",
         "vector": "quiver",
         "stream": "streamplot",
-        None: parameters["render_mode"],
+        None: config.parameters["render_mode"],
         "image": "pcolormesh",
         "imshow": "pcolormesh"
     }
