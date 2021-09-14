@@ -40,8 +40,8 @@ def histogram(x,
     nx = resolution
     ny = resolution
 
-    xvals = x.norm
-    yvals = y.norm
+    xvals = x.norm.values
+    yvals = y.norm.values
 
     # Define plotting range
     autoxmin = False
@@ -123,7 +123,7 @@ def histogram(x,
                                                  vmax=vmax,
                                                  operation=operation,
                                                  **kwargs)
-            to_process.append(data.norm)
+            to_process.append(data.norm.values)
             to_render.append({
                 "mode": settings["mode"],
                 "params": params,

@@ -117,7 +117,7 @@ def plane(*layers,
         dist2 = coords - datadx * np.sqrt(dataset.meta["ndim"])
         select2 = np.ravel(
             np.where(
-                np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude) * 0.6 *
+                np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
                 np.sqrt(2.0)))
         coords = coords[select2]
         datax = datax[select2]
@@ -137,7 +137,7 @@ def plane(*layers,
             w = None
             if "color" in to_render[ind]["params"]:
                 if isinstance(to_render[ind]["params"]["color"], Array):
-                    w = to_render[ind]["params"]["color"].norm
+                    w = to_render[ind]["params"]["color"].norm.values
                 elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
                     w = to_render[ind]["params"]["color"]
             if w is None:
@@ -149,7 +149,7 @@ def plane(*layers,
             to_binning.append(apply_mask(w))
             scalar_layer.append(False)
         else:
-            to_binning.append(apply_mask(to_process[ind].array[global_selection]))
+            to_binning.append(apply_mask(to_process[ind].norm.values[global_selection]))
             scalar_layer.append(True)
 
     # Buffer for counts

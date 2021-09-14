@@ -96,9 +96,10 @@ class Array:
     @property
     def norm(self):
         if self._array.ndim < 2:
-            return self._array
+            return self
         else:
-            return np.linalg.norm(self._array, axis=1)
+            return self.__class__(values=np.linalg.norm(self._array, axis=1),
+                                  unit=self.unit)
 
     @property
     def unit(self):
