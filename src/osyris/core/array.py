@@ -363,8 +363,8 @@ class Array:
             if hasattr(args[0], "_array"):
                 # Case of a binary operation, with two Arrays, e.g. `dot`
                 # TODO: what should we do with the unit? Apply the func to it?
-                args = (args[0]._array, args[1]._array) + args[2:]
                 unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+                args = (args[0]._array, args[1]._array) + args[2:]
             else:
                 # Case of a binary operation: ndarray with Array
                 # In this case, only multiply is allowed?
@@ -392,3 +392,12 @@ class Array:
         functions.
         """
         return self._wrap_numpy(func, *args, **kwargs)
+
+    def min(self):
+        return self.__class__(values=self._array.min(), unit=self._unit)
+
+    def max(self):
+        return self.__class__(values=self._array.max(), unit=self._unit)
+
+    def reshape(self, *shape):
+        return self.__class__(values=self._array.reshape(*shape), unit=self._unit)

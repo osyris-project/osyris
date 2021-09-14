@@ -39,6 +39,7 @@ def plane(*layers,
     to_process = []
     to_render = []
     operations = []
+    to_scatter = []
     for layer in layers:
         data, settings, params = parse_layer(layer,
                                              mode=mode,
@@ -47,7 +48,6 @@ def plane(*layers,
                                              vmax=vmax,
                                              operation=operation,
                                              **kwargs)
-
         to_process.append(data)
         to_render.append({
             "mode": settings["mode"],
