@@ -1,12 +1,15 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from .array import Array
+from .tools import bytes_to_human_readable
 # from ..utils import value_to_string
 
 
-class Dataset:
+class Datagroup:
     def __init__(self):
         self._container = {}
-        self.meta = {}
+        # self.meta = {}
         self.shape = None
 
     def __iter__(self):
@@ -22,7 +25,7 @@ class Dataset:
             d = Dataset()
             for name, val in self.items():
                 d[name] = val[key]
-            d.meta.update(self.meta)
+            # d.meta.update(self.meta)
             return d
 
     def __setitem__(self, key, value):
@@ -53,8 +56,8 @@ class Dataset:
 
     def __str__(self):
         output = "Dataset: "
-        if "infile" in self.meta:
-            output += "{}: ".format(self.meta["infile"])
+        # if "infile" in self.meta:
+        #     output += "{}: ".format(self.meta["infile"])
         output += "{}\n".format(self.print_size())
         for key, item in self.items():
             output += str(item) + "\n"
@@ -74,12 +77,8 @@ class Dataset:
             if key in self:
                 self[key].to(scale)
 
+    def nbytes(self):
+        return np.sum([item._array.nbytes for item in self.values()])
+
     def print_size(self):
-        total_size = np.sum([item._array.nbytes for item in self.values()])
-        multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "B": 1.0}
-        size = "0B"
-        for m, mult in multipliers.items():
-            if total_size >= mult:
-                size = "{:.2f} {}B".format(total_size / mult, m)
-                break
-        return size
+        return bytes_to_human_readable(self.nbytes())

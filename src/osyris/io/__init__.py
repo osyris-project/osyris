@@ -4,3 +4,4 @@
 # flake8: noqa
 
 from .loader import Loader
+from . import utils

@@ -1,17 +1,26 @@
 import numpy as np
 from . import utils
 from ..core import Array
+from enum import Enum
+
+
+class ReaderKind(Enum):
+    AMR = 0
+    SINK = 1
+    PART = 2
 
 
 class Reader():
-    def __init__(self, code_units=None):
+    def __init__(self, kind=None):
         self.variables = {}
         self.offsets = {}
         self.meta = {}
         self.bytes = None
-        self.code_units = code_units
+        self.initialized = False
+        self.kind = kind
+        # self.code_units = code_units
         # self.select = None
-        return
+        # return
 
     def allocate_buffers(self, ngridmax, twotondim):
         for item in self.variables.values():

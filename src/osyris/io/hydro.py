@@ -2,25 +2,26 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 import os
-from .reader import Reader
+from .reader import Reader, ReaderKind
 from .. import config
 from . import utils
 
 
 class HydroReader(Reader):
-    def __init__(self, infile, code_units):
-        super().__init__(code_units=code_units)
+    def __init__(self):
+        super().__init__(kind=ReaderKind.AMR)
         # self.infile = infile
-        self.fname = os.path.join(infile, "hydro_file_descriptor.txt")
+        # self.fname = os.path.join(infile, "hydro_file_descriptor.txt")
         # self.code_units = code_units
 
-    def initialize(self, select):
+    def initialize(self, meta, select):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         # self.initialized = True
+        fname = os.path.join(meta["infile"], "hydro_file_descriptor.txt")
         # fname = self.infile + "/hydro_file_descriptor.txt"
         try:
-            descriptor = np.loadtxt(self.fname, dtype=str, delimiter=",")
+            descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
             return False
 
@@ -35,18 +36,14 @@ class HydroReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[i, 2].strip(),
-                "buffer":
-                None,
+                "read": read,
+                "type": descriptor[i, 2].strip(),
+                "buffer": None,
                 "pieces": {},
-                "unit":
-                config.get_unit(key, self.code_units["ud"], self.code_units["ul"],
-                                self.code_units["ut"])
+                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                        meta["unit_t"])
             }
-        return True
+        self.initialized = True
 
     def read_header(self, info):
         # hydro gamma

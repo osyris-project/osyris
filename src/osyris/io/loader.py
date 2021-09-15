@@ -6,7 +6,7 @@ import os
 from .. import config  # import parameters, additional_variables
 from . import utils
 from .. import config
-from ..core import Dataset
+from ..core import Datagroup
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
@@ -15,100 +15,118 @@ from .sinks import read_sinks
 
 
 class Loader:
-    def __init__(self, nout=1, scale=None, path=""):
+    def __init__(self, nout, scale, path):
 
-        self.data = Dataset()
+        # self.data = Dataset()
 
-        if scale is None:
-            scale = config.parameters["scale"]
+        # if scale is None:
+        #     scale = config.parameters["scale"]
 
         # Generate directory name from output number
-        infile = utils.generate_fname(nout, path)
+        self.nout = nout
+        self.path = path
+        self.scale = scale
+        self.infile = utils.generate_fname(nout, path)
+        self.readers = {
+            "amr": AmrReader(),
+            "hydro": HydroReader(),
+            # "grav": GravReader(),
+            # "rt": RtReader()
+        }
+
+    def load_meta_info(self):
 
         # Read info file and create info dictionary
-        infofile = os.path.join(infile, "info_" + infile.split("_")[-1] + ".txt")
-        self.data.meta.update(utils.read_parameter_file(fname=infofile))
-
+        infofile = os.path.join(self.infile,
+                                "info_" + self.infile.split("_")[-1] + ".txt")
+        meta = utils.read_parameter_file(fname=infofile)
         # Add additional information
-        self.data.meta["scale"] = scale
-        self.data.meta["infile"] = infile
-        self.data.meta["nout"] = nout
-        self.data.meta["path"] = path
-        self.data.meta["time"] *= config.get_unit("time", self.data.meta["unit_d"],
-                                                  self.data.meta["unit_l"],
-                                                  self.data.meta["unit_t"])
+        meta["infofile"] = infofile
+        meta["scale"] = self.scale
+        meta["infile"] = self.infile
+        meta["nout"] = self.nout
+        meta["path"] = self.path
+        meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
+                                        meta["unit_t"])
 
-        # # Take into account user specified lmax
-        # if "level" in select:
-        #     self.data.meta["lmax"] = utils.find_max_amr_level(
-        #         levelmax=self.data.meta["levelmax"], select=select)
-        # else:
-        #     self.data.meta["lmax"] = self.data.meta["levelmax"]
+        return meta
 
-        code_units = {
-            "ud": self.data.meta["unit_d"],
-            "ul": self.data.meta["unit_l"],
-            "ut": self.data.meta["unit_t"]
-        }
+    #     # # Take into account user specified lmax
+    #     # if "level" in select:
+    #     #     meta["lmax"] = utils.find_max_amr_level(
+    #     #         levelmax=meta["levelmax"], select=select)
+    #     # else:
+    #     #     meta["lmax"] = meta["levelmax"]
 
-        self.reader_list = {
-            "amr":
-            AmrReader(
-                scale=scale,
-                # select=select,
-                code_units=code_units,
-                meta=self.data.meta,
-                infofile=infofile),
-            "hydro":
-            HydroReader(infile=infile, code_units=code_units),
-            "grav":
-            GravReader(
-                nout=nout,
-                path=path,
-                # select=select,
-                code_units=code_units,
-                ndim=self.data.meta["ndim"]),
-            "rt":
-            RtReader(infile=infile, code_units=code_units)
-        }
+    #     code_units = {"ud": meta["unit_d"], "ul": meta["unit_l"], "ut": meta["unit_t"]}
 
-        self.sinks = read_sinks(nout=nout, path=path, code_units=code_units)
+    #     self.reader_list = {
+    #         "amr":
+    #         AmrReader(
+    #             scale=scale,
+    #             # select=select,
+    #             code_units=code_units,
+    #             meta=meta,
+    #             infofile=infofile),
+    #         "hydro":
+    #         HydroReader(infile=infile, code_units=code_units),
+    #         "grav":
+    #         GravReader(
+    #             nout=nout,
+    #             path=path,
+    #             # select=select,
+    #             code_units=code_units,
+    #             ndim=meta["ndim"]),
+    #         "rt":
+    #         RtReader(infile=infile, code_units=code_units)
+    #     }
 
-    @property
-    def meta(self):
-        return self.data.meta
+    #     self.sinks = read_sinks(nout=nout, path=path, code_units=code_units)
 
-    def load(self, select=None, cpu_list=None):
+    # # @property
+    # # def meta(self):
+    # #     return meta
+
+    def load(self, groups=None, select=None, cpu_list=None, meta=None):
+
+        out = {}
+        meta = meta.copy()
+
+        if groups is None:
+            groups = list(self.readers.keys())
+        if "amr" not in groups:
+            groups.append("amr")
 
         if select is None:
             select = {}
 
         # Take into account user specified lmax
         if "level" in select:
-            self.data.meta["lmax"] = utils.find_max_amr_level(
-                levelmax=self.data.meta["levelmax"], select=select)
+            meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
+                                                    select=select)
         else:
-            self.data.meta["lmax"] = self.data.meta["levelmax"]
+            meta["lmax"] = meta["levelmax"]
 
         # Initialize readers
         readers = {}
-        for group, reader in self.reader_list.items():
-            if reader.initialize(select):
-                readers[group] = reader
+        # for group, reader in self.reader_list.items():
+        for group in groups:
+            if not self.readers[group].initialized:
+                self.readers[group].initialize(meta=meta, select=select)
+            if self.readers[group].initialized:
+                readers[group] = self.readers[group]
 
         # Take into account user specified cpu list
         if cpu_list is None:
-            cpu_list = self.reader_list["amr"].cpu_list if self.reader_list[
-                "amr"].cpu_list is not None else range(1, self.data.meta["ncpu"] + 1)
+            cpu_list = self.readers["amr"].cpu_list if self.readers[
+                "amr"].cpu_list is not None else range(1, meta["ncpu"] + 1)
 
-        print("Processing {} files in {}".format(len(cpu_list),
-                                                 self.data.meta["infile"]))
+        print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
 
         # Allocate work arrays
-        twotondim = 2**self.data.meta["ndim"]
+        twotondim = 2**meta["ndim"]
         for reader in readers.values():
-            reader.allocate_buffers(ngridmax=self.data.meta["ngridmax"],
-                                    twotondim=twotondim)
+            reader.allocate_buffers(ngridmax=meta["ngridmax"], twotondim=twotondim)
 
         iprog = 1
         istep = 10
@@ -129,8 +147,8 @@ class Loader:
 
             # Read binary files
             for group, reader in readers.items():
-                fname = utils.generate_fname(self.data.meta["nout"],
-                                             self.data.meta["path"],
+                fname = utils.generate_fname(meta["nout"],
+                                             meta["path"],
                                              ftype=group,
                                              cpuid=cpu_num)
                 with open(fname, mode='rb') as f:
@@ -139,17 +157,16 @@ class Loader:
             # Read file headers
             for reader in readers.values():
                 reader.offsets.update(null_offsets)
-                reader.read_header(self.data.meta)
+                reader.read_header(meta)
 
             # Loop over levels
-            for ilevel in range(self.data.meta["lmax"]):
+            for ilevel in range(meta["lmax"]):
 
                 for reader in readers.values():
                     reader.read_level_header(ilevel, twotondim)
 
                 # Loop over domains
-                for domain in range(readers["amr"].meta["nboundary"] +
-                                    self.data.meta["ncpu"]):
+                for domain in range(readers["amr"].meta["nboundary"] + meta["ncpu"]):
 
                     ncache = readers["amr"].meta["ngridlevel"][domain, ilevel]
 
@@ -161,15 +178,14 @@ class Loader:
                         if domain == cpu_num - 1:
 
                             for reader in readers.values():
-                                reader.read_cacheline_header(ncache,
-                                                             self.data.meta["ndim"])
+                                reader.read_cacheline_header(ncache, meta["ndim"])
 
                             for ind in range(twotondim):
 
                                 # Read variables in cells
                                 for reader in readers.values():
                                     reader.read_variables(ncache, ind, ilevel,
-                                                          cpu_num - 1, self.data.meta)
+                                                          cpu_num - 1, meta)
 
                             # Apply selection criteria: select only leaf cells and
                             # add any criteria requested by the user via select.
@@ -201,25 +217,24 @@ class Loader:
                         else:
 
                             for reader in readers.values():
-                                reader.step_over(ncache, twotondim,
-                                                 self.data.meta["ndim"])
+                                reader.step_over(ncache, twotondim, meta["ndim"])
 
         # Store the number of cells
-        self.data.meta["ncells"] = ncells_tot
+        meta["ncells"] = ncells_tot
 
         # Merge all the data pieces into the Arrays
-        for group in readers.values():
-            for key, item in group.variables.items():
+        for group, reader in readers.items():
+            out[group] = Datagroup()
+            for key, item in reader.variables.items():
                 if item["read"]:
-                    self.data[key] = np.concatenate(list(item["pieces"].values()))
+                    out[group][key] = np.concatenate(list(item["pieces"].values()))
+            # If vector quantities are found, make them into vector Arrays
+            utils.make_vector_arrays(out[group], ndim=meta["ndim"])
 
-        # If vector quantities are found, make them into vector Arrays
-        utils.make_vector_arrays(self.data)
-
-        # Create additional variables derived from the ones already loaded
-        config.additional_variables(self.data)
+        # # Create additional variables derived from the ones already loaded
+        # config.additional_variables(self.data)
 
         print("Total number of cells loaded: {}".format(ncells_tot))
-        print("Memory used: {}".format(self.data.print_size()))
+        # print("Memory used: {}".format(self.data.print_size()))
 
-        return self.data
+        return out

@@ -1,11 +1,11 @@
 import numpy as np
-from .reader import Reader
+from .reader import Reader, ReaderKind
 from .. import config
 
 
 class RtReader(Reader):
-    def __init__(self, infile, code_units):
-        super().__init__(code_units=code_units)
+    def __init__(self):
+        super().__init__(kind=ReaderKind.AMR)
         self.fname = infile + "/rt_file_descriptor.txt"
 
     def initialize(self, select):

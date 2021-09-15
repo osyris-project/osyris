@@ -97,11 +97,11 @@ def read_binary_data(content=None,
     return struct.unpack(fmt, content[offset:offset + pack_size])
 
 
-def make_vector_arrays(data):
+def make_vector_arrays(data, ndim):
     """
     Merge vector components in 2d arrays.
     """
-    components = list("xyz"[:data.meta["ndim"]])
+    components = list("xyz"[:ndim])
     if len(components) > 1:
         skip = []
         for key in list(data.keys()):

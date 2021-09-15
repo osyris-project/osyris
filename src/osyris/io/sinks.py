@@ -3,7 +3,7 @@
 
 import numpy as np
 import os
-from ..core import Array, Dataset
+from ..core import Array, Datagroup
 from .. import config
 from .. import units
 from . import utils
@@ -41,7 +41,7 @@ def read_sinks(nout, path, code_units):
 
     print(unit_list)
 
-    sinks = Dataset()
+    sinks = Datagroup()
 
     for i, (key, unit) in enumerate(zip(key_list, unit_list)):
         sinks[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)

@@ -2,25 +2,28 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from .hilbert import hilbert_cpu_list
-from .reader import Reader
+from .reader import Reader, ReaderKind
 from .. import config
 from .. import units
 from . import utils
 
 
 class AmrReader(Reader):
-    def __init__(self, scale, code_units, meta, infofile):
-        super().__init__()
-        self.meta = meta
-        self.infofile = infofile
+    # def __init__(self, scale, code_units, meta, infofile):
+    def __init__(self):
+        super().__init__(kind=ReaderKind.AMR)
 
-        length_unit = config.get_unit("x", code_units["ud"], code_units["ul"],
-                                      code_units["ut"])
-        if scale is not None:
-            scale = units(scale)
-            self.scaling = (length_unit.to(scale) / scale).magnitude * scale
+    def initialize(self, meta, select):
+        # self.meta = meta
+        # self.infofile = infofile
+
+        length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
+                                      meta["unit_t"])
+        if meta["scale"] is not None:
+            scale = units(meta["scale"])
+            scaling = (length_unit.to(scale) / scale).magnitude * scale
         else:
-            self.scaling = length_unit
+            scaling = length_unit
 
         # AMR grid variables
         self.variables.update({
@@ -43,7 +46,7 @@ class AmrReader(Reader):
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
-                "unit": self.scaling
+                "unit": scaling
             }
         })
         self.variables.update({
@@ -52,17 +55,16 @@ class AmrReader(Reader):
                 "type": "d",
                 "buffer": None,
                 "pieces": {},
-                "unit": self.scaling
+                "unit": scaling
             }
-            for c in "xyz"[:self.meta["ndim"]]
+            for c in "xyz"[:meta["ndim"]]
         })
 
-    def initialize(self, select):
-        self.cpu_list = hilbert_cpu_list(meta=self.meta,
-                                         scaling=self.scaling,
+        self.cpu_list = hilbert_cpu_list(meta=meta,
+                                         scaling=scaling,
                                          select=select,
-                                         infofile=self.infofile)
-        return True
+                                         infofile=meta["infofile"])
+        self.initialized = True
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
