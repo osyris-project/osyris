@@ -7,9 +7,10 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self):
+    def __init__(self, parent=None):
         self._container = {}
-        # self.meta = {}
+        self._parent = parent
+        self._name = None
         self.shape = None
 
     def __iter__(self):
@@ -62,6 +63,22 @@ class Datagroup:
         for key, item in self.items():
             output += str(item) + "\n"
         return output
+
+    @property
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent_):
+        self._parent = parent_
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name_):
+        self._name = name_
 
     def keys(self):
         return self._container.keys()

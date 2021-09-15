@@ -110,8 +110,8 @@ class Dataset:
         #             "shape is {} while container accepts shape {}.".format(
         #                 shape, self.shape))
         # if isinstance(value, Array):
-        #     value.name = key
-        #     value.parent = self
+        value.name = key
+        value.parent = self
         #     self.groups[key] = value
         # else:
         #     self.groups[key] = Array(values=value, name=key, parent=self)
