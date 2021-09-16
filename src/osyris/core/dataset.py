@@ -112,6 +112,7 @@ class Dataset:
         # if isinstance(value, Array):
         value.name = key
         value.parent = self
+        # print(key, parent)
         #     self.groups[key] = value
         # else:
         #     self.groups[key] = Array(values=value, name=key, parent=self)
@@ -123,7 +124,7 @@ class Dataset:
         return str(self)
 
     def __str__(self):
-        output = "Datagroup: "
+        output = "Dataset: "
         if "infile" in self.meta:
             output += "{}: ".format(self.meta["infile"])
         output += "{}\n".format(self.print_size())
@@ -141,7 +142,10 @@ class Dataset:
         return self.groups.values()
 
     def load(self, *args, **kwargs):
-        self.groups.update(self.loader.load(*args, meta=self.meta, **kwargs))
+        groups = self.loader.load(*args, meta=self.meta, **kwargs)
+        for name, group in groups.items():
+            self[name] = group
+        return self
 
     # def set_scale(self, scale):
     #     for key in ["x", "y", "z", "dx"]:

@@ -57,15 +57,15 @@ def plane(*layers,
         })
         operations.append(settings["operation"])
 
-    dataset = to_process[0].parent
+    dataset = to_process[0].parent.parent
 
     # Set window size
     if dy is None:
         dy = dx
     if dx is not None and not isinstance(dx, Quantity):
-        dx *= dataset["xyz"].unit
+        dx *= dataset["amr"]["xyz"].unit
     if dy is not None and not isinstance(dy, Quantity):
-        dy *= dataset["xyz"].unit
+        dy *= dataset["amr"]["xyz"].unit
 
     dir_vecs, origin = get_slice_direction(direction=direction,
                                            dataset=dataset,
@@ -74,11 +74,11 @@ def plane(*layers,
                                            origin=origin)
 
     # Distance to the plane
-    xyz = dataset["xyz"] - origin
-    diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
+    xyz = dataset["amr"]["xyz"] - origin
+    diagonal = dataset["amr"]["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
-    global_selection = np.arange(len(dataset["dx"]))
+    global_selection = np.arange(len(dataset["amr"]["dx"]))
 
     # Select cells in contact with plane
     select = np.ravel(np.where(np.abs(dist1) <= diagonal))
@@ -92,7 +92,7 @@ def plane(*layers,
     coords = xyz[select]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
-    datadx = 0.5 * dataset["dx"][select]
+    datadx = 0.5 * dataset["amr"]["dx"][select]
 
     # Get limits
     limits = {
@@ -246,8 +246,8 @@ def plane(*layers,
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(dataset["xyz"].x.label)
-        figure["ax"].set_ylabel(dataset["xyz"].y.label)
+        figure["ax"].set_xlabel(dataset["amr"]["xyz"].x.label)
+        figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
         if ax is None:
             figure["ax"].set_aspect("equal")
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})

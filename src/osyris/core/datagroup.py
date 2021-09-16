@@ -10,7 +10,7 @@ class Datagroup:
     def __init__(self, parent=None):
         self._container = {}
         self._parent = parent
-        self._name = None
+        self._name = ""
         self.shape = None
 
     def __iter__(self):
@@ -56,10 +56,7 @@ class Datagroup:
         return str(self)
 
     def __str__(self):
-        output = "Dataset: "
-        # if "infile" in self.meta:
-        #     output += "{}: ".format(self.meta["infile"])
-        output += "{}\n".format(self.print_size())
+        output = "Datagroup: {} {}\n".format(self.name, self.print_size())
         for key, item in self.items():
             output += str(item) + "\n"
         return output
