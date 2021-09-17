@@ -145,6 +145,7 @@ class Dataset:
         groups = self.loader.load(*args, meta=self.meta, **kwargs)
         for name, group in groups.items():
             self[name] = group
+        config.additional_variables(self)
         return self
 
     # def set_scale(self, scale):
