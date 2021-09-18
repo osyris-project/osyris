@@ -5,50 +5,50 @@ import numpy as np
 import os
 from ..core import Array, Datagroup
 from .. import config
+from .reader import ReaderKind
 from .. import units
 from . import utils
 
 
-def read_sinks(nout, path, code_units):
+class SinkReader:
+    def __init__(self):
+        self.kind = ReaderKind.SINK
+        self.initialized = False
 
-    sink_file = utils.generate_fname(nout, path, ftype="sink", cpuid=0, ext=".csv")
-    print(sink_file)
+    def initialize(self, meta, select):
 
-    sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
-    # print(sink_data)
+        sink_file = utils.generate_fname(meta["nout"],
+                                         meta["path"],
+                                         ftype="sink",
+                                         cpuid=0,
+                                         ext=".csv")
+        # print(sink_file)
 
-    with open(sink_file, 'r') as f:
-        key_list = f.readline()
-        unit_combinations = f.readline()
+        sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
 
-    key_list = key_list.lstrip(' #').rstrip('\n').split(',')
-    unit_combinations = unit_combinations.lstrip(' #').rstrip('\n').split(',')
+        with open(sink_file, 'r') as f:
+            key_list = f.readline()
+            unit_combinations = f.readline()
 
-    print(key_list)
-    print(unit_combinations)
+        key_list = key_list.lstrip(' #').rstrip('\n').split(',')
+        unit_combinations = unit_combinations.lstrip(' #').rstrip('\n').split(',')
 
-    # Parse units
-    unit_list = []
-    for u in unit_combinations:
-        print(u)
-        m = code_units['ud'] * code_units['ul']**3 * units.g
-        l = code_units['ul'] * units.cm
-        t = code_units['ut'] * units.s
-        if u == '1':
-            unit_list.append(1.0 * units.dimensionless)
-        else:
-            unit_list.append(eval(u.replace(' ', '*')))
+        # Parse units
+        unit_list = []
+        for u in unit_combinations:
+            m = meta['unit_d'] * meta['unit_l']**3 * units.g
+            l = meta['unit_l'] * units.cm
+            t = meta['unit_t'] * units.s
+            if u == '1':
+                unit_list.append(1.0 * units.dimensionless)
+            else:
+                unit_list.append(eval(u.replace(' ', '*')))
 
-    print(unit_list)
-
-    sinks = Datagroup()
-
-    for i, (key, unit) in enumerate(zip(key_list, unit_list)):
-        sinks[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
-
-    print(sinks)
-
-    return sinks
+        sinks = Datagroup()
+        for i, (key, unit) in enumerate(zip(key_list, unit_list)):
+            sinks[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
+        utils.make_vector_arrays(sinks, ndim=meta["ndim"])
+        return sinks
 
     # self.data = Dataset()
 

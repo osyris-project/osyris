@@ -114,6 +114,13 @@ def make_vector_arrays(data, ndim):
             if "_x_" in key and key not in skip:
                 rawkey = key.replace("_x", "")
                 comp_list = [key.replace("_x_", "_{}_".format(c)) for c in components]
+            # if "_x" in key and key not in skip:
+            #     rawkey = key.replace("_x", "")
+            #     comp_list = [key.replace("_x", "_{}".format(c)) for c in components]
+            # if comp_list is None:
+            #     if "x" in key and key not in skip:
+            #         rawkey = key.replace("x", "")
+            #         comp_list = [key.replace("x", "{}".format(c)) for c in components]
 
             if comp_list is not None:
                 if all([item in data for item in comp_list]):

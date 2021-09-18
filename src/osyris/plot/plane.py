@@ -48,7 +48,8 @@ def plane(*layers,
                                              vmax=vmax,
                                              operation=operation,
                                              **kwargs)
-        to_process.append(data)
+        if settings["mode"] is not "scatter":
+            to_process.append(data)
         to_render.append({
             "mode": settings["mode"],
             "params": params,

@@ -7,11 +7,14 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, parent=None):
+    def __init__(self, data=None, parent=None):
         self._container = {}
         self._parent = parent
         self._name = ""
         self.shape = None
+        if data is not None:
+            for key, array in data.items():
+                self._container[key] = array
 
     def __iter__(self):
         return self._container.__iter__()

@@ -11,7 +11,7 @@ from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
 from .rt import RtReader
-from .sinks import read_sinks
+from .sinks import SinkReader
 
 
 class Loader:
@@ -32,6 +32,7 @@ class Loader:
             "hydro": HydroReader(),
             # "grav": GravReader(),
             # "rt": RtReader()
+            "sinks": SinkReader()
         }
 
     def load_meta_info(self):
@@ -112,7 +113,7 @@ class Loader:
         # for group, reader in self.reader_list.items():
         for group in groups:
             if not self.readers[group].initialized:
-                self.readers[group].initialize(meta=meta, select=select)
+                out[group] = self.readers[group].initialize(meta=meta, select=select)
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
 
