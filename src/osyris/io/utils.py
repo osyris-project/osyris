@@ -103,33 +103,24 @@ def make_vector_arrays(data, ndim):
     """
     components = list("xyz"[:ndim])
     if len(components) > 1:
-        skip = []
+        delete = []
         for key in list(data.keys()):
-            # Make list of 3 components
             comp_list = None
             rawkey = None
-            if key.endswith("_x") and key not in skip:
-                rawkey = key[:-2]
-                comp_list = [rawkey + "_" + c for c in components]
-            if "_x_" in key and key not in skip:
-                rawkey = key.replace("_x", "")
-                comp_list = [key.replace("_x_", "_{}_".format(c)) for c in components]
-            # if "_x" in key and key not in skip:
-            #     rawkey = key.replace("_x", "")
-            #     comp_list = [key.replace("_x", "_{}".format(c)) for c in components]
-            # if comp_list is None:
-            #     if "x" in key and key not in skip:
-            #         rawkey = key.replace("x", "")
-            #         comp_list = [key.replace("x", "{}".format(c)) for c in components]
-
-            if comp_list is not None:
+            inds = [i for i, letter in enumerate(key) if letter == 'x']
+            for ind in inds:
+                comp_list = [key[:ind] + c + key[ind + 1:] for c in components]
                 if all([item in data for item in comp_list]):
+                    cut = ind - 1 if key[ind - 1] == "_" else ind
+                    rawkey = key[:cut] + key[ind + 1:]
+                    if len(rawkey) == 0:
+                        rawkey = "xyz"
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
                                          unit=data[key].unit)
-                    for c in comp_list:
-                        del data[c]
-                        skip.append(c)
+                    delete += comp_list
+        for key in delete:
+            del data[key]
 
 
 def find_max_amr_level(levelmax, select):
