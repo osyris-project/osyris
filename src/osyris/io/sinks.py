@@ -23,6 +23,8 @@ class SinkReader:
                                          cpuid=0,
                                          ext=".csv")
         # print(sink_file)
+        if not os.path.exists(sink_file):
+            return
 
         sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
 

@@ -113,7 +113,9 @@ class Loader:
         # for group, reader in self.reader_list.items():
         for group in groups:
             if not self.readers[group].initialized:
-                out[group] = self.readers[group].initialize(meta=meta, select=select)
+                first_load = self.readers[group].initialize(meta=meta, select=select)
+                if first_load is not None:
+                    out[group] = first_load
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
 

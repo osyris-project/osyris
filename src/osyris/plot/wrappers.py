@@ -71,3 +71,12 @@ def streamplot(ax, x, y, z, **kwargs):
     default_args = {"color": "w"}
     default_args.update(kwargs)
     return ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)
+
+
+def scatter(ax, x, y, data, **kwargs):
+    """
+    Wrapper around Matplotlib's streamplot plot.
+    """
+    default_args = {"c": "b"}
+    default_args.update(kwargs)
+    return ax.scatter(x, y, **default_args)
