@@ -10,177 +10,49 @@ from .parser import parse_layer, get_norm
 from scipy.stats import binned_statistic_2d
 
 
-def scatter(
-        x,
-        y,
-        # *layers,
-        # mode=None,
-        ax=None,
-        logx=False,
-        logy=False,
-        loglog=False,
-        norm=None,
-        # cbar=True,
-        filename=None,
-        # resolution=256,
-        # operation="sum",
-        title=None,
-        xmin=None,
-        xmax=None,
-        ymin=None,
-        ymax=None,
-        vmin=None,
-        vmax=None,
-        **kwargs):
+def scatter(x,
+            y,
+            ax=None,
+            logx=False,
+            logy=False,
+            loglog=False,
+            norm=None,
+            cbar=True,
+            filename=None,
+            title=None,
+            xmin=None,
+            xmax=None,
+            ymin=None,
+            ymax=None,
+            vmin=None,
+            vmax=None,
+            **kwargs):
     """
-    Plot a 2D histogram with two variables as input.
+    Plot a 2D scatter plot with two variables as input.
     """
     if loglog:
         logx = logy = True
 
-    # nx = resolution
-    # ny = resolution
-
     xvals = x.norm.values
     yvals = y.norm.values
 
-    # Define plotting range
-    autoxmin = False
-    autoxmax = False
-    autoymin = False
-    autoymax = False
-
-    if xmin is None:
-        xmin = finmin(xvals)
-        autoxmin = True
-    if xmax is None:
-        xmax = finmax(xvals)
-        autoxmax = True
-    if ymin is None:
-        ymin = finmin(yvals)
-        autoymin = True
-    if ymax is None:
-        ymax = finmax(yvals)
-        autoymax = True
-
-    if logx:
-        [xmin, xmax] = np.log10([xmin, xmax])
-    if logy:
-        [ymin, ymax] = np.log10([ymin, ymax])
-
-    # Protect against empty plots if xmin==xmax or ymin==ymax
-    if xmin == xmax:
-        if xmin == 0.0:
-            xmin = -0.1
-            xmax = 0.1
-        else:
-            xmin = xmin - 0.05 * abs(xmin)
-            xmax = xmax + 0.05 * abs(xmax)
-    if ymin == ymax:
-        if ymin == 0.0:
-            ymin = -0.1
-            ymax = 0.1
-        else:
-            ymin = ymin - 0.05 * abs(ymin)
-            ymax = ymax + 0.05 * abs(ymax)
-
-    dx = xmax - xmin
-    dy = ymax - ymin
-    if autoxmin:
-        xmin = xmin - 0.05 * dx
-    if autoxmax:
-        xmax = xmax + 0.05 * dx
-    if autoymin:
-        ymin = ymin - 0.05 * dy
-    if autoymax:
-        ymax = ymax + 0.05 * dy
-
-    # # Construct some bin edges
-    # if logx:
-    #     xedges = np.logspace(xmin, xmax, nx + 1)
-    # else:
-    #     xedges = np.linspace(xmin, xmax, nx + 1)
-    # if logy:
-    #     yedges = np.logspace(ymin, ymax, ny + 1)
-    # else:
-    #     yedges = np.linspace(ymin, ymax, ny + 1)
-
-    # # In the contour plots, x and y are the centers of the cells, instead of
-    # # the edges.
-    # xcenters = to_bin_centers(xedges)
-    # ycenters = to_bin_centers(yedges)
-
-    # to_render = []
-    # # Buffer for counts
-    # to_process = [np.ones_like(xvals)]
-    # operations = ["sum"]
-
-    # if layers is not None:
-    #     for layer in layers:
     _, _, params = parse_layer(entry=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
     to_render = [{
         "data": None,
         "mode": "scatter",
         "params": params,
-        # "unit": data.unit.units,
-        # "name": data.name
     }]
-    if "c" in params:
+    if "c" in params and not isinstance(params["c"], str):
         to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
         params["c"] = params["c"].norm.values
     if "s" in params:
         params["s"] = params["s"].norm.values
 
-    #         operations.append(settings["operation"])
-
-    # if (operation == "mean") and "sum" in operations:
-    #     counts, _, _ = np.histogram2d(yvals, xvals, bins=(yedges, xedges))
-
-    # binned, _, _, _ = binned_statistic_2d(x=yvals,
-    #                                       y=xvals,
-    #                                       values=to_process,
-    #                                       statistic=operation,
-    #                                       bins=[yedges, xedges])
-
-    # # Here we assume that dictionary retains order of insertion: counts
-    # # are the first key
-    # mask = binned[0] == 0.0
-    # for ind in range(1, len(to_process)):
-    #     if operations[ind] != operation:
-    #         if operation == "sum":
-    #             with np.errstate(invalid="ignore"):
-    #                 binned[ind] /= binned[0]
-    #         else:
-    #             binned[ind] *= counts
-    #     to_render[ind - 1]["data"] = np.ma.masked_where(mask, binned[ind])
-
-    # if len(to_render) == 0:
-    #     to_render.append({
-    #         "data": np.ma.masked_where(mask, binned[0]),
-    #         "mode": mode,
-    #         "name": "counts",
-    #         "params": {
-    #             "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-    #             "vmin": vmin,
-    #             "vmax": vmax
-    #         },
-    #         "unit": units.dimensionless
-    #     })
-    # to_render = [{
-    #     "data": None,
-    #     "mode": "scatter",
-    #     "name": "scatter",
-    #     "params": {
-    #         "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-    #         "vmin": vmin,
-    #         "vmax": vmax
-    #     },
-    #     "unit": units.dimensionless
-    # }]
-
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy)
 
     figure["ax"].set_xlabel(x.label)
     figure["ax"].set_ylabel(y.label)
+    figure["ax"].set_xlim(xmin, xmax)
+    figure["ax"].set_ylim(ymin, ymax)
 
     return Plot(x=xvals, y=yvals, layers=to_render, fig=figure["fig"], ax=figure["ax"])
