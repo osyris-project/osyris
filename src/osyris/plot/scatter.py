@@ -13,8 +13,8 @@ from scipy.stats import binned_statistic_2d
 def scatter(
         x,
         y,
-        *layers,
-        mode=None,
+        # *layers,
+        # mode=None,
         ax=None,
         logx=False,
         logy=False,
@@ -117,20 +117,20 @@ def scatter(
 
     # if layers is not None:
     #     for layer in layers:
-    #         data, settings, params = parse_layer(layer,
-    #                                              mode=mode,
-    #                                              norm=norm,
-    #                                              vmin=vmin,
-    #                                              vmax=vmax,
-    #                                              operation=operation,
-    #                                              **kwargs)
-    #         to_process.append(data.norm.values)
-    #         to_render.append({
-    #             "mode": settings["mode"],
-    #             "params": params,
-    #             "unit": data.unit.units,
-    #             "name": data.name
-    #         })
+    _, _, params = parse_layer(entry=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
+    to_render = [{
+        "data": None,
+        "mode": "scatter",
+        "params": params,
+        # "unit": data.unit.units,
+        # "name": data.name
+    }]
+    if "c" in params:
+        to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
+        params["c"] = params["c"].norm.values
+    if "s" in params:
+        params["s"] = params["s"].norm.values
+
     #         operations.append(settings["operation"])
 
     # if (operation == "mean") and "sum" in operations:
@@ -166,17 +166,17 @@ def scatter(
     #         },
     #         "unit": units.dimensionless
     #     })
-    to_render = [{
-        "data": None,
-        "mode": "scatter",
-        "name": "scatter",
-        "params": {
-            "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-            "vmin": vmin,
-            "vmax": vmax
-        },
-        "unit": units.dimensionless
-    }]
+    # to_render = [{
+    #     "data": None,
+    #     "mode": "scatter",
+    #     "name": "scatter",
+    #     "params": {
+    #         "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
+    #         "vmin": vmin,
+    #         "vmax": vmax
+    #     },
+    #     "unit": units.dimensionless
+    # }]
 
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy)
 
