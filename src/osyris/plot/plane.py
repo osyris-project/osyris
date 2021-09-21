@@ -6,6 +6,7 @@ import numpy.ma as ma
 from pint.quantity import Quantity
 from .slice import get_slice_direction
 from .render import render
+from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
@@ -48,15 +49,17 @@ def plane(*layers,
                                              vmax=vmax,
                                              operation=operation,
                                              **kwargs)
-        if settings["mode"] is not "scatter":
+        if settings["mode"] == "scatter":
+            to_scatter.append({"data": data, "params": params})
+        else:
             to_process.append(data)
-        to_render.append({
-            "mode": settings["mode"],
-            "params": params,
-            "unit": data.unit.units,
-            "name": data.name
-        })
-        operations.append(settings["operation"])
+            to_render.append({
+                "mode": settings["mode"],
+                "params": params,
+                "unit": data.unit.units,
+                "name": data.name
+            })
+            operations.append(settings["operation"])
 
     dataset = to_process[0].parent.parent
 
@@ -251,6 +254,40 @@ def plane(*layers,
         figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
         if ax is None:
             figure["ax"].set_aspect("equal")
+        if len(to_scatter) > 0:
+            xyz = to_scatter[0]["data"] - origin
+            diagonal = datadx.min() * 10000.0
+            dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+            # global_selection = np.arange(len(to_scatter[0]["data"]))
+            select = np.ravel(np.where(np.abs(dist1) <= diagonal))
+            # global_selection = global_selection[select]
+            print(diagonal, select)
+            if len(select) > 0:
+                # Project coordinates onto the plane by taking dot product with axes vectors
+                coords = xyz[select]
+                datax = np.inner(coords, dir_vecs[1])
+                datay = np.inner(coords, dir_vecs[2])
+                if dx is not None:
+                    # Limit selection further by using distance from center
+                    dist2 = coords  # - datadx * np.sqrt(dataset.meta["ndim"])
+                    select2 = np.ravel(
+                        np.where(
+                            np.abs(dist2.norm.values) <=
+                            max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0)))
+                    # coords = coords[select2]
+                    print(select2)
+                    print(dist2.norm)
+                    print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
+                    datax = datax[select2]
+                    datay = datay[select2]
+                    # datadx = datadx[select2]
+                    # global_selection = global_selection[select2]
+                scatter(x=datax, y=datay, ax=figure['ax'], **to_scatter[0]["params"])
+            # scatter(x=Array(values=[-500.0, 500.0]),
+            #         y=Array(values=[-500.0, 500.0]),
+            #         ax=figure['ax'],
+            #         **to_scatter[0]["params"])
+
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)

@@ -49,6 +49,8 @@ class SinkReader:
         sinks = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):
             sinks[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
+            if unit_combinations[i] == 'l':
+                sinks[key] = sinks[key].to(meta["scale"])
         utils.make_vector_arrays(sinks, ndim=meta["ndim"])
         return sinks
 

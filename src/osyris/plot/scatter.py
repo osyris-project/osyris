@@ -45,10 +45,11 @@ def scatter(x,
     if "c" in params and not isinstance(params["c"], str):
         to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
         params["c"] = params["c"].norm.values
-    if "s" in params:
-        params["s"] = params["s"].norm.values
+    # if "s" in params:
+    #     if isinstance(params["s"], Array):
+    #         params["s"] = params["s"].norm.values
 
-    figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy)
+    figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
 
     figure["ax"].set_xlabel(x.label)
     figure["ax"].set_ylabel(y.label)
