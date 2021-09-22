@@ -37,7 +37,7 @@ def read_parameter_file(fname=None, delimiter="="):
     Read info file and create dictionary
     """
     out = {}
-    with open(fname) as f:
+    with open(fname, 'r') as f:
         content = f.readlines()
     for line in content:
         sp = line.split(delimiter)

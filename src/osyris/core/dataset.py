@@ -19,7 +19,7 @@ class Dataset:
 
         self.loader = Loader(nout=nout, scale=scale, path=path)
 
-        self.meta.update(self.loader.load_meta_info())
+        self.meta.update(self.loader.load_metadata())
 
         # code_units = {
         #     "ud": self.meta["unit_d"],
