@@ -1,5 +1,11 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
 import numpy as np
 from .. import config
+from ..core import Array
+from pint.quantity import Quantity
 
 
 def quiver(ax, x, y, z, density=1, color="w", **kwargs):
@@ -75,8 +81,26 @@ def streamplot(ax, x, y, z, **kwargs):
 
 def scatter(ax, x, y, data, **kwargs):
     """
-    Wrapper around Matplotlib's streamplot plot.
+    Wrapper around Matplotlib's scatter plot.
+    If a point size has a unit, use PatchCollection instead of scatter.
     """
     default_args = {"c": "b"}
     default_args.update(kwargs)
-    return ax.scatter(x, y, **default_args)
+    use_patchcollection = False
+    if "s" in kwargs:
+        if isinstance(kwargs["s"], Array):
+            kwargs["s"] = kwargs["s"].norm.values
+            use_patchcollection = True
+        if isinstance(kwargs["s"], Quantity):
+            kwargs["s"] = kwargs["s"].magnitude
+            use_patchcollection = True
+    if use_patchcollection:
+        patches = [plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, kwargs["s"])]
+        del kwargs["s"]
+        array = None
+        if "c" in kwargs:
+            kwargs["array"] = kwargs["c"]
+            del kwargs["c"]
+        return ax.add_collection(PatchCollection(patches, **kwargs))
+    else:
+        return ax.scatter(x, y, **default_args)

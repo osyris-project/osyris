@@ -166,7 +166,7 @@ def histogram(x,
             "unit": units.dimensionless
         })
 
-    figure = render(x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy)
+    figure = render(x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy, ax=ax)
 
     figure["ax"].set_xlabel(x.label)
     figure["ax"].set_ylabel(y.label)
