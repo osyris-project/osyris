@@ -13,6 +13,37 @@ from ..core.tools import to_bin_centers, apply_mask
 from scipy.stats import binned_statistic_2d
 
 
+def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax):
+    xyz = to_scatter[0]["data"] - origin
+    diagonal = datadx.min() * 10000.0
+    dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+    # global_selection = np.arange(len(to_scatter[0]["data"]))
+    select = np.ravel(np.where(np.abs(dist1) <= diagonal))
+    # global_selection = global_selection[select]
+    print(diagonal, select)
+    if len(select) > 0:
+        # Project coordinates onto the plane by taking dot product with axes vectors
+        coords = xyz[select]
+        datax = np.inner(coords, dir_vecs[1])
+        datay = np.inner(coords, dir_vecs[2])
+        if dx is not None:
+            # Limit selection further by using distance from center
+            dist2 = coords  # - datadx * np.sqrt(dataset.meta["ndim"])
+            select2 = np.ravel(
+                np.where(
+                    np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
+                    np.sqrt(2.0)))
+            # coords = coords[select2]
+            print(select2)
+            print(dist2.norm)
+            print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
+            datax = datax[select2]
+            datay = datay[select2]
+            # datadx = datadx[select2]
+            # global_selection = global_selection[select2]
+        scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
+
+
 def plane(*layers,
           direction="z",
           dx=None,
@@ -254,39 +285,21 @@ def plane(*layers,
         figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
         if ax is None:
             figure["ax"].set_aspect("equal")
+
+        # Add scatter layer
         if len(to_scatter) > 0:
-            xyz = to_scatter[0]["data"] - origin
-            diagonal = datadx.min() * 10000.0
-            dist1 = np.sum(xyz * dir_vecs[0], axis=1)
-            # global_selection = np.arange(len(to_scatter[0]["data"]))
-            select = np.ravel(np.where(np.abs(dist1) <= diagonal))
-            # global_selection = global_selection[select]
-            print(diagonal, select)
-            if len(select) > 0:
-                # Project coordinates onto the plane by taking dot product with axes vectors
-                coords = xyz[select]
-                datax = np.inner(coords, dir_vecs[1])
-                datay = np.inner(coords, dir_vecs[2])
-                if dx is not None:
-                    # Limit selection further by using distance from center
-                    dist2 = coords  # - datadx * np.sqrt(dataset.meta["ndim"])
-                    select2 = np.ravel(
-                        np.where(
-                            np.abs(dist2.norm.values) <=
-                            max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0)))
-                    # coords = coords[select2]
-                    print(select2)
-                    print(dist2.norm)
-                    print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
-                    datax = datax[select2]
-                    datay = datay[select2]
-                    # datadx = datadx[select2]
-                    # global_selection = global_selection[select2]
-                scatter(x=datax, y=datay, ax=figure['ax'], **to_scatter[0]["params"])
-            # scatter(x=Array(values=[-500.0, 500.0]),
-            #         y=Array(values=[-500.0, 500.0]),
-            #         ax=figure['ax'],
-            #         **to_scatter[0]["params"])
+            _add_scatter(datax=datax,
+                         datay=datay,
+                         to_scatter=to_scatter,
+                         origin=origin,
+                         datadx=datadx,
+                         dir_vecs=dir_vecs,
+                         dx=dx,
+                         dy=dy,
+                         ax=figure["ax"])
+
+        figure["ax"].set_xlim(xmin, xmax)
+        figure["ax"].set_ylim(ymin, ymax)
 
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 

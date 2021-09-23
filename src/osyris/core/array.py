@@ -344,7 +344,10 @@ class Array:
         return _comparison_operator(self, other, "not_equal")
 
     def to(self, unit):
-        new_unit = units(unit)
+        if isinstance(unit, str):
+            new_unit = units(unit)
+        else:
+            new_unit = unit
         ratio = self._unit.to(new_unit) / new_unit
         self._unit = 1.0 * new_unit
         self._array *= ratio.magnitude

@@ -84,23 +84,37 @@ def scatter(ax, x, y, data, **kwargs):
     Wrapper around Matplotlib's scatter plot.
     If a point size has a unit, use PatchCollection instead of scatter.
     """
-    default_args = {"c": "b"}
+    default_args = {"c": "b", "edgecolors": "k"}
     default_args.update(kwargs)
     use_patchcollection = False
     if "s" in kwargs:
+        print("scatter 1")
         if isinstance(kwargs["s"], Array):
+            print("scatter 2")
             kwargs["s"] = kwargs["s"].norm.values
             use_patchcollection = True
+        print("scatter 3")
         if isinstance(kwargs["s"], Quantity):
+            print("scatter 4")
             kwargs["s"] = kwargs["s"].magnitude
             use_patchcollection = True
+    print("scatter 5", use_patchcollection)
     if use_patchcollection:
+        print("scatter 6")
+        if "c" in kwargs:
+            if isinstance(kwargs["c"], str):
+                pass
         patches = [plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, kwargs["s"])]
+        print(x)
+        print("scatter 7")
         del kwargs["s"]
+        print("scatter 8")
         array = None
+        print("scatter 9")
         if "c" in kwargs:
             kwargs["array"] = kwargs["c"]
             del kwargs["c"]
-        return ax.add_collection(PatchCollection(patches, **kwargs))
+        print("scatter 10")
+        return ax.add_collection(PatchCollection(patches))  #, **kwargs))
     else:
         return ax.scatter(x, y, **default_args)

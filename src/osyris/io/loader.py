@@ -50,27 +50,6 @@ class Loader:
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
                                         meta["unit_t"])
 
-        # Read namelist.txt file
-        meta["namelist"] = {}
-        namelist_file = os.path.join(self.infile, "namelist.txt")
-        with open(namelist_file, 'r') as f:
-            content = f.read()
-        groups = content.split('&')
-        for group in groups:
-            if "=" in group:
-                split = group.split('\n')
-                trimmed = [ele for ele in split if ele.strip()]
-                if trimmed[-1] == '/':
-                    key = trimmed[0].strip()
-                    meta["namelist"][key] = {}
-                    for item in trimmed[1:-1]:
-                        [left, right] = item.split('=')
-                        try:
-                            right = eval(right)
-                        except (NameError, SyntaxError):
-                            pass
-                        meta["namelist"][key][left] = right
-
         return meta
 
     #     # # Take into account user specified lmax

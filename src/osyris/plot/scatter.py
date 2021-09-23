@@ -2,7 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
-from ..core import Plot
+from ..core import Plot, Array
 from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
@@ -45,9 +45,17 @@ def scatter(x,
     if "c" in params and not isinstance(params["c"], str):
         to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
         params["c"] = params["c"].norm.values
-    # if "s" in params:
-    #     if isinstance(params["s"], Array):
-    #         params["s"] = params["s"].norm.values
+    if "s" in params:
+        if isinstance(params["s"], Array):
+            unit = params["s"].unit.units
+            if unit != units.dimensionless:
+                if x.unit.units != y.unit.units:
+                    raise RuntimeError("Scatter: an Array with a unit was supplied "
+                                       "as a size, but the units of the x and y "
+                                       "Arrays do not agree. The size must either "
+                                       "be a float or a dimensionless Array.")
+                params["s"] = params["s"].to(x.unit.units)
+            # params["s"] = params["s"].norm.values
 
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
 
