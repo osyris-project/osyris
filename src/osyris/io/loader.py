@@ -16,12 +16,6 @@ from .sinks import SinkReader
 
 class Loader:
     def __init__(self, nout, scale, path):
-
-        # self.data = Dataset()
-
-        # if scale is None:
-        #     scale = config.parameters["scale"]
-
         # Generate directory name from output number
         self.nout = nout
         self.path = path
@@ -30,8 +24,8 @@ class Loader:
         self.readers = {
             "amr": AmrReader(),
             "hydro": HydroReader(),
-            # "grav": GravReader(),
-            # "rt": RtReader()
+            "grav": GravReader(),
+            "rt": RtReader(),
             "sinks": SinkReader()
         }
 
@@ -51,42 +45,6 @@ class Loader:
                                         meta["unit_t"])
 
         return meta
-
-    #     # # Take into account user specified lmax
-    #     # if "level" in select:
-    #     #     meta["lmax"] = utils.find_max_amr_level(
-    #     #         levelmax=meta["levelmax"], select=select)
-    #     # else:
-    #     #     meta["lmax"] = meta["levelmax"]
-
-    #     code_units = {"ud": meta["unit_d"], "ul": meta["unit_l"], "ut": meta["unit_t"]}
-
-    #     self.reader_list = {
-    #         "amr":
-    #         AmrReader(
-    #             scale=scale,
-    #             # select=select,
-    #             code_units=code_units,
-    #             meta=meta,
-    #             infofile=infofile),
-    #         "hydro":
-    #         HydroReader(infile=infile, code_units=code_units),
-    #         "grav":
-    #         GravReader(
-    #             nout=nout,
-    #             path=path,
-    #             # select=select,
-    #             code_units=code_units,
-    #             ndim=meta["ndim"]),
-    #         "rt":
-    #         RtReader(infile=infile, code_units=code_units)
-    #     }
-
-    #     self.sinks = read_sinks(nout=nout, path=path, code_units=code_units)
-
-    # # @property
-    # # def meta(self):
-    # #     return meta
 
     def load(self, groups=None, select=None, cpu_list=None, meta=None):
 
@@ -110,7 +68,6 @@ class Loader:
 
         # Initialize readers
         readers = {}
-        # for group, reader in self.reader_list.items():
         for group in groups:
             if not self.readers[group].initialized:
                 first_load = self.readers[group].initialize(meta=meta, select=select)
@@ -234,10 +191,6 @@ class Loader:
             # If vector quantities are found, make them into vector Arrays
             utils.make_vector_arrays(out[group], ndim=meta["ndim"])
 
-        # # Create additional variables derived from the ones already loaded
-        # config.additional_variables(self.data)
-
         print("Total number of cells loaded: {}".format(ncells_tot))
-        # print("Memory used: {}".format(self.data.print_size()))
 
         return out

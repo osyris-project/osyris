@@ -91,49 +91,35 @@ def scatter(ax, x, y, data, **kwargs):
     default_args.update(kwargs)
     use_patchcollection = False
     if "s" in default_args:
-        print("scatter 1")
         if isinstance(default_args["s"], Array):
-            print("scatter 2")
             default_args["s"] = default_args["s"].norm.values
             use_patchcollection = True
-        print("scatter 3")
         if isinstance(default_args["s"], Quantity):
-            print("scatter 4")
             default_args["s"] = np.full_like(x, default_args["s"].magnitude)
             use_patchcollection = True
-    print("scatter 5", use_patchcollection)
     if use_patchcollection:
-        # print("scatter 6")
-        # if "c" in default_args:
-        #     if isinstance(default_args["c"], str):
-        #         pass
-        # new_args = {}
-        # for name, arg in default_args.items():
-        #     if name == "c":
-        #         new_args["color"] = arg
-        #     elif name == "edgecolors":
-        #         new_args["edgecolor"] = arg
-        #     else:
-        #         new_args[name] = arg
-
-        patches = [
-            plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, default_args["s"])
-        ]
-        print(x)
-        print("scatter 7")
-        del default_args["s"]
-        print("scatter 8")
         array = None
-        print("scatter 9")
+        color = None
+        norm = None
         if "c" in default_args:
-            default_args["array"] = default_args["c"]
+            if isinstance(default_args["c"], str):
+                color = default_args["c"]
+            else:
+                array = default_args["c"]
             del default_args["c"]
-        if "edgecolors" in default_args:
-            default_args["edgecolor"] = default_args["edgecolors"]
-            del default_args["edgecolors"]
-
-        print("scatter 10")
-        print(default_args)
-        return ax.add_collection(PatchCollection(patches), **default_args)
+        if "norm" in default_args:
+            norm = default_args["norm"]
+            del default_args["norm"]
+        patches = [
+            plt.Circle([x_, y_], s, color=color)
+            for x_, y_, s in zip(x, y, default_args["s"])
+        ]
+        del default_args["s"]
+        coll = ax.add_collection(PatchCollection(patches, **default_args))
+        if array is not None:
+            coll.set_array(array)
+        if norm is not None:
+            coll.set_norm(norm)
+        return coll
     else:
         return ax.scatter(x, y, **default_args)

@@ -55,7 +55,6 @@ def scatter(x,
                                        "Arrays do not agree. The size must either "
                                        "be a float or a dimensionless Array.")
                 params["s"] = params["s"].to(x.unit.units)
-            # params["s"] = params["s"].norm.values
 
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
 
