@@ -83,38 +83,57 @@ def scatter(ax, x, y, data, **kwargs):
     """
     Wrapper around Matplotlib's scatter plot.
     If a point size has a unit, use PatchCollection instead of scatter.
+    We use the scatter API for the arguments.
+    If PatchCollection is used, we convert the scatter args to the
+    PatchCollection syntax (e.g. "c" -> "color").
     """
     default_args = {"c": "b", "edgecolors": "k"}
     default_args.update(kwargs)
     use_patchcollection = False
-    if "s" in kwargs:
+    if "s" in default_args:
         print("scatter 1")
-        if isinstance(kwargs["s"], Array):
+        if isinstance(default_args["s"], Array):
             print("scatter 2")
-            kwargs["s"] = kwargs["s"].norm.values
+            default_args["s"] = default_args["s"].norm.values
             use_patchcollection = True
         print("scatter 3")
-        if isinstance(kwargs["s"], Quantity):
+        if isinstance(default_args["s"], Quantity):
             print("scatter 4")
-            kwargs["s"] = kwargs["s"].magnitude
+            default_args["s"] = np.full_like(x, default_args["s"].magnitude)
             use_patchcollection = True
     print("scatter 5", use_patchcollection)
     if use_patchcollection:
-        print("scatter 6")
-        if "c" in kwargs:
-            if isinstance(kwargs["c"], str):
-                pass
-        patches = [plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, kwargs["s"])]
+        # print("scatter 6")
+        # if "c" in default_args:
+        #     if isinstance(default_args["c"], str):
+        #         pass
+        # new_args = {}
+        # for name, arg in default_args.items():
+        #     if name == "c":
+        #         new_args["color"] = arg
+        #     elif name == "edgecolors":
+        #         new_args["edgecolor"] = arg
+        #     else:
+        #         new_args[name] = arg
+
+        patches = [
+            plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, default_args["s"])
+        ]
         print(x)
         print("scatter 7")
-        del kwargs["s"]
+        del default_args["s"]
         print("scatter 8")
         array = None
         print("scatter 9")
-        if "c" in kwargs:
-            kwargs["array"] = kwargs["c"]
-            del kwargs["c"]
+        if "c" in default_args:
+            default_args["array"] = default_args["c"]
+            del default_args["c"]
+        if "edgecolors" in default_args:
+            default_args["edgecolor"] = default_args["edgecolors"]
+            del default_args["edgecolors"]
+
         print("scatter 10")
-        return ax.add_collection(PatchCollection(patches))  #, **kwargs))
+        print(default_args)
+        return ax.add_collection(PatchCollection(patches), **default_args)
     else:
         return ax.scatter(x, y, **default_args)
