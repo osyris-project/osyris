@@ -23,7 +23,7 @@ class HydroReader(Reader):
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
-            return False
+            return
 
         # if self.initialized:
         for i in range(len(descriptor)):

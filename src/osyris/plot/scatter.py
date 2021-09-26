@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+from pint.quantity import Quantity
 from ..core import Plot, Array
 from .. import units
 from .render import render
@@ -46,8 +47,12 @@ def scatter(x,
         to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
         params["c"] = params["c"].norm.values
     if "s" in params:
+        unit = None
         if isinstance(params["s"], Array):
             unit = params["s"].unit.units
+        if isinstance(params["s"], Quantity):
+            unit = params["s"].units
+        if unit is not None:
             if unit != units.dimensionless:
                 if x.unit.units != y.unit.units:
                     raise RuntimeError("Scatter: an Array with a unit was supplied "

@@ -102,17 +102,17 @@ def scatter(ax, x, y, data, **kwargs):
         color = None
         norm = None
         if "c" in default_args:
-            if isinstance(default_args["c"], str):
-                color = default_args["c"]
-            else:
-                array = default_args["c"]
+            if "facecolors" not in default_args:
+                if isinstance(default_args["c"], str):
+                    default_args["facecolors"] = default_args["c"]
+                else:
+                    array = default_args["c"]
             del default_args["c"]
         if "norm" in default_args:
             norm = default_args["norm"]
             del default_args["norm"]
         patches = [
-            plt.Circle([x_, y_], s, color=color)
-            for x_, y_, s in zip(x, y, default_args["s"])
+            plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, default_args["s"])
         ]
         del default_args["s"]
         coll = ax.add_collection(PatchCollection(patches, **default_args))

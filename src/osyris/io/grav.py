@@ -21,7 +21,7 @@ class GravReader(Reader):
         # Check if self-gravity files exist
         # fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
         if not os.path.exists(fname):
-            return False
+            return
         # Add gravity fields
         # if self.initialized:
         descriptor = {"potential": "d"}

@@ -15,12 +15,19 @@ from scipy.stats import binned_statistic_2d
 
 def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax):
     xyz = to_scatter[0]["data"] - origin
-    diagonal = datadx.min() * 10000.0
+    size = None
+    if "s" in to_scatter[0]["params"]:
+        size = to_scatter[0]["params"]["s"]
+        if isinstance(size, Array) or isinstance(size, Quantity):
+            radius = size.to(datax.unit.units)
+            to_scatter[0]["params"]["s"] = radius
+    else:
+        radius = datadx.min() * 4.0  # fudge factor to select sinks close to the plane
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     # global_selection = np.arange(len(to_scatter[0]["data"]))
-    select = np.ravel(np.where(np.abs(dist1) <= diagonal))
+    select = np.ravel(np.where(np.abs(dist1) <= radius))
     # global_selection = global_selection[select]
-    print(diagonal, select)
+    print(radius, select)
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
@@ -33,12 +40,14 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
                 np.where(
                     np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
                     np.sqrt(2.0)))
+            print('select2', select2)
             # coords = coords[select2]
-            print(select2)
-            print(dist2.norm)
-            print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
+            # print(select2)
+            # print(dist2.norm)
+            # print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
             datax = datax[select2]
             datay = datay[select2]
+            print(to_scatter[0]["params"])
             # datadx = datadx[select2]
             # global_selection = global_selection[select2]
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])

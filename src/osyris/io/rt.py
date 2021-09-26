@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
+import os
 from .reader import Reader, ReaderKind
 from .. import config
 
@@ -6,16 +9,16 @@ from .. import config
 class RtReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
-        self.fname = infile + "/rt_file_descriptor.txt"
 
-    def initialize(self, select):
+    def initialize(self, meta, select):
         # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
         # fname = infile + "/rt_file_descriptor.txt"
+        fname = os.path.join(meta["infile"], "rt_file_descriptor.txt")
         try:
-            descriptor = np.loadtxt(self.fname, dtype=str, delimiter=",")
+            descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
-            return False
+            return
 
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
@@ -27,18 +30,14 @@ class RtReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[i, 2].strip(),
-                "buffer":
-                None,
+                "read": read,
+                "type": descriptor[i, 2].strip(),
+                "buffer": None,
                 "pieces": {},
-                "unit":
-                config.get_unit(key, self.code_units["ud"], self.code_units["ul"],
-                                self.code_units["ut"])
+                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                        meta["unit_t"])
             }
-        return True
+        self.initialized = True
 
     def read_header(self, info):
         self.offsets["i"] += 5
