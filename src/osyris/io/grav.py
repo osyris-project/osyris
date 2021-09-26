@@ -1,31 +1,32 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import os
-from .reader import Reader
+from .reader import Reader, ReaderKind
 from .. import config
 from . import utils
 
 
 class GravReader(Reader):
-    def __init__(self, nout, path, code_units, ndim):
-        super().__init__(code_units=code_units)
-        self.fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
+    def __init__(self):
+        super().__init__(kind=ReaderKind.AMR)
+        # self.fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
         # self.code_units = code_units
-        self.ndim = ndim
+        # self.ndim = ndim
 
-    def initialize(self, select):
+    def initialize(self, meta, select):
 
         # super().__init__()
+        fname = utils.generate_fname(meta["nout"], meta["path"], ftype="grav", cpuid=1)
 
         # Check if self-gravity files exist
         # fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
-        if not os.path.exists(self.fname):
+        if not os.path.exists(fname):
             return False
         # Add gravity fields
         # if self.initialized:
-        descriptor = {"grav_potential": "d"}
-        for n in range(self.ndim):
-            descriptor["grav_acceleration_" + "xyz"[n]] = "d"
+        descriptor = {"potential": "d"}
+        for n in range(meta["ndim"]):
+            descriptor["acceleration_" + "xyz"[n]] = "d"
         # Now add to the list of variables to be read
         for key in descriptor:
             read = True
@@ -39,18 +40,14 @@ class GravReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[key],
-                "buffer":
-                None,
+                "read": read,
+                "type": descriptor[key],
+                "buffer": None,
                 "pieces": {},
-                "unit":
-                config.get_unit(key, self.code_units["ud"], self.code_units["ul"],
-                                self.code_units["ut"])
+                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                        meta["unit_t"])
             }
-        return True
+        self.initialized = True
 
     def read_header(self, info):
         self.offsets["i"] += 4

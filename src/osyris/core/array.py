@@ -166,7 +166,7 @@ class Array:
         return make_label(name=self._name, unit=self._unit.units)
 
     def _broadcast(self, lhs, rhs):
-        if lhs.ndim == rhs.ndim:
+        if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
             return lhs, rhs
         if lhs.ndim > rhs.ndim:
             ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
