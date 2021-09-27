@@ -122,7 +122,6 @@ def histogram(x,
                                                  vmax=vmax,
                                                  operation=operation,
                                                  **kwargs)
-            print('params', params)
             to_process.append(data.norm.values)
             to_render.append({
                 "mode": settings["mode"],

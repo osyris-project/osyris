@@ -111,8 +111,6 @@ def scatter(ax, x, y, data, **kwargs):
         if "norm" in default_args:
             norm = default_args["norm"]
             del default_args["norm"]
-        # if len(s) != len(x) and len()
-        print("s", default_args["s"])
         try:
             iter(default_args["s"])
         except TypeError:
