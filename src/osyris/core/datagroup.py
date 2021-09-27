@@ -3,7 +3,6 @@
 import numpy as np
 from .array import Array
 from .tools import bytes_to_human_readable
-# from ..utils import value_to_string
 
 
 class Datagroup:
@@ -29,7 +28,6 @@ class Datagroup:
             d = Dataset()
             for name, val in self.items():
                 d[name] = val[key]
-            # d.meta.update(self.meta)
             return d
 
     def __setitem__(self, key, value):

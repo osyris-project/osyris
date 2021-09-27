@@ -13,7 +13,6 @@ class RtReader(Reader):
     def initialize(self, meta, select):
         # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
-        # fname = infile + "/rt_file_descriptor.txt"
         fname = os.path.join(meta["infile"], "rt_file_descriptor.txt")
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")

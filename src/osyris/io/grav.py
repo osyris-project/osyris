@@ -9,21 +9,13 @@ from . import utils
 class GravReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
-        # self.fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
-        # self.code_units = code_units
-        # self.ndim = ndim
 
     def initialize(self, meta, select):
-
-        # super().__init__()
         fname = utils.generate_fname(meta["nout"], meta["path"], ftype="grav", cpuid=1)
-
         # Check if self-gravity files exist
-        # fname = utils.generate_fname(nout, path, ftype="grav", cpuid=1)
         if not os.path.exists(fname):
             return
         # Add gravity fields
-        # if self.initialized:
         descriptor = {"potential": "d"}
         for n in range(meta["ndim"]):
             descriptor["acceleration_" + "xyz"[n]] = "d"

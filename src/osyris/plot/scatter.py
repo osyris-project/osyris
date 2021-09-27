@@ -18,7 +18,6 @@ def scatter(x,
             logy=False,
             loglog=False,
             norm=None,
-            cbar=True,
             filename=None,
             title=None,
             xmin=None,
@@ -37,7 +36,7 @@ def scatter(x,
     xvals = x.norm.values
     yvals = y.norm.values
 
-    _, _, params = parse_layer(entry=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
+    _, _, params = parse_layer(layer=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
     to_render = [{
         "data": None,
         "mode": "scatter",

@@ -27,7 +27,6 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
     global_selection = np.arange(len(to_scatter[0]["data"]))
     select = np.ravel(np.where(np.abs(dist1) <= radius))
     global_selection = global_selection[select]
-    print(radius, select)
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
@@ -35,27 +34,19 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
         datay = np.inner(coords, dir_vecs[2])
         if dx is not None:
             # Limit selection further by using distance from center
-            dist2 = coords  # - datadx * np.sqrt(dataset.meta["ndim"])
+            dist2 = coords
             select2 = np.ravel(
                 np.where(
                     np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
                     np.sqrt(2.0)))
-            print('select2', select2)
-            # coords = coords[select2]
-            # print(select2)
-            # print(dist2.norm)
-            # print(max(dx.magnitude, dy.magnitude) * 0.6 * np.sqrt(2.0))
             datax = datax[select2]
             datay = datay[select2]
-            print(to_scatter[0]["params"])
-            # datadx = datadx[select2]
             global_selection = global_selection[select2]
         if "c" in to_scatter[0]["params"]:
             # TODO: also check that parents are the same to ensure size match?
             if isinstance(to_scatter[0]["params"]["c"], Array):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection]
-        print(to_scatter[0]["params"])
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
@@ -88,7 +79,7 @@ def plane(*layers,
     operations = []
     to_scatter = []
     for layer in layers:
-        data, settings, params = parse_layer(layer,
+        data, settings, params = parse_layer(layer=layer,
                                              mode=mode,
                                              norm=norm,
                                              vmin=vmin,

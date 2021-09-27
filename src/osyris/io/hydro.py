@@ -10,22 +10,16 @@ from . import utils
 class HydroReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
-        # self.infile = infile
-        # self.fname = os.path.join(infile, "hydro_file_descriptor.txt")
-        # self.code_units = code_units
 
     def initialize(self, meta, select):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
-        # self.initialized = True
         fname = os.path.join(meta["infile"], "hydro_file_descriptor.txt")
-        # fname = self.infile + "/hydro_file_descriptor.txt"
         try:
             descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
             return
 
-        # if self.initialized:
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
             read = True

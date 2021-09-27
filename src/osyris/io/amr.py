@@ -9,14 +9,10 @@ from . import utils
 
 
 class AmrReader(Reader):
-    # def __init__(self, scale, code_units, meta, infofile):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
     def initialize(self, meta, select):
-        # self.meta = meta
-        # self.infofile = infofile
-
         length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
                                       meta["unit_t"])
         if meta["scale"] is not None:

@@ -18,9 +18,6 @@ class Reader():
         self.bytes = None
         self.initialized = False
         self.kind = kind
-        # self.code_units = code_units
-        # self.select = None
-        # return
 
     def allocate_buffers(self, ngridmax, twotondim):
         for item in self.variables.values():

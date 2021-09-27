@@ -16,13 +16,11 @@ class SinkReader:
         self.initialized = False
 
     def initialize(self, meta, select):
-
         sink_file = utils.generate_fname(meta["nout"],
                                          meta["path"],
                                          ftype="sink",
                                          cpuid=0,
                                          ext=".csv")
-        # print(sink_file)
         if not os.path.exists(sink_file):
             return
 
@@ -53,7 +51,3 @@ class SinkReader:
                 sinks[key] = sinks[key].to(meta["scale"])
         utils.make_vector_arrays(sinks, ndim=meta["ndim"])
         return sinks
-
-    # self.data = Dataset()
-
-    # if scale is None:
