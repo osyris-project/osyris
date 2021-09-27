@@ -24,9 +24,9 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
     else:
         radius = datadx.min() * 4.0  # fudge factor to select sinks close to the plane
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
-    # global_selection = np.arange(len(to_scatter[0]["data"]))
+    global_selection = np.arange(len(to_scatter[0]["data"]))
     select = np.ravel(np.where(np.abs(dist1) <= radius))
-    # global_selection = global_selection[select]
+    global_selection = global_selection[select]
     print(radius, select)
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
@@ -49,7 +49,13 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
             datay = datay[select2]
             print(to_scatter[0]["params"])
             # datadx = datadx[select2]
-            # global_selection = global_selection[select2]
+            global_selection = global_selection[select2]
+        if "c" in to_scatter[0]["params"]:
+            # TODO: also check that parents are the same to ensure size match?
+            if isinstance(to_scatter[0]["params"]["c"], Array):
+                to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
+                    global_selection]
+        print(to_scatter[0]["params"])
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 

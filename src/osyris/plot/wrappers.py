@@ -111,6 +111,12 @@ def scatter(ax, x, y, data, **kwargs):
         if "norm" in default_args:
             norm = default_args["norm"]
             del default_args["norm"]
+        # if len(s) != len(x) and len()
+        print("s", default_args["s"])
+        try:
+            iter(default_args["s"])
+        except TypeError:
+            default_args["s"] = [default_args["s"]] * len(x)
         patches = [
             plt.Circle([x_, y_], s) for x_, y_, s in zip(x, y, default_args["s"])
         ]
