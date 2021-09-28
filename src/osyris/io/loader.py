@@ -11,7 +11,7 @@ from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
 from .rt import RtReader
-from .sinks import SinkReader
+from .sink import SinkReader
 
 
 class Loader:
@@ -26,7 +26,7 @@ class Loader:
             "hydro": HydroReader(),
             "grav": GravReader(),
             "rt": RtReader(),
-            "sinks": SinkReader()
+            "sink": SinkReader()
         }
 
     def load_metadata(self):

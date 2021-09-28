@@ -4,14 +4,30 @@
 API Reference
 *************
 
+Core
+====
+
+.. autosummary::
+   :toctree: generated
+
+   Array
+   Datagroup
+   Dataset
+   units
+
 I/O
 ===
 
 .. autosummary::
    :toctree: generated
 
-   load
-
+   Loader
+   Reader
+   AmrReader
+   HydroReader
+   GravReader
+   RtReader
+   SinkReader
 
 Plotting
 ========
@@ -21,3 +37,4 @@ Plotting
 
    histogram
    plane
+   scatter
