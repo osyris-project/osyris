@@ -37,18 +37,12 @@ class Array:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
         self._parent = parent
         self._name = name
-        # if self._array.shape:
-        #     self._ndim = self._array.shape[-1]
-        # else:
-        #     self._ndim = 0
         self.special_functions = ["sqrt", "power"]
 
     # def __array__(self):
     #     return self._array
 
     def __getitem__(self, slice_):
-        # if self.ndim > 1 and isinstance(slice_, int):
-        #     slice_ = slice(slice_, slice_ + 1, 1)
         return self.__class__(values=self._array[slice_],
                               unit=self._unit,
                               parent=self._parent,

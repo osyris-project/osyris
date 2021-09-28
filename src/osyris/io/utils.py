@@ -10,10 +10,6 @@ from ..core import Array
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
 
-    # if len(path) > 0:
-    #     if path[-1] != "/":
-    #         path = path + "/"
-
     if nout == -1:
         filelist = sorted(glob.glob(os.path.join(path, "output*")))
         number = filelist[-1].split("_")[-1]

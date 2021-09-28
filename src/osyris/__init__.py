@@ -4,6 +4,5 @@
 # flake8: noqa
 
 from .config import config, units
-# from .io import Loader
 from .plot import histogram, plane, scatter
 from .core import Array, Datagroup, Dataset, Plot
