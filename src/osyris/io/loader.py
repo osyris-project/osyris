@@ -46,15 +46,10 @@ class Loader:
 
         return meta
 
-    def load(self, groups=None, select=None, cpu_list=None, meta=None):
+    def load(self, select=None, cpu_list=None, meta=None):
 
         out = {}
-        meta = meta.copy()
-
-        if groups is None:
-            groups = list(self.readers.keys())
-        if "amr" not in groups:
-            groups.append("amr")
+        groups = list(self.readers.keys())
 
         if select is None:
             select = {group: {} for group in self.readers}

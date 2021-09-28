@@ -40,11 +40,11 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
             raise RuntimeError("When using automatic slice orientation, "
                                "dx cannot be None.")
         sphere_rad = 0.25 * (dx + dy)
-        xyz = dataset["xyz"] - origin
+        xyz = dataset["amr"]["xyz"] - origin
         # Compute angular momentum vector
         sphere = np.where(xyz.norm < sphere_rad.magnitude)
-        pos = xyz * dataset["mass"]
-        vel = dataset["velocity"]
+        pos = xyz * dataset["hydro"]["mass"]
+        vel = dataset["hydro"]["velocity"]
 
         AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
         if direction == "side":
@@ -98,6 +98,6 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
     dir_vecs = dir_vecs / norm
 
     if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=dataset["xyz"].unit)
+        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["xyz"].unit)
 
     return dir_vecs, origin
