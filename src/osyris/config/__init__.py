@@ -13,12 +13,12 @@ user_config_dir = os.path.join(os.path.expanduser("~"), ".osyris")
 this_dir = os.path.dirname(os.path.abspath(__file__))
 if not os.path.exists(user_config_dir):
     os.mkdir(user_config_dir)
-user_config_file = os.path.join(user_config_dir, "conf.py")
+user_config_file = os.path.join(user_config_dir, "config_osyris.py")
 if not os.path.exists(user_config_file):
     copyfile(os.path.join(this_dir, "defaults.py"), user_config_file)
 sys.path.append(user_config_dir)
 
-import conf as user_config  # noqa: E402
+import config_osyris as user_config  # noqa: E402
 
 
 # Create a dummy class
