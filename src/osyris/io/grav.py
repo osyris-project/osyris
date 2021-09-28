@@ -22,13 +22,9 @@ class GravReader(Reader):
         # Now add to the list of variables to be read
         for key in descriptor:
             read = True
-            if "gravity" in select:
-                if select["gravity"] is False:
-                    read = False
-            if "grav" in select:
-                if select["grav"] is False:
-                    read = False
-            if key in select:
+            if isinstance(select, bool):
+                read = select
+            elif key in select:
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {

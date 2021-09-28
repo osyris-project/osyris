@@ -23,10 +23,9 @@ class HydroReader(Reader):
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
             read = True
-            if "hydro" in select:
-                if select["hydro"] is False:
-                    read = False
-            if key in select:
+            if isinstance(select, bool):
+                read = select
+            elif key in select:
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {

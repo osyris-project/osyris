@@ -57,12 +57,20 @@ class Loader:
             groups.append("amr")
 
         if select is None:
-            select = {}
+            select = {group: {} for group in self.readers}
+        else:
+            for key in select:
+                if key not in self.readers:
+                    print("Warning: {} found in select is not a valid "
+                          "Datagroup.".format(key))
+            for group in self.readers:
+                if group not in select:
+                    select[group] = {}
 
         # Take into account user specified lmax
         if "level" in select:
             meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
-                                                    select=select)
+                                                    select=select["amr"])
         else:
             meta["lmax"] = meta["levelmax"]
 
@@ -70,7 +78,8 @@ class Loader:
         readers = {}
         for group in groups:
             if not self.readers[group].initialized:
-                first_load = self.readers[group].initialize(meta=meta, select=select)
+                first_load = self.readers[group].initialize(meta=meta,
+                                                            select=select[group])
                 if first_load is not None:
                     out[group] = first_load
             if self.readers[group].initialized:
@@ -150,9 +159,9 @@ class Loader:
                             # Apply selection criteria: select only leaf cells and
                             # add any criteria requested by the user via select.
                             conditions = {}
-                            for reader in readers.values():
-                                conditions.update(reader.make_conditions(
-                                    select, ncache))
+                            for group, reader in readers.items():
+                                conditions.update(
+                                    reader.make_conditions(select[group], ncache))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
                             sel = np.where(

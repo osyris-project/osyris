@@ -52,10 +52,12 @@ class Reader():
 
     def make_conditions(self, select, ncache):
         conditions = {}
-        for key, func in select.items():
-            if not isinstance(func, bool):
-                if key in self.variables:
-                    conditions[key] = func(self.variables[key]["buffer"][:ncache, :])
+        if not isinstance(select, bool):
+            for key, func in select.items():
+                if not isinstance(func, bool):
+                    if key in self.variables:
+                        conditions[key] = func(
+                            self.variables[key]["buffer"][:ncache, :])
         return conditions
 
     def read_footer(self, *args, **kwargs):
