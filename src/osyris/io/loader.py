@@ -3,7 +3,6 @@
 
 import numpy as np
 import os
-from .. import config  # import parameters, additional_variables
 from . import utils
 from .. import config
 from ..core import Datagroup

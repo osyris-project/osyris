@@ -2,7 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import matplotlib.pyplot as plt
-from .. import config  #  import parameters
+from .. import config
 from . import wrappers
 from ..core.tools import make_label
 

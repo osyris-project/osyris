@@ -25,7 +25,9 @@ class Datagroup:
         if isinstance(key, str):
             return self._container[key]
         else:
-            d = Dataset()
+            if isinstance(key, int):
+                key = slice(key, key + 1, 1)
+            d = self.__class__()
             for name, val in self.items():
                 d[name] = val[key]
             return d

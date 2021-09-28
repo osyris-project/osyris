@@ -1,14 +1,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
-import numpy as np
 from pint.quantity import Quantity
 from ..core import Plot, Array
 from .. import units
 from .render import render
-from ..core.tools import to_bin_centers, finmin, finmax
-from .parser import parse_layer, get_norm
-from scipy.stats import binned_statistic_2d
+from .parser import parse_layer
 
 
 def scatter(x,

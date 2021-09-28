@@ -4,7 +4,6 @@
 import numpy as np
 import os
 from ..core import Array, Datagroup
-from .. import config
 from .reader import ReaderKind
 from .. import units
 from . import utils
@@ -36,9 +35,9 @@ class SinkReader:
         # Parse units
         unit_list = []
         for u in unit_combinations:
-            m = meta['unit_d'] * meta['unit_l']**3 * units.g
-            l = meta['unit_l'] * units.cm
-            t = meta['unit_t'] * units.s
+            m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
+            l = meta['unit_l'] * units.cm  # noqa: F841, E741
+            t = meta['unit_t'] * units.s  # noqa: F841
             if u == '1':
                 unit_list.append(1.0 * units.dimensionless)
             else:

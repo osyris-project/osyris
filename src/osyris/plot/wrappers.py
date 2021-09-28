@@ -99,7 +99,6 @@ def scatter(ax, x, y, data, **kwargs):
             use_patchcollection = True
     if use_patchcollection:
         array = None
-        color = None
         norm = None
         if "c" in default_args:
             if "facecolors" not in default_args:

@@ -18,7 +18,7 @@ if not os.path.exists(user_config_file):
     copyfile(os.path.join(this_dir, "defaults.py"), user_config_file)
 sys.path.append(user_config_dir)
 
-import conf as user_config
+import conf as user_config  # noqa: E402
 
 
 # Create a dummy class

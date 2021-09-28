@@ -6,7 +6,7 @@ from ..core import Plot
 from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
-from .parser import parse_layer, get_norm
+from .parser import parse_layer
 from scipy.stats import binned_statistic_2d
 
 
