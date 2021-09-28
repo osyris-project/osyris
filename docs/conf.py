@@ -31,7 +31,8 @@ author = 'Neil Vaytet'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.mathjax', 'nbsphinx'
+    'sphinx.ext.autodoc', 'sphinx.ext.autosummary', 'sphinx.ext.mathjax', 'nbsphinx',
+    'sphinx_copybutton'
 ]
 
 autosummary_generate = True
