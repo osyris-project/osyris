@@ -1,15 +1,12 @@
-<table border="0" cellspacing="0" cellpadding="0"><tr>
-  <td>
-    <h1>Osyris</h1>
-
+<table><tr><td>
+<h1>Osyris</h1>
 A python visualization utility for RAMSES astrophysical simulations data.
 Osyris aims to remain portable, lightweight and fast,
 to allow users to quickly explore and understand their simulation data,
 as well as produce publication grade figures.
-  </td>
-  <td><img src="https://github.com/nvaytet/osyris/blob/main/docs/images/logo_osyris.png" width="200" /></td>
-  </tr>
-</table>
+</td><td>
+<img src="https://github.com/nvaytet/osyris/blob/main/docs/images/logo_osyris.png" width="200" />
+</td></tr></table>
 
 ### Documentation ###
 
