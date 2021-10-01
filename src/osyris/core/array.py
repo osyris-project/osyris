@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
@@ -35,10 +37,6 @@ class Array:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
         self._parent = parent
         self._name = name
-        if self._array.shape:
-            self._ndim = self._array.shape[-1]
-        else:
-            self._ndim = 0
         self.special_functions = ["sqrt", "power"]
 
     # def __array__(self):
@@ -94,9 +92,10 @@ class Array:
     @property
     def norm(self):
         if self._array.ndim < 2:
-            return self._array
+            return self
         else:
-            return np.linalg.norm(self._array, axis=1)
+            return self.__class__(values=np.linalg.norm(self._array, axis=1),
+                                  unit=self.unit)
 
     @property
     def unit(self):
@@ -108,7 +107,9 @@ class Array:
 
     @property
     def ndim(self):
-        return self._ndim
+        if self._array.shape:
+            return self._array.shape[-1]
+        return 0
 
     @property
     def shape(self):
@@ -159,7 +160,7 @@ class Array:
         return make_label(name=self._name, unit=self._unit.units)
 
     def _broadcast(self, lhs, rhs):
-        if lhs.ndim == rhs.ndim:
+        if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
             return lhs, rhs
         if lhs.ndim > rhs.ndim:
             ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
@@ -337,7 +338,10 @@ class Array:
         return _comparison_operator(self, other, "not_equal")
 
     def to(self, unit):
-        new_unit = units(unit)
+        if isinstance(unit, str):
+            new_unit = units(unit)
+        else:
+            new_unit = unit
         ratio = self._unit.to(new_unit) / new_unit
         self._unit = 1.0 * new_unit
         self._array *= ratio.magnitude
@@ -358,8 +362,8 @@ class Array:
             if hasattr(args[0], "_array"):
                 # Case of a binary operation, with two Arrays, e.g. `dot`
                 # TODO: what should we do with the unit? Apply the func to it?
-                args = (args[0]._array, args[1]._array) + args[2:]
                 unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+                args = (args[0]._array, args[1]._array) + args[2:]
             else:
                 # Case of a binary operation: ndarray with Array
                 # In this case, only multiply is allowed?
@@ -387,3 +391,12 @@ class Array:
         functions.
         """
         return self._wrap_numpy(func, *args, **kwargs)
+
+    def min(self):
+        return self.__class__(values=self._array.min(), unit=self._unit)
+
+    def max(self):
+        return self.__class__(values=self._array.max(), unit=self._unit)
+
+    def reshape(self, *shape):
+        return self.__class__(values=self._array.reshape(*shape), unit=self._unit)

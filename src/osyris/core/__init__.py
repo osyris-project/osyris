@@ -4,5 +4,6 @@
 # flake8: noqa
 
 from .array import Array
+from .datagroup import Datagroup
 from .dataset import Dataset
 from .plot import Plot

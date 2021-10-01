@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import glob
+import os
 import struct
 import numpy as np
 from ..core import Array
@@ -9,20 +10,16 @@ from ..core import Array
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
 
-    if len(path) > 0:
-        if path[-1] != "/":
-            path = path + "/"
-
     if nout == -1:
-        filelist = sorted(glob.glob(path + "output*"))
+        filelist = sorted(glob.glob(os.path.join(path, "output*")))
         number = filelist[-1].split("_")[-1]
     else:
         number = str(nout).zfill(5)
 
-    infile = path + "output_" + number
+    infile = os.path.join(path, "output_" + number)
     if len(ftype) > 0:
-        infile += "/" + ftype + "_" + number
-        if cpuid >= 0:
+        infile = os.path.join(infile, ftype + "_" + number)
+        if cpuid > 0:
             infile += ".out" + str(cpuid).zfill(5)
 
     if len(ext) > 0:
@@ -36,7 +33,7 @@ def read_parameter_file(fname=None, delimiter="="):
     Read info file and create dictionary
     """
     out = {}
-    with open(fname) as f:
+    with open(fname, 'r') as f:
         content = f.readlines()
     for line in content:
         sp = line.split(delimiter)
@@ -96,32 +93,30 @@ def read_binary_data(content=None,
     return struct.unpack(fmt, content[offset:offset + pack_size])
 
 
-def make_vector_arrays(data):
+def make_vector_arrays(data, ndim):
     """
     Merge vector components in 2d arrays.
     """
-    components = list("xyz"[:data.meta["ndim"]])
+    components = list("xyz"[:ndim])
     if len(components) > 1:
-        skip = []
+        delete = []
         for key in list(data.keys()):
-            # Make list of 3 components
             comp_list = None
             rawkey = None
-            if key.endswith("_x") and key not in skip:
-                rawkey = key[:-2]
-                comp_list = [rawkey + "_" + c for c in components]
-            if "_x_" in key and key not in skip:
-                rawkey = key.replace("_x", "")
-                comp_list = [key.replace("_x_", "_{}_".format(c)) for c in components]
-
-            if comp_list is not None:
+            inds = [i for i, letter in enumerate(key) if letter == 'x']
+            for ind in inds:
+                comp_list = [key[:ind] + c + key[ind + 1:] for c in components]
                 if all([item in data for item in comp_list]):
+                    cut = ind - 1 if key[ind - 1] == "_" else ind
+                    rawkey = key[:cut] + key[ind + 1:]
+                    if len(rawkey) == 0:
+                        rawkey = "xyz"
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
                                          unit=data[key].unit)
-                    for c in comp_list:
-                        del data[c]
-                        skip.append(c)
+                    delete += comp_list
+        for key in delete:
+            del data[key]
 
 
 def find_max_amr_level(levelmax, select):

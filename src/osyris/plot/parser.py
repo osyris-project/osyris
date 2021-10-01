@@ -11,7 +11,7 @@ def get_norm(norm=None, vmin=None, vmax=None):
         return Normalize(vmin=vmin, vmax=vmax)
 
 
-def parse_layer(entry,
+def parse_layer(layer,
                 mode=None,
                 norm=None,
                 vmin=None,
@@ -19,10 +19,10 @@ def parse_layer(entry,
                 operation=None,
                 **kwargs):
 
-    if isinstance(entry, dict):
+    if isinstance(layer, dict):
         params = {
-            key: entry[key]
-            for key in set(entry.keys()) - set(["data", "mode", "operation"])
+            key: layer[key]
+            for key in set(layer.keys()) - set(["data", "mode", "operation"])
         }
         if "norm" not in params:
             params["norm"] = norm
@@ -41,10 +41,10 @@ def parse_layer(entry,
 
         settings = {}
         for key in ["mode", "operation"]:
-            settings[key] = entry[key] if key in entry else eval(key)
-        return entry["data"], settings, params
+            settings[key] = layer[key] if key in layer else eval(key)
+        return layer["data"], settings, params
     else:
         params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
-        return entry, settings, params
+        return layer, settings, params

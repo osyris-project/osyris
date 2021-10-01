@@ -160,38 +160,31 @@ def _get_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
 
 
 def hilbert_cpu_list(meta, scaling, select, infofile):
-    if meta["ordering type"] == "hilbert":
-        bounding_box = {
-            "xmin": 0,
-            "xmax": 1,
-            "ymin": 0,
-            "ymax": 1,
-            "zmin": 0,
-            "zmax": 1
-        }
-        # Make an array of cell centers according to lmax
-        box_size = (meta["boxlen"] * scaling).magnitude
-        ncells = 2**min(meta["levelmax"], 18)  # limit to 262000 cells
-        half_dxmin = 0.5 * box_size / ncells
-        xyz_centers = Array(values=np.linspace(half_dxmin, box_size - half_dxmin,
-                                               ncells),
-                            unit=1.0 * scaling.units)
-        new_bbox = False
-        for c in "xyz":
-            if c in select:
-                new_bbox = True
-                func_test = select[c](xyz_centers)
-                inds = np.argwhere(func_test).ravel()
-                start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
-                end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
-                bounding_box["{}min".format(c)] = start._array / box_size
-                bounding_box["{}max".format(c)] = end._array / box_size
-                select["xyz_{}".format(c)] = select.pop(c)
+    if meta["ordering type"] != "hilbert":
+        return
+    bounding_box = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
+    # Make an array of cell centers according to lmax
+    box_size = (meta["boxlen"] * scaling).magnitude
+    ncells = 2**min(meta["levelmax"], 18)  # limit to 262000 cells
+    half_dxmin = 0.5 * box_size / ncells
+    xyz_centers = Array(values=np.linspace(half_dxmin, box_size - half_dxmin, ncells),
+                        unit=1.0 * scaling.units)
+    new_bbox = False
+    for c in "xyz":
+        if c in select:
+            new_bbox = True
+            func_test = select[c](xyz_centers)
+            inds = np.argwhere(func_test).ravel()
+            start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
+            end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
+            bounding_box["{}min".format(c)] = start._array / box_size
+            bounding_box["{}max".format(c)] = end._array / box_size
+            select["xyz_{}".format(c)] = select.pop(c)
 
-        if new_bbox:
-            return _get_cpu_list(bounding_box=bounding_box,
-                                 lmax=meta["lmax"],
-                                 levelmax=meta["levelmax"],
-                                 infofile=infofile,
-                                 ncpu=meta["ncpu"],
-                                 ndim=meta["ndim"])
+    if new_bbox:
+        return _get_cpu_list(bounding_box=bounding_box,
+                             lmax=meta["lmax"],
+                             levelmax=meta["levelmax"],
+                             infofile=infofile,
+                             ncpu=meta["ncpu"],
+                             ndim=meta["ndim"])

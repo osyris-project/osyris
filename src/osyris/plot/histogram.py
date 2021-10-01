@@ -6,7 +6,7 @@ from ..core import Plot
 from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
-from .parser import parse_layer, get_norm
+from .parser import parse_layer
 from scipy.stats import binned_statistic_2d
 
 
@@ -19,7 +19,6 @@ def histogram(x,
               logy=False,
               loglog=False,
               norm=None,
-              cbar=True,
               filename=None,
               resolution=256,
               operation="sum",
@@ -40,8 +39,8 @@ def histogram(x,
     nx = resolution
     ny = resolution
 
-    xvals = x.norm
-    yvals = y.norm
+    xvals = x.norm.values
+    yvals = y.norm.values
 
     # Define plotting range
     autoxmin = False
@@ -116,14 +115,14 @@ def histogram(x,
 
     if layers is not None:
         for layer in layers:
-            data, settings, params = parse_layer(layer,
+            data, settings, params = parse_layer(layer=layer,
                                                  mode=mode,
                                                  norm=norm,
                                                  vmin=vmin,
                                                  vmax=vmax,
                                                  operation=operation,
                                                  **kwargs)
-            to_process.append(data.norm)
+            to_process.append(data.norm.values)
             to_render.append({
                 "mode": settings["mode"],
                 "params": params,
@@ -154,19 +153,21 @@ def histogram(x,
         to_render[ind - 1]["data"] = np.ma.masked_where(mask, binned[ind])
 
     if len(to_render) == 0:
+        _, _, params = parse_layer(layer=None,
+                                   mode=mode,
+                                   norm=norm,
+                                   vmin=vmin,
+                                   vmax=vmax,
+                                   **kwargs)
         to_render.append({
             "data": np.ma.masked_where(mask, binned[0]),
             "mode": mode,
-            "name": "counts",
-            "params": {
-                "norm": get_norm(norm=norm, vmin=vmin, vmax=vmax),
-                "vmin": vmin,
-                "vmax": vmax
-            },
-            "unit": units.dimensionless
+            "params": params,
+            "unit": units.dimensionless,
+            "name": "counts"
         })
 
-    figure = render(x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy)
+    figure = render(x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy, ax=ax)
 
     figure["ax"].set_xlabel(x.label)
     figure["ax"].set_ylabel(y.label)

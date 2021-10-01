@@ -6,10 +6,48 @@ import numpy.ma as ma
 from pint.quantity import Quantity
 from .slice import get_slice_direction
 from .render import render
+from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
 from scipy.stats import binned_statistic_2d
+
+
+def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax):
+    xyz = to_scatter[0]["data"] - origin
+    viewport = max(dx.magnitude, dy.magnitude)
+    radius = None
+    if "s" in to_scatter[0]["params"]:
+        size = to_scatter[0]["params"]["s"]
+        if isinstance(size, Array) or isinstance(size, Quantity):
+            radius = size.to(datax.unit.units)
+            to_scatter[0]["params"]["s"] = radius
+    if radius is None:
+        # Fudge factor to select sinks close to the plane
+        radius = Array(values=viewport * 0.05, unit=dx.units)
+    dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+    global_selection = np.arange(len(to_scatter[0]["data"]))
+    select = np.ravel(np.where(np.abs(dist1) <= radius))
+    global_selection = global_selection[select]
+    if len(select) > 0:
+        # Project coordinates onto the plane by taking dot product with axes vectors
+        coords = xyz[select]
+        datax = np.inner(coords, dir_vecs[1])
+        datay = np.inner(coords, dir_vecs[2])
+        if dx is not None:
+            # Limit selection further by using distance from center
+            dist2 = coords
+            select2 = np.ravel(
+                np.where(np.abs(dist2.norm.values) <= viewport * 0.6 * np.sqrt(2.0)))
+            datax = datax[select2]
+            datay = datay[select2]
+            global_selection = global_selection[select2]
+        if "c" in to_scatter[0]["params"]:
+            # TODO: also check that parents are the same to ensure size match?
+            if isinstance(to_scatter[0]["params"]["c"], Array):
+                to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
+                    global_selection]
+        scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
 def plane(*layers,
@@ -18,7 +56,6 @@ def plane(*layers,
           dy=None,
           fname=None,
           title=None,
-          sinks=True,
           plot=True,
           mode=None,
           norm=None,
@@ -39,33 +76,36 @@ def plane(*layers,
     to_process = []
     to_render = []
     operations = []
+    to_scatter = []
     for layer in layers:
-        data, settings, params = parse_layer(layer,
+        data, settings, params = parse_layer(layer=layer,
                                              mode=mode,
                                              norm=norm,
                                              vmin=vmin,
                                              vmax=vmax,
                                              operation=operation,
                                              **kwargs)
+        if settings["mode"] == "scatter":
+            to_scatter.append({"data": data, "params": params})
+        else:
+            to_process.append(data)
+            to_render.append({
+                "mode": settings["mode"],
+                "params": params,
+                "unit": data.unit.units,
+                "name": data.name
+            })
+            operations.append(settings["operation"])
 
-        to_process.append(data)
-        to_render.append({
-            "mode": settings["mode"],
-            "params": params,
-            "unit": data.unit.units,
-            "name": data.name
-        })
-        operations.append(settings["operation"])
-
-    dataset = to_process[0].parent
+    dataset = to_process[0].parent.parent
 
     # Set window size
     if dy is None:
         dy = dx
     if dx is not None and not isinstance(dx, Quantity):
-        dx *= dataset["xyz"].unit
+        dx *= dataset["amr"]["xyz"].unit
     if dy is not None and not isinstance(dy, Quantity):
-        dy *= dataset["xyz"].unit
+        dy *= dataset["amr"]["xyz"].unit
 
     dir_vecs, origin = get_slice_direction(direction=direction,
                                            dataset=dataset,
@@ -74,11 +114,11 @@ def plane(*layers,
                                            origin=origin)
 
     # Distance to the plane
-    xyz = dataset["xyz"] - origin
-    diagonal = dataset["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
+    xyz = dataset["amr"]["xyz"] - origin
+    diagonal = dataset["amr"]["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
-    global_selection = np.arange(len(dataset["dx"]))
+    global_selection = np.arange(len(dataset["amr"]["dx"]))
 
     # Select cells in contact with plane
     select = np.ravel(np.where(np.abs(dist1) <= diagonal))
@@ -92,7 +132,7 @@ def plane(*layers,
     coords = xyz[select]
     datax = np.inner(coords, dir_vecs[1])
     datay = np.inner(coords, dir_vecs[2])
-    datadx = 0.5 * dataset["dx"][select]
+    datadx = 0.5 * dataset["amr"]["dx"][select]
 
     # Get limits
     limits = {
@@ -117,7 +157,7 @@ def plane(*layers,
         dist2 = coords - datadx * np.sqrt(dataset.meta["ndim"])
         select2 = np.ravel(
             np.where(
-                np.abs(dist2.norm) <= max(dx.magnitude, dy.magnitude) * 0.6 *
+                np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
                 np.sqrt(2.0)))
         coords = coords[select2]
         datax = datax[select2]
@@ -137,7 +177,7 @@ def plane(*layers,
             w = None
             if "color" in to_render[ind]["params"]:
                 if isinstance(to_render[ind]["params"]["color"], Array):
-                    w = to_render[ind]["params"]["color"].norm
+                    w = to_render[ind]["params"]["color"].norm.values
                 elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
                     w = to_render[ind]["params"]["color"]
             if w is None:
@@ -149,7 +189,7 @@ def plane(*layers,
             to_binning.append(apply_mask(w))
             scalar_layer.append(False)
         else:
-            to_binning.append(apply_mask(to_process[ind].array[global_selection]))
+            to_binning.append(apply_mask(to_process[ind].norm.values[global_selection]))
             scalar_layer.append(True)
 
     # Buffer for counts
@@ -246,10 +286,26 @@ def plane(*layers,
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(dataset["xyz"].x.label)
-        figure["ax"].set_ylabel(dataset["xyz"].y.label)
+        figure["ax"].set_xlabel(dataset["amr"]["xyz"].x.label)
+        figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
         if ax is None:
             figure["ax"].set_aspect("equal")
+
+        # Add scatter layer
+        if len(to_scatter) > 0:
+            _add_scatter(datax=datax,
+                         datay=datay,
+                         to_scatter=to_scatter,
+                         origin=origin,
+                         datadx=datadx,
+                         dir_vecs=dir_vecs,
+                         dx=dx,
+                         dy=dy,
+                         ax=figure["ax"])
+
+        figure["ax"].set_xlim(xmin, xmax)
+        figure["ax"].set_ylim(ymin, ymax)
+
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)

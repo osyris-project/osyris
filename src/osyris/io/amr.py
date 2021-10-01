@@ -1,26 +1,27 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from .hilbert import hilbert_cpu_list
-from .loader import Loader
-from .units import get_unit
+from .reader import Reader, ReaderKind
+from .. import config
 from .. import units
 from . import utils
 
 
-class AmrLoader(Loader):
-    def __init__(self, scale, select, code_units, meta, infofile):
+class AmrReader(Reader):
+    def __init__(self):
+        super().__init__(kind=ReaderKind.AMR)
 
-        super().__init__()
-
-        self.initialized = True
-        # AMR grid variables
-        length_unit = get_unit("x", code_units["ud"], code_units["ul"],
-                               code_units["ut"])
-        if scale is not None:
-            scale = units(scale)
+    def initialize(self, meta, select):
+        length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
+                                      meta["unit_t"])
+        if meta["scale"] is not None:
+            scale = units(meta["scale"])
             scaling = (length_unit.to(scale) / scale).magnitude * scale
         else:
             scaling = length_unit
 
+        # AMR grid variables
         self.variables.update({
             "level": {
                 "read": True,
@@ -58,7 +59,8 @@ class AmrLoader(Loader):
         self.cpu_list = hilbert_cpu_list(meta=meta,
                                          scaling=scaling,
                                          select=select,
-                                         infofile=infofile)
+                                         infofile=meta["infofile"])
+        self.initialized = True
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
@@ -101,12 +103,14 @@ class AmrLoader(Loader):
         self.offsets["i"] += 2
         self.offsets["n"] += 3
         self.offsets["d"] += 1 + 2 * noutput
-        info["dtold"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
-                                               content=self.bytes,
-                                               offsets=self.offsets)
-        info["dtnew"] = utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
-                                               content=self.bytes,
-                                               offsets=self.offsets)
+        info["dtold"] = np.array(
+            utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
+                                   content=self.bytes,
+                                   offsets=self.offsets))
+        info["dtnew"] = np.array(
+            utils.read_binary_data(fmt="{}d".format(info["levelmax"]),
+                                   content=self.bytes,
+                                   offsets=self.offsets))
 
         # Read the number of grids
         self.offsets["i"] += 2 + (2 * info["ncpu"] * info["levelmax"])
