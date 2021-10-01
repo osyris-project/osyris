@@ -62,11 +62,11 @@ class Loader:
                     select[group] = {}
 
         # Take into account user specified lmax
-        if "level" in select:
-            meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
-                                                    select=select["amr"])
-        else:
-            meta["lmax"] = meta["levelmax"]
+        meta["lmax"] = meta["levelmax"]
+        if "amr" in select:
+            if "level" in select["amr"]:
+                meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
+                                                        select=select["amr"])
 
         # Initialize readers
         readers = {}
