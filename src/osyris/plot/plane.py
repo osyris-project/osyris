@@ -15,14 +15,16 @@ from scipy.stats import binned_statistic_2d
 
 def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax):
     xyz = to_scatter[0]["data"] - origin
-    size = None
+    viewport = max(dx.magnitude, dy.magnitude)
+    radius = None
     if "s" in to_scatter[0]["params"]:
         size = to_scatter[0]["params"]["s"]
         if isinstance(size, Array) or isinstance(size, Quantity):
             radius = size.to(datax.unit.units)
             to_scatter[0]["params"]["s"] = radius
-    else:
-        radius = datadx.min() * 4.0  # fudge factor to select sinks close to the plane
+    if radius is None:
+        # Fudge factor to select sinks close to the plane
+        radius = Array(values=viewport * 0.05, unit=dx.units)
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     global_selection = np.arange(len(to_scatter[0]["data"]))
     select = np.ravel(np.where(np.abs(dist1) <= radius))
@@ -36,9 +38,7 @@ def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax)
             # Limit selection further by using distance from center
             dist2 = coords
             select2 = np.ravel(
-                np.where(
-                    np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
-                    np.sqrt(2.0)))
+                np.where(np.abs(dist2.norm.values) <= viewport * 0.6 * np.sqrt(2.0)))
             datax = datax[select2]
             datay = datay[select2]
             global_selection = global_selection[select2]
