@@ -11,7 +11,7 @@ as well as produce publication grade figures.
 ### Documentation ###
 
 The documentation for `osyris` is hosted on
-[Readthedocs](https://osyris.readthedocs.io/en/latest/index.html).
+[Readthedocs](https://osyris.readthedocs.io).
 
 ### Installation ###
 
@@ -22,7 +22,7 @@ pip install osyris
 ### A short example ###
 
 You can download the sample data
-[here](http://project.esss.dk/owncloud/index.php/s/biNBruU0wDOybsb/download).
+[here](https://github.com/nvaytet/osyrisdata/archive/refs/heads/main.zip).
 
 Plot a 2D histogram of the cell magnetic field versus the gas density.
 
