@@ -15,6 +15,9 @@ class SinkReader:
         self.initialized = False
 
     def initialize(self, meta, select):
+        sink = Datagroup()
+        if select is False:
+            return sink
         sink_file = utils.generate_fname(meta["nout"],
                                          meta["path"],
                                          ftype="sink",
@@ -23,7 +26,11 @@ class SinkReader:
         if not os.path.exists(sink_file):
             return
 
-        sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
+        try:
+            sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
+        except StopIteration:
+            # This is an empty sink file
+            return sink
 
         with open(sink_file, 'r') as f:
             key_list = f.readline()
