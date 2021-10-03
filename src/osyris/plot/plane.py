@@ -115,7 +115,7 @@ def plane(*layers,
 
     # Distance to the plane
     xyz = dataset["amr"]["xyz"] - origin
-    diagonal = dataset["amr"]["dx"] * np.sqrt(dataset.meta["ndim"]) * 0.5
+    diagonal = dataset["amr"]["dx"] * 0.5
     dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
     global_selection = np.arange(len(dataset["amr"]["dx"]))
