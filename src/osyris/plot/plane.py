@@ -115,24 +115,25 @@ def plane(*layers,
 
     # Distance to the plane
     xyz = dataset["amr"]["xyz"] - origin
-    diagonal = dataset["amr"]["dx"] * 0.5
-    dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+    # diagonal_touching = dataset["amr"]["dx"] * 0.5
+    diagonal_close = dataset["amr"]["dx"] * 0.5 * np.sqrt(dataset.meta["ndim"])
+    dist_close = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
-    global_selection = np.arange(len(dataset["amr"]["dx"]))
+    global_indices = np.arange(len(dataset["amr"]["dx"]))
 
-    # Select cells in contact with plane
-    select = np.ravel(np.where(np.abs(dist1) <= diagonal))
-    global_selection = global_selection[select]
+    # Select cells in close to the plane, including factor of sqrt(ndim)
+    close_to_plane = np.ravel(np.where(np.abs(dist_close) <= diagonal_close))
+    indices_close_to_plane = global_indices[close_to_plane]
 
-    if len(select) == 0:
+    if len(indices_close_to_plane) == 0:
         raise RuntimeError("No cells were selected to construct the plane. "
                            "The resulting figure would be empty.")
 
-    # Project coordinates onto the plane by taking dot product with axes vectors
-    coords = xyz[select]
-    datax = np.inner(coords, dir_vecs[1])
-    datay = np.inner(coords, dir_vecs[2])
-    datadx = 0.5 * dataset["amr"]["dx"][select]
+    # # Project coordinates onto the plane by taking dot product with axes vectors
+    # coords = xyz[indices_close_to_plane]
+    # datax = np.inner(coords, dir_vecs[1])
+    # datay = np.inner(coords, dir_vecs[2])
+    # datadx = diagonal_touching  # 0.5 * dataset["amr"]["dx"][indices_touching]
 
     # Get limits
     limits = {
@@ -154,25 +155,44 @@ def plane(*layers,
         ymin = -0.5 * dy.magnitude
         ymax = ymin + dy.magnitude
         # Limit selection further by using distance from center
-        dist2 = coords - datadx * np.sqrt(dataset.meta["ndim"])
-        select2 = np.ravel(
+        radial_distance = xyz[indices_close_to_plane] - 0.5 * dataset["amr"]["dx"][
+            indices_close_to_plane] * np.sqrt(dataset.meta["ndim"])
+        radial_selection = np.ravel(
             np.where(
-                np.abs(dist2.norm.values) <= max(dx.magnitude, dy.magnitude) * 0.6 *
-                np.sqrt(2.0)))
-        coords = coords[select2]
-        datax = datax[select2]
-        datay = datay[select2]
-        datadx = datadx[select2]
-        global_selection = global_selection[select2]
+                np.abs(radial_distance.norm.values) <= max(dx.magnitude, dy.magnitude) *
+                0.6 * np.sqrt(2.0)))
+        # coords = coords[select2]
+        # datax = datax[select2]
+        # datay = datay[select2]
+        # datadx = datadx[select2]
+        # global_selection = global_selection[select2]
+        indices_close_to_plane = indices_close_to_plane[radial_selection]
+
+    # Select cells touching the plane, excluding factor of sqrt(ndim)
+    dist_touching = np.sum(xyz[indices_close_to_plane] * dir_vecs[0], axis=1)
+    diagonal_touching = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
+    touching_plane = np.ravel(np.where(np.abs(dist_touching) <= diagonal_touching))
+    indices_touching = indices_close_to_plane[touching_plane]
+
+    # Project coordinates onto the plane by taking dot product with axes vectors
+    coords_close = xyz[indices_close_to_plane]
+    datax_close = np.inner(coords, dir_vecs[1])
+    datay_close = np.inner(coords, dir_vecs[2])
+    datadx_close = diagonal_touching  # 0.5 * dataset["amr"]["dx"][indices_close_to_plane]
+
+    # coords_touch = xyz[indices_close_to_plane]
+    datax_touching = datax_close[touching_plane]
+    datay_touching = datay_close[touching_plane]
+    datadx_touching = datadx_close[touching_plane]
 
     scalar_layer = []
     to_binning = []
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream"]:
             if to_process[ind].ndim < 3:
-                uv = to_process[ind].array[global_selection]
+                uv = to_process[ind].array[indices_touching]
             else:
-                uv = np.inner(to_process[ind].array.take(global_selection, axis=0),
+                uv = np.inner(to_process[ind].array.take(indices_touching, axis=0),
                               dir_vecs[1:])
             w = None
             if "color" in to_render[ind]["params"]:
@@ -183,13 +203,13 @@ def plane(*layers,
             if w is None:
                 w = np.linalg.norm(uv, axis=1)
             else:
-                w = w.take(global_selection, axis=0)
+                w = w.take(indices_touching, axis=0)
             to_binning.append(apply_mask(uv[:, 0]))
             to_binning.append(apply_mask(uv[:, 1]))
             to_binning.append(apply_mask(w))
             scalar_layer.append(False)
         else:
-            to_binning.append(apply_mask(to_process[ind].norm.values[global_selection]))
+            to_binning.append(apply_mask(to_process[ind].norm.values[indices_touching]))
             scalar_layer.append(True)
 
     # Buffer for counts
@@ -206,8 +226,8 @@ def plane(*layers,
     ycenters = to_bin_centers(yedges)
 
     # First histogram the cell centers into the grid bins
-    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay.array),
-                                          y=apply_mask(datax.array),
+    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
+                                          y=apply_mask(datax_touching.array),
                                           values=to_binning,
                                           statistic="mean",
                                           bins=[yedges, xedges])
@@ -224,10 +244,11 @@ def plane(*layers,
         ygrid.shape + (1, )) * dir_vecs[2]
     # We only need to search in the cells above a certain size
     large_cells = np.ravel(
-        np.where(datadx >= 0.25 * (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
-    coords = coords[large_cells]
-    large_cells_dx = datadx.array[large_cells]
-    global_indices = np.arange(len(datadx))[large_cells]
+        np.where(datadx_close >= 0.25 *
+                 (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
+    coords = coords_close[large_cells]
+    large_cells_dx = datadx_close.array[large_cells]
+    large_cells_indices = np.arange(len(datadx_close))[large_cells]
 
     # To keep memory usage down to a minimum, we process the image one column at a time
     for i in range(indices.shape[-1]):
@@ -255,7 +276,7 @@ def plane(*layers,
             inds = np.logical_and.reduce(
                 [np.abs(d) <= large_cells_dx[column] for d in distance_to_cell])
             index_found = inds.max(axis=-1)
-            index_value = global_indices[column][inds.argmax(axis=-1)]
+            index_value = large_cells_indices[column][inds.argmax(axis=-1)]
             indices[:, i][index_found] = index_value[index_found]
             mask[:, i][np.logical_and(~index_found, condition[:, i])] = True
         else:
