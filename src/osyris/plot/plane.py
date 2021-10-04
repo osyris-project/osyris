@@ -13,14 +13,14 @@ from ..core.tools import to_bin_centers, apply_mask
 from scipy.stats import binned_statistic_2d
 
 
-def _add_scatter(datax, datay, to_scatter, origin, datadx, dir_vecs, dx, dy, ax):
+def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
     xyz = to_scatter[0]["data"] - origin
     viewport = max(dx.magnitude, dy.magnitude)
     radius = None
     if "s" in to_scatter[0]["params"]:
         size = to_scatter[0]["params"]["s"]
         if isinstance(size, Array) or isinstance(size, Quantity):
-            radius = size.to(datax.unit.units)
+            radius = size.to(dx.units)
             to_scatter[0]["params"]["s"] = radius
     if radius is None:
         # Fudge factor to select sinks close to the plane
@@ -161,7 +161,6 @@ def plane(*layers,
 
     datax_touching = datax_close[touching_plane]
     datay_touching = datay_close[touching_plane]
-    datadx_touching = datadx_close[touching_plane]
 
     scalar_layer = []
     cell_variables = []  # contains the variables in cells close to the plane
@@ -302,11 +301,8 @@ def plane(*layers,
 
         # Add scatter layer
         if len(to_scatter) > 0:
-            _add_scatter(datax=datax,
-                         datay=datay,
-                         to_scatter=to_scatter,
+            _add_scatter(to_scatter=to_scatter,
                          origin=origin,
-                         datadx=datadx,
                          dir_vecs=dir_vecs,
                          dx=dx,
                          dy=dy,
