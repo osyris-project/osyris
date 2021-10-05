@@ -1,5 +1,8 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 import osyris
 import numpy as np
+import pytest
 
 
 def test_1d_array():
@@ -41,6 +44,14 @@ def test_addition():
     b = osyris.Array(values=[6., 7., 8., 9., 10.], unit='m')
     expected = osyris.Array(values=[7., 9., 11., 13., 15.], unit='m')
     assert all(a + b == expected)
+
+
+def test_addition_bad_units():
+    a = osyris.Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = osyris.Array(values=[6., 7., 8., 9., 10.], unit='s')
+    with pytest.raises(RuntimeError) as e:
+        _ = a + b
+        print(a)
 
 
 def test_addition_quantity():
