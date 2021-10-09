@@ -28,12 +28,13 @@ Plot a 2D histogram of the cell magnetic field versus the gas density.
 
 ```python
 import osyris
-data = osyris.Dataset(71, scale="au", path="data").load()
+data = osyris.Dataset(8, scale="au", path="data").load()
 osyris.plot.histogram(data["hydro"]["density"], data["hydro"]["B_field"],
                       norm="log", loglog=True)
 ```
+![Screenshot at 2021-10-09 21-19-12](https://user-images.githubusercontent.com/39047984/136671452-c8862fa3-fea8-421d-b3d2-630e0165fc41.png)
 
-Create a 2D gas density slice 100 au wide through the plane normal to ``z``,
+Create a 2D gas density slice 2000 au wide through the plane normal to ``z``,
 with velocity vectors overlayed as arrows, once agains using ``layers``:
 
 ```python
@@ -41,10 +42,11 @@ ind = np.argmax(data["hydro"]["density"])
 center = data["amr"]["xyz"][ind.values]
 osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
              {"data": data["hydro"]["velocity"], "mode": "vec"}, # layer 2
-             dx=50 * osyris.units("au"),
+             dx=2000 * osyris.units("au"),
              origin=center,
              direction="z")
 ```
+![Screenshot at 2021-10-09 21-20-01](https://user-images.githubusercontent.com/39047984/136671480-d9f16d1c-d9c9-4201-8d53-5891fae690bc.png)
 
 ### Have a problem or need a new feature? ###
 
