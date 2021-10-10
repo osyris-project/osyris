@@ -17,6 +17,9 @@ Osyris was developed to provide a light-weight method to read
 It currently only works with the native ``binary`` data output format.
 It uses ``numpy`` for data manipulation and ``matplotlib`` for visualization.
 
+.. image:: images/demo.png
+   :width: 680
+
 Installation
 ============
 
