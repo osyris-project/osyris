@@ -3,7 +3,8 @@
 
 # flake8: noqa
 
-from .histogram import histogram
+from .histogram1d import histogram1d
+from .histogram2d import histogram2d
 from .render import render
 from .plane import plane
 from .scatter import scatter

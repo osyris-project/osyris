@@ -10,26 +10,26 @@ from .parser import parse_layer
 from scipy.stats import binned_statistic_2d
 
 
-def histogram(x,
-              y,
-              *layers,
-              mode=None,
-              ax=None,
-              logx=False,
-              logy=False,
-              loglog=False,
-              norm=None,
-              filename=None,
-              resolution=256,
-              operation="sum",
-              title=None,
-              xmin=None,
-              xmax=None,
-              ymin=None,
-              ymax=None,
-              vmin=None,
-              vmax=None,
-              **kwargs):
+def histogram2d(x,
+                y,
+                *layers,
+                mode=None,
+                ax=None,
+                logx=False,
+                logy=False,
+                loglog=False,
+                norm=None,
+                filename=None,
+                resolution=256,
+                operation="sum",
+                title=None,
+                xmin=None,
+                xmax=None,
+                ymin=None,
+                ymax=None,
+                vmin=None,
+                vmax=None,
+                **kwargs):
     """
     Plot a 2D histogram with two variables as input.
     """
