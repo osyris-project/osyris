@@ -8,15 +8,15 @@ from .tools import bytes_to_human_readable
 
 
 class Dataset:
-    def __init__(self, nout=1, scale=None, path=""):
+    def __init__(self, nout=None, scale=None, path=""):
         self.groups = {}
         self.meta = {}
-
+        self.loader = None
         if scale is None:
             scale = config.parameters["scale"]
-
-        self.loader = Loader(nout=nout, scale=scale, path=path)
-        self.meta.update(self.loader.load_metadata())
+        if nout is not None:
+            self.loader = Loader(nout=nout, scale=scale, path=path)
+            self.meta.update(self.loader.load_metadata())
 
     def __iter__(self):
         return self.groups.__iter__()
