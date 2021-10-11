@@ -13,7 +13,7 @@ class Datagroup:
         self.shape = None
         if data is not None:
             for key, array in data.items():
-                self._container[key] = array
+                self[key] = array
 
     def __iter__(self):
         return self._container.__iter__()
