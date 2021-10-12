@@ -3,133 +3,65 @@
 
 import numpy as np
 from ..core import Plot
-from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
-from .parser import parse_layer
-from scipy.stats import binned_statistic_2d
 
 
-def histogram1d(x,
+def histogram1d(*layers,
+                bins=50,
                 weights=None,
                 ax=None,
                 logx=False,
                 logy=False,
                 loglog=False,
-                norm=None,
                 filename=None,
-                bins=50,
-                operation="sum",
                 title=None,
-                xmin=None,
-                xmax=None,
                 ymin=None,
                 ymax=None,
-                vmin=None,
-                vmax=None,
                 **kwargs):
     """
-    Plot a 2D histogram with two variables as input.
+    Plot a 1D histogram with arbitrary number of variables as input.
     """
     if loglog:
         logx = logy = True
 
-    xvals = x.norm.values
+    figure = render(logx=logx, logy=logy, ax=ax)
 
-    # Define plotting range
-    autoxmin = False
-    autoxmax = False
-    autoymin = False
-    autoymax = False
+    for layer in layers:
+        if isinstance(layer, dict):
+            params = {"data": layer["data"]}
+            extra_args = {
+                key: layer[key]
+                for key in set(layer.keys()) - {"data", "bins", "weights"}
+            }
+            for key, arg in {'bins': bins, 'weights': weights}.items():
+                if key not in params:
+                    params[key] = arg
+        else:
+            params = {'data': layer, 'bins': bins, 'weights': weights}
+            extra_args = kwargs
 
-    if xmin is None:
-        xmin = finmin(xvals)
-        autoxmin = True
-    if xmax is None:
-        xmax = finmax(xvals)
-        autoxmax = True
+        xvals = params['data'].norm.values
+        if params['weights'] is not None:
+            params['weights'] = params['weights'].norm.values
 
-    if logx:
-        [xmin, xmax] = np.log10([xmin, xmax])
-    # if logy:
-    #     [ymin, ymax] = np.log10([ymin, ymax])
-
-    # # Protect against empty plots if xmin==xmax or ymin==ymax
-    # if xmin == xmax:
-    #     if xmin == 0.0:
-    #         xmin = -0.1
-    #         xmax = 0.1
-    #     else:
-    #         xmin = xmin - 0.05 * abs(xmin)
-    #         xmax = xmax + 0.05 * abs(xmax)
-    # if ymin == ymax:
-    #     if ymin == 0.0:
-    #         ymin = -0.1
-    #         ymax = 0.1
-    #     else:
-    #         ymin = ymin - 0.05 * abs(ymin)
-    #         ymax = ymax + 0.05 * abs(ymax)
-
-    dx = xmax - xmin
-    # dy = ymax - ymin
-    if autoxmin:
-        xmin = xmin - 0.05 * dx
-    if autoxmax:
-        xmax = xmax + 0.05 * dx
-    # if autoymin:
-    #     ymin = ymin - 0.05 * dy
-    # if autoymax:
-    #     ymax = ymax + 0.05 * dy
-
-    # Construct some bin edges
-    if logx:
-        xedges = np.logspace(xmin, xmax, nx + 1)
-    else:
-        xedges = np.linspace(xmin, xmax, nx + 1)
-    # if logy:
-    #     yedges = np.logspace(ymin, ymax, ny + 1)
-    # else:
-    #     yedges = np.linspace(ymin, ymax, ny + 1)
-
-    hist, _ = np.histogram1d(xvals, bins=xedges, weights=weights)
-    if operation == "mean":
-        counts, _ = np.histogram1d(np.ones_like(xvals), bins=xedges)
-        hist /= counts
-
-    # Here we assume that dictionary retains order of insertion: counts
-    # are the first key
-    mask = binned[0] == 0.0
-    for ind in range(1, len(to_process)):
-        if operations[ind] != operation:
-            if operation == "sum":
-                with np.errstate(invalid="ignore"):
-                    binned[ind] /= binned[0]
+        # Construct some bin edges
+        if isinstance(params['bins'], int):
+            xmin = finmin(xvals)
+            xmax = finmax(xvals)
+            if logx:
+                xedges = np.logspace(np.log10(xmin), np.log10(xmax), bins + 1)
             else:
-                binned[ind] *= counts
-        to_render[ind - 1]["data"] = np.ma.masked_where(mask, binned[ind])
+                xedges = np.linspace(xmin, xmax, bins + 1)
+        else:
+            xedges = params['bins']
 
-    if len(to_render) == 0:
-        _, _, params = parse_layer(layer=None,
-                                   mode=mode,
-                                   norm=norm,
-                                   vmin=vmin,
-                                   vmax=vmax,
-                                   **kwargs)
-        to_render.append({
-            "data": np.ma.masked_where(mask, binned[0]),
-            "mode": mode,
-            "params": params,
-            "unit": units.dimensionless,
-            "name": "counts"
-        })
+        ydata, _, _ = figure["ax"].hist(xvals,
+                                        bins=xedges,
+                                        weights=params['weights'],
+                                        **extra_args)
 
-    figure = render(x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy, ax=ax)
+        figure["ax"].set_xlabel(params['data'].label)
 
-    figure["ax"].set_xlabel(x.label)
-    figure["ax"].set_ylabel(y.label)
-
-    return Plot(x=xcenters,
-                y=ycenters,
-                layers=to_render,
-                fig=figure["fig"],
-                ax=figure["ax"])
+    figure["ax"].set_ylim(ymin, ymax)
+    return Plot(x=to_bin_centers(xedges), y=ydata, fig=figure["fig"], ax=figure["ax"])
