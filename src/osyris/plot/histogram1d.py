@@ -29,11 +29,13 @@ def histogram1d(*layers,
 
     for layer in layers:
         if isinstance(layer, dict):
-            params = {"data": layer["data"]}
-            extra_args = {
-                key: layer[key]
-                for key in set(layer.keys()) - {"data", "bins", "weights"}
-            }
+            params = {}
+            extra_args = {}
+            for key, param in layer.items():
+                if key in ["data", "bins", "weights"]:
+                    params[key] = param
+                else:
+                    extra_args[key] = param
             for key, arg in {'bins': bins, 'weights': weights}.items():
                 if key not in params:
                     params[key] = arg
