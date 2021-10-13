@@ -35,6 +35,7 @@ Plotting
 .. autosummary::
    :toctree: generated
 
-   histogram
+   histogram1d
+   histogram2d
    plane
    scatter
