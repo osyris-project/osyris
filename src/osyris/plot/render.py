@@ -7,7 +7,7 @@ from . import wrappers
 from ..core.tools import make_label
 
 
-def render(x, y, data, logx=False, logy=False, ax=None):
+def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
     """
     Use matplotlib to plot histogram, slice or column density maps
     """
@@ -16,6 +16,15 @@ def render(x, y, data, logx=False, logy=False, ax=None):
         fig, ax = plt.subplots()
     else:
         fig = ax.get_figure()
+
+    if logx:
+        ax.set_xscale("log")
+    if logy:
+        ax.set_yscale("log")
+
+    out = {"fig": fig, "ax": ax}
+    if data is None:
+        return out
 
     function_map = {
         "vec": "quiver",
@@ -52,9 +61,5 @@ def render(x, y, data, logx=False, logy=False, ax=None):
             cb.set_label(make_label(name=item["name"], unit=item["unit"]))
             cb.ax.yaxis.set_label_coords(-1.1, 0.5)
 
-    if logx:
-        ax.set_xscale("log")
-    if logy:
-        ax.set_yscale("log")
-
-    return {"fig": fig, "ax": ax, "objects": mpl_objects}
+    out["objects"] = mpl_objects
+    return out
