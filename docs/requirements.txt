@@ -5,4 +5,4 @@ sphinx
 nbsphinx
 jupyter
 pint
-sphinx-rtd-theme
+sphinx-book-theme
