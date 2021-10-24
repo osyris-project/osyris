@@ -56,9 +56,15 @@ master_doc = 'index'
 # a list of builtin themes.
 #
 html_theme = 'sphinx_book_theme'
-
-# html_theme_options = {'logo_only': True}
-
+html_theme_options = {
+    'logo_only': True,
+    "repository_url": "https://github.com/nvaytet/osyris",
+    "repository_branch": "main",
+    "use_repository_button": True,
+    "use_issues_button": True,
+    "use_edit_page_button": True,
+    "show_toc_level": 2
+}
 html_logo = "images/logo_osyris.png"
 html_favicon = "images/favicon.ico"
 
