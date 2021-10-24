@@ -99,7 +99,7 @@ def apply_mask(array, fill=np.nan):
 
 
 def bytes_to_human_readable(size):
-    multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "B": 1.0}
+    multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "": 1.0}
     for m, mult in multipliers.items():
         if size >= mult:
             return "{:.2f} {}B".format(size / mult, m)
