@@ -9,6 +9,7 @@ from ..core import Datagroup
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
+from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
 
@@ -24,6 +25,7 @@ class Loader:
             "amr": AmrReader(),
             "hydro": HydroReader(),
             "grav": GravReader(),
+            "part": PartReader(),
             "rt": RtReader(),
             "sink": SinkReader()
         }
@@ -64,9 +66,10 @@ class Loader:
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]
         if "amr" in select:
-            if "level" in select["amr"]:
-                meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
-                                                        select=select["amr"])
+            if select["amr"]:
+                if "level" in select["amr"]:
+                    meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
+                                                            select=select["amr"])
 
         # Initialize readers
         readers = {}
@@ -97,7 +100,7 @@ class Loader:
         npieces = 0
 
         # integer, double, line, string, quad, long
-        null_offsets = {key: 0 for key in "idnsql"}
+        null_offsets = {key: 0 for key in "bidnsql"}
 
         # Loop over the cpus and read the AMR and HYDRO files in binary format
         for cpu_ind, cpu_num in enumerate(cpu_list):
@@ -189,7 +192,7 @@ class Loader:
         for group, reader in readers.items():
             out[group] = Datagroup()
             for key, item in reader.variables.items():
-                if item["read"]:
+                if item["read"] and len(item["pieces"]) > 0:
                     out[group][key] = np.concatenate(list(item["pieces"].values()))
             # If vector quantities are found, make them into vector Arrays
             utils.make_vector_arrays(out[group], ndim=meta["ndim"])

@@ -93,6 +93,15 @@ def read_binary_data(content=None,
     return struct.unpack(fmt, content[offset:offset + pack_size])
 
 
+def skip_binary_line(content, offsets):
+    [nbytes] = read_binary_data(fmt="i",
+                                content=content,
+                                offsets=offsets,
+                                skip_head=False,
+                                increment=False)
+    return nbytes
+
+
 def make_vector_arrays(data, ndim):
     """
     Merge vector components in 2d arrays.
