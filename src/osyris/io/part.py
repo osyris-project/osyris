@@ -21,6 +21,15 @@ class PartReader(Reader):
         except IOError:
             return
 
+        scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
+                                            meta["unit_t"], meta["scale"])
+
+        part_units = {
+            'position_x': scaling,
+            'position_y': scaling,
+            'position_z': scaling
+        }
+
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
             read = True
@@ -30,12 +39,16 @@ class PartReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read": read,
-                "type": descriptor[i, 2].strip(),
-                "buffer": None,
+                "read":
+                read,
+                "type":
+                descriptor[i, 2].strip(),
+                "buffer":
+                None,
                 "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                "unit":
+                part_units[key] if key in part_units else config.get_unit(
+                    key, meta["unit_d"], meta["unit_l"], meta["unit_t"])
             }
         self.initialized = True
 
@@ -49,7 +62,6 @@ class PartReader(Reader):
             self.offsets["b"] += utils.skip_binary_line(content=self.bytes,
                                                         offsets=self.offsets)
         for item in self.variables.values():
-            # print(item["read"])
             if item["read"]:
                 npieces = len(item["pieces"])
                 item["pieces"][npieces] = Array(values=np.array(
@@ -61,7 +73,6 @@ class PartReader(Reader):
             else:
                 self.offsets[item["type"]] += nparticles
                 self.offsets["n"] += 1
-            # print(item["pieces"])
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         return

@@ -22,6 +22,9 @@ class AmrReader(Reader):
         else:
             scaling = length_unit
 
+        scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
+                                            meta["unit_t"], meta["scale"])
+
         if select is False:
             meta["lmax"] = 0
             return

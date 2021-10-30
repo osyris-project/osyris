@@ -71,9 +71,6 @@ def get_unit(string, ud, ul, ut):
         'y': length,
         'z': length,
         'dx': length,
-        'position_x': length,
-        'position_y': length,
-        'position_z': length,
         'mass': mass
     }
 

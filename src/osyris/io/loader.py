@@ -12,6 +12,7 @@ from .hydro import HydroReader
 from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
+from .reader import ReaderKind
 
 
 class Loader:
@@ -171,10 +172,11 @@ class Loader:
                                 npieces += 1
                                 # Add the cells in the pieces dictionaries
                                 for reader in readers.values():
-                                    for item in reader.variables.values():
-                                        if item["read"]:
-                                            item["pieces"][npieces] = item["buffer"][
-                                                sel]
+                                    if reader.kind == ReaderKind.AMR:
+                                        for item in reader.variables.values():
+                                            if item["read"]:
+                                                item["pieces"][npieces] = item[
+                                                    "buffer"][sel]
 
                             # Increment offsets with remainder of the file
                             for reader in readers.values():
