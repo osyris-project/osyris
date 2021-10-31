@@ -96,6 +96,9 @@ def read_binary_data(content=None,
 
 
 def skip_binary_line(content, offsets):
+    """
+    Return the number of bytes necessary to skip the current line.
+    """
     [nbytes] = read_binary_data(fmt="i",
                                 content=content,
                                 offsets=offsets,
@@ -142,6 +145,10 @@ def find_max_amr_level(levelmax, select):
 
 
 def get_spatial_scaling(ud, ul, ut, scale):
+    """
+    Compute the scaling factor to convert between code units and requested spatial
+    scale.
+    """
     length_unit = config.get_unit("x", ud, ul, ut)
     if scale is not None:
         scale = units(scale)
