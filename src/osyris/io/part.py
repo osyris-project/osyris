@@ -73,6 +73,10 @@ class PartReader(Reader):
             else:
                 self.offsets[item["type"]] += nparticles
                 self.offsets["n"] += 1
+        info["nparticles"] += nparticles
+
+    def allocate_buffers(self, ngridmax, twotondim):
+        return
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         return

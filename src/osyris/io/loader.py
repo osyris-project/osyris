@@ -45,7 +45,8 @@ class Loader:
         meta["path"] = self.path
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
                                         meta["unit_t"])
-
+        meta["ncells"] = 0
+        meta["nparticles"] = 0
         return meta
 
     def load(self, select=None, cpu_list=None, meta=None):
@@ -97,10 +98,9 @@ class Loader:
 
         iprog = 1
         istep = 10
-        ncells_tot = 0
         npieces = 0
 
-        # integer, double, line, string, quad, long
+        # byte, integer, double, line, string, quad, long
         null_offsets = {key: 0 for key in "bidnsql"}
 
         # Loop over the cpus and read the AMR and HYDRO files in binary format
@@ -109,7 +109,8 @@ class Loader:
             # Print progress
             percentage = int(float(cpu_ind) * 100.0 / float(len(cpu_list)))
             if percentage >= iprog * istep:
-                print("{:>3d}% : read {:>10d} cells".format(percentage, ncells_tot))
+                print("{:>3d}% : read {:>10d} cells, {:>10d} particles".format(
+                    percentage, meta["ncells"], meta["nparticles"]))
                 iprog += 1
 
             # Read binary files
@@ -168,7 +169,7 @@ class Loader:
                             # Count the number of cells
                             ncells = np.shape(sel)[1]
                             if ncells > 0:
-                                ncells_tot += ncells
+                                meta["ncells"] += ncells
                                 npieces += 1
                                 # Add the cells in the pieces dictionaries
                                 for reader in readers.values():
@@ -187,9 +188,6 @@ class Loader:
                             for reader in readers.values():
                                 reader.step_over(ncache, twotondim, meta["ndim"])
 
-        # Store the number of cells
-        meta["ncells"] = ncells_tot
-
         # Merge all the data pieces into the Arrays
         for group, reader in readers.items():
             out[group] = Datagroup()
@@ -199,6 +197,7 @@ class Loader:
             # If vector quantities are found, make them into vector Arrays
             utils.make_vector_arrays(out[group], ndim=meta["ndim"])
 
-        print("Total number of cells loaded: {}".format(ncells_tot))
+        print("Loaded: {} cells, {} particles.".format(meta["ncells"],
+                                                       meta["nparticles"]))
 
         return out
