@@ -18,7 +18,6 @@ def parse_layer(layer,
                 vmax=None,
                 operation=None,
                 **kwargs):
-
     if isinstance(layer, dict):
         params = {
             key: layer[key]

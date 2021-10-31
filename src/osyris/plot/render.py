@@ -30,13 +30,24 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "vec": "quiver",
         "vector": "quiver",
         "stream": "streamplot",
+        "lic": "line_integral_convolution",
         None: config.parameters["render_mode"],
         "image": "pcolormesh",
         "imshow": "pcolormesh"
     }
 
+    for item in data: #check if user requested a line integral conv
+    #if so, move the requested lic plot to the end of render list in order
+    #for the alpha blending to work
+        try:
+            if item["mode"] == "lic":
+                data.append(data.pop(data.index(item))) #move lic plot to end of data list
+                item["params"]["alpha"] = .3 #add alpha param to make the lic blend with the main image
+        except KeyError:
+            pass
+
     mpl_objects = []
-    for item in data:
+    for item in data:  
         func = item["mode"]
         if func in function_map:
             func = function_map[func]
@@ -46,7 +57,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             del item["params"]["cbar"]
         else:
             cbar = True
-
+            
         mpl_objects.append(
             getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
 
