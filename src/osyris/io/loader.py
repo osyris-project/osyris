@@ -9,8 +9,10 @@ from ..core import Datagroup
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
+from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
+from .reader import ReaderKind
 
 
 class Loader:
@@ -24,6 +26,7 @@ class Loader:
             "amr": AmrReader(),
             "hydro": HydroReader(),
             "grav": GravReader(),
+            "part": PartReader(),
             "rt": RtReader(),
             "sink": SinkReader()
         }
@@ -42,7 +45,8 @@ class Loader:
         meta["path"] = self.path
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
                                         meta["unit_t"])
-
+        meta["ncells"] = 0
+        meta["nparticles"] = 0
         return meta
 
     def load(self, select=None, cpu_list=None, meta=None):
@@ -64,9 +68,10 @@ class Loader:
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]
         if "amr" in select:
-            if "level" in select["amr"]:
-                meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
-                                                        select=select["amr"])
+            if select["amr"]:
+                if "level" in select["amr"]:
+                    meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
+                                                            select=select["amr"])
 
         # Initialize readers
         readers = {}
@@ -93,11 +98,10 @@ class Loader:
 
         iprog = 1
         istep = 10
-        ncells_tot = 0
         npieces = 0
 
-        # integer, double, line, string, quad, long
-        null_offsets = {key: 0 for key in "idnsql"}
+        # byte, integer, double, line, string, quad, long
+        null_offsets = {key: 0 for key in "bidnsql"}
 
         # Loop over the cpus and read the AMR and HYDRO files in binary format
         for cpu_ind, cpu_num in enumerate(cpu_list):
@@ -105,7 +109,8 @@ class Loader:
             # Print progress
             percentage = int(float(cpu_ind) * 100.0 / float(len(cpu_list)))
             if percentage >= iprog * istep:
-                print("{:>3d}% : read {:>10d} cells".format(percentage, ncells_tot))
+                print("{:>3d}% : read {:>10d} cells, {:>10d} particles".format(
+                    percentage, meta["ncells"], meta["nparticles"]))
                 iprog += 1
 
             # Read binary files
@@ -164,14 +169,15 @@ class Loader:
                             # Count the number of cells
                             ncells = np.shape(sel)[1]
                             if ncells > 0:
-                                ncells_tot += ncells
+                                meta["ncells"] += ncells
                                 npieces += 1
                                 # Add the cells in the pieces dictionaries
                                 for reader in readers.values():
-                                    for item in reader.variables.values():
-                                        if item["read"]:
-                                            item["pieces"][npieces] = item["buffer"][
-                                                sel]
+                                    if reader.kind == ReaderKind.AMR:
+                                        for item in reader.variables.values():
+                                            if item["read"]:
+                                                item["pieces"][npieces] = item[
+                                                    "buffer"][sel]
 
                             # Increment offsets with remainder of the file
                             for reader in readers.values():
@@ -182,18 +188,16 @@ class Loader:
                             for reader in readers.values():
                                 reader.step_over(ncache, twotondim, meta["ndim"])
 
-        # Store the number of cells
-        meta["ncells"] = ncells_tot
-
         # Merge all the data pieces into the Arrays
         for group, reader in readers.items():
             out[group] = Datagroup()
             for key, item in reader.variables.items():
-                if item["read"]:
+                if item["read"] and len(item["pieces"]) > 0:
                     out[group][key] = np.concatenate(list(item["pieces"].values()))
             # If vector quantities are found, make them into vector Arrays
             utils.make_vector_arrays(out[group], ndim=meta["ndim"])
 
-        print("Total number of cells loaded: {}".format(ncells_tot))
+        print("Loaded: {} cells, {} particles.".format(meta["ncells"],
+                                                       meta["nparticles"]))
 
         return out

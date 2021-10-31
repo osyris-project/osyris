@@ -11,6 +11,7 @@ from . import utils
 class AmrReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
+        self.cpu_list = None
 
     def initialize(self, meta, select):
         length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
@@ -20,6 +21,13 @@ class AmrReader(Reader):
             scaling = (length_unit.to(scale) / scale).magnitude * scale
         else:
             scaling = length_unit
+
+        scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
+                                            meta["unit_t"], meta["scale"])
+
+        if select is False:
+            meta["lmax"] = 0
+            return
 
         # AMR grid variables
         self.variables.update({

@@ -27,6 +27,7 @@ def get_unit(string, ud, ul, ut):
     energy = ud * ((ul / ut)**2) * (ureg.erg / (ureg.cm**3))
     time = ut * ureg.s
     length = ul * ureg.cm
+    mass = density * (length**3)
 
     ramses_units = {
         'density': density,
@@ -69,7 +70,8 @@ def get_unit(string, ud, ul, ut):
         'x': length,
         'y': length,
         'z': length,
-        'dx': length
+        'dx': length,
+        'mass': mass
     }
 
     if string in ramses_units:
