@@ -57,7 +57,6 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             if "color" in item["params"]:
                 need_cbar = True
 
-
         if func in ["contourf", "pcolormesh"]:
             need_cbar = True
         if (func == "scatter") and ("c" in item["params"]):
@@ -66,7 +65,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         if need_cbar and cbar:
             if func == "line_integral_convolution":
                 cb = plt.colorbar(mpl_objects[-1].images[0], ax=ax, cax=None)
-                cb.set_label(make_label(name=item["params"]["color"].name, unit=item["params"]["color"].unit))
+                cb.set_label(make_label(name=item["params"]["color"].name, unit=item["params"]["color"].unit.units))
             else:
                 cb = plt.colorbar(mpl_objects[-1], ax=ax, cax=None)
                 cb.set_label(make_label(name=item["name"], unit=item["unit"]))
