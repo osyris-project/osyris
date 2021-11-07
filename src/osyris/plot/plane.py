@@ -77,7 +77,6 @@ def plane(*layers,
     to_render = []
     operations = []
     to_scatter = []
-        
     for layer in layers:
         data, settings, params = parse_layer(layer=layer,
                                              mode=mode,

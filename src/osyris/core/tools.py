@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+
 from .. import units
 
 
@@ -38,9 +39,8 @@ def to_bin_edges(x):
     Convert array centers to edges
     """
     centers = to_bin_centers(x)
-    left = centers[0] - (x[1] - x[0])
-    right = centers[-1] + (x[-1] - x[-2])
-    return np.concatenate(np.concatenate(left, centers), right)
+    dx = x[1] - x[0]
+    return np.append(centers - dx, np.array([centers[-1], centers[-1] + dx]))
 
 
 def perpendicular_vector(v):

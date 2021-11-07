@@ -5,6 +5,7 @@ from matplotlib.collections import PatchCollection
 import numpy as np
 from .. import config
 from ..core import Array
+from ..core.tools import to_bin_edges
 from pint.quantity import Quantity
 
 
@@ -32,7 +33,7 @@ def quiver(ax, x, y, z, density=1, color="w", **kwargs):
     else:
         args.append(z[..., 2][skip])
 
-    return ax.quiver(*args, **default_args)
+    return [ax.quiver(*args, **default_args)]
 
 
 def pcolormesh(ax, x, y, z, **kwargs):
@@ -45,7 +46,7 @@ def pcolormesh(ax, x, y, z, **kwargs):
     default_args.update(kwargs)
     if "cmap" not in kwargs:
         kwargs["cmap"] = config.parameters["cmap"]
-    return ax.pcolormesh(x, y, z, **default_args)
+    return [ax.pcolormesh(x, y, z, **default_args)]
 
 
 def contour(ax, x, y, z, labels=True, **kwargs):
@@ -58,7 +59,7 @@ def contour(ax, x, y, z, labels=True, **kwargs):
     cs = ax.contour(x, y, z, **kwargs)
     if labels:
         ax.clabel(cs, inline=1, fontsize=10)
-    return cs
+    return [cs]
 
 
 def contourf(ax, x, y, z, **kwargs):
@@ -67,7 +68,7 @@ def contourf(ax, x, y, z, **kwargs):
     """
     if "cmap" not in kwargs:
         kwargs["cmap"] = config.parameters["cmap"]
-    return ax.contourf(x, y, z, **kwargs)
+    return [ax.contourf(x, y, z, **kwargs)]
 
 
 def streamplot(ax, x, y, z, **kwargs):
@@ -76,7 +77,7 @@ def streamplot(ax, x, y, z, **kwargs):
     """
     default_args = {"color": "w"}
     default_args.update(kwargs)
-    return ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)
+    return [ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)]
 
 
 def scatter(ax, x, y, data, **kwargs):
@@ -123,53 +124,51 @@ def scatter(ax, x, y, data, **kwargs):
             coll.set_array(array)
         if norm is not None:
             coll.set_norm(norm)
-        return coll
+        return [coll]
     else:
-        return ax.scatter(x, y, **default_args)
+        return [ax.scatter(x, y, **default_args)]
 
-def line_integral_convolution(ax, x, y, z, **kwargs):
+
+def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
     """
     Wrapper that plots a line integral convolution of a vector field.
     Uses alpha blending to merge the LIC with a user-requested color.
     """
     import lic as lic
     from matplotlib.cm import ScalarMappable
-    from matplotlib.colors import LogNorm
 
-    #compute line integral convolution
-    try:
-        lic_res = lic.lic(z[...,1], z[...,0], length=kwargs["length"])
-        del kwargs["length"]
-    except KeyError:
-        lic_res = lic.lic(z[...,1], z[...,0], length=30)
+    xedges = to_bin_edges(x)
+    yedges = to_bin_edges(y)
+
+    # compute line integral convolution
+    lic_res = lic.lic(z[..., 1], z[..., 0], length=length)
 
     plot_args = {**kwargs}
-    plot_args["extent"] = [np.min(x),np.max(x),np.min(y),np.max(y)]
+    plot_args["extent"] = [
+        np.min(xedges), np.max(xedges),
+        np.min(yedges), np.max(yedges)
+    ]
     plot_args["origin"] = "lower"
 
-    alpha_blending = True
-    try:
-        del plot_args["color"]
-    except KeyError:
-        alpha_blending = False
+    axes = []
 
-    if alpha_blending:
+    # plot color
+    if color is not None:
         plot_args_color = {**plot_args}
-        plot_args_color["norm"] = LogNorm()
         plot_args_color["alpha"] = 1.
-        ax.imshow(z[...,2], **plot_args_color)
+        axes.append(ax.imshow(z[..., 2], **plot_args_color))
 
-        plot_args["alpha"] = .3
+        plot_args["alpha"] = .3  # ready alpha blending
 
-    #amplify contrast on lic
-    lim=(.2,.5)
-    lic_data_clip = np.clip(lic_res,lim[0],lim[1])
+    # amplify contrast on lic
+    lim = (.2, .5)
+    lic_data_clip = np.clip(lic_res, lim[0], lim[1])
     lic_data_rgba = ScalarMappable(norm=None, cmap="binary").to_rgba(lic_data_clip)
-    lic_data_clip_rescale = (lic_data_clip-lim[0])/(lim[1]-lim[0])
-    lic_data_rgba[...,3] = lic_data_clip_rescale * 1
+    lic_data_clip_rescale = (lic_data_clip - lim[0]) / (lim[1] - lim[0])
+    lic_data_rgba[..., 3] = lic_data_clip_rescale
 
-    #plot the lic
+    # plot the lic
     plot_args["cmap"] = "binary"
-    ax.imshow(lic_data_rgba, **plot_args)
+    axes.append(ax.imshow(lic_data_rgba, **plot_args))
 
-    return ax
+    return axes
