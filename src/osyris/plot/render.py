@@ -70,6 +70,8 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         if (func == "scatter") and ("c" in item["params"]):
             if not isinstance(item["params"]["c"], str):
                 need_cbar = True
+                name = item["name"]
+                unit = item["unit"]
         if need_cbar and cbar:
             cb = plt.colorbar(mpl_objects[ind_render], ax=ax, cax=None)
             cb.set_label(make_label(name=name, unit=unit))
