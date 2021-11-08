@@ -37,13 +37,6 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "imshow": "pcolormesh"
     }
 
-    for item in data:
-        try:
-            if item["mode"] == "vec":
-                data.append(data.pop(data.index(item)))  # move item to end of data list
-        except KeyError:
-            pass
-
     mpl_objects = []
     for item in data:
         func = item["mode"]
@@ -60,10 +53,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
 
         need_cbar = False
-
         ind_render = -1
-        name = item["name"]
-        unit = item["unit"]
 
         if func == "line_integral_convolution" and "color" in item["params"]:
             need_cbar = True
@@ -77,6 +67,8 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             if not isinstance(item["params"]["c"], str):
                 need_cbar = True
         if need_cbar and cbar:
+            name = item["name"]
+            unit = item["unit"]
             cb = plt.colorbar(mpl_objects[ind_render], ax=ax, cax=None)
             cb.set_label(make_label(name=name, unit=unit))
             cb.ax.yaxis.set_label_coords(-1.1, 0.5)
