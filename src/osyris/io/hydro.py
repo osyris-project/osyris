@@ -11,21 +11,20 @@ class HydroReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, select, ramses_ism):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "hydro_file_descriptor.txt")
 
-        ramses_ism = True
-        if ramses_ism:
-            f = open(fname, "r")
-            data = f.readlines()
-            f.close()
-        else:
-            try:
+        try:
+            if ramses_ism:
+                f = open(fname, "r")
+                data = f.readlines()
+                f.close()
+            else:
                 descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
-            except IOError:
-                return
+        except IOError:
+            return
 
         if ramses_ism:
             nvar = int(data[0].split()[-1])
