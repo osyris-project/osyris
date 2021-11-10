@@ -2,8 +2,9 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import matplotlib.pyplot as plt
-from .. import config
+
 from . import wrappers
+from .. import config
 from ..core.tools import make_label
 
 
@@ -30,6 +31,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "vec": "quiver",
         "vector": "quiver",
         "stream": "streamplot",
+        "lic": "line_integral_convolution",
         None: config.parameters["render_mode"],
         "image": "pcolormesh",
         "imshow": "pcolormesh"
@@ -47,19 +49,32 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         else:
             cbar = True
 
-        mpl_objects.append(
+        mpl_objects.extend(
             getattr(wrappers, func)(ax, x, y, item["data"], **item["params"]))
 
         need_cbar = False
+
+        ind_render = -1
+        if func != "scatter":
+            name = item["name"]
+            unit = item["unit"]
+
+        if func == "line_integral_convolution" and "color" in item["params"]:
+            need_cbar = True
+            ind_render = -2
+            name = item["params"]["color"].name
+            unit = item["params"]["color"].unit.units
+
         if func in ["contourf", "pcolormesh"]:
             need_cbar = True
         if (func == "scatter") and ("c" in item["params"]):
             if not isinstance(item["params"]["c"], str):
                 need_cbar = True
+                name = item["name"]
+                unit = item["unit"]
         if need_cbar and cbar:
-            cb = plt.colorbar(mpl_objects[-1], ax=ax, cax=None)
-            cb.set_label(make_label(name=item["name"], unit=item["unit"]))
+            cb = plt.colorbar(mpl_objects[ind_render], ax=ax, cax=None)
+            cb.set_label(make_label(name=name, unit=unit))
             cb.ax.yaxis.set_label_coords(-1.1, 0.5)
-
     out["objects"] = mpl_objects
     return out

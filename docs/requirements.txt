@@ -6,3 +6,4 @@ nbsphinx
 jupyter
 pint
 sphinx-book-theme
+lic
