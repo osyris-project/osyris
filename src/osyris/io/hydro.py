@@ -15,20 +15,28 @@ class HydroReader(Reader):
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "hydro_file_descriptor.txt")
-        try:
-            descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
-        except IOError:
-            return
 
         ramses_ism = True
         if ramses_ism:
             f = open(fname, "r")
             data = f.readlines()
             f.close()
+        else:
+            try:
+                descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
+            except IOError:
+                return
+
+        if ramses_ism:
             nvar = int(data[0].split()[-1])
             for i in range(nvar):
                 key = data[i+1].split()[-1]
                 read = True
+                if isinstance(select, bool):
+                    read = select
+                elif key in select:
+                    if isinstance(select[key], bool):
+                        read = select[key]
                 self.variables[key] = {
                     "read": read,
                     "type": "d",
