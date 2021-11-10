@@ -77,7 +77,7 @@ class Loader:
         readers = {}
         for group in groups:
             if not self.readers[group].initialized:
-                if group == "hydro"
+                if group == "hydro":
                     first_load = self.readers[group].initialize(meta=meta,
                                                                 select=select[group], ramses_ism=ramses_ism)
                 else:
