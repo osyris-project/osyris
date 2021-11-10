@@ -20,22 +20,40 @@ class HydroReader(Reader):
         except IOError:
             return
 
-        for i in range(len(descriptor)):
-            key = descriptor[i, 1].strip()
-            read = True
-            if isinstance(select, bool):
-                read = select
-            elif key in select:
-                if isinstance(select[key], bool):
-                    read = select[key]
-            self.variables[key] = {
-                "read": read,
-                "type": descriptor[i, 2].strip(),
-                "buffer": None,
-                "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
-            }
+        ramses_ism = True
+        if ramses_ism:
+            f = open(fname, "r")
+            data = f.readlines()
+            f.close()
+            nvar = int(data[0].split()[-1])
+            for i in range(nvar):
+                key = data[i+1].split()[-1]
+                read = True
+                self.variables[key] = {
+                    "read": read,
+                    "type": "d",
+                    "buffer": None,
+                    "pieces": {},
+                    "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                            meta["unit_t"])
+                }
+        else:
+            for i in range(len(descriptor)):
+                key = descriptor[i, 1].strip()
+                read = True
+                if isinstance(select, bool):
+                    read = select
+                elif key in select:
+                    if isinstance(select[key], bool):
+                        read = select[key]
+                self.variables[key] = {
+                    "read": read,
+                    "type": descriptor[i, 2].strip(),
+                    "buffer": None,
+                    "pieces": {},
+                    "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                            meta["unit_t"])
+                }
         self.initialized = True
 
     def read_header(self, info):
