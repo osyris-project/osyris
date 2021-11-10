@@ -39,8 +39,9 @@ def to_bin_edges(x):
     Convert array centers to edges
     """
     centers = to_bin_centers(x)
-    dx = x[1] - x[0]
-    return np.append(centers - dx, np.array([centers[-1], centers[-1] + dx]))
+    left = centers[0] - (x[1] - x[0])
+    right = centers[-1] + (x[-1] - x[-2])
+    return np.append(np.insert(centers, 0, left), right)
 
 
 def perpendicular_vector(v):

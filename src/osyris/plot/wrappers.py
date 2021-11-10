@@ -150,13 +150,13 @@ def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
     ]
     plot_args["origin"] = "lower"
 
-    axes = []
+    images = []
 
     # plot color
     if color is not None:
         plot_args_color = {**plot_args}
         plot_args_color["alpha"] = 1.
-        axes.append(ax.imshow(z[..., 2], **plot_args_color))
+        images.append(ax.imshow(z[..., 2], **plot_args_color))
 
         plot_args["alpha"] = .3  # ready alpha blending
 
@@ -169,6 +169,6 @@ def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
 
     # plot the lic
     plot_args["cmap"] = "binary"
-    axes.append(ax.imshow(lic_data_rgba, **plot_args))
+    images.append(ax.imshow(lic_data_rgba, **plot_args))
 
-    return axes
+    return images
