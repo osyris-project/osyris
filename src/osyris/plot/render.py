@@ -33,8 +33,8 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "stream": "streamplot",
         "lic": "line_integral_convolution",
         None: config.parameters["render_mode"],
-        "image": "pcolormesh",
-        "imshow": "pcolormesh"
+        "image": "contourf",
+        "imshow": "contourf"
     }
 
     mpl_objects = []
@@ -55,9 +55,8 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         need_cbar = False
 
         ind_render = -1
-        if func != "scatter":
-            name = item["name"]
-            unit = item["unit"]
+        name = item["name"]
+        unit = item["unit"]
 
         if func == "line_integral_convolution" and "color" in item["params"]:
             need_cbar = True
