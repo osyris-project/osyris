@@ -49,7 +49,7 @@ class Loader:
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None, ramses_ism=False):
+    def load(self, select=None, cpu_list=None, meta=None, ramses_ism=False, only_leafs=True):
 
         out = {}
         groups = list(self.readers.keys())
@@ -159,12 +159,15 @@ class Loader:
                                     reader.read_variables(ncache, ind, ilevel,
                                                           cpu_num - 1, meta)
 
-                            # Apply selection criteria: select only leaf cells and
-                            # add any criteria requested by the user via select.
+                            # Apply selection criteria: add any criteria requested by the user via select.
                             conditions = {}
                             for group, reader in readers.items():
-                                conditions.update(
-                                    reader.make_conditions(select[group], ncache))
+                                if group == "amr":
+                                    conditions.update(
+                                        reader.make_conditions(select[group], ncache, only_leafs))
+                                else:
+                                    conditions.update(
+                                        reader.make_conditions(select[group], ncache))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
                             sel = np.where(

@@ -207,9 +207,12 @@ class AmrReader(Reader):
         self.ref[:ncache, ind] = np.logical_not(
             np.logical_and(self.son[:ncache, ind] > 0, ilevel < info["lmax"] - 1))
 
-    def make_conditions(self, select, ncache):
+    def make_conditions(self, select, ncache, only_leafs):
         conditions = super().make_conditions(select, ncache)
-        conditions.update({"leaf": self.ref[:ncache, :]})
+        if only_leafs:
+            conditions.update({"leaf": self.ref[:ncache, :]})
+        else:
+            conditions.update({"leaf": self.ref})
         return conditions
 
     def read_footer(self, ncache, twotondim):
