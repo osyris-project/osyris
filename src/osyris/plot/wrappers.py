@@ -2,7 +2,6 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 from .. import config
 from ..core import Array
-from ..core.tools import to_bin_edges
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
