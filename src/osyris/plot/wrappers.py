@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
-import matplotlib.pyplot as plt
-from matplotlib.collections import PatchCollection
-import numpy as np
 from .. import config
 from ..core import Array
 from ..core.tools import to_bin_edges
+import matplotlib.pyplot as plt
+from matplotlib.cm import ScalarMappable
+from matplotlib.collections import PatchCollection
+import numpy as np
 from pint.quantity import Quantity
 
 
@@ -134,41 +135,38 @@ def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
     Wrapper that plots a line integral convolution of a vector field.
     Uses alpha blending to merge the LIC with a user-requested color.
     """
-    import lic as lic
-    from matplotlib.cm import ScalarMappable
+    from lic import lic
 
     xedges = to_bin_edges(x)
     yedges = to_bin_edges(y)
 
-    # compute line integral convolution
-    lic_res = lic.lic(z[..., 1], z[..., 0], length=length)
+    # Compute line integral convolution
+    lic_res = lic(z[..., 1], z[..., 0], length=length)
 
     plot_args = {**kwargs}
-    plot_args["extent"] = [
-        np.min(xedges), np.max(xedges),
-        np.min(yedges), np.max(yedges)
-    ]
+    # plot_args["extent"] = [
+    #     np.min(xedges), np.max(xedges),
+    #     np.min(yedges), np.max(yedges)
+    # ]
+    plot_args["extent"] = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
     plot_args["origin"] = "lower"
 
     images = []
 
-    # plot color
     if color is not None:
         plot_args_color = {**plot_args}
         plot_args_color["alpha"] = 1.
         images.append(ax.imshow(z[..., 2], **plot_args_color))
-
         plot_args["alpha"] = .3  # ready alpha blending
 
     # amplify contrast on lic
     lim = (.2, .5)
     lic_data_clip = np.clip(lic_res, lim[0], lim[1])
-    lic_data_rgba = ScalarMappable(norm=None, cmap="binary").to_rgba(lic_data_clip)
+    lic_rgba_args = {"norm": None, "cmap": "binary"}
+    lic_data_rgba = ScalarMappable(**lic_rgba_args).to_rgba(lic_data_clip)
     lic_data_clip_rescale = (lic_data_clip - lim[0]) / (lim[1] - lim[0])
     lic_data_rgba[..., 3] = lic_data_clip_rescale
 
-    # plot the lic
-    plot_args["cmap"] = "binary"
     images.append(ax.imshow(lic_data_rgba, **plot_args))
 
     return images
