@@ -58,10 +58,12 @@ def pcolormesh(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     """
     Wrapper around Matplotlib's pcolormesh plot.
     """
-    default_args = {"shading": "nearest", "zorder": zorder}
+    default_args = {
+        "shading": "nearest",
+        "zorder": zorder,
+        "cmap": config.parameters["cmap"]
+    }
     default_args.update(kwargs)
-    if "cmap" not in kwargs:
-        kwargs["cmap"] = config.parameters["cmap"]
     out = ax.pcolormesh(x, y, z, **default_args)
     if cbar:
         _add_colorbar(obj=out, ax=ax, label=cblabel)
@@ -93,15 +95,20 @@ def contourf(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def streamplot(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
+def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's streamplot plot.
     """
-    default_args = {"color": "w", "zorder": zorder}
+    default_args = {"color": "w", "zorder": zorder, "cmap": config.parameters["cmap"]}
     default_args.update(kwargs)
-    out = ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)
-    if cbar:
-        _add_colorbar(obj=out, ax=ax, label=cblabel)
+    args = [x, y, z[..., 0], z[..., 1]]
+    if isinstance(color, str):
+        default_args["color"] = color
+    else:
+        default_args["color"] = z[..., 2]
+    out = ax.streamplot(*args, **default_args)
+    if cbar and not isinstance(color, str):
+        _add_colorbar(obj=out.lines, ax=ax, label=cblabel)
     return out
 
 
