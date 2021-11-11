@@ -10,7 +10,7 @@ import numpy as np
 from pint.quantity import Quantity
 
 
-def quiver(ax, x, y, z, density=1, color="w", **kwargs):
+def quiver(ax, x, y, z, density=1, color="w", zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's quiver plot.
 
@@ -19,10 +19,7 @@ def quiver(ax, x, y, z, density=1, color="w", **kwargs):
     Matplotlib's own way of controlling the density of arrows is not so
     obvious.
     """
-    default_args = {
-        "angles": "xy",
-        "pivot": "mid",
-    }
+    default_args = {"angles": "xy", "pivot": "mid", "zorder": zorder}
     default_args.update(kwargs)
 
     skips = np.around(np.array(z.shape) * 4.0 / 128.0 / density).astype(np.int)
@@ -37,51 +34,49 @@ def quiver(ax, x, y, z, density=1, color="w", **kwargs):
     return [ax.quiver(*args, **default_args)]
 
 
-def pcolormesh(ax, x, y, z, **kwargs):
+def pcolormesh(ax, x, y, z, zorder=1, **kwargs):
     """
     Wrapper around Matplotlib's pcolormesh plot.
     """
-    default_args = {
-        "shading": "nearest",
-    }
+    default_args = {"shading": "nearest", "zorder": zorder}
     default_args.update(kwargs)
     if "cmap" not in kwargs:
         kwargs["cmap"] = config.parameters["cmap"]
     return [ax.pcolormesh(x, y, z, **default_args)]
 
 
-def contour(ax, x, y, z, labels=True, **kwargs):
+def contour(ax, x, y, z, labels=True, zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's contour plot.
 
     We add a small convenience argument `labels` that allows to simply add
     clabels with a simple `labels=True`.
     """
-    cs = ax.contour(x, y, z, **kwargs)
+    cs = ax.contour(x, y, z, zorder=zorder, **kwargs)
     if labels:
         ax.clabel(cs, inline=1, fontsize=10)
     return [cs]
 
 
-def contourf(ax, x, y, z, **kwargs):
+def contourf(ax, x, y, z, zorder=1, **kwargs):
     """
     Wrapper around Matplotlib's contourf plot.
     """
     if "cmap" not in kwargs:
         kwargs["cmap"] = config.parameters["cmap"]
-    return [ax.contourf(x, y, z, **kwargs)]
+    return [ax.contourf(x, y, z, zorder=zorder, **kwargs)]
 
 
-def streamplot(ax, x, y, z, **kwargs):
+def streamplot(ax, x, y, z, zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's streamplot plot.
     """
-    default_args = {"color": "w"}
+    default_args = {"color": "w", "zorder": zorder}
     default_args.update(kwargs)
     return [ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)]
 
 
-def scatter(ax, x, y, data, **kwargs):
+def scatter(ax, x, y, data, zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's scatter plot.
     If a point size has a unit, use PatchCollection instead of scatter.
@@ -89,7 +84,7 @@ def scatter(ax, x, y, data, **kwargs):
     If PatchCollection is used, we convert the scatter args to the
     PatchCollection syntax (e.g. "c" -> "color").
     """
-    default_args = {"c": "b", "edgecolors": "k"}
+    default_args = {"c": "b", "edgecolors": "k", "zorder": zorder}
     default_args.update(kwargs)
     use_patchcollection = False
     if "s" in default_args:
@@ -137,18 +132,14 @@ def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
     """
     from lic import lic
 
-    xedges = to_bin_edges(x)
-    yedges = to_bin_edges(y)
-
     # Compute line integral convolution
     lic_res = lic(z[..., 1], z[..., 0], length=length)
 
     plot_args = {**kwargs}
-    # plot_args["extent"] = [
-    #     np.min(xedges), np.max(xedges),
-    #     np.min(yedges), np.max(yedges)
-    # ]
-    plot_args["extent"] = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    plot_args["extent"] = [
+        0.5 * (3 * x[0] - x[1]), 0.5 * (3 * x[-1] - x[-2]), 0.5 * (3 * y[0] - y[1]),
+        0.5 * (3 * y[-1] - y[-2])
+    ]
     plot_args["origin"] = "lower"
 
     images = []
@@ -163,10 +154,14 @@ def line_integral_convolution(ax, x, y, z, length=30, color=None, **kwargs):
     lim = (.2, .5)
     lic_data_clip = np.clip(lic_res, lim[0], lim[1])
     lic_rgba_args = {"norm": None, "cmap": "binary"}
+    if color is None:
+        for key in lic_rgba_args:
+            if key in plot_args:
+                lic_rgba_args[key] = plot_args[key]
+                del plot_args[key]
     lic_data_rgba = ScalarMappable(**lic_rgba_args).to_rgba(lic_data_clip)
     lic_data_clip_rescale = (lic_data_clip - lim[0]) / (lim[1] - lim[0])
     lic_data_rgba[..., 3] = lic_data_clip_rescale
-
     images.append(ax.imshow(lic_data_rgba, **plot_args))
 
     return images
