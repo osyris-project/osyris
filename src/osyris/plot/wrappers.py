@@ -101,12 +101,15 @@ def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwa
     """
     default_args = {"color": "w", "zorder": zorder, "cmap": config.parameters["cmap"]}
     default_args.update(kwargs)
-    args = [x, y, z[..., 0], z[..., 1]]
     if isinstance(color, str):
         default_args["color"] = color
     else:
         default_args["color"] = z[..., 2]
-    out = ax.streamplot(*args, **default_args)
+        if default_args["norm"].vmin is None:
+            default_args["norm"].vmin = default_args["color"].min()
+        if default_args["norm"].vmax is None:
+            default_args["norm"].vmax = default_args["color"].max()
+    out = ax.streamplot(x, y, z[..., 0], z[..., 1], **default_args)
     if cbar and not isinstance(color, str):
         _add_colorbar(obj=out.lines, ax=ax, label=cblabel)
     return out
