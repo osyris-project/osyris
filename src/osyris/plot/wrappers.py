@@ -138,7 +138,7 @@ def scatter(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
         array = None
         norm = None
         if "c" in default_args:
-            need_cbar = True
+            need_cbar = not isinstance(default_args["c"], str)
             if "facecolors" not in default_args:
                 if isinstance(default_args["c"], str):
                     default_args["facecolors"] = default_args["c"]
@@ -162,7 +162,7 @@ def scatter(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
         if norm is not None:
             out.set_norm(norm)
     else:
-        need_cbar = "c" in default_args
+        need_cbar = not isinstance(default_args.get("c", ""), str)
         out = ax.scatter(x, y, **default_args)
     if cbar and need_cbar:
         _add_colorbar(obj=out, ax=ax, label=cblabel)

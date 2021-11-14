@@ -53,7 +53,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             cblabel = make_label(name=item["params"]["color"].name,
                                  unit=item["params"]["color"].unit.units)
         else:
-            cblabel = make_label(name=item["name"], unit=item["unit"])
+            cblabel = make_label(name=item.get("name", ""), unit=item.get("unit", ""))
 
         mpl_objects.append(
             getattr(wrappers, func)(ax=ax,
