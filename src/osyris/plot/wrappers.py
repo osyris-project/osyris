@@ -206,18 +206,17 @@ def line_integral_convolution(ax,
                                                   (1, )) * 0.3
         # Perform alpha blending manually
         rgba = lic_rgba * lic_alpha + (base_alpha * (1.0 - lic_alpha)) * base_rgba
-        im = ax.imshow(rgba,
-                       extent=[
-                           0.5 * (3 * x[0] - x[1]), 0.5 * (3 * x[-1] - x[-2]),
-                           0.5 * (3 * y[0] - y[1]), 0.5 * (3 * y[-1] - y[-2])
-                       ],
-                       origin='lower',
-                       zorder=2)
+        out = ax.imshow(rgba,
+                        extent=[
+                            0.5 * (3 * x[0] - x[1]), 0.5 * (3 * x[-1] - x[-2]),
+                            0.5 * (3 * y[0] - y[1]), 0.5 * (3 * y[-1] - y[-2])
+                        ],
+                        origin='lower',
+                        zorder=2)
         # Add the colorbar using the ScalarMappable
         scalar_map.set_array(z[..., 2])
-        cb = plt.colorbar(scalar_map, ax=ax)
-        cb.set_label(cblabel)
-        cb.ax.yaxis.set_label_coords(-1.1, 0.5)
-        return im
+        if cbar:
+            _add_colorbar(obj=scalar_map, ax=ax, label=cblabel)
+        return out
     else:
         return pcolormesh(ax=ax, x=x, y=y, z=lic_res, cbar=cbar, cblabel="", **kwargs)
