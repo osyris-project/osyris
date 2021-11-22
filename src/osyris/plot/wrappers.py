@@ -2,6 +2,8 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 from .. import config
 from ..core import Array
+from contextlib import redirect_stderr
+import io
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
@@ -175,7 +177,7 @@ def line_integral_convolution(ax,
                               z,
                               cbar=False,
                               cblabel=None,
-                              length=30,
+                              length=None,
                               color=None,
                               **kwargs):
     """
@@ -185,7 +187,10 @@ def line_integral_convolution(ax,
     from lic import lic
 
     # Compute line integral convolution
-    lic_res = lic(z[..., 1], z[..., 0], length=length)
+    if length is None:
+        length = int(max(z.shape[:-1]) * 15 / 128)
+    with redirect_stderr(io.StringIO()) as _:
+        lic_res = lic(z[..., 1], z[..., 0], length=length)
 
     if color is not None:
         plot_args = {**kwargs}
