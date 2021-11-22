@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
-from matplotlib.colors import LogNorm, Normalize
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
 
 def get_norm(norm=None, vmin=None, vmax=None):
     if norm == "log":
         return LogNorm(vmin=vmin, vmax=vmax)
+    elif norm == "SymLog":
+        return SymLogNorm(linthresh=0.03, vmin=vmin, vmax=vmax)
     else:
         return Normalize(vmin=vmin, vmax=vmax)
 
