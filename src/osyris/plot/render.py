@@ -33,8 +33,8 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "stream": "streamplot",
         "lic": "line_integral_convolution",
         None: config.parameters["render_mode"],
-        "image": "contourf",
-        "imshow": "contourf"
+        "image": "pcolormesh",
+        "imshow": "pcolormesh"
     }
 
     mpl_objects = []
