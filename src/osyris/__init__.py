@@ -4,5 +4,5 @@
 # flake8: noqa
 
 from .config import config, units
-from .plot import histogram1d, histogram2d, plane, scatter
+from .plot import histogram1d, histogram2d, plane, scatter, column_density
 from .core import Array, Datagroup, Dataset, Plot
