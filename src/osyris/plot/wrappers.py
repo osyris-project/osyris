@@ -28,7 +28,7 @@ def quiver(ax,
            cblabel=None,
            density=1,
            color="w",
-           zorder=2,
+           zorder=3,
            **kwargs):
     """
     Wrapper around Matplotlib's quiver plot.
@@ -97,7 +97,7 @@ def contourf(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwargs):
+def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=3, **kwargs):
     """
     Wrapper around Matplotlib's streamplot plot.
     """
