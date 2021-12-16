@@ -14,7 +14,7 @@ class SinkReader:
         self.kind = ReaderKind.SINK
         self.initialized = False
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, select, ramses_ism):
         sink = Datagroup()
         if select is False:
             return sink
@@ -27,7 +27,10 @@ class SinkReader:
             return
 
         try:
-            sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
+            if ramses_ism:
+                sink_data = np.loadtxt(sink_file, delimiter=',') # do not skip rows
+            else:
+                sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
         except StopIteration:
             # This is an empty sink file
             return sink

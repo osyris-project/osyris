@@ -13,7 +13,7 @@ class AmrReader(Reader):
         super().__init__(kind=ReaderKind.AMR)
         self.cpu_list = None
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, select, ramses_ism):
         length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
                                       meta["unit_t"])
         if meta["scale"] is not None:

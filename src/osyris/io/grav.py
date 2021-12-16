@@ -10,7 +10,7 @@ class GravReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, select, ramses_ism):
         fname = utils.generate_fname(meta["nout"], meta["path"], ftype="grav", cpuid=1)
         # Check if self-gravity files exist
         if not os.path.exists(fname):
