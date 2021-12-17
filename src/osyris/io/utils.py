@@ -84,7 +84,11 @@ def read_sink_info(fname=None):
                 # dimensionless unit
                 variables[var] = 1.*units.dimensionless
         else:
-            var_name = var[:var.find("[")]  # remove units from string
+            # remove units from string
+            if "/" in var:
+                var_name = var[:var.find("/")]  # case where units are scaled (eg. lx/|l|)
+            else:
+                var_name = var[:var.find("[")]
             unit = parse_units(var[var.find("[")+1:var.find("]")])  # unit string
             variables[var_name] = unit
     return variables
