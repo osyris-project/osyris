@@ -39,6 +39,8 @@ class SinkReader:
             variables = utils.read_sink_info(sink_file.replace(".csv",".info"))
             key_list = list(variables.keys())
             unit_list = list(variables.values())
+            #key_list = ["id", "M", "x", "y", "z", "vx", "vy", "vz"]
+            #unit_list = [1.*units.dimensionless, 1.*units.msun, 1.*units.cm,1.*units.cm,1.*units.cm,1.*units.cmps,1.*units.cmps,1.*units.cmps]
         else:
             with open(sink_file, 'r') as f:
                 key_list = f.readline()
@@ -66,6 +68,8 @@ class SinkReader:
                 sink[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
             if ramses_ism and key in ["x","y","z"]:
                 sink[key] = (sink[key]*meta["unit_l"]).to(meta["scale"])
+            elif ramses_ism and key in ["vx","vy","vz"]:
+                sink[key] = (sink[key]*meta["unit_l"]/(meta['unit_t'] * units.s))
             elif not ramses_ism and unit_combinations[i] == 'l':
                 sink[key] = sink[key].to(meta["scale"])
         utils.make_vector_arrays(sink, ndim=meta["ndim"])

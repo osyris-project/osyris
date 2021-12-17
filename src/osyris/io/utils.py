@@ -74,8 +74,7 @@ def read_sink_info(fname=None):
     with open(fname, 'r') as f:
         data = f.readlines()
     nsinks = int(re.search(r'\d+', data[0]).group())
-    for i in range(1,len(data[2].split())):
-        var = data[2].split()[i]
+    for var in data[2].split():
         if "[" not in var:
             if var in ["x","y","z"]:
                 variables[var] = 1.*units.cm
