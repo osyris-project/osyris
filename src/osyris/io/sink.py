@@ -52,7 +52,8 @@ class SinkReader:
 
         sink = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):
-            if len(sink_data.shape) == 1:  #  if only 1 sink is present
+            if len(sink_data.shape) == 1:
+                # if only 1 sink is present
                 sink[key] = Array(values=sink_data[i] * unit.magnitude, unit=unit.units)
             else:
                 sink[key] = Array(values=sink_data[:, i] * unit.magnitude,
