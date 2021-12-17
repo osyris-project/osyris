@@ -28,9 +28,7 @@ class SinkReader:
 
         try:
             if ramses_ism:
-                print("Reading "+sink_file)
                 sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=0)  # do not skip rows
-                print(sink_data)
             else:
                 sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
         except StopIteration:
@@ -38,11 +36,9 @@ class SinkReader:
             return sink
 
         if ramses_ism:
-            key_list = ["number","mass","dmf","x","y","z","vx","vy","vz","period","lx","ly","lz","acc_rate","acc_lum","age","int_lum","Teff"]
-            Q = units.Quantity
-            units.define("solar_luminosity = 3.83e26 * watt = lsol")  #  defining lsol units
-            unit_list = [1.*units.dimensionless, 1.*units.msun, 1.*units.msun, 1.*units.au, 1.*units.au, 1.*units.au, 1.*units.cmps, 1.*units.cmps, 1.*units.cmps, 1.*units.year,
-            1.*units.dimensionless, 1.*units.dimensionless, 1.*units.dimensionless, 1.*units.msun/units.year, 1.*Q("lsol"), 1.*units.year, 1.*Q("lsol"), 1.*units.K]
+            variables = utils.read_sink_info(sink_file.replace(".csv",".info"))
+            key_list = list(variables.keys())
+            unit_list = list(variables.values())
         else:
             with open(sink_file, 'r') as f:
                 key_list = f.readline()
@@ -64,9 +60,10 @@ class SinkReader:
 
         sink = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):
-            print(i, key, unit)
             sink[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
-            if not ramses_ism and unit_combinations[i] == 'l':
+            if ramses_ism and key in ["x","y","z"]:
+                sink[key] = (sink[key]*meta["unit_l"]).to(meta["scale"])
+            elif unit_combinations[i] == 'l':
                 sink[key] = sink[key].to(meta["scale"])
         utils.make_vector_arrays(sink, ndim=meta["ndim"])
         return sink

@@ -4,6 +4,7 @@
 import glob
 import os
 import struct
+import re
 import numpy as np
 from ..core import Array
 from .. import config
@@ -47,6 +48,47 @@ def read_parameter_file(fname=None, delimiter="="):
                 pass
             out[sp[0].strip()] = value
     return out
+
+
+def parse_units(s):
+    """
+    Parse the units of string s into pint units
+    """
+    if s == "Msol/y":
+        return 1.*units.msun/units.year
+    elif s == "Msol":
+        return 1.*units.msun
+    elif s == "Lsol":
+        return 1.*units.lsun
+    elif s == "y":
+        return 1.*units.year
+    elif s == "K":
+        return 1.*units.K
+
+
+def read_sink_info(fname=None):
+    """
+    Read info file and return variable names dictionary.
+    """
+    variables = {}  # var name and units in this dictionary
+    with open(fname, 'r') as f:
+        data = f.readlines()
+    nsinks = int(re.search(r'\d+', data[0]).group())
+    for i in range(1,len(data[2].split())):
+        var = data[2].split()[i]
+        if "[" not in var:
+            if var in ["x","y","z"]:
+                variables[var] = 1.*units.cm
+            elif var in ["vx","vy","vz"]:
+                variables[var] = 1.*units.cm/units.s
+            else:
+                # dimensionless unit
+                variables[var] = 1.*units.dimensionless
+        else:
+            var_name = var[:var.find("[")]  # remove units from string
+            unit = parse_units(var[var.find("[")+1:var.find("]")])  # unit string
+            variables[var_name] = unit
+    return variables
 
 
 def read_binary_data(content=None,
