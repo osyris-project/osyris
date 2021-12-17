@@ -4,7 +4,6 @@
 import glob
 import os
 import struct
-import re
 import numpy as np
 from ..core import Array
 from .. import config
@@ -73,7 +72,6 @@ def read_sink_info(fname=None):
     variables = {}  # var name and units in this dictionary
     with open(fname, 'r') as f:
         data = f.readlines()
-    nsinks = int(re.search(r'\d+', data[0]).group())
     for var in data[2].split():
         if "[" not in var:
             if var in ["x","y","z"]:
