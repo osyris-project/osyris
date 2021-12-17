@@ -28,7 +28,7 @@ def quiver(ax,
            cblabel=None,
            density=1,
            color="w",
-           zorder=3,
+           zorder=2,
            **kwargs):
     """
     Wrapper around Matplotlib's quiver plot.
@@ -72,7 +72,7 @@ def pcolormesh(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def contour(ax, x, y, z, cbar=False, cblabel=None, labels=True, zorder=2, fmt="%1.3f", **kwargs):
+def contour(ax, x, y, z, cbar=False, cblabel=None, labels=True, zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's contour plot.
 
@@ -81,7 +81,7 @@ def contour(ax, x, y, z, cbar=False, cblabel=None, labels=True, zorder=2, fmt="%
     """
     cs = ax.contour(x, y, z, zorder=zorder, **kwargs)
     if labels:
-        ax.clabel(cs, cs.levels, inline=1, fontsize=10, fmt=fmt)
+        ax.clabel(cs, inline=1, fontsize=10)
     return cs
 
 
@@ -97,7 +97,7 @@ def contourf(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=3, **kwargs):
+def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's streamplot plot.
     """
