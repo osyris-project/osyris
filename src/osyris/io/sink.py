@@ -66,7 +66,7 @@ class SinkReader:
                 sink[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
             if ramses_ism and key in ["x","y","z"]:
                 sink[key] = (sink[key]*meta["unit_l"]).to(meta["scale"])
-            elif unit_combinations[i] == 'l':
+            elif not ramses_ism and unit_combinations[i] == 'l':
                 sink[key] = sink[key].to(meta["scale"])
         utils.make_vector_arrays(sink, ndim=meta["ndim"])
         return sink
