@@ -32,8 +32,10 @@ class SinkReader:
             else:
                 sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
             if sink_data.shape[0] == 0:
+                print("return triggered")
                 return sink
         except StopIteration:
+            print("exception triggered")
             # This is an empty sink file
             return sink
 
