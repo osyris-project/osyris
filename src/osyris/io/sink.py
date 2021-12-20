@@ -27,7 +27,7 @@ class SinkReader:
             return
 
         try:
-            sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
+            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
         except StopIteration:
             # This is an empty sink file
             return sink
@@ -45,7 +45,7 @@ class SinkReader:
             m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
             l = meta['unit_l'] * units.cm  # noqa: F841, E741
             t = meta['unit_t'] * units.s  # noqa: F841
-            if u == '1':
+            if u.strip() == '1':
                 unit_list.append(1.0 * units.dimensionless)
             else:
                 unit_list.append(eval(u.replace(' ', '*')))
