@@ -28,7 +28,7 @@ def quiver(ax,
            cblabel=None,
            density=1,
            color="w",
-           zorder=3,
+           zorder=2,
            **kwargs):
     """
     Wrapper around Matplotlib's quiver plot.
@@ -106,7 +106,7 @@ def contourf(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=3, **kwargs):
+def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwargs):
     """
     Wrapper around Matplotlib's streamplot plot.
     """
@@ -226,7 +226,7 @@ def line_integral_convolution(ax,
                             0.5 * (3 * y[0] - y[1]), 0.5 * (3 * y[-1] - y[-2])
                         ],
                         origin='lower',
-                        zorder=2)
+                        zorder=1)
         # Add the colorbar using the ScalarMappable
         scalar_map.set_array(z[..., 2])
         if cbar:
