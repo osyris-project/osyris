@@ -31,9 +31,9 @@ class SinkReader:
             return sink
         else:
             if ramses_ism:
-                sink_data = np.atleast_2d(np.loadtxt(raw_data, delimiter=',', skiprows=0))  # do not skip rows
+                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=0))  # do not skip rows
             else:
-                sink_data = np.atleast_2d(np.loadtxt(raw_data, delimiter=',', skiprows=2))
+                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
 
         if ramses_ism:
             variables = utils.read_sink_info(sink_file.replace(".csv",".info"))
