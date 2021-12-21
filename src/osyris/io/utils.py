@@ -168,11 +168,9 @@ def make_vector_arrays(data, ndim):
                     rawkey = key[:cut] + key[ind + 1:]
                     if len(rawkey) == 0:
                         rawkey = "xyz"
-                    vals = np.array([data[c].values for c in comp_list]).T
-                    if len(vals.shape) == 1 and vals.shape[0] == 3:  #  case where only 1 sink in csv
-                        data[rawkey] = Array(values=np.array([vals]), unit=data[key].unit)
-                    else:
-                        data[rawkey] = Array(values=vals, unit=data[key].unit)
+                    data[rawkey] = Array(values=np.array(
+                        [data[c].values for c in comp_list]).T,
+                                         unit=data[key].unit)
                     delete += comp_list
         for key in delete:
             del data[key]

@@ -31,8 +31,6 @@ class SinkReader:
                 sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=0))  # do not skip rows
             else:
                 sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
-            if sink_data.shape[0] == 0:
-                return sink
         except StopIteration:
             # This is an empty sink file
             return sink
