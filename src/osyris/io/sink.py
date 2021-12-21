@@ -26,14 +26,17 @@ class SinkReader:
         if not os.path.exists(sink_file):
             return
 
+        raw_data = open(sink_file, "r")
         try:
             if ramses_ism:
-                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=0))  # do not skip rows
+                sink_data = np.atleast_2d(np.loadtxt(raw_data, delimiter=',', skiprows=0))  # do not skip rows
             else:
-                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
+                sink_data = np.atleast_2d(np.loadtxt(raw_data, delimiter=',', skiprows=2))
         except StopIteration:
             # This is an empty sink file
             return sink
+        finally:
+            raw_data.close()
 
         if ramses_ism:
             variables = utils.read_sink_info(sink_file.replace(".csv",".info"))
