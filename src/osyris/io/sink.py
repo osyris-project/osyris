@@ -28,9 +28,9 @@ class SinkReader:
 
         try:
             if ramses_ism:
-                sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=0)  # do not skip rows
+                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=0))  # do not skip rows
             else:
-                sink_data = np.loadtxt(sink_file, delimiter=',', skiprows=2)
+                sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
             if sink_data.shape[0] == 0:
                 return sink
         except StopIteration:

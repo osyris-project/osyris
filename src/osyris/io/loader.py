@@ -78,7 +78,8 @@ class Loader:
         for group in groups:
             if not self.readers[group].initialized:
                 first_load = self.readers[group].initialize(meta=meta,
-                                                                select=select[group], ramses_ism=ramses_ism)
+                                                            select=select[group],
+                                                            ramses_ism=ramses_ism)
                 if first_load is not None:
                     out[group] = first_load
             if self.readers[group].initialized:
