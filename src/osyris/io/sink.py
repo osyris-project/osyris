@@ -26,11 +26,11 @@ class SinkReader:
         if not os.path.exists(sink_file):
             return
 
-        try:
-            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
-        except StopIteration:
+        if os.path.getsize(sink_file) == 0:
             # This is an empty sink file
             return sink
+        else:
+            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
 
         with open(sink_file, 'r') as f:
             key_list = f.readline()
