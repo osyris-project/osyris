@@ -2,6 +2,7 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+
 from .. import units
 
 
@@ -40,7 +41,7 @@ def to_bin_edges(x):
     centers = to_bin_centers(x)
     left = centers[0] - (x[1] - x[0])
     right = centers[-1] + (x[-1] - x[-2])
-    return np.concatenate(np.concatenate(left, centers), right)
+    return np.append(np.insert(centers, 0, left), right)
 
 
 def perpendicular_vector(v):
@@ -99,7 +100,7 @@ def apply_mask(array, fill=np.nan):
 
 
 def bytes_to_human_readable(size):
-    multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "B": 1.0}
+    multipliers = {"G": 1.0e9, "M": 1.0e6, "K": 1.0e3, "": 1.0}
     for m, mult in multipliers.items():
         if size >= mult:
             return "{:.2f} {}B".format(size / mult, m)

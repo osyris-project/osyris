@@ -3,19 +3,23 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-********************
-Osyris documentation
-********************
+*********************************
+Osyris - Visualization for Ramses
+*********************************
 
-Osyris is a python visualization utility for RAMSES data. Its purpose is to
-plot quick diagnostics while a simulation is running, and also produce
-publication grade figures.
+Osyris is a python utility to read, manipulate and visualize simulation data
+created by the astrophysical software
+`Ramses <https://bitbucket.org/rteyssie/ramses>`_.
+Osyris provides automatic handling of physical units,
+loading of sub-regions inside a large simulation,
+and enables the production of publication grade figures.
 
-Osyris was developed to provide a light-weight method to read
-`RAMSES <https://bitbucket.org/rteyssie/ramses>`_ simulation outputs using
-``python``.
-It currently only works with the native ``binary`` data output format.
-It uses ``numpy`` for data manipulation and ``matplotlib`` for visualization.
+It was designed to be portable, lightweight and fast,
+requiring minimum dependencies and resources.
+It currently only works with the native ``binary`` Ramses data output format.
+It uses `Numpy <https://numpy.org>`_ for data
+manipulation, `Pint <https://pint.readthedocs.io>`_ for physical units,
+and `Matplotlib <https://matplotlib.org/stable/>`_ for visualization.
 
 .. image:: images/demo.png
    :width: 680

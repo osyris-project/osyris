@@ -47,6 +47,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # source_suffix = ['.rst', '.md']
 source_suffix = '.rst'
+html_sourcelink_suffix = ''  # Avoid .ipynb.txt extensions in sources
 
 # The master toctree document.
 master_doc = 'index'
@@ -56,10 +57,16 @@ master_doc = 'index'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "sphinx_rtd_theme"
-
-html_theme_options = {'logo_only': True}
-
+html_theme = 'sphinx_book_theme'
+html_theme_options = {
+    'logo_only': True,
+    "repository_url": "https://github.com/nvaytet/osyris",
+    "repository_branch": "main",
+    "use_repository_button": True,
+    "use_issues_button": True,
+    "use_edit_page_button": True,
+    "show_toc_level": 2
+}
 html_logo = "images/logo_osyris.png"
 html_favicon = "images/favicon.ico"
 

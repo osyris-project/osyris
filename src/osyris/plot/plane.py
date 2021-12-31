@@ -166,7 +166,7 @@ def plane(*layers,
     cell_variables = []  # contains the variables in cells close to the plane
     to_binning = []  # a subset of cell_variables for only cells actually touching plane
     for ind in range(len(to_process)):
-        if to_render[ind]["mode"] in ["vec", "stream"]:
+        if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
             if to_process[ind].ndim < 3:
                 uv = to_process[ind].array[indices_close_to_plane]
             else:
