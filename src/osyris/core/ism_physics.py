@@ -43,17 +43,17 @@ def read_opacity_table(fname):
 	offsets["i"] += 3
 	offsets["f"] += 9
 	offsets["l"] += 1
-	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets)
+	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets,skip_head=True,increment=False)
 
 	# y: gas temperature
 	offsets["f"] += theTable["nx"][0]
 	offsets["l"] += 1
-	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets)
+	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets,skip_head=True,increment=False)
 
 	# z: radiation temperature
 	offsets["f"] += theTable["nx"][1]
 	offsets["l"] += 1
-	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets)
+	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets,skip_head=True,increment=False)
 
 	# Now read opacities
 	array_size = np.prod(theTable["nx"])
@@ -65,13 +65,13 @@ def read_opacity_table(fname):
 	offsets["f"] += theTable["nx"][2]
 	offsets["l"] += 1
 	theTable.kappa_p = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
-	            offsets=offsets),theTable["nx"],order="F")
+	            offsets=offsets,skip_head=True,increment=False),theTable["nx"],order="F")
 
 	# Rosseland mean
 	offsets["f"] += array_size
 	offsets["l"] += 1
 	theTable["kappa_r"] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
-	            offsets=offsets),theTable["nx"],order="F")
+	            offsets=offsets,skip_head=True,increment=False),theTable["nx"],order="F")
 
 	del data
 
