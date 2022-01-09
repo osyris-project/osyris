@@ -117,14 +117,12 @@ def read_binary_data(content=None,
     }
 
     offset = 0
-    for key in offsets:
-        offset += offsets[key] * byte_size[key]
-    # if offset is None:
-    #     offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16
+    if offsets is not None:
+        for key in offsets:
+            offset += offsets[key] * byte_size[key]
     if skip_head:
-        offset += 4  # + correction
+        offset += 4
 
-    # byte_size = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
     if len(fmt) == 1:
         mult = 1
     else:
