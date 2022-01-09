@@ -32,7 +32,7 @@ def read_opacity_table(fname):
 	theTable = dict()
 
 	# Initialise offset counters and start reading data
-	ninteg = nfloat = nlines = nstrin = nquadr = 0
+	offsets = {"i":0, "n":0, "d":0}
 
 	# Get table dimensions
 	theTable["nx"] = np.array(utils.read_binary_data(fmt="3i",content=data))
@@ -43,17 +43,17 @@ def read_opacity_table(fname):
 	ninteg += 3
 	nfloat += 9
 	nlines += 1
-	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets)
 
 	# y: gas temperature
 	nfloat += theTable["nx"][0]
 	nlines += 1
-	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets)
 
 	# z: radiation temperature
 	nfloat += theTable["nx"][1]
 	nlines += 1
-	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,ninteg=ninteg,nlines=nlines,nfloat=nfloat)
+	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets)
 
 	# Now read opacities
 	array_size = np.prod(theTable["nx"])
