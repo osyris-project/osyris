@@ -32,7 +32,7 @@ def read_opacity_table(fname):
 	theTable = dict()
 
 	# Initialise offset counters and start reading data
-	offsets = {"i":0, "n":0, "d":0}
+	offsets = {"i":0, "f":0, "l":0}
 
 	# Get table dimensions
 	theTable["nx"] = np.array(utils.read_binary_data(fmt="3i",content=data))
@@ -40,19 +40,19 @@ def read_opacity_table(fname):
 	# Read table coordinates:
 
 	# x: density
-	ninteg += 3
-	nfloat += 9
-	nlines += 1
+	offsets["i"] += 3
+	offsets["f"] += 9
+	offsets["l"] += 1
 	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets)
 
 	# y: gas temperature
-	nfloat += theTable["nx"][0]
-	nlines += 1
+	offsets["f"] += theTable["nx"][0]
+	offsets["l"] += 1
 	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets)
 
 	# z: radiation temperature
-	nfloat += theTable["nx"][1]
-	nlines += 1
+	offsets["f"] += theTable["nx"][1]
+	offsets["l"] += 1
 	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets)
 
 	# Now read opacities
@@ -62,16 +62,16 @@ def read_opacity_table(fname):
 	#print theTable.nx,theTable.ny,theTable.nz
 
 	# Planck mean
-	nfloat += theTable["nx"][2]
-	nlines += 1
+	offsets["f"] += theTable["nx"][2]
+	offsets["l"] += 1
 	theTable.kappa_p = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
-	            ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable["nx"],order="F")
+	            offsets=offsets),theTable["nx"],order="F")
 
 	# Rosseland mean
-	nfloat += array_size
-	nlines += 1
+	offsets["f"] += array_size
+	offsets["l"] += 1
 	theTable["kappa_r"] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
-	            ninteg=ninteg,nlines=nlines,nfloat=nfloat),theTable["nx"],order="F")
+	            offsets=offsets),theTable["nx"],order="F")
 
 	del data
 
