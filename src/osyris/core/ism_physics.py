@@ -32,7 +32,7 @@ def read_opacity_table(fname):
 	theTable = dict()
 
 	# Initialise offset counters and start reading data
-	offsets = {"i":0, "f":0, "l":0}
+	offsets = {"i":0, "n":0, "d":0}
 
 	# Get table dimensions
 	theTable["nx"] = np.array(utils.read_binary_data(fmt="3i",content=data))
