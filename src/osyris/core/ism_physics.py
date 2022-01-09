@@ -20,10 +20,16 @@ from scipy.interpolate import RegularGridInterpolator
 
 def read_binary_data(fmt="",offsets=None,content=None,correction=0):
 
-	ninteg = offsets["i"]
-	nfloat = offsets["n"]
-	nlines = offsets["d"]
-	nstrin=nquadr=0
+	if offsets is not None:
+		ninteg = offsets["i"]
+		nfloat = offsets["n"]
+		nlines = offsets["d"]
+	else:
+		ninteg = 0
+		nfloat = 0
+		nlines = 0
+	nstrin = 0
+	nquadr = 0
 	offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
 	byte_size = {"i":4,"d":8,"q":8}
 	if len(fmt) == 1:
