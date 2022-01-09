@@ -129,7 +129,7 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 	pts = np.array([np.log10(dataset["hydro"]["density"].values),np.log10(dataset["hydro"]["temperature"].values),np.log10(dataset["hydro"]["radiative_temperature"].values)]).T
 	for var in variables:
 		print("Interpolating "+var)
-		vals = ism_interpolate(dataset.meta["opacity_table"], getattr(dataset.meta["opacity_table"], var), pts)
+		vals = ism_interpolate(dataset.meta["opacity_table"], dataset.meta["opacity_table"][var], pts)
 		dataset["hydro"][var] = vals
 
 	return
