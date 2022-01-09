@@ -21,12 +21,12 @@ from scipy.interpolate import RegularGridInterpolator
 
 def ism_interpolate(table_container=None, values=[0], points=[0], in_log=False):
 
-	func = RegularGridInterpolator(table_container.grid,values)
+	func = RegularGridInterpolator(table_container["grid"], values)
 
 	if in_log:
 		return func(points)
 	else:
-		return np.power(10.0,func(points))
+		return np.power(10.0, func(points))
 
 def read_binary_data(fmt="", offsets=None, content=None, correction=0):
 
