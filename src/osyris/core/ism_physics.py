@@ -19,7 +19,16 @@ from .. import units
 from ..io import utils
 from scipy.interpolate import RegularGridInterpolator
 
-def read_binary_data(fmt="",offsets=None,content=None,correction=0):
+def ism_interpolate(table_container=None, values=[0], points=[0], in_log=False):
+
+	func = RegularGridInterpolator(table_container.grid,values)
+
+	if in_log:
+		return func(points)
+	else:
+		return np.power(10.0,func(points))
+
+def read_binary_data(fmt="", offsets=None, content=None, correction=0):
 
 	if offsets is not None:
 		ninteg = offsets["i"]
@@ -107,23 +116,20 @@ def read_opacity_table(fname):
 	print("Opacity table read successfully")
 
 	return theTable
-"""
-def get_opacities(holder,fname="vaytet_grey_opacities3D.bin",variables=["kappa_p","kappa_r"]):
 
-	try:
-	    n = holder.opacity_table.nx
-	except AttributeError:
-	    holder.opacity_table = read_opacity_table(fname=fname)
+def get_opacities(dataset, fname="vaytet_grey_opacities3D.bin", variables=["kappa_p","kappa_r"]):
 
-	if not hasattr(holder,"radiative_temperature"):
-	    print("Radiative temperature is not defined. Computing it now.")
-	    holder.new_field(name="radiative_temperature",operation="(radiative_energy_1/"+str(conf.constants["a_r"])+")**0.25",label="Trad")
+	if "opacity_table" not in dataset.meta:
+		dataset.meta["opacity_table"] = read_opacity_table(fname=fname)
 
-	pts = np.array([np.log10(holder.density.values),np.log10(holder.temperature.values),np.log10(holder.radiative_temperature.values)]).T
+	if "radiative_temperature" not in dataset["hydro"]:
+		print("Radiative temperature is not defined. Computing it now.")
+		dataset["hydro"]["radiative_temperature"] = Array(values = (dataset["hydro"]["radiative_energy_1"]/units["radiation_constant"])**.25, unit="K")
+
+	pts = np.array([np.log10(dataset["hydro"]["density"].values),np.log10(dataset["hydro"]["temperature"].values),np.log10(dataset["hydro"]["radiative_temperature"].values)]).T
 	for var in variables:
-	    print("Interpolating "+var)
-	    vals = ism_interpolate(holder.opacity_table,getattr(holder.opacity_table,var),pts)
-	    holder.new_field(name=var,label=var,values=vals,verbose=False,unit="cm2/g")
+		print("Interpolating "+var)
+		vals = ism_interpolate(dataset.meta["opacity_table"], getattr(dataset.meta["opacity_table"], var), pts)
+		dataset["hydro"][var] = Array(values = vals, unit = "cm2/g")
 
 	return
-"""
