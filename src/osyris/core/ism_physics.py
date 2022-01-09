@@ -30,6 +30,8 @@ def read_binary_data(fmt="",offsets=None,content=None,correction=0):
 		nlines = 0
 	nstrin = 0
 	nquadr = 0
+	nlongi = 0
+
 	offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
 	byte_size = {"i":4,"d":8,"q":8}
 	if len(fmt) == 1:
