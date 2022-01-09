@@ -64,7 +64,7 @@ def read_opacity_table(fname):
 	# Planck mean
 	offsets["n"] += theTable["nx"][2]
 	offsets["d"] += 1
-	theTable.kappa_p = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
+	theTable["kappa_p"] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
 	            offsets=offsets),theTable["nx"],order="F")
 
 	# Rosseland mean
