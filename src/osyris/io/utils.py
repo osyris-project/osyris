@@ -116,22 +116,21 @@ def read_binary_data(content=None,
         "s": 1
     }
 
-    offset = 0
-    if offsets is not None:
-        for key in offsets:
-            offset += offsets[key] * byte_size[key]
-    if skip_head:
-        offset += 4
-
     if len(fmt) == 1:
         mult = 1
     else:
         mult = int(fmt[:-1])
     pack_size = mult * byte_size[fmt[-1]]
 
-    if increment:
-        offsets[fmt[-1]] += mult
-    offsets["n"] += 1
+    offset = 0
+    if offsets is not None:
+        for key in offsets:
+            offset += offsets[key] * byte_size[key]
+        if increment:
+            offsets[fmt[-1]] += mult
+        offsets["n"] += 1
+    if skip_head:
+        offset += 4
 
     return struct.unpack(fmt, content[offset:offset + pack_size])
 
