@@ -123,9 +123,9 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 		dataset.meta["opacity_table"] = read_opacity_table(fname=fname)
 
 	if "radiative_temperature" not in dataset["hydro"]:
-		print("Radiative temperature is not defined. Computing it now.", end="")
+		print("Radiative temperature is not defined. Computing it now...", end="")
 		dataset["hydro"]["radiative_temperature"] = values = (dataset["hydro"]["radiative_energy_1"]/units["radiation_constant"])**.25
-		print("  ...Done!")
+		print("done!")
 	pts = np.array([np.log10(dataset["hydro"]["density"].values),np.log10(dataset["hydro"]["temperature"].values),np.log10(dataset["hydro"]["radiative_temperature"].values)]).T
 	for var in variables:
 		print("Interpolating "+var)
