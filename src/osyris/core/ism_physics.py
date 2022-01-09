@@ -117,19 +117,19 @@ def read_opacity_table(fname):
 
 	return theTable
 
-def get_opacities(dataset, fname="vaytet_grey_opacities3D.bin", variables=["kappa_p","kappa_r"]):
+def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 
 	if "opacity_table" not in dataset.meta:
 		dataset.meta["opacity_table"] = read_opacity_table(fname=fname)
 
 	if "radiative_temperature" not in dataset["hydro"]:
-		print("Radiative temperature is not defined. Computing it now.")
-		dataset["hydro"]["radiative_temperature"] = Array(values = (dataset["hydro"]["radiative_energy_1"]/units["radiation_constant"])**.25, unit="K")
-
+		print("Radiative temperature is not defined. Computing it now.", end="")
+		dataset["hydro"]["radiative_temperature"] = values = (dataset["hydro"]["radiative_energy_1"]/units["radiation_constant"])**.25
+		print("  ...Done!")
 	pts = np.array([np.log10(dataset["hydro"]["density"].values),np.log10(dataset["hydro"]["temperature"].values),np.log10(dataset["hydro"]["radiative_temperature"].values)]).T
 	for var in variables:
 		print("Interpolating "+var)
 		vals = ism_interpolate(dataset.meta["opacity_table"], getattr(dataset.meta["opacity_table"], var), pts)
-		dataset["hydro"][var] = Array(values = vals, unit = "cm2/g")
+		dataset["hydro"][var] = vals
 
 	return
