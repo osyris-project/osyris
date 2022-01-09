@@ -10,6 +10,7 @@ To do:
 -EOS reader
 """
 
+import struct
 import os
 import numpy as np
 from ..core import Array
