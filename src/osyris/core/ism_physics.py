@@ -130,6 +130,6 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 	for var in variables:
 		print("Interpolating "+var)
 		vals = ism_interpolate(dataset.meta["opacity_table"], dataset.meta["opacity_table"][var], pts)
-		dataset["hydro"][var] = vals
+		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
 
 	return
