@@ -5,7 +5,7 @@
 This file aims to re-introduce the ism_physics routines of osiris into Osyris.
 
 To do:
--Opacities reader
+-Opacities reader DONE
 -Resistivities reader
 -EOS reader
 """
@@ -125,11 +125,12 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 	if "radiative_temperature" not in dataset["hydro"]:
 		print("Radiative temperature is not defined. Computing it now...", end="")
 		dataset["hydro"]["radiative_temperature"] = values = (dataset["hydro"]["radiative_energy_1"]/units["radiation_constant"])**.25
-		print("done!")
+		print(" done!")
 	pts = np.array([np.log10(dataset["hydro"]["density"].values),np.log10(dataset["hydro"]["temperature"].values),np.log10(dataset["hydro"]["radiative_temperature"].values)]).T
 	for var in variables:
-		print("Interpolating "+var)
+		print("Interpolating "+var+"...", end="")
 		vals = ism_interpolate(dataset.meta["opacity_table"], dataset.meta["opacity_table"][var], pts)
+		print(" done!")
 		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
 
 	return
