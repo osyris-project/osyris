@@ -65,7 +65,7 @@ def get_unit(string, ud, ul, ut):
         'pressure': energy,
         'radiative_energy': energy,
         'radiative_energy_1': energy,
-        'rad_force' : mass*acceleration
+        'rad_force' : mass*acceleration,
         'temperature': 1.0 * ureg.K,
         'time': time,
         'x': length,
