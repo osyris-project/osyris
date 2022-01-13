@@ -77,7 +77,6 @@ def get_unit(string, ud, ul, ut):
         'mass': mass
     }
 
-    print(string)
     if string in ramses_units:
         return ramses_units[string]
     else:

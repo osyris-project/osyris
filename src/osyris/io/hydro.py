@@ -44,7 +44,6 @@ class HydroReader(Reader):
                     "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
                                             meta["unit_t"])
                 }
-                print(key, self.variables[key]["unit"])
         else:
             for i in range(len(descriptor)):
                 key = descriptor[i, 1].strip()
