@@ -7,4 +7,4 @@ from .array import Array
 from .datagroup import Datagroup
 from .dataset import Dataset
 from .plot import Plot
-from .ism_physics import *
+from .ism_physics import get_eos, get_opacities

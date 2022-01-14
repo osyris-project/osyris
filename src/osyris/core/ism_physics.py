@@ -94,8 +94,6 @@ def read_opacity_table(fname):
 	array_size = np.prod(theTable["nx"])
 	array_fmt  = "%id" % array_size
 
-	#print theTable.nx,theTable.ny,theTable.nz
-
 	# Planck mean
 	offsets["n"] += theTable["nx"][2]
 	offsets["d"] += 1
@@ -118,6 +116,9 @@ def read_opacity_table(fname):
 	return theTable
 
 def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
+	"""
+	Create opacity variables from interpolation of opacity table values in fname.
+	"""
 
 	if "opacity_table" not in dataset.meta:
 		dataset.meta["opacity_table"] = read_opacity_table(fname=fname)
@@ -134,3 +135,72 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
 
 	return
+
+def read_eos_table(fname):
+	"""
+	Read binary EOS table in fname
+	"""
+    
+    print("Loading EOS table: "+fname)
+    
+    # Read binary EOS file
+    with open(fname, mode='rb') as f:
+        data = f.read()
+    
+    # Define data fields. Note that the order is important!
+    data_fields = ["rho_eos","ener_eos","temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]
+
+    # Create table container
+    theTable = dict()
+    
+    # Initialise offset counters and start reading data
+    offsets = {"i":0, "n":0, "d":0}
+    
+    # Get table dimensions
+    theTable["nx"] = np.array(get_binary_data(fmt="2i",content=data,offsets=offsets))
+    
+    # Get table limits
+    offsets["i"] += 2
+    offsets["d"] += 1
+    [theTable["rhomin"],theTable["rhomax"],theTable["emin"],theTable["emax"],theTable["yHe"]] = \
+        get_binary_data(fmt="5d",content=data,offsets=offsets)
+        
+    array_size = np.prod(theTable["nx"])
+    array_fmt  = "%id" % array_size
+    offsets["n"] += 5
+    offsets["d"] += 1
+    
+    # Now loop through all the data fields
+    for i in range(len(data_fields)):
+        setattr(theTable,data_fields[i],np.reshape(get_binary_data(fmt=array_fmt,content=data, \
+                offsets=offsets),theTable["nx"],order="F"))
+        offsets["n"] += array_size
+        offsets["d"] += 1
+    
+    del data
+    
+    Eint = theTable["ener_eos"]/theTable["rho_eos"]
+    theTable.grid = (np.log10(theTable["rho_eos"][:,0]), np.log10(Eint[0,:]))
+
+    print("EOS table read successfully")
+
+    return theTable
+
+def get_eos(dataset, fname, variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
+	"""
+	Create EOS variables from interpolation of eos table values in fname.
+	"""
+	if dataset.meta["eos"] == 0:
+		print("Simulation data did not use a tabulated EOS. Exiting.")
+		return
+	if "eos_table" not in dataset.meta:
+		dataset.meta["eos_table"] = read_eos_table(fname=fname)
+
+	pts = np.array([np.log10(dataset["hydro"]["density"].values), np.log10(dataset["hydro"]["internal_energy"].values/dataset["hydro"]["density"].values)]).T
+	for var in variables:
+		print("Interpolating "+var+"...", end="")
+		vals = ism_interpolate(dataset.meta["eos_table"],np.log10(dataset.meta["eos_table"][var]),pts)
+		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
+		print(" done!")
+
+
