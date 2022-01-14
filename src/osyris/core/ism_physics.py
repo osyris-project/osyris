@@ -115,7 +115,7 @@ def read_opacity_table(fname):
 
 	return theTable
 
-def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
+def get_opacities(dataset, fname, variables={"kappa_p":"cm^2/g","kappa_r":"cm^2/g"}):
 	"""
 	Create opacity variables from interpolation of opacity table values in fname.
 	"""
@@ -132,7 +132,7 @@ def get_opacities(dataset, fname, variables=["kappa_p","kappa_r"]):
 		print("Interpolating "+var+"...", end="")
 		vals = ism_interpolate(dataset.meta["opacity_table"], dataset.meta["opacity_table"][var], pts)
 		print(" done!")
-		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
+		dataset["hydro"][var] = Array(values = vals, unit = variables[var])
 
 	return
 
@@ -186,10 +186,13 @@ def read_eos_table(fname):
 
 	return theTable
 
-def get_eos(dataset, fname, variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
+def get_eos(dataset, fname, variables={"temp_eos":"K","pres_eos":"dyn/cm^2","s_eos":"erg/K/g","cs_eos":"cm/s","xH_eos":None,"xH2_eos":None,"xHe_eos":None,"xHep_eos":None}):
 	"""
 	Create EOS variables from interpolation of eos table values in fname.
 	"""
+
+	eos_table_units = {}
+
 	if dataset.meta["eos"] == 0:
 		print("Simulation data did not use a tabulated EOS. Exiting.")
 		return
@@ -200,7 +203,7 @@ def get_eos(dataset, fname, variables=["temp_eos","pres_eos","s_eos","cs_eos","x
 	for var in variables:
 		print("Interpolating "+var+"...", end="")
 		vals = ism_interpolate(dataset.meta["eos_table"],np.log10(dataset.meta["eos_table"][var]),pts)
-		dataset["hydro"][var] = Array(values = vals, unit = "cm*cm/g")
+		dataset["hydro"][var] = Array(values = vals, unit = variables[var])
 		print(" done!")
 
 
