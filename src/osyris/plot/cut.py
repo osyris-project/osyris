@@ -10,7 +10,8 @@ from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
-from scipy.stats import binned_statistic_2d
+from .histogram import histogram
+# from scipy.stats import binned_statistic_2d
 
 
 def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
@@ -50,22 +51,22 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
-def plane(*layers,
-          direction="z",
-          dx=None,
-          dy=None,
-          fname=None,
-          title=None,
-          plot=True,
-          mode=None,
-          norm=None,
-          vmin=None,
-          vmax=None,
-          operation="mean",
-          origin=None,
-          resolution=256,
-          ax=None,
-          **kwargs):
+def cut(*layers,
+        direction="z",
+        dx=None,
+        dy=None,
+        fname=None,
+        title=None,
+        plot=True,
+        mode=None,
+        norm=None,
+        vmin=None,
+        vmax=None,
+        operation="mean",
+        origin=None,
+        resolution=256,
+        ax=None,
+        **kwargs):
     """
     Plot a 2D slice through the data domain.
     """
@@ -161,6 +162,7 @@ def plane(*layers,
 
     datax_touching = datax_close[touching_plane]
     datay_touching = datay_close[touching_plane]
+    datadx_touching = datadx_close.array[touching_plane]
 
     scalar_layer = []
     cell_variables = []  # contains the variables in cells close to the plane
@@ -199,8 +201,8 @@ def plane(*layers,
             scalar_layer.append(True)
             to_binning.append(var[touching_plane])
 
-    # Buffer for counts
-    to_binning.append(np.ones_like(to_binning[0]))
+    # # Buffer for counts
+    # to_binning.append(np.ones_like(to_binning[0]))
 
     # Construct some bin edges
     if isinstance(resolution, int):
@@ -212,82 +214,100 @@ def plane(*layers,
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 
-    # First histogram the cell centers into the grid bins
-    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
-                                          y=apply_mask(datax_touching.array),
-                                          values=to_binning,
-                                          statistic="mean",
-                                          bins=[yedges, xedges])
+    # print("just before binned")
+    # print(apply_mask(datax_touching.array).shape)
+    # print(apply_mask(datay_touching.array).shape)
+    # print((2.0 * datadx_touching).shape)
+    # print(np.array(to_binning).shape)
 
-    # Next, find all the empty pixels, find the cell is lies in a apply the value
-    condition = np.isnan(binned[-1])
-    xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
-    # Make array of cell indices (in original array of cells) with image shape
-    indices = np.zeros_like(binned[-1], dtype=int)
-    # We also need a mask for pixels that find no cells (outside of the data range)
-    mask = np.zeros_like(binned[-1], dtype=bool)
+    binned = histogram(x=apply_mask(datax_touching.array),
+                       y=apply_mask(datay_touching.array),
+                       values=np.array(to_binning),
+                       sizes=2.0 * datadx_touching,
+                       xbins=xedges,
+                       ybins=yedges)
 
-    pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
-        ygrid.shape + (1, )) * dir_vecs[2]
-    # We only need to search in the cells above a certain size
-    large_cells = np.ravel(
-        np.where(datadx_close >= 0.25 *
-                 (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
-    coords = coords_close[large_cells]
-    large_cells_dx = datadx_close.array[large_cells]
-    large_cells_indices = np.arange(len(datadx_close))[large_cells]
+    # print(binned)
 
-    # To keep memory usage down to a minimum, we process the image one column at a time
-    for i in range(indices.shape[-1]):
-        # We know we are looking only at a column of cells, so we make a line from the
-        # two end points (x1, x2), compute distance to the line to filter out the cells
-        x1 = pixel_positions[0, i, :]
-        x2 = pixel_positions[-1, i, :]
-        x0_minus_x1 = coords.array - x1
-        x0_minus_x2 = coords.array - x2
-        x2_minus_x1 = x2 - x1
-        distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
-        if distance_to_line.ndim > 1:
-            distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
-        else:
-            distance_to_line = np.abs(distance_to_line)
-        distance_to_line /= np.linalg.norm(x2_minus_x1)
-        column = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
+    # # First histogram the cell centers into the grid bins
+    # binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
+    #                                       y=apply_mask(datax_touching.array),
+    #                                       values=to_binning,
+    #                                       statistic="mean",
+    #                                       bins=[yedges, xedges])
 
-        if len(column) > 0:
-            distance_to_cell = []
-            for n, c in enumerate("xyz"[:xyz.ndim]):
-                distance_to_cell.append(pixel_positions[..., i, n:n + 1] -
-                                        getattr(coords, c).array[column])
-            # Find the cell where the x, y, z distance is smaller than dx/2
-            inds = np.logical_and.reduce(
-                [np.abs(d) <= large_cells_dx[column] for d in distance_to_cell])
-            # print(inds.shape)
-            index_found = inds.max(axis=-1)
-            # print(index_found)
-            index_value = large_cells_indices[column][inds.argmax(axis=-1)]
-            indices[:, i][index_found] = index_value[index_found]
-            mask[:, i][np.logical_and(~index_found, condition[:, i])] = True
-        else:
-            mask[:, i][condition[:, i]] = True
+    # # Next, find all the empty pixels, find the cell is lies in a apply the value
+    # condition = np.isnan(binned[-1])
+    # xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
+    # # Make array of cell indices (in original array of cells) with image shape
+    # indices = np.zeros_like(binned[-1], dtype=int)
+    # # We also need a mask for pixels that find no cells (outside of the data range)
+    # mask = np.zeros_like(binned[-1], dtype=bool)
 
+    # pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
+    #     ygrid.shape + (1, )) * dir_vecs[2]
+    # # We only need to search in the cells above a certain size
+    # large_cells = np.ravel(
+    #     np.where(datadx_close >= 0.25 *
+    #              (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
+    # coords = coords_close[large_cells]
+    # large_cells_dx = datadx_close.array[large_cells]
+    # large_cells_indices = np.arange(len(datadx_close))[large_cells]
+
+    # # To keep memory usage down to a minimum, we process the image one column at a time
+    # for i in range(indices.shape[-1]):
+    #     # We know we are looking only at a column of cells, so we make a line from the
+    #     # two end points (x1, x2), compute distance to the line to filter out the cells
+    #     x1 = pixel_positions[0, i, :]
+    #     x2 = pixel_positions[-1, i, :]
+    #     x0_minus_x1 = coords.array - x1
+    #     x0_minus_x2 = coords.array - x2
+    #     x2_minus_x1 = x2 - x1
+    #     distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
+    #     if distance_to_line.ndim > 1:
+    #         distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
+    #     else:
+    #         distance_to_line = np.abs(distance_to_line)
+    #     distance_to_line /= np.linalg.norm(x2_minus_x1)
+    #     column = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
+
+    #     if len(column) > 0:
+    #         distance_to_cell = []
+    #         for n, c in enumerate("xyz"[:xyz.ndim]):
+    #             distance_to_cell.append(pixel_positions[..., i, n:n + 1] -
+    #                                     getattr(coords, c).array[column])
+    #         # Find the cell where the x, y, z distance is smaller than dx/2
+    #         inds = np.logical_and.reduce(
+    #             [np.abs(d) <= large_cells_dx[column] for d in distance_to_cell])
+    #         # print(inds.shape)
+    #         index_found = inds.max(axis=-1)
+    #         # print(index_found)
+    #         index_value = large_cells_indices[column][inds.argmax(axis=-1)]
+    #         indices[:, i][index_found] = index_value[index_found]
+    #         mask[:, i][np.logical_and(~index_found, condition[:, i])] = True
+    #     else:
+    #         mask[:, i][condition[:, i]] = True
+
+    mask = np.isnan(binned[-1, ...])
     mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
 
     # Now we fill the arrays to be sent to the renderer, also constructing vectors
     counter = 0
     for ind in range(len(to_render)):
-        binned[counter][condition] = cell_variables[counter][indices][condition]
+        # binned[counter][condition] = cell_variables[counter][indices][condition]
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
+            to_render[ind]["data"] = ma.masked_where(mask,
+                                                     binned[counter, ...],
+                                                     copy=False)
             counter += 1
         else:
-            for j in range(counter + 1, counter + 3):
-                binned[j][condition] = cell_variables[j][indices][condition]
+            # for j in range(counter + 1, counter + 3):
+            #     binned[j][condition] = cell_variables[j][indices][condition]
             to_render[ind]["data"] = ma.masked_where(mask_vec,
                                                      np.array([
-                                                         binned[counter].T,
-                                                         binned[counter + 1].T,
-                                                         binned[counter + 2].T
+                                                         binned[counter, ...].T,
+                                                         binned[counter + 1, ...].T,
+                                                         binned[counter + 2, ...].T
                                                      ]).T,
                                                      copy=False)
             counter += 3
