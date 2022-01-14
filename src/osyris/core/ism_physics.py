@@ -180,7 +180,7 @@ def read_eos_table(fname):
 	del data
 
 	Eint = theTable["ener_eos"]/theTable["rho_eos"]
-	theTable.grid = (np.log10(theTable["rho_eos"][:,0]), np.log10(Eint[0,:]))
+	theTable["grid"] = (np.log10(theTable["rho_eos"][:,0]), np.log10(Eint[0,:]))
 
 	print("EOS table read successfully")
 
