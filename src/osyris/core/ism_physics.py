@@ -45,9 +45,9 @@ def read_binary_data(fmt="", offsets=None, content=None, correction=0):
 	offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
 	byte_size = {"i":4,"d":8,"q":8}
 	if len(fmt) == 1:
-	    mult = 1
+		mult = 1
 	else:
-	    mult = eval(fmt[0:len(fmt)-1])
+		mult = eval(fmt[0:len(fmt)-1])
 	pack_size = mult*byte_size[fmt[-1]]
 
 	return struct.unpack(fmt, content[offset:offset+pack_size])
@@ -98,13 +98,13 @@ def read_opacity_table(fname):
 	offsets["n"] += theTable["nx"][2]
 	offsets["d"] += 1
 	theTable["kappa_p"] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
-	            offsets=offsets),theTable["nx"],order="F")
+				offsets=offsets),theTable["nx"],order="F")
 
 	# Rosseland mean
 	offsets["n"] += array_size
 	offsets["d"] += 1
 	theTable["kappa_r"] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
-	            offsets=offsets),theTable["nx"],order="F")
+				offsets=offsets),theTable["nx"],order="F")
 
 	del data
 
@@ -140,51 +140,51 @@ def read_eos_table(fname):
 	"""
 	Read binary EOS table in fname
 	"""
-    
-    print("Loading EOS table: "+fname)
-    
-    # Read binary EOS file
-    with open(fname, mode='rb') as f:
-        data = f.read()
-    
-    # Define data fields. Note that the order is important!
-    data_fields = ["rho_eos","ener_eos","temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]
 
-    # Create table container
-    theTable = dict()
-    
-    # Initialise offset counters and start reading data
-    offsets = {"i":0, "n":0, "d":0}
-    
-    # Get table dimensions
-    theTable["nx"] = np.array(get_binary_data(fmt="2i",content=data,offsets=offsets))
-    
-    # Get table limits
-    offsets["i"] += 2
-    offsets["d"] += 1
-    [theTable["rhomin"],theTable["rhomax"],theTable["emin"],theTable["emax"],theTable["yHe"]] = \
-        get_binary_data(fmt="5d",content=data,offsets=offsets)
-        
-    array_size = np.prod(theTable["nx"])
-    array_fmt  = "%id" % array_size
-    offsets["n"] += 5
-    offsets["d"] += 1
-    
-    # Now loop through all the data fields
-    for i in range(len(data_fields)):
-        setattr(theTable,data_fields[i],np.reshape(get_binary_data(fmt=array_fmt,content=data, \
-                offsets=offsets),theTable["nx"],order="F"))
-        offsets["n"] += array_size
-        offsets["d"] += 1
-    
-    del data
-    
-    Eint = theTable["ener_eos"]/theTable["rho_eos"]
-    theTable.grid = (np.log10(theTable["rho_eos"][:,0]), np.log10(Eint[0,:]))
+	print("Loading EOS table: "+fname)
 
-    print("EOS table read successfully")
+	# Read binary EOS file
+	with open(fname, mode='rb') as f:
+	    data = f.read()
 
-    return theTable
+	# Define data fields. Note that the order is important!
+	data_fields = ["rho_eos","ener_eos","temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]
+
+	# Create table container
+	theTable = dict()
+
+	# Initialise offset counters and start reading data
+	offsets = {"i":0, "n":0, "d":0}
+
+	# Get table dimensions
+	theTable["nx"] = np.array(get_binary_data(fmt="2i",content=data,offsets=offsets))
+
+	# Get table limits
+	offsets["i"] += 2
+	offsets["d"] += 1
+	[theTable["rhomin"],theTable["rhomax"],theTable["emin"],theTable["emax"],theTable["yHe"]] = \
+		get_binary_data(fmt="5d",content=data,offsets=offsets)
+
+	array_size = np.prod(theTable["nx"])
+	array_fmt  = "%id" % array_size
+	offsets["n"] += 5
+	offsets["d"] += 1
+
+	# Now loop through all the data fields
+	for i in range(len(data_fields)):
+		theTable[data_fields[i]] = np.reshape(get_binary_data(fmt=array_fmt,content=data, \
+			offsets=offsets),theTable["nx"],order="F")
+		offsets["n"] += array_size
+		offsets["d"] += 1
+
+	del data
+
+	Eint = theTable["ener_eos"]/theTable["rho_eos"]
+	theTable.grid = (np.log10(theTable["rho_eos"][:,0]), np.log10(Eint[0,:]))
+
+	print("EOS table read successfully")
+
+	return theTable
 
 def get_eos(dataset, fname, variables=["temp_eos","pres_eos","s_eos","cs_eos","xH_eos","xH2_eos","xHe_eos","xHep_eos"]):
 	"""
