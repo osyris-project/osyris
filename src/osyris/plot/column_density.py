@@ -154,6 +154,7 @@ def column_density(*layers,
     coords_close = xyz[indices_close_to_plane]
     datax_close = np.inner(coords_close, dir_vecs[1])
     datay_close = np.inner(coords_close, dir_vecs[2])
+    dataz_close = np.inner(coords_close, dir_vecs[0])
     datadx_close = diagonal_touching
 
     if xmin is None:
@@ -164,6 +165,7 @@ def column_density(*layers,
 
     datax_touching = datax_close[touching_plane]
     datay_touching = datay_close[touching_plane]
+    dataz_touching = dataz_close[touching_plane]
 
     scalar_layer = []
     cell_variables = []  # contains the variables in cells close to the plane
@@ -211,18 +213,28 @@ def column_density(*layers,
         resolution = {'x': resolution, 'y': resolution}
     xedges = np.linspace(xmin, xmax, resolution['x'] + 1)
     yedges = np.linspace(ymin, ymax, resolution['y'] + 1)
-    zedges = np.linspace(xmin, xmax, resolution['x'] + 1)
+    depth = xmax - xmin
+    zedges = np.linspace(-0.5 * depth, 0.5 * depth, resolution['x'] + 1)
 
     # In the contour plots, x and y are the centers of the cells, instead of the edges
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 
     # First histogram the cell centers into the grid bins
-    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
-                                          y=apply_mask(datax_touching.array),
-                                          values=to_binning,
-                                          statistic="mean",
-                                          bins=[yedges, xedges])
+    # binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
+    #                                       y=apply_mask(datax_touching.array),
+    #                                       values=to_binning,
+    #                                       statistic="mean",
+    #                                       bins=[yedges, xedges])
+
+    binned, _, _ = binned_statistic_dd(sample=[
+        apply_mask(dataz_touching.array),
+        apply_mask(datay_touching.array),
+        apply_mask(datax_touching.array)
+    ],
+                                       values=to_binning,
+                                       statistic="mean",
+                                       bins=[zedges, yedges, xedges])
 
     # Next, find all the empty pixels, find the cell is lies in a apply the value
     condition = np.isnan(binned[-1])
@@ -281,18 +293,27 @@ def column_density(*layers,
     for ind in range(len(to_render)):
         # binned[counter][condition] = cell_variables[counter][indices][condition]
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
+            # to_render[ind]["data"] = ma.masked_where(mask,
+            #                                          binned[counter].sum(axis=0),
+            #                                          copy=False)
+            to_render[ind]["data"] = binned[counter].sum(axis=0)
             counter += 1
         else:
             # for j in range(counter + 1, counter + 3):
             #     binned[j][condition] = cell_variables[j][indices][condition]
-            to_render[ind]["data"] = ma.masked_where(mask_vec,
-                                                     np.array([
-                                                         binned[counter].T,
-                                                         binned[counter + 1].T,
-                                                         binned[counter + 2].T
-                                                     ]).T,
-                                                     copy=False)
+
+            to_render[ind]["data"] = np.array([
+                binned[counter].sum(axis=0).T, binned[counter + 1].sum(axis=0).T,
+                binned[counter + 2].sum(axis=0).T
+            ]).T
+
+            # to_render[ind]["data"] = ma.masked_where(
+            #     mask_vec,
+            #     np.array([
+            #         binned[counter].sum(axis=0).T, binned[counter + 1].sum(axis=0).T,
+            #         binned[counter + 2].sum(axis=0).T
+            #     ]).T,
+            #     copy=False)
             counter += 3
 
     to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
