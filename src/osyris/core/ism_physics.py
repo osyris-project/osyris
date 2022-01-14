@@ -157,13 +157,13 @@ def read_eos_table(fname):
 	offsets = {"i":0, "n":0, "d":0}
 
 	# Get table dimensions
-	theTable["nx"] = np.array(get_binary_data(fmt="2i",content=data,offsets=offsets))
+	theTable["nx"] = np.array(read_binary_data(fmt="2i",content=data,offsets=offsets))
 
 	# Get table limits
 	offsets["i"] += 2
 	offsets["d"] += 1
 	[theTable["rhomin"],theTable["rhomax"],theTable["emin"],theTable["emax"],theTable["yHe"]] = \
-		get_binary_data(fmt="5d",content=data,offsets=offsets)
+		read_binary_data(fmt="5d",content=data,offsets=offsets)
 
 	array_size = np.prod(theTable["nx"])
 	array_fmt  = "%id" % array_size
@@ -172,7 +172,7 @@ def read_eos_table(fname):
 
 	# Now loop through all the data fields
 	for i in range(len(data_fields)):
-		theTable[data_fields[i]] = np.reshape(get_binary_data(fmt=array_fmt,content=data, \
+		theTable[data_fields[i]] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
 			offsets=offsets),theTable["nx"],order="F")
 		offsets["n"] += array_size
 		offsets["d"] += 1
