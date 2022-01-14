@@ -65,6 +65,7 @@ def get_unit(string, ud, ul, ut):
         'pressure': energy,
         'radiative_energy': energy,
         'radiative_energy_1': energy,
+        'internal_energy' : energy,
         'rad_force_x' : acceleration,
         'rad_force_y' : acceleration,
         'rad_force_z' : acceleration,
