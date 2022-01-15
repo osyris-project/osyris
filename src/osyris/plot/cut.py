@@ -10,7 +10,7 @@ from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
-from .histogram import histogram
+from .histogram import histogram, interpolate
 # from scipy.stats import binned_statistic_2d
 
 
@@ -220,12 +220,36 @@ def cut(*layers,
     # print((2.0 * datadx_touching).shape)
     # print(np.array(to_binning).shape)
 
-    binned = histogram(x=apply_mask(datax_touching.array),
-                       y=apply_mask(datay_touching.array),
-                       values=np.array(to_binning),
-                       sizes=2.0 * datadx_touching,
-                       xbins=xedges,
-                       ybins=yedges)
+    # binned = histogram(x=apply_mask(datax_touching.array),
+    #                    y=apply_mask(datay_touching.array),
+    #                    values=np.array(to_binning),
+    #                    sizes=2.0 * datadx_touching,
+    #                    xbins=xedges,
+    #                    ybins=yedges,
+    #                    ndim=dataset.meta["ndim"])
+
+    xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
+    # Make array of cell indices (in original array of cells) with image shape
+    # indices = np.zeros_like(binned[-1], dtype=int)
+    # # We also need a mask for pixels that find no cells (outside of the data range)
+    # mask = np.zeros_like(binned[-1], dtype=bool)
+
+    pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
+        ygrid.shape + (1, )) * dir_vecs[2]
+
+    coords = coords_close.array
+
+    print(pixel_positions.shape)
+    print(coords.shape)
+
+    out = interpolate(sampling_positions=pixel_positions.reshape(
+        resolution['y'] * resolution['x'], 3),
+                      cell_positions=coords,
+                      cell_sizes=datadx_close.array,
+                      cell_values=np.array(cell_variables))
+
+    print(out.shape)
+    binned = out.reshape(out.shape[0], resolution['y'], resolution['x'])
 
     # print(binned)
 
