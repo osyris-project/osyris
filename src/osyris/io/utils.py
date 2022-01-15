@@ -124,7 +124,7 @@ def make_vector_arrays(data, ndim):
                         rawkey = "xyz"
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
-                        unit=data[key].unit)
+                                         unit=data[key].unit)
                     delete += comp_list
         for key in delete:
             del data[key]
