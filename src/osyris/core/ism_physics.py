@@ -7,7 +7,7 @@ This file aims to re-introduce the ism_physics routines of osiris into Osyris.
 To do:
 -Opacities reader DONE
 -Resistivities reader
--EOS reader
+-EOS reader DONE
 """
 
 import struct
@@ -28,31 +28,6 @@ def ism_interpolate(table_container=None, values=[0], points=[0], in_log=False):
 	else:
 		return np.power(10.0, func(points))
 
-def read_binary_data(fmt="", offsets=None, content=None, correction=0):
-
-	if offsets is not None:
-		ninteg = offsets["i"]
-		nfloat = offsets["n"]
-		nlines = offsets["d"]
-	else:
-		ninteg = 0
-		nfloat = 0
-		nlines = 0
-	nstrin = 0
-	nquadr = 0
-	nlongi = 0
-
-	offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16 + 4 + correction
-	byte_size = {"i":4,"d":8,"q":8}
-	if len(fmt) == 1:
-		mult = 1
-	else:
-		mult = eval(fmt[0:len(fmt)-1])
-	pack_size = mult*byte_size[fmt[-1]]
-
-	return struct.unpack(fmt, content[offset:offset+pack_size])
-
-
 def read_opacity_table(fname):
 	"""
 	Read binary opacity table in fname.
@@ -70,7 +45,7 @@ def read_opacity_table(fname):
 	offsets = {"i":0, "n":0, "d":0}
 
 	# Get table dimensions
-	theTable["nx"] = np.array(read_binary_data(fmt="3i",content=data))
+	theTable["nx"] = np.array(utils.read_binary_data(fmt="3i",content=data,increment=False))
 
 	# Read table coordinates:
 
@@ -78,17 +53,20 @@ def read_opacity_table(fname):
 	offsets["i"] += 3
 	offsets["n"] += 9
 	offsets["d"] += 1
-	theTable["dens"] = read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets)
+	theTable["dens"] = utils.read_binary_data(fmt="%id"%theTable["nx"][0],content=data,offsets=offsets,increment=False)
+	offsets["n"] -= 1
 
 	# y: gas temperature
 	offsets["n"] += theTable["nx"][0]
 	offsets["d"] += 1
-	theTable["tgas"] = read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets)
+	theTable["tgas"] = utils.read_binary_data(fmt="%id"%theTable["nx"][1],content=data,offsets=offsets,increment=False)
+	offsets["n"] -= 1
 
 	# z: radiation temperature
 	offsets["n"] += theTable["nx"][1]
 	offsets["d"] += 1
-	theTable["trad"] = read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets)
+	theTable["trad"] = utils.read_binary_data(fmt="%id"%theTable["nx"][2],content=data,offsets=offsets,increment=False)
+	offsets["n"] -= 1
 
 	# Now read opacities
 	array_size = np.prod(theTable["nx"])
@@ -97,14 +75,16 @@ def read_opacity_table(fname):
 	# Planck mean
 	offsets["n"] += theTable["nx"][2]
 	offsets["d"] += 1
-	theTable["kappa_p"] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
-				offsets=offsets),theTable["nx"],order="F")
+	theTable["kappa_p"] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
+				offsets=offsets,increment=False),theTable["nx"],order="F")
+	offsets["n"] -= 1
 
 	# Rosseland mean
 	offsets["n"] += array_size
 	offsets["d"] += 1
-	theTable["kappa_r"] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
-				offsets=offsets),theTable["nx"],order="F")
+	theTable["kappa_r"] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
+				offsets=offsets,increment=False),theTable["nx"],order="F")
+	offsets["n"] -= 1
 
 	del data
 
@@ -157,13 +137,14 @@ def read_eos_table(fname):
 	offsets = {"i":0, "n":0, "d":0}
 
 	# Get table dimensions
-	theTable["nx"] = np.array(read_binary_data(fmt="2i",content=data,offsets=offsets))
+	theTable["nx"] = np.array(utils.read_binary_data(fmt="2i",content=data, increment=False))
 
 	# Get table limits
 	offsets["i"] += 2
 	offsets["d"] += 1
 	[theTable["rhomin"],theTable["rhomax"],theTable["emin"],theTable["emax"],theTable["yHe"]] = \
-		read_binary_data(fmt="5d",content=data,offsets=offsets)
+		utils.read_binary_data(fmt="5d",content=data,offsets=offsets, increment=False)
+	offsets["n"] -= 1
 
 	array_size = np.prod(theTable["nx"])
 	array_fmt  = "%id" % array_size
@@ -172,9 +153,10 @@ def read_eos_table(fname):
 
 	# Now loop through all the data fields
 	for i in range(len(data_fields)):
-		theTable[data_fields[i]] = np.reshape(read_binary_data(fmt=array_fmt,content=data, \
-			offsets=offsets),theTable["nx"],order="F")
+		theTable[data_fields[i]] = np.reshape(utils.read_binary_data(fmt=array_fmt,content=data, \
+			offsets=offsets, increment=False),theTable["nx"],order="F")
 		offsets["n"] += array_size
+		offsets["n"] -= 1
 		offsets["d"] += 1
 
 	del data
@@ -190,8 +172,6 @@ def get_eos(dataset, fname, variables={"temp_eos":"K","pres_eos":"dyn/cm^2","s_e
 	"""
 	Create EOS variables from interpolation of eos table values in fname.
 	"""
-
-	eos_table_units = {}
 
 	if dataset.meta["eos"] == 0:
 		print("Simulation data did not use a tabulated EOS. Exiting.")
