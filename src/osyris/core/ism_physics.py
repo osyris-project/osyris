@@ -216,8 +216,7 @@ def get_eos(
         "xH_eos": None,
         "xH2_eos": None,
         "xHe_eos": None,
-        "xHep_eos": None
-    }):
+        "xHep_eos": None}):
     """
     Create EOS variables from interpolation of eos table values in fname.
     """
