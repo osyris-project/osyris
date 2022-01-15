@@ -65,6 +65,10 @@ def get_unit(string, ud, ul, ut):
         'pressure': energy,
         'radiative_energy': energy,
         'radiative_energy_1': energy,
+        'internal_energy' : energy,
+        'rad_force_x' : acceleration,
+        'rad_force_y' : acceleration,
+        'rad_force_z' : acceleration,
         'temperature': 1.0 * ureg.K,
         'time': time,
         'x': length,
@@ -85,6 +89,7 @@ def additional_units():
     Define additional useful ureg and constants
     """
     ureg.define('solar_mass = 1.9889e+33 * g = msun')
+    ureg.define('solar_luminosity = 3.83e+26 * watt = lsun')
     ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 

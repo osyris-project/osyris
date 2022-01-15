@@ -49,6 +49,49 @@ def read_parameter_file(fname=None, delimiter="="):
     return out
 
 
+def parse_units(s):
+    """
+    Parse the units of string s into pint units
+    """
+    if s == "Msol/y":
+        return 1.*units.msun/units.year
+    elif s == "Msol":
+        return 1.*units.msun
+    elif s == "Lsol":
+        return 1.*units.lsun
+    elif s == "y":
+        return 1.*units.year
+    elif s == "K":
+        return 1.*units.K
+
+
+def read_sink_info(fname=None):
+    """
+    Read info file and return variable names dictionary.
+    """
+    variables = {}  # var name and units in this dictionary
+    with open(fname, 'r') as f:
+        data = f.readlines()
+    for var in data[2].split():
+        if "[" not in var:
+            if var in ["x","y","z"]:
+                variables[var] = 1.*units.cm
+            elif var in ["vx","vy","vz"]:
+                variables[var] = 1.*units.cm/units.s
+            else:
+                # dimensionless unit
+                if "/" in var:
+                    var_name = var[:var.find("/")]  # case where units are scaled (eg. lx/|l|)
+                else:
+                    var_name = var
+                variables[var_name] = 1.*units.dimensionless
+        else:
+            var_name = var[:var.find("[")]  # remove units from string
+            unit = parse_units(var[var.find("[")+1:var.find("]")])  # unit string
+            variables[var_name] = unit
+    return variables
+
+
 def read_binary_data(content=None,
                      fmt=None,
                      offsets=None,
@@ -73,24 +116,21 @@ def read_binary_data(content=None,
         "s": 1
     }
 
-    offset = 0
-    for key in offsets:
-        offset += offsets[key] * byte_size[key]
-    # if offset is None:
-    #     offset = 4*ninteg + 8*(nlines+nfloat+nlongi) + nstrin + nquadr*16
-    if skip_head:
-        offset += 4  # + correction
-
-    # byte_size = {"b": 1 , "h": 2, "i": 4, "q": 8, "f": 4, "d": 8, "e": 8}
     if len(fmt) == 1:
         mult = 1
     else:
         mult = int(fmt[:-1])
     pack_size = mult * byte_size[fmt[-1]]
 
-    if increment:
-        offsets[fmt[-1]] += mult
-    offsets["n"] += 1
+    offset = 0
+    if offsets is not None:
+        for key in offsets:
+            offset += offsets[key] * byte_size[key]
+        if increment:
+            offsets[fmt[-1]] += mult
+        offsets["n"] += 1
+    if skip_head:
+        offset += 4
 
     return struct.unpack(fmt, content[offset:offset + pack_size])
 
