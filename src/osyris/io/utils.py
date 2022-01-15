@@ -49,49 +49,6 @@ def read_parameter_file(fname=None, delimiter="="):
     return out
 
 
-def parse_units(s):
-    """
-    Parse the units of string s into pint units
-    """
-    if s == "Msol/y":
-        return 1.*units.msun/units.year
-    elif s == "Msol":
-        return 1.*units.msun
-    elif s == "Lsol":
-        return 1.*units.lsun
-    elif s == "y":
-        return 1.*units.year
-    elif s == "K":
-        return 1.*units.K
-
-
-def read_sink_info(fname=None):
-    """
-    Read info file and return variable names dictionary.
-    """
-    variables = {}  # var name and units in this dictionary
-    with open(fname, 'r') as f:
-        data = f.readlines()
-    for var in data[2].split():
-        if "[" not in var:
-            if var in ["x","y","z"]:
-                variables[var] = 1.*units.cm
-            elif var in ["vx","vy","vz"]:
-                variables[var] = 1.*units.cm/units.s
-            else:
-                # dimensionless unit
-                if "/" in var:
-                    var_name = var[:var.find("/")]  # case where units are scaled (eg. lx/|l|)
-                else:
-                    var_name = var
-                variables[var_name] = 1.*units.dimensionless
-        else:
-            var_name = var[:var.find("[")]  # remove units from string
-            unit = parse_units(var[var.find("[")+1:var.find("]")])  # unit string
-            variables[var_name] = unit
-    return variables
-
-
 def read_binary_data(content=None,
                      fmt=None,
                      offsets=None,
@@ -167,7 +124,7 @@ def make_vector_arrays(data, ndim):
                         rawkey = "xyz"
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
-                                         unit=data[key].unit)
+                        unit=data[key].unit)
                     delete += comp_list
         for key in delete:
             del data[key]
