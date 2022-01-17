@@ -10,7 +10,7 @@ from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import to_bin_centers, apply_mask
-from .histogram import histogram, interpolate
+from .histogram import histogram, interpolate, hist_and_fill
 # from scipy.stats import binned_statistic_2d
 
 
@@ -214,11 +214,11 @@ def cut(*layers,
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
 
-    # print("just before binned")
-    # print(apply_mask(datax_touching.array).shape)
-    # print(apply_mask(datay_touching.array).shape)
-    # print((2.0 * datadx_touching).shape)
-    # print(np.array(to_binning).shape)
+    # # print("just before binned")
+    # # print(apply_mask(datax_touching.array).shape)
+    # # print(apply_mask(datay_touching.array).shape)
+    # # print((2.0 * datadx_touching).shape)
+    # # print(np.array(to_binning).shape)
 
     # binned = histogram(x=apply_mask(datax_touching.array),
     #                    y=apply_mask(datay_touching.array),
@@ -239,17 +239,27 @@ def cut(*layers,
 
     coords = coords_close.array
 
-    print(pixel_positions.shape)
-    print(coords.shape)
+    # print(pixel_positions.shape)
+    # print(coords.shape)
 
-    out = interpolate(sampling_positions=pixel_positions.reshape(
-        resolution['y'] * resolution['x'], 3),
-                      cell_positions=coords,
-                      cell_sizes=datadx_close.array,
-                      cell_values=np.array(cell_variables))
+    # out = interpolate(sampling_positions=pixel_positions.reshape(
+    #     resolution['y'] * resolution['x'], 3),
+    #                   cell_positions=coords,
+    #                   cell_sizes=datadx_close.array,
+    #                   cell_values=np.array(cell_variables))
 
-    print(out.shape)
-    binned = out.reshape(out.shape[0], resolution['y'], resolution['x'])
+    # print(out.shape)
+    # binned = out.reshape(out.shape[0], resolution['y'], resolution['x'])
+
+    binned = hist_and_fill(x=apply_mask(datax_close.array),
+                           y=apply_mask(datay_close.array),
+                           values=np.array(cell_variables),
+                           sizes=datadx_close.array,
+                           xbins=xedges,
+                           ybins=yedges,
+                           ndim=dataset.meta["ndim"],
+                           sampling_positions=pixel_positions,
+                           cell_positions=coords)
 
     # print(binned)
 
