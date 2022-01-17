@@ -9,8 +9,8 @@ from .render import render
 from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
-from ..core.tools import to_bin_centers, apply_mask
-from scipy.stats import binned_statistic_2d
+from ..core.tools import apply_mask
+from .utils import evaluate_on_grid
 
 
 def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
@@ -50,22 +50,22 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
-def plane(*layers,
-          direction="z",
-          dx=None,
-          dy=None,
-          fname=None,
-          title=None,
-          plot=True,
-          mode=None,
-          norm=None,
-          vmin=None,
-          vmax=None,
-          operation="mean",
-          origin=None,
-          resolution=256,
-          ax=None,
-          **kwargs):
+def cut(*layers,
+        direction="z",
+        dx=None,
+        dy=None,
+        fname=None,
+        title=None,
+        plot=True,
+        mode=None,
+        norm=None,
+        vmin=None,
+        vmax=None,
+        operation="mean",
+        origin=None,
+        resolution=256,
+        ax=None,
+        **kwargs):
     """
     Plot a 2D slice through the data domain.
     """
@@ -115,12 +115,12 @@ def plane(*layers,
 
     # Distance to the plane
     xyz = dataset["amr"]["xyz"] - origin
-    diagonal_close = dataset["amr"]["dx"] * 0.5 * np.sqrt(dataset.meta["ndim"])
-    dist_close = np.sum(xyz * dir_vecs[0], axis=1)
+    diagonal = dataset["amr"]["dx"] * 0.5 * np.sqrt(dataset.meta["ndim"])
+    dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
-    # Select cells in close to the plane, including factor of sqrt(ndim)
-    close_to_plane = np.ravel(np.where(np.abs(dist_close) <= diagonal_close))
+    # Select cells close to the plane, including factor of sqrt(ndim)
+    close_to_plane = np.ravel(np.where(np.abs(dist_to_plane) <= diagonal))
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -142,29 +142,20 @@ def plane(*layers,
                 0.6 * np.sqrt(2.0)))
         indices_close_to_plane = indices_close_to_plane[radial_selection]
 
-    # Select cells touching the plane, excluding factor of sqrt(ndim)
-    dist_touching = np.sum(xyz[indices_close_to_plane] * dir_vecs[0], axis=1)
-    diagonal_touching = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
-    touching_plane = np.ravel(np.where(np.abs(dist_touching) <= diagonal_touching))
-
     # Project coordinates onto the plane by taking dot product with axes vectors
-    coords_close = xyz[indices_close_to_plane]
-    datax_close = np.inner(coords_close, dir_vecs[1])
-    datay_close = np.inner(coords_close, dir_vecs[2])
-    datadx_close = diagonal_touching
+    coords = xyz[indices_close_to_plane]
+    datax = np.inner(coords, dir_vecs[1])
+    datay = np.inner(coords, dir_vecs[2])
+    datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
 
     if xmin is None:
-        xmin = (datax_close - datadx_close).min().values
-        xmax = (datax_close + datadx_close).max().values
-        ymin = (datay_close - datadx_close).min().values
-        ymax = (datay_close + datadx_close).max().values
-
-    datax_touching = datax_close[touching_plane]
-    datay_touching = datay_close[touching_plane]
+        xmin = (datax - datadx).min().values
+        xmax = (datax + datadx).max().values
+        ymin = (datay - datadx).min().values
+        ymax = (datay + datadx).max().values
 
     scalar_layer = []
-    cell_variables = []  # contains the variables in cells close to the plane
-    to_binning = []  # a subset of cell_variables for only cells actually touching plane
+    to_binning = []  # contains the variables in cells close to the plane
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
             if to_process[ind].ndim < 3:
@@ -183,111 +174,58 @@ def plane(*layers,
                 w = np.linalg.norm(uv, axis=1)
             else:
                 w = w.take(indices_close_to_plane, axis=0)
-            vec_u = apply_mask(uv[:, 0])
-            vec_v = apply_mask(uv[:, 1])
-            vec_w = apply_mask(w)
-            cell_variables.append(vec_u)
-            cell_variables.append(vec_v)
-            cell_variables.append(vec_w)
+            to_binning.append(apply_mask(uv[:, 0]))
+            to_binning.append(apply_mask(uv[:, 1]))
+            to_binning.append(w)
             scalar_layer.append(False)
-            to_binning.append(vec_u[touching_plane])
-            to_binning.append(vec_v[touching_plane])
-            to_binning.append(vec_w[touching_plane])
         else:
-            var = apply_mask(to_process[ind].norm.values[indices_close_to_plane])
-            cell_variables.append(var)
+            to_binning.append(
+                apply_mask(to_process[ind].norm.values[indices_close_to_plane]))
             scalar_layer.append(True)
-            to_binning.append(var[touching_plane])
 
-    # Buffer for counts
-    to_binning.append(np.ones_like(to_binning[0]))
-
-    # Construct some bin edges
+    # Create a grid of pixel centers
     if isinstance(resolution, int):
         resolution = {'x': resolution, 'y': resolution}
-    xedges = np.linspace(xmin, xmax, resolution['x'] + 1)
-    yedges = np.linspace(ymin, ymax, resolution['y'] + 1)
+    xspacing = (xmax - xmin) / (resolution['x'] + 1)
+    yspacing = (ymax - ymin) / (resolution['y'] + 1)
 
-    # In the contour plots, x and y are the centers of the cells, instead of the edges
-    xcenters = to_bin_centers(xedges)
-    ycenters = to_bin_centers(yedges)
-
-    # First histogram the cell centers into the grid bins
-    binned, _, _, _ = binned_statistic_2d(x=apply_mask(datay_touching.array),
-                                          y=apply_mask(datax_touching.array),
-                                          values=to_binning,
-                                          statistic="mean",
-                                          bins=[yedges, xedges])
-
-    # Next, find all the empty pixels, find the cell is lies in a apply the value
-    condition = np.isnan(binned[-1])
+    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
+                           resolution['x'])
+    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
+                           resolution['y'])
     xgrid, ygrid = np.meshgrid(xcenters, ycenters, indexing='xy')
-    # Make array of cell indices (in original array of cells) with image shape
-    indices = np.zeros_like(binned[-1], dtype=int)
-    # We also need a mask for pixels that find no cells (outside of the data range)
-    mask = np.zeros_like(binned[-1], dtype=bool)
-
     pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
         ygrid.shape + (1, )) * dir_vecs[2]
-    # We only need to search in the cells above a certain size
-    large_cells = np.ravel(
-        np.where(datadx_close >= 0.25 *
-                 (min(xedges[1] - xedges[0], yedges[1] - yedges[0]))))
-    coords = coords_close[large_cells]
-    large_cells_dx = datadx_close.array[large_cells]
-    large_cells_indices = np.arange(len(datadx_close))[large_cells]
 
-    # To keep memory usage down to a minimum, we process the image one column at a time
-    for i in range(indices.shape[-1]):
-        # We know we are looking only at a column of cells, so we make a line from the
-        # two end points (x1, x2), compute distance to the line to filter out the cells
-        x1 = pixel_positions[0, i, :]
-        x2 = pixel_positions[-1, i, :]
-        x0_minus_x1 = coords.array - x1
-        x0_minus_x2 = coords.array - x2
-        x2_minus_x1 = x2 - x1
-        distance_to_line = np.cross(x0_minus_x1, x0_minus_x2)
-        if distance_to_line.ndim > 1:
-            distance_to_line = np.linalg.norm(distance_to_line, axis=-1)
-        else:
-            distance_to_line = np.abs(distance_to_line)
-        distance_to_line /= np.linalg.norm(x2_minus_x1)
-        column = np.ravel(np.where(distance_to_line <= np.sqrt(3.0) * large_cells_dx))
+    # Evaluate the values of the data layers at the grid positions
+    binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
+        [apply_mask(datax.array), apply_mask(datay.array)]).T,
+                              cell_positions_in_original_basis=coords.array,
+                              cell_values=np.array(to_binning),
+                              cell_sizes=datadx.array,
+                              grid_lower_edge_in_new_basis=np.array([xmin, ymin]),
+                              grid_spacing_in_new_basis=np.array([xspacing, yspacing]),
+                              grid_positions_in_original_basis=pixel_positions,
+                              ndim=dataset.meta["ndim"])
 
-        if len(column) > 0:
-            distance_to_cell = []
-            for n, c in enumerate("xyz"[:xyz.ndim]):
-                distance_to_cell.append(pixel_positions[..., i, n:n + 1] -
-                                        getattr(coords, c).array[column])
-            # Find the cell where the x, y, z distance is smaller than dx/2
-            inds = np.logical_and.reduce(
-                [np.abs(d) <= large_cells_dx[column] for d in distance_to_cell])
-            # print(inds.shape)
-            index_found = inds.max(axis=-1)
-            # print(index_found)
-            index_value = large_cells_indices[column][inds.argmax(axis=-1)]
-            indices[:, i][index_found] = index_value[index_found]
-            mask[:, i][np.logical_and(~index_found, condition[:, i])] = True
-        else:
-            mask[:, i][condition[:, i]] = True
-
+    # Mask NaN values
+    mask = np.isnan(binned[-1, ...])
     mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3, ))
 
     # Now we fill the arrays to be sent to the renderer, also constructing vectors
     counter = 0
     for ind in range(len(to_render)):
-        binned[counter][condition] = cell_variables[counter][indices][condition]
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(mask, binned[counter], copy=False)
+            to_render[ind]["data"] = ma.masked_where(mask,
+                                                     binned[counter, ...],
+                                                     copy=False)
             counter += 1
         else:
-            for j in range(counter + 1, counter + 3):
-                binned[j][condition] = cell_variables[j][indices][condition]
             to_render[ind]["data"] = ma.masked_where(mask_vec,
                                                      np.array([
-                                                         binned[counter].T,
-                                                         binned[counter + 1].T,
-                                                         binned[counter + 2].T
+                                                         binned[counter, ...].T,
+                                                         binned[counter + 1, ...].T,
+                                                         binned[counter + 2, ...].T
                                                      ]).T,
                                                      copy=False)
             counter += 3
