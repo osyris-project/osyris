@@ -50,22 +50,21 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
-def cut(*layers,
-        direction="z",
-        dx=None,
-        dy=None,
-        fname=None,
-        title=None,
-        plot=True,
-        mode=None,
-        norm=None,
-        vmin=None,
-        vmax=None,
-        operation="mean",
-        origin=None,
-        resolution=256,
-        ax=None,
-        **kwargs):
+def plane(*layers,
+          direction="z",
+          dx=None,
+          dy=None,
+          fname=None,
+          title=None,
+          plot=True,
+          mode=None,
+          norm=None,
+          vmin=None,
+          vmax=None,
+          origin=None,
+          resolution=256,
+          ax=None,
+          **kwargs):
     """
     Plot a 2D slice through the data domain.
     """
@@ -83,7 +82,6 @@ def cut(*layers,
                                              norm=norm,
                                              vmin=vmin,
                                              vmax=vmax,
-                                             operation=operation,
                                              **kwargs)
         if settings["mode"] == "scatter":
             to_scatter.append({"data": data, "params": params})
