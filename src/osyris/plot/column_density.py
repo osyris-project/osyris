@@ -205,7 +205,10 @@ def column_density(*layers,
                            resolution['y'])
     zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
                            resolution['z'])
-    xgrid, ygrid, zgrid = np.meshgrid(xcenters, ycenters, zcenters, indexing='xy')
+    xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
+    xgrid = xg.T
+    ygrid = yg.T
+    zgrid = zg.T
     pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
         ygrid.shape + (1, )) * dir_vecs[2] + zgrid.reshape(zgrid.shape +
                                                            (1, )) * dir_vecs[0]

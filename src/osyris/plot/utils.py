@@ -65,21 +65,24 @@ def evaluate_on_grid_3d(cell_positions_in_new_basis, cell_positions_in_original_
         half_size = cell_sizes[n] * diagonal
         ix1 = max(
             int(((cell_positions_in_new_basis[n, 0] - half_size) -
-                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]), 0)
+                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) - 1,
+            0)
         ix2 = min(
             int(((cell_positions_in_new_basis[n, 0] + half_size) -
                  grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) + 1,
             nx)
         iy1 = max(
             int(((cell_positions_in_new_basis[n, 1] - half_size) -
-                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]), 0)
+                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) - 1,
+            0)
         iy2 = min(
             int(((cell_positions_in_new_basis[n, 1] + half_size) -
                  grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) + 1,
             ny)
         iz1 = max(
             int(((cell_positions_in_new_basis[n, 2] - half_size) -
-                 grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]), 0)
+                 grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]) - 1,
+            0)
         iz2 = min(
             int(((cell_positions_in_new_basis[n, 2] + half_size) -
                  grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]) + 1,
