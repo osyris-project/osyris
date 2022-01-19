@@ -205,6 +205,7 @@ def column_density(*layers,
                            resolution['y'])
     zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
                            resolution['z'])
+
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
     xgrid = xg.T
     ygrid = yg.T
@@ -225,9 +226,7 @@ def column_density(*layers,
         grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
         grid_spacing_in_new_basis=np.array([xspacing, yspacing, zspacing]),
         grid_positions_in_original_basis=pixel_positions,
-        ndim=dataset.meta["ndim"]).sum(axis=0)
-
-    # binned = binned.sum(axis=0)
+        ndim=dataset.meta["ndim"]).sum(axis=1)
 
     # Mask NaN values
     mask = np.isnan(binned[-1, ...])
