@@ -184,8 +184,8 @@ def plane(*layers,
     # Create a grid of pixel centers
     if isinstance(resolution, int):
         resolution = {'x': resolution, 'y': resolution}
-    xspacing = (xmax - xmin) / (resolution['x'] + 1)
-    yspacing = (ymax - ymin) / (resolution['y'] + 1)
+    xspacing = (xmax - xmin) / resolution['x']
+    yspacing = (ymax - ymin) / resolution['y']
 
     xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
                            resolution['x'])

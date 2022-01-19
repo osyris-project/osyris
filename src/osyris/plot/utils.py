@@ -2,10 +2,10 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
-import numba
+from numba import njit, prange
 
 
-@numba.jit(nopython=True)
+@njit(parallel=True)
 def evaluate_on_grid(cell_positions_in_new_basis, cell_positions_in_original_basis,
                      cell_values, cell_sizes, grid_lower_edge_in_new_basis,
                      grid_spacing_in_new_basis, grid_positions_in_original_basis, ndim):
@@ -17,21 +17,19 @@ def evaluate_on_grid(cell_positions_in_new_basis, cell_positions_in_original_bas
                   dtype=np.float64)
 
     ncells = cell_positions_in_new_basis.shape[0]
-    for n in range(ncells):
+    for n in prange(ncells):
 
         half_size = cell_sizes[n] * diagonal
         ix1 = max(
             int(((cell_positions_in_new_basis[n, 0] - half_size) -
-                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) - 1,
-            0)
+                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]), 0)
         ix2 = min(
             int(((cell_positions_in_new_basis[n, 0] + half_size) -
                  grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) + 1,
             nx)
         iy1 = max(
             int(((cell_positions_in_new_basis[n, 1] - half_size) -
-                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) - 1,
-            0)
+                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]), 0)
         iy2 = min(
             int(((cell_positions_in_new_basis[n, 1] + half_size) -
                  grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) + 1,
@@ -47,7 +45,7 @@ def evaluate_on_grid(cell_positions_in_new_basis, cell_positions_in_original_bas
     return out
 
 
-@numba.jit(nopython=True)
+@njit(parallel=True)
 def evaluate_on_grid_3d(cell_positions_in_new_basis, cell_positions_in_original_basis,
                         cell_values, cell_sizes, grid_lower_edge_in_new_basis,
                         grid_spacing_in_new_basis, grid_positions_in_original_basis,
@@ -60,29 +58,26 @@ def evaluate_on_grid_3d(cell_positions_in_new_basis, cell_positions_in_original_
                   dtype=np.float64)
 
     ncells = cell_positions_in_new_basis.shape[0]
-    for n in range(ncells):
+    for n in prange(ncells):
 
         half_size = cell_sizes[n] * diagonal
         ix1 = max(
             int(((cell_positions_in_new_basis[n, 0] - half_size) -
-                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) - 1,
-            0)
+                 grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]), 0)
         ix2 = min(
             int(((cell_positions_in_new_basis[n, 0] + half_size) -
                  grid_lower_edge_in_new_basis[0]) / grid_spacing_in_new_basis[0]) + 1,
             nx)
         iy1 = max(
             int(((cell_positions_in_new_basis[n, 1] - half_size) -
-                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) - 1,
-            0)
+                 grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]), 0)
         iy2 = min(
             int(((cell_positions_in_new_basis[n, 1] + half_size) -
                  grid_lower_edge_in_new_basis[1]) / grid_spacing_in_new_basis[1]) + 1,
             ny)
         iz1 = max(
             int(((cell_positions_in_new_basis[n, 2] - half_size) -
-                 grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]) - 1,
-            0)
+                 grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]), 0)
         iz2 = min(
             int(((cell_positions_in_new_basis[n, 2] + half_size) -
                  grid_lower_edge_in_new_basis[2]) / grid_spacing_in_new_basis[2]) + 1,
