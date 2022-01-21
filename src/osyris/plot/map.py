@@ -10,7 +10,7 @@ from .scatter import scatter
 from .parser import parse_layer
 from ..core import Plot, Array
 from ..core.tools import apply_mask
-from .utils import evaluate_on_grid_3d
+from .utils import evaluate_on_grid
 
 
 def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
@@ -217,18 +217,18 @@ def map(*layers,
                                                            (1, )) * dir_vecs[0]
 
     # Evaluate the values of the data layers at the grid positions
-    binned = evaluate_on_grid_3d(
-        cell_positions_in_new_basis=np.array(
-            [apply_mask(datax.array),
-             apply_mask(datay.array),
-             apply_mask(dataz.array)]).T,
-        cell_positions_in_original_basis=coords.array,
-        cell_values=np.array(to_binning),
-        cell_sizes=datadx.array,
-        grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
-        grid_spacing_in_new_basis=np.array([xspacing, yspacing, zspacing]),
-        grid_positions_in_original_basis=pixel_positions,
-        ndim=dataset.meta["ndim"])
+    binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
+        [apply_mask(datax.array),
+         apply_mask(datay.array),
+         apply_mask(dataz.array)]).T,
+                              cell_positions_in_original_basis=coords.array,
+                              cell_values=np.array(to_binning),
+                              cell_sizes=datadx.array,
+                              grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
+                              grid_spacing_in_new_basis=np.array(
+                                  [xspacing, yspacing, zspacing]),
+                              grid_positions_in_original_basis=pixel_positions,
+                              ndim=dataset.meta["ndim"])
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
