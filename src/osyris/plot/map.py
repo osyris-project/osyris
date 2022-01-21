@@ -50,24 +50,27 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
-def column_density(*layers,
-                   direction="z",
-                   dx=None,
-                   dy=None,
-                   dz=None,
-                   fname=None,
-                   title=None,
-                   plot=True,
-                   mode=None,
-                   norm=None,
-                   vmin=None,
-                   vmax=None,
-                   origin=None,
-                   resolution=256,
-                   ax=None,
-                   **kwargs):
+def map(*layers,
+        direction="z",
+        dx=None,
+        dy=None,
+        dz=None,
+        fname=None,
+        title=None,
+        plot=True,
+        mode=None,
+        norm=None,
+        vmin=None,
+        vmax=None,
+        origin=None,
+        resolution=256,
+        operation="sum",
+        ax=None,
+        **kwargs):
     """
-    Plot a 2D slice through the data domain.
+    If `dz` is `None`, make a 2D slice through the data domain.
+    If `dz` is not `None`, make a 3D data cube, which then gets flattened along the z
+    direction.
     """
 
     if isinstance(layers, Array):
@@ -75,7 +78,6 @@ def column_density(*layers,
 
     to_process = []
     to_render = []
-    operations = []
     to_scatter = []
     for layer in layers:
         data, settings, params = parse_layer(layer=layer,
@@ -94,11 +96,16 @@ def column_density(*layers,
                 "unit": data.unit.units,
                 "name": data.name
             })
-            operations.append(settings["operation"])
 
     dataset = to_process[0].parent.parent
 
+    thick = dz is not None
+
     # Set window size
+    if isinstance(resolution, int):
+        res = {'x': resolution, 'y': resolution}
+        res['z'] = 1 if dz is None else resolution
+
     if dy is None:
         dy = dx
     if dz is None:
@@ -117,14 +124,14 @@ def column_density(*layers,
                                            origin=origin)
 
     # Distance to the plane
+    diagonal = np.sqrt(dataset.meta["ndim"])
     xyz = dataset["amr"]["xyz"] - origin
-    diagonal = dataset["amr"]["dx"] * 0.5 * np.sqrt(dataset.meta["ndim"])
+    selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
-    close_to_plane = np.ravel(
-        np.where(np.abs(dist_to_plane) <= 0.5 * dz * np.sqrt(dataset.meta["ndim"])))
+    close_to_plane = np.ravel(np.where(np.abs(dist_to_plane) <= selection_distance))
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -141,11 +148,11 @@ def column_density(*layers,
         zmax = zmin + dz.magnitude
         # Limit selection further by using distance from center
         radial_distance = xyz[indices_close_to_plane] - 0.5 * dataset["amr"]["dx"][
-            indices_close_to_plane] * np.sqrt(dataset.meta["ndim"])
+            indices_close_to_plane] * diagonal
         radial_selection = np.ravel(
             np.where(
                 np.abs(radial_distance.norm.values) <=
-                max(dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * np.sqrt(2.0)))
+                max(dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal))
         indices_close_to_plane = indices_close_to_plane[radial_selection]
 
     # Project coordinates onto the plane by taking dot product with axes vectors
@@ -193,21 +200,13 @@ def column_density(*layers,
             scalar_layer.append(True)
 
     # Create a grid of pixel centers
-    if isinstance(resolution, int):
-        resolution = {'x': resolution, 'y': resolution, 'z': resolution}
-    xspacing = (xmax - xmin) / resolution['x']
-    yspacing = (ymax - ymin) / resolution['y']
-    zspacing = (zmax - zmin) / resolution['z']
+    xspacing = (xmax - xmin) / res['x']
+    yspacing = (ymax - ymin) / res['y']
+    zspacing = (zmax - zmin) / res['z']
 
-    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
-                           resolution['x'])
-    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
-                           resolution['y'])
-    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
-                           resolution['z'])
-    print(zmin, zmax)
-    print(zspacing)
-    print(zcenters.min(), zcenters.max())
+    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing, res['x'])
+    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing, res['y'])
+    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing, res['z'])
 
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
     xgrid = xg.T
@@ -229,9 +228,17 @@ def column_density(*layers,
         grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
         grid_spacing_in_new_basis=np.array([xspacing, yspacing, zspacing]),
         grid_positions_in_original_basis=pixel_positions,
-        ndim=dataset.meta["ndim"]).sum(axis=1)
+        ndim=dataset.meta["ndim"])
 
-    binned *= (zmax - zmin)
+    # Apply operation along depth
+    binned = getattr(binned, operation)(axis=1)
+
+    # Handle thick maps
+    if thick:
+        binned *= zspacing
+        for layer in to_render:
+            layer["unit"] = (Array(values=1, unit=layer["unit"]) *
+                             dataz.unit).unit.units
 
     # Mask NaN values
     mask = np.isnan(binned[-1, ...])
