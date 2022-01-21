@@ -102,10 +102,6 @@ def map(*layers,
     thick = dz is not None
 
     # Set window size
-    if isinstance(resolution, int):
-        res = {'x': resolution, 'y': resolution}
-        res['z'] = 1 if dz is None else resolution
-
     if dy is None:
         dy = dx
     if dz is None:
@@ -200,13 +196,25 @@ def map(*layers,
             scalar_layer.append(True)
 
     # Create a grid of pixel centers
-    xspacing = (xmax - xmin) / res['x']
-    yspacing = (ymax - ymin) / res['y']
-    zspacing = (zmax - zmin) / res['z']
+    if isinstance(resolution, int):
+        resolution = {'x': resolution, 'y': resolution}
+    xspacing = (xmax - xmin) / resolution['x']
+    yspacing = (ymax - ymin) / resolution['y']
 
-    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing, res['x'])
-    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing, res['y'])
-    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing, res['z'])
+    if 'z' not in resolution:
+        if not thick:
+            resolution['z'] = 1
+        else:
+            # Try to keep spacing similar to other spacings
+            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
+    zspacing = (zmax - zmin) / resolution['z']
+
+    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
+                           resolution['x'])
+    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
+                           resolution['y'])
+    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
+                           resolution['z'])
 
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
     xgrid = xg.T
