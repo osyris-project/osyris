@@ -40,7 +40,10 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
             raise RuntimeError("When using automatic slice orientation, "
                                "dx cannot be None.")
         sphere_rad = 0.25 * (dx + dy)
-        xyz = dataset["amr"]["xyz"] - origin
+        if origin is not None:
+            xyz = dataset["amr"]["xyz"] - origin
+        else:
+            xyz = dataset["amr"]["xyz"]
         # Compute angular momentum vector
         sphere = np.where(xyz.norm < sphere_rad.magnitude)
         pos = xyz * dataset["hydro"]["mass"]
