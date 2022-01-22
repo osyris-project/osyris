@@ -63,7 +63,7 @@ def map(*layers,
         vmin=None,
         vmax=None,
         origin=None,
-        resolution=256,
+        resolution=None,
         operation="sum",
         ax=None,
         **kwargs):
@@ -196,8 +196,15 @@ def map(*layers,
             scalar_layer.append(True)
 
     # Create a grid of pixel centers
+    default_resolution = 256
+    if resolution is None:
+        resolution = default_resolution
     if isinstance(resolution, int):
         resolution = {'x': resolution, 'y': resolution}
+    else:
+        for xy in 'xy':
+            if xy not in resolution:
+                resolution[xy] = default_resolution
     xspacing = (xmax - xmin) / resolution['x']
     yspacing = (ymax - ymin) / resolution['y']
 
