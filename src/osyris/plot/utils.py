@@ -54,19 +54,10 @@ def evaluate_on_grid(cell_positions_in_new_basis, cell_positions_in_original_bas
 
 
 @njit(parallel=True)
-def hist2d(x, y, values, xmin, xmax, nx, ymin, ymax, ny, logx, logy):
-    if logx:
-        xmin = np.log10(xmin)
-        xmax = np.log10(xmax)
-        x = np.log10(x)
-    if logy:
-        ymin = np.log10(ymin)
-        ymax = np.log10(ymax)
-        y = np.log10(y)
+def hist2d(x, y, values, xmin, xmax, nx, ymin, ymax, ny):
 
     out = np.zeros(shape=(values.shape[0], ny, nx), dtype=np.float64)
     counts = np.zeros(shape=(ny, nx), dtype=np.int64)
-
     dx = (xmax - xmin) / nx
     dy = (ymax - ymin) / ny
 
@@ -77,6 +68,4 @@ def hist2d(x, y, values, xmin, xmax, nx, ymin, ymax, ny, logx, logy):
             out[:, indy, indx] += values[:, i]
             counts[indy, indx] += 1
 
-    out /= counts
-
-    return out
+    return out, counts
