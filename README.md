@@ -35,7 +35,7 @@ osyris.histogram2d(data["hydro"]["density"], data["hydro"]["B_field"],
 ![Screenshot at 2021-10-09 21-19-12](https://user-images.githubusercontent.com/39047984/136671452-c8862fa3-fea8-421d-b3d2-630e0165fc41.png)
 
 Create a 2D gas density slice 2000 au wide through the plane normal to ``z``,
-with velocity vectors overlayed as arrows, once agains using ``layers``:
+with velocity vectors overlayed as arrows, once again using ``layers``:
 
 ```python
 ind = np.argmax(data["hydro"]["density"])
@@ -50,15 +50,7 @@ osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
 
 ### Have a problem or need a new feature? ###
 
-Submit an issue on [Github](https://github.com/nvaytet/osyris/issues).
-
-### Contributors ###
-
-* Neil Vaytet (StarPlan/NBI)
-* Tommaso Grassi (StarPlan/NBI)
-* Matthias Gonzalez (CEA Saclay)
-* Troels Haugbolle (StarPlan/NBI)
-* Lucas Beeres
+Submit an [issue](https://github.com/nvaytet/osyris/issues) or start a new [discussion](https://github.com/nvaytet/osyris/discussions).
 
 ### Logo credit ###
 
