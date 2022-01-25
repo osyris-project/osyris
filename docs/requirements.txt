@@ -1,7 +1,6 @@
 matplotlib
 numba
 numpy
-scipy
 sphinx
 nbsphinx
 jupyter
