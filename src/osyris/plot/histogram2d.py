@@ -3,7 +3,6 @@
 
 import numpy as np
 from ..core import Array, Plot
-from .. import units
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 from .parser import parse_layer
