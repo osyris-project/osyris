@@ -72,7 +72,16 @@ def pcolormesh(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     return out
 
 
-def contour(ax, x, y, z, cbar=False, cblabel=None, labels=True, zorder=2, fmt="%1.3f", **kwargs):
+def contour(ax,
+            x,
+            y,
+            z,
+            cbar=False,
+            cblabel=None,
+            labels=True,
+            zorder=2,
+            fmt='%1.3f',
+            **kwargs):
     """
     Wrapper around Matplotlib's contour plot.
 
