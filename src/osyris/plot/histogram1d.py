@@ -11,17 +11,18 @@ from ..core.tools import to_bin_centers, finmin, finmax
 def histogram1d(*layers: Union[Iterable, Array],
                 bins: Union[int, Iterable] = 50,
                 weights: Array = None,
-                logx=False,
-                logy=False,
-                loglog=False,
-                filename=None,
-                title=None,
-                ymin=None,
-                ymax=None,
-                ax=None,
+                logx: bool = False,
+                logy: bool = False,
+                loglog: bool = False,
+                filename: str = None,
+                title: str = None,
+                ymin: float = None,
+                ymax: float = None,
+                ax: object = None,
                 **kwargs):
     """
     Plot a 1D histogram with arbitrary number of variables as input.
+
     This function has an API very close to that of matplotlib's ``hist`` function.
     For the documentation of any parameters that are not listed below, see
     https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html.
@@ -94,4 +95,8 @@ def histogram1d(*layers: Union[Iterable, Array],
         figure["ax"].set_xlabel(params['data'].label)
 
     figure["ax"].set_ylim(ymin, ymax)
-    return Plot(x=to_bin_centers(xedges), y=ydata, fig=figure["fig"], ax=figure["ax"])
+    return Plot(x=to_bin_centers(xedges),
+                y=ydata,
+                fig=figure["fig"],
+                ax=figure["ax"],
+                filename=filename)
