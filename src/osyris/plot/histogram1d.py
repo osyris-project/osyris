@@ -2,15 +2,15 @@
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+from typing import Union, Iterable
 from ..core import Plot
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 
 
-def histogram1d(*layers,
-                bins=50,
-                weights=None,
-                ax=None,
+def histogram1d(*layers: Union[Iterable, Array],
+                bins: Union[int, Iterable] = 50,
+                weights: Array = None,
                 logx=False,
                 logy=False,
                 loglog=False,
@@ -18,9 +18,37 @@ def histogram1d(*layers,
                 title=None,
                 ymin=None,
                 ymax=None,
+                ax=None,
                 **kwargs):
     """
     Plot a 1D histogram with arbitrary number of variables as input.
+    This function has an API very close to that of matplotlib's ``hist`` function.
+    For the documentation of any parameters that are not listed below, see
+    https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.hist.html.
+
+    :param layers: Dicts or Arrays representing the quantities to be mapped onto the
+        colormap of the generated image.
+
+    :param logx: If ``True``, use logarithmic scaling on the horizontal axis.
+        Default is ``False``.
+
+    :param logy: If ``True``, use logarithmic scaling on the vertical axis.
+        Default is ``False``.
+
+    :param loglog: If ``True``, use logarithmic scaling on the horizontal and
+        vertical axes. Default is ``False``.
+
+    :param filename: If specified, the returned figure is also saved to file.
+        Default is ``None``.
+
+    :param title: The title of the figure. Default is ``None``.
+
+    :param ymin: Minimum value for the vertical axis. Default is ``None``.
+
+    :param ymax: Maximum value for the vertical axis. Default is ``None``.
+
+    :param ax: A matplotlib axes inside which the figure will be plotted.
+        Default is ``None``, in which case some new axes a created.
     """
     if loglog:
         logx = logy = True
