@@ -4,6 +4,7 @@
 import numpy as np
 import numpy.ma as ma
 from pint.quantity import Quantity
+from typing import Union
 from .slice import get_slice_direction
 from .render import render
 from .scatter import scatter
@@ -51,22 +52,22 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
 
 
 def map(*layers,
-        direction="z",
-        dx=None,
-        dy=None,
-        dz=None,
-        fname=None,
-        title=None,
-        plot=True,
-        mode=None,
-        norm=None,
-        vmin=None,
-        vmax=None,
-        origin=None,
-        resolution=None,
-        operation="sum",
-        ax=None,
-        **kwargs):
+        direction: str = "z",
+        dx: Quantity = None,
+        dy: Quantity = None,
+        dz: Quantity = None,
+        filename: str = None,
+        title: str = None,
+        plot: bool = True,
+        mode: str = None,
+        norm: str = None,
+        vmin: float = None,
+        vmax: float = None,
+        origin: Array = None,
+        resolution: Union[int, dict] = None,
+        operation: str = "sum",
+        ax: object = None,
+        **kwargs) -> Plot:
     """
     If `dz` is `None`, make a 2D slice through the data domain.
     If `dz` is not `None`, make a 3D data cube, which then gets flattened along the z
@@ -277,7 +278,12 @@ def map(*layers,
                                                      copy=False)
             counter += 3
 
-    to_return = {"x": xcenters, "y": ycenters, "layers": to_render}
+    to_return = {
+        "x": xcenters,
+        "y": ycenters,
+        "layers": to_render,
+        "filename": filename
+    }
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)

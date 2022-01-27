@@ -15,20 +15,6 @@ Core
    Dataset
    units
 
-I/O
-===
-
-.. autosummary::
-   :toctree: generated
-
-   Loader
-   Reader
-   AmrReader
-   HydroReader
-   GravReader
-   RtReader
-   SinkReader
-
 Plotting
 ========
 
@@ -37,5 +23,5 @@ Plotting
 
    histogram1d
    histogram2d
-   plane
+   map
    scatter

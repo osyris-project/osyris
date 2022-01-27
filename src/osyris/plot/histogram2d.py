@@ -163,4 +163,5 @@ def histogram2d(x,
                 y=ycenters,
                 layers=to_render,
                 fig=figure["fig"],
-                ax=figure["ax"])
+                ax=figure["ax"],
+                filename=filename)
