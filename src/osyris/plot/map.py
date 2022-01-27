@@ -52,10 +52,10 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
 
 
 def map(*layers,
-        direction: str = "z",
-        dx: Quantity = None,
+        dx: Quantity,
         dy: Quantity = None,
         dz: Quantity = None,
+        direction: Union[str, list] = "z",
         filename: str = None,
         title: str = None,
         plot: bool = True,
@@ -69,9 +69,37 @@ def map(*layers,
         ax: object = None,
         **kwargs) -> Plot:
     """
-    If `dz` is `None`, make a 2D slice through the data domain.
-    If `dz` is not `None`, make a 3D data cube, which then gets flattened along the z
-    direction.
+    Create a 2D spatial map of a region inside a simulation domain.
+    By default, the map represents a plane with zero thickness.
+    A thick slab or cube can also be computed by specifying a thickness via the `dz`
+    argument. In this case, the resulting 3D box is integrated along the `z` direction
+    before being sent to the image rendering.
+
+    :param layers: Dicts or Arrays representing the quantities to be mapped onto the
+        generated image.
+    :param dx: The horizontal size of the plotted region.
+    :param dy: The vertical size of the plotted region. Default is `None`, in which
+        case it is set equal to `dx`.
+    :param dz: The depth range over which the `z` dimension is to be integrated.
+        Default is `None`, in which case a plane with no thickness is plotted.
+    :param direction: The vector normal to the map. Possible choices are:
+        - `'x'`, `'y'`, or `'z'` representing the cartesian axes
+        - a list of 3 numbers representing the components of the vector,
+          e.g. `[1, 0.5, 2]`
+        - `'top'` or `'side'` for automatic top or side view of a disk, according to
+          the angular momentum computed around the center of the plotted region
+    :param filename: If specified, the returned figure is also saved to file.
+        Default is `None`.
+    :param title: The title of the figure. Default is `None`.
+    :param plot: Make a plot if `True`. If not, just return the Plot object containing
+        the image data. Default is `True`.
+    :param mode: The rendering mode for the map. Possible choices are `'image'`,
+        `'contourf'`, and `'contour'`. Default is `None`, which selects the
+        `render_mode` set in the user configuration file.
+    :param norm: The colormap normalization. Possible values are `'linear'` and
+        `'log'`. Default is `None` (= `'linear'`).
+    :
+
     """
 
     if isinstance(layers, Array):
