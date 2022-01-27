@@ -3,7 +3,7 @@
 
 import numpy as np
 from typing import Union, Iterable
-from ..core import Plot
+from ..core import Plot, Array
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 
