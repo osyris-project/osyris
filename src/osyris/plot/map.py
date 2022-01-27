@@ -52,10 +52,10 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
 
 
 def map(*layers,
-        dx: Quantity,
+        direction: Union[str, list] = "z",
+        dx: Quantity = None,
         dy: Quantity = None,
         dz: Quantity = None,
-        direction: Union[str, list] = "z",
         filename: str = None,
         title: str = None,
         plot: bool = True,
@@ -71,35 +71,66 @@ def map(*layers,
     """
     Create a 2D spatial map of a region inside a simulation domain.
     By default, the map represents a plane with zero thickness.
-    A thick slab or cube can also be computed by specifying a thickness via the `dz`
-    argument. In this case, the resulting 3D box is integrated along the `z` direction
-    before being sent to the image rendering.
+    A thick slab or cube can also be computed by specifying a thickness via the
+    ``dz`` argument. In this case, the resulting 3D box is integrated along the ``z``
+    direction before being sent to the image rendering.
 
     :param layers: Dicts or Arrays representing the quantities to be mapped onto the
         generated image.
-    :param dx: The horizontal size of the plotted region.
-    :param dy: The vertical size of the plotted region. Default is `None`, in which
-        case it is set equal to `dx`.
-    :param dz: The depth range over which the `z` dimension is to be integrated.
-        Default is `None`, in which case a plane with no thickness is plotted.
-    :param direction: The vector normal to the map. Possible choices are:
-        - `'x'`, `'y'`, or `'z'` representing the cartesian axes
-        - a list of 3 numbers representing the components of the vector,
-          e.g. `[1, 0.5, 2]`
-        - `'top'` or `'side'` for automatic top or side view of a disk, according to
-          the angular momentum computed around the center of the plotted region
-    :param filename: If specified, the returned figure is also saved to file.
-        Default is `None`.
-    :param title: The title of the figure. Default is `None`.
-    :param plot: Make a plot if `True`. If not, just return the Plot object containing
-        the image data. Default is `True`.
-    :param mode: The rendering mode for the map. Possible choices are `'image'`,
-        `'contourf'`, and `'contour'`. Default is `None`, which selects the
-        `render_mode` set in the user configuration file.
-    :param norm: The colormap normalization. Possible values are `'linear'` and
-        `'log'`. Default is `None` (= `'linear'`).
-    :
 
+    :param direction: The vector normal to the map. Possible choices are:
+
+       * ``'x'``, ``'y'``, or ``'z'`` representing the cartesian axes
+       * a list of 3 numbers representing the components of the vector,
+         e.g. ``[1, 0.5, 2]``
+       * ``'top'`` or ``'side'`` for automatic top or side view of a disk, according to
+         the angular momentum computed around the center of the plotted region
+
+    :param dx: The horizontal size of the plotted region. Default is ``None``,
+        in which case the entire horizontal range of the simulation domain is plotted.
+
+    :param dy: The vertical size of the plotted region. If not specified, it will
+        either be equal to ``dx`` if ``dx`` is not ``None``, or the entire vertical
+        range of the simulation domain if ``dx`` is ``None``. Default is ``None``.
+
+    :param dz: The depth range over which the ``z`` dimension is to be integrated.
+        Default is ``None``, in which case a plane with no thickness is plotted.
+
+    :param filename: If specified, the returned figure is also saved to file.
+        Default is ``None``.
+
+    :param title: The title of the figure. Default is ``None``.
+
+    :param plot: Make a plot if ``True``. If not, just return the ``Plot`` object
+        containing the data that would be used to generate the plot.
+        Default is ``True``.
+
+    :param mode: The rendering mode for the map. Possible choices are ``'image'``,
+        ``'contourf'``, and ``'contour'``. Default is ``None``, which selects the
+        ``render_mode`` set in the user configuration file (``'image'`` by default).
+
+    :param norm: The colormap normalization. Possible values are ``'linear'`` and
+        ``'log'``. Default is ``None`` (= ``'linear'``).
+
+    :param vmin: Minimum value for colorbar range. Default is ``None``.
+
+    :param vmax: Maximum value for colorbar range. Default is ``None``.
+
+    :param origin: An Array describing the position of the center of the map
+        (with 2 or 3 components depending on the dimensionality of the simulation).
+
+    :param resolution: Resolution of the generated map. This can either be an
+        integer or a dict. In the case of an integer, it represents the number of
+        pixels used for the horizontal and vertical dimensions. For a dictionary,
+        the following syntax should be used: ``resolution={'x': 128, 'y': 192}``.
+        Default is ``256``.
+
+    :param operation: The operation to apply along the ``z`` dimension if ``dz`` is
+        not ``None``. Possible values are ``'sum'``, ``'mean'``, ``'min'``, and
+        ``'max'``. Default is ``'sum'``.
+
+    :param ax: A matplotlib axes inside which the figure will be plotted.
+        Default is ``None``, in which case some new axes a created.
     """
 
     if isinstance(layers, Array):
