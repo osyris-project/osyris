@@ -106,7 +106,8 @@ def map(*layers,
         Default is ``True``.
 
     :param mode: The rendering mode for the map. Possible choices are ``'image'``,
-        ``'contourf'``, and ``'contour'``. Default is ``None``, which selects the
+        ``'contourf'``, and ``'contour'`` for scalar Arrays, ``'vec'`` and
+        ``'stream'`` for vector quantities. Default is ``None``, which selects the
         ``render_mode`` set in the user configuration file (``'image'`` by default).
 
     :param norm: The colormap normalization. Possible values are ``'linear'`` and
