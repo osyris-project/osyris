@@ -23,7 +23,7 @@ def scatter(x: Array,
             vmin: float = None,
             vmax: float = None,
             ax: object = None,
-            **kwargs):
+            **kwargs) -> Plot:
     """
     Make a 2D scatter plot with two variables as input.
 

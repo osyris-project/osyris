@@ -30,7 +30,7 @@ def histogram2d(x: Array,
                 vmax: float = None,
                 plot: bool = True,
                 ax: object = None,
-                **kwargs):
+                **kwargs) -> Plot:
     """
     Plot a 2D histogram with two variables as input.
 

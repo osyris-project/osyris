@@ -19,7 +19,7 @@ def histogram1d(*layers: Union[Iterable, Array],
                 ymin: float = None,
                 ymax: float = None,
                 ax: object = None,
-                **kwargs):
+                **kwargs) -> Plot:
     """
     Plot a 1D histogram with arbitrary number of variables as input.
 
