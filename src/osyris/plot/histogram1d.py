@@ -81,9 +81,9 @@ def histogram1d(*layers: Union[Iterable, Array],
             xmin = finmin(xvals)
             xmax = finmax(xvals)
             if logx:
-                xedges = np.logspace(np.log10(xmin), np.log10(xmax), bins + 1)
+                xedges = np.logspace(np.log10(xmin), np.log10(xmax), params['bins'] + 1)
             else:
-                xedges = np.linspace(xmin, xmax, bins + 1)
+                xedges = np.linspace(xmin, xmax, params['bins'] + 1)
         else:
             xedges = params['bins']
 

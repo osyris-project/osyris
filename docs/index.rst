@@ -64,13 +64,13 @@ Loading data
 
    loading_data
 
-Plotting
-========
+Plotting: histograms
+====================
 
 .. toctree::
    :maxdepth: 2
 
-   plotting
+   plotting_histograms
 
 API
 ===
