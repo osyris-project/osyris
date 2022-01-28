@@ -22,6 +22,9 @@ def histogram1d(*layers: Union[Iterable, Array],
                 **kwargs) -> Plot:
     """
     Plot a 1D histogram with arbitrary number of variables as input.
+    When a vector quantity is supplied, the function will histogram the norm of
+    the vectors.
+
 
     This function has an API very close to that of matplotlib's ``hist`` function.
     For the documentation of any parameters that are not listed below, see

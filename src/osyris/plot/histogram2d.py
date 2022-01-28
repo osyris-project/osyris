@@ -33,6 +33,9 @@ def histogram2d(x: Array,
                 **kwargs) -> Plot:
     """
     Plot a 2D histogram with two variables as input.
+    When a vector quantity is supplied, the function will histogram the norm of
+    the vectors.
+
 
     :param x: Horizontal Array to be histogrammed.
 
