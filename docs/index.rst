@@ -72,6 +72,14 @@ Plotting: histograms
 
    plotting_histograms
 
+Plotting: spatial maps
+======================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_maps
+
 API
 ===
 
