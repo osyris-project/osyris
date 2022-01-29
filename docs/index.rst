@@ -80,6 +80,30 @@ Plotting: spatial maps
 
    plotting_maps
 
+Plotting: thick maps
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_thick_maps
+
+Plotting: scatter plots
+=======================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_scatter
+
+Recipes
+=======
+
+.. toctree::
+   :maxdepth: 2
+
+   recipes
+
 API
 ===
 

@@ -134,7 +134,7 @@ def scatter(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
     If PatchCollection is used, we convert the scatter args to the
     PatchCollection syntax (e.g. "c" -> "color").
     """
-    default_args = {"c": "b", "edgecolors": "k", "zorder": zorder}
+    default_args = {"c": "C0", "edgecolors": "k", "zorder": zorder}
     default_args.update(kwargs)
     use_patchcollection = False
     need_cbar = False
