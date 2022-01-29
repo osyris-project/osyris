@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+
 from .. import config
 from ..core import Array
 from contextlib import redirect_stderr
@@ -18,6 +19,13 @@ def _add_colorbar(obj, ax, cax=None, label=None):
     cb = plt.colorbar(obj, ax=ax, cax=cax)
     cb.set_label(label)
     cb.ax.yaxis.set_label_coords(-1.05, 0.5)
+
+
+def plot(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
+    """
+    Wrapper around Matplotlib's plot function.
+    """
+    return ax.plot(x, z, **kwargs)
 
 
 def quiver(ax,

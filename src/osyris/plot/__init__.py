@@ -8,4 +8,5 @@ from .histogram2d import histogram2d
 from .map import map
 from .render import render
 from .plane import plane
+from .line import line
 from .scatter import scatter
