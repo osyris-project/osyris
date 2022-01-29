@@ -19,9 +19,12 @@ def histogram1d(*layers: Union[Iterable, Array],
                 ymin: float = None,
                 ymax: float = None,
                 ax: object = None,
-                **kwargs):
+                **kwargs) -> Plot:
     """
     Plot a 1D histogram with arbitrary number of variables as input.
+    When a vector quantity is supplied, the function will histogram the norm of
+    the vectors.
+
 
     This function has an API very close to that of matplotlib's ``hist`` function.
     For the documentation of any parameters that are not listed below, see
@@ -81,9 +84,9 @@ def histogram1d(*layers: Union[Iterable, Array],
             xmin = finmin(xvals)
             xmax = finmax(xvals)
             if logx:
-                xedges = np.logspace(np.log10(xmin), np.log10(xmax), bins + 1)
+                xedges = np.logspace(np.log10(xmin), np.log10(xmax), params['bins'] + 1)
             else:
-                xedges = np.linspace(xmin, xmax, bins + 1)
+                xedges = np.linspace(xmin, xmax, params['bins'] + 1)
         else:
             xedges = params['bins']
 
