@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/osyris/badge/?version=latest)](https://osyris.readthedocs.io/en/stable/?badge=latest)
+
 # Osyris
 
 A python visualization utility for RAMSES astrophysical simulations data.
