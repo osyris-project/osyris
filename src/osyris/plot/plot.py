@@ -30,7 +30,7 @@ def plot(x: Array,
 
     :param x: Array to use for x positions along the horizontal dimension.
 
-    :param y: Array to use for scatter point positions along the vertical dimension.
+    :param y: Array(s) to use for y positions along the vertical dimension.
 
     :param logx: If ``True``, use logarithmic scaling on the horizontal axis.
         Default is ``False``.
