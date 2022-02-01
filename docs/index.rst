@@ -64,6 +64,14 @@ Loading data
 
    loading_data
 
+Plotting: 1D and 2D data
+========================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_1d_2d
+
 Plotting: histograms
 ====================
 
