@@ -21,13 +21,6 @@ def _add_colorbar(obj, ax, cax=None, label=None):
     cb.ax.yaxis.set_label_coords(-1.05, 0.5)
 
 
-def plot(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
-    """
-    Wrapper around Matplotlib's plot function.
-    """
-    return ax.plot(x, z, **kwargs)
-
-
 def quiver(ax,
            x,
            y,

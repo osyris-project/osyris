@@ -24,4 +24,5 @@ Plotting
    histogram1d
    histogram2d
    map
+   plot
    scatter

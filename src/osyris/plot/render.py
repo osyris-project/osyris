@@ -34,8 +34,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "lic": "line_integral_convolution",
         None: config.parameters["render_mode"],
         "image": "pcolormesh",
-        "imshow": "pcolormesh",
-        "line": "plot"
+        "imshow": "pcolormesh"
     }
 
     mpl_objects = []
