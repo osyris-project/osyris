@@ -1,9 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
-<<<<<<< HEAD
-=======
-
->>>>>>> osyris-project-main
 """
 This file aims to re-introduce the ism_physics routines of osiris into Osyris.
 
@@ -21,8 +17,6 @@ from .. import config
 from .. import units
 from ..io import utils
 from scipy.interpolate import RegularGridInterpolator
-
-<<<<<<< HEAD
 
 def ism_interpolate(table_container=None, values=[0], points=[0], in_log=False):
 
@@ -243,7 +237,7 @@ def get_eos(
                                np.log10(dataset.meta["eos_table"][var]), pts)
         dataset["hydro"][var] = Array(values=vals, unit=variables[var])
         print(" done!")
-=======
+
 def ism_interpolate(table_container=None, values=[0], points=[0], in_log=False):
 
 	func = RegularGridInterpolator(table_container["grid"], values)
@@ -410,6 +404,3 @@ def get_eos(dataset, fname, variables={"temp_eos":"K","pres_eos":"dyn/cm^2","s_e
 		vals = ism_interpolate(dataset.meta["eos_table"],np.log10(dataset.meta["eos_table"][var]),pts)
 		dataset["hydro"][var] = Array(values = vals, unit = variables[var])
 		print(" done!")
-
-
->>>>>>> osyris-project-main
