@@ -2,12 +2,32 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
+from pint.quantity import Quantity
 from typing import Union
 from ..core import Array, Plot
 from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 from .parser import parse_layer
 from .utils import hist2d
+
+
+def _parse_limit(limit, x, logx, reduction):
+    autox = False
+    if limit is None:
+        if reduction == "min":
+            limit = finmin(x.values)
+        elif reduction == "max":
+            limit = finmax(x.values)
+        else:
+            raise RuntimeError(
+                f"_parse_limit: unknown reduction operation {reduction}.")
+        autox = True
+    else:
+        if isinstance(limit, Quantity):
+            limit = limit.to(x.unit.units).magnitude
+        if logx:
+            limit = np.log10(limit)
+    return limit, autox
 
 
 def histogram2d(x: Array,
@@ -94,45 +114,24 @@ def histogram2d(x: Array,
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
     """
+
+    x = x.norm
+    y = y.norm
+
     if loglog:
         logx = logy = True
+    if logx:
+        x = np.log10(x)
+    if logy:
+        y = np.log10(y)
 
     nx = resolution
     ny = resolution
 
-    xvals = x.norm.values
-    yvals = y.norm.values
-    if logx:
-        xvals = np.log10(xvals)
-    if logy:
-        yvals = np.log10(yvals)
-
-    # Define plotting range
-    autoxmin = False
-    autoxmax = False
-    autoymin = False
-    autoymax = False
-
-    if xmin is None:
-        xmin = finmin(xvals)
-        autoxmin = True
-    else:
-        xmin = np.log10(xmin)
-    if xmax is None:
-        xmax = finmax(xvals)
-        autoxmax = True
-    else:
-        xmax = np.log10(xmax)
-    if ymin is None:
-        ymin = finmin(yvals)
-        autoymin = True
-    else:
-        ymin = np.log10(ymin)
-    if ymax is None:
-        ymax = finmax(yvals)
-        autoymax = True
-    else:
-        ymax = np.log10(ymax)
+    xmin, autoxmin = _parse_limit(xmin, x, logx, "min")
+    xmax, autoxmax = _parse_limit(xmax, x, logx, "max")
+    ymin, autoymin = _parse_limit(ymin, y, logy, "min")
+    ymax, autoymax = _parse_limit(ymax, y, logy, "max")
 
     # Protect against empty plots if xmin==xmax or ymin==ymax
     if xmin == xmax:
@@ -176,6 +175,9 @@ def histogram2d(x: Array,
     to_render = []
     to_process = []
     operations = []
+
+    xvals = x.values
+    yvals = y.values
 
     # If no layers are defined, make a layer for counting cells
     if len(layers) == 0:
