@@ -21,7 +21,7 @@ class PartReader(Reader):
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "part_file_descriptor.txt")
         try:
-            descriptor = np.loadtxt(fname, dtype=str, delimiter=",")
+            desc_from_file = np.loadtxt(fname, dtype=str, delimiter=",")
         except IOError:
             return
 
@@ -33,29 +33,35 @@ class PartReader(Reader):
         #     'position_y': scaling,
         #     'position_z': scaling
         # }
+        descriptor = {
+            desc_from_file[i, 1].strip(): desc_from_file[i, 2].strip()
+            for i in range(len(desc_from_file))
+        }
 
-        for i in range(len(descriptor)):
-            key = descriptor[i, 1].strip()
-            read = True
-            if isinstance(select, bool):
-                read = select
-            elif key in select:
-                if isinstance(select[key], bool):
-                    read = select[key]
-            self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[i, 2].strip(),
-                "buffer":
-                None,
-                "pieces": {},
-                "unit":
-                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-                                meta["scale"])
-                # part_units[key] if key in part_units else config.get_unit(
-                #     key, meta["unit_d"], meta["unit_l"], meta["unit_t"])
-            }
+        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
+
+        # for i in range(len(descriptor)):
+        #     key = descriptor[i, 1].strip()
+        #     read = True
+        #     if isinstance(select, bool):
+        #         read = select
+        #     elif key in select:
+        #         if isinstance(select[key], bool):
+        #             read = select[key]
+        #     self.variables[key] = {
+        #         "read":
+        #         read,
+        #         "type":
+        #         descriptor[i, 2].strip(),
+        #         "buffer":
+        #         None,
+        #         "pieces": {},
+        #         "unit":
+        #         config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
+        #                         meta["scale"])
+        #         # part_units[key] if key in part_units else config.get_unit(
+        #         #     key, meta["unit_d"], meta["unit_l"], meta["unit_t"])
+        #     }
         self.initialized = True
 
     def read_header(self, info):

@@ -73,25 +73,27 @@ class AmrReader(Reader):
         # descriptor = [["1,level,i"]
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
         descriptor.update({"xyz_{}".format(c): "d" for c in "xyz"[:meta["ndim"]]})
-        for key in descriptor:
-            read = True
-            if isinstance(select, bool):
-                read = select
-            elif key in select:
-                if isinstance(select[key], bool):
-                    read = select[key]
-            self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[key],
-                "buffer":
-                None,
-                "pieces": {},
-                "unit":
-                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-                                meta["scale"])
-            }
+        # for key in descriptor:
+        #     read = True
+        #     if isinstance(select, bool):
+        #         read = select
+        #     elif key in select:
+        #         if isinstance(select[key], bool):
+        #             read = select[key]
+        #     self.variables[key] = {
+        #         "read":
+        #         read,
+        #         "type":
+        #         descriptor[key],
+        #         "buffer":
+        #         None,
+        #         "pieces": {},
+        #         "unit":
+        #         config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
+        #                         meta["scale"])
+        #     }
+
+        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
         self.cpu_list = hilbert_cpu_list(meta=meta,
                                          scaling=config.get_unit(
