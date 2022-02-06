@@ -49,7 +49,7 @@ class Loader:
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None):
+    def load(self, *args, select=None, cpu_list=None, meta=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -76,11 +76,10 @@ class Loader:
         # Initialize readers
         readers = {}
         for group in groups:
-            if not self.readers[group].initialized:
-                first_load = self.readers[group].initialize(meta=meta,
-                                                            select=select[group])
-                if first_load is not None:
-                    out[group] = first_load
+            # if not self.readers[group].initialized:
+            first_load = self.readers[group].initialize(meta=meta, select=select[group])
+            if first_load is not None:
+                out[group] = first_load
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
 

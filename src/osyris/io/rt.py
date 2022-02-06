@@ -11,6 +11,7 @@ class RtReader(Reader):
         super().__init__(kind=ReaderKind.AMR)
 
     def initialize(self, meta, select):
+        self.initialized = False
         # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "rt_file_descriptor.txt")
