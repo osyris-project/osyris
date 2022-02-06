@@ -31,34 +31,6 @@ class HydroReader(Reader):
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
-        # drop_others = False
-        # if isinstance(select, dict):
-        #     for key, value in select.items():
-        #         if value is True:
-        #             drop_others = True
-
-        # for i in range(len(descriptor)):
-        #     key = descriptor[i, 1].strip()
-        #     read = True
-        #     if isinstance(select, bool):
-        #         read = select
-        #     elif key in select:
-        #         if isinstance(select[key], bool):
-        #             read = select[key]
-        #     elif drop_others:
-        #         read = False
-        #     self.variables[key] = {
-        #         "read":
-        #         read,
-        #         "type":
-        #         descriptor[i, 2].strip(),
-        #         "buffer":
-        #         None,
-        #         "pieces": {},
-        #         "unit":
-        #         config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-        #                         meta["scale"])
-        #     }
         self.initialized = True
 
     def read_header(self, info):

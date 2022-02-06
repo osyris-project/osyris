@@ -27,22 +27,6 @@ class RtReader(Reader):
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
-        # for i in range(len(descriptor)):
-        #     key = descriptor[i, 1].strip()
-        #     read = True
-        #     if isinstance(select, bool):
-        #         read = select
-        #     elif key in select:
-        #         if isinstance(select[key], bool):
-        #             read = select[key]
-        #     self.variables[key] = {
-        #         "read": read,
-        #         "type": descriptor[i, 2].strip(),
-        #         "buffer": None,
-        #         "pieces": {},
-        #         "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-        #                                 meta["unit_t"])
-        #     }
         self.initialized = True
 
     def read_header(self, info):

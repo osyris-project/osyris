@@ -16,82 +16,8 @@ class AmrReader(Reader):
     def initialize(self, meta, select):
         self.initialized = False
 
-        # if select is False:
-        #     meta["lmax"] = 0
-        #     return
-
-        # length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
-        #                               meta["unit_t"])
-        # if meta["scale"] is not None:
-        #     scale = units(meta["scale"])
-        #     scaling = (length_unit.to(scale) / scale).magnitude * scale
-        # else:
-        #     scaling = length_unit
-
-        # scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
-        #                                     meta["unit_t"], meta["scale"])
-
-        # if select is False:
-        #     meta["lmax"] = 0
-        #     return
-
-        # # AMR grid variables
-        # self.variables.update({
-        #     "level": {
-        #         "read": True,
-        #         "type": "i",
-        #         "buffer": None,
-        #         "pieces": {},
-        #         "unit": 1.0 * units.dimensionless
-        #     },
-        #     "cpu": {
-        #         "read": True,
-        #         "type": "i",
-        #         "buffer": None,
-        #         "pieces": {},
-        #         "unit": 1.0 * units.dimensionless
-        #     },
-        #     "dx": {
-        #         "read": True,
-        #         "type": "d",
-        #         "buffer": None,
-        #         "pieces": {},
-        #         "unit": scaling
-        #     }
-        # })
-        # self.variables.update({
-        #     "xyz_{}".format(c): {
-        #         "read": True,
-        #         "type": "d",
-        #         "buffer": None,
-        #         "pieces": {},
-        #         "unit": scaling
-        #     }
-        #     for c in "xyz"[:meta["ndim"]]
-        # })
-
-        # descriptor = [["1,level,i"]
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
         descriptor.update({"xyz_{}".format(c): "d" for c in "xyz"[:meta["ndim"]]})
-        # for key in descriptor:
-        #     read = True
-        #     if isinstance(select, bool):
-        #         read = select
-        #     elif key in select:
-        #         if isinstance(select[key], bool):
-        #             read = select[key]
-        #     self.variables[key] = {
-        #         "read":
-        #         read,
-        #         "type":
-        #         descriptor[key],
-        #         "buffer":
-        #         None,
-        #         "pieces": {},
-        #         "unit":
-        #         config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-        #                         meta["scale"])
-        #     }
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 

@@ -23,26 +23,6 @@ class GravReader(Reader):
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
-        # # Now add to the list of variables to be read
-        # for key in descriptor:
-        #     read = True
-        #     if isinstance(select, bool):
-        #         read = select
-        #     elif key in select:
-        #         if isinstance(select[key], bool):
-        #             read = select[key]
-        #     self.variables[key] = {
-        #         "read":
-        #         read,
-        #         "type":
-        #         descriptor[key],
-        #         "buffer":
-        #         None,
-        #         "pieces": {},
-        #         "unit":
-        #         config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-        #                         meta["scale"])
-        #     }
         self.initialized = True
 
     def read_header(self, info):
