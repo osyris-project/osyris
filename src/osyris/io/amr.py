@@ -222,15 +222,19 @@ class AmrReader(Reader):
                                                         content=self.bytes,
                                                         offsets=self.offsets)
 
-        self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
+        if self.variables["level"]["read"]:
+            self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
             key = "xyz_" + "xyz"[n]
-            self.variables[key]["buffer"]._array[:ncache, ind] = (
-                self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
-            ) * info["boxlen"] * self.variables[key]["unit"].magnitude
-        self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
-            "boxlen"] * self.variables["dx"]["unit"].magnitude
-        self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
+            if self.variables[key]["read"]:
+                self.variables[key]["buffer"]._array[:ncache, ind] = (
+                    self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
+                ) * info["boxlen"] * self.variables[key]["unit"].magnitude
+        if self.variables["dx"]["read"]:
+            self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
+                "boxlen"] * self.variables["dx"]["unit"].magnitude
+        if self.variables["cpu"]["read"]:
+            self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
 
         # Note: use lmax here instead of levelmax because the user might not
         # want to load all levels. levelmax is always the max level in the
