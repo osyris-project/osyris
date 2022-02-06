@@ -12,6 +12,9 @@ class RtReader(Reader):
 
     def initialize(self, meta, select):
         self.initialized = False
+        if select is False:
+            return
+
         # Read the number of variables from the rt_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "rt_file_descriptor.txt")
@@ -26,7 +29,6 @@ class RtReader(Reader):
         }
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
-
         self.initialized = True
 
     def read_header(self, info):

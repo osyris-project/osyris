@@ -12,6 +12,9 @@ class GravReader(Reader):
 
     def initialize(self, meta, select):
         self.initialized = False
+        if select is False:
+            return
+
         fname = utils.generate_fname(meta["nout"], meta["path"], ftype="grav", cpuid=1)
         # Check if self-gravity files exist
         if not os.path.exists(fname):
@@ -22,7 +25,6 @@ class GravReader(Reader):
             descriptor["acceleration_" + "xyz"[n]] = "d"
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
-
         self.initialized = True
 
     def read_header(self, info):

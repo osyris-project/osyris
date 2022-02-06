@@ -31,7 +31,6 @@ class PartReader(Reader):
         }
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
-
         self.initialized = True
 
     def read_header(self, info):
