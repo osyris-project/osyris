@@ -17,7 +17,7 @@ parameters = {
 }
 
 
-def get_unit(string, ud, ul, ut):
+def get_unit(string, ud, ul, ut, scale):
 
     density = ud * (ureg.g / (ureg.cm**3))
     velocity = (ul / ut) * (ureg.cm / ureg.s)
@@ -28,6 +28,12 @@ def get_unit(string, ud, ul, ut):
     time = ut * ureg.s
     length = ul * ureg.cm
     mass = density * (length**3)
+
+    # length_unit = config.get_unit("x", ud, ul, ut)
+    scaling = length
+    if scale is not None:
+        scale = ureg(scale)
+        scaling = (length.to(scale) / scale).magnitude * scale
 
     ramses_units = {
         'density': density,
@@ -67,10 +73,16 @@ def get_unit(string, ud, ul, ut):
         'radiative_energy_1': energy,
         'temperature': 1.0 * ureg.K,
         'time': time,
-        'x': length,
-        'y': length,
-        'z': length,
-        'dx': length,
+        'x': scaling,
+        'y': scaling,
+        'z': scaling,
+        'xyz_x': scaling,
+        'xyz_y': scaling,
+        'xyz_z': scaling,
+        'position_x': scaling,
+        'position_y': scaling,
+        'position_z': scaling,
+        'dx': scaling,
         'mass': mass
     }
 

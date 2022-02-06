@@ -29,12 +29,16 @@ class GravReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read": read,
-                "type": descriptor[key],
-                "buffer": None,
+                "read":
+                read,
+                "type":
+                descriptor[key],
+                "buffer":
+                None,
                 "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                "unit":
+                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
+                                meta["scale"])
             }
         self.initialized = True
 

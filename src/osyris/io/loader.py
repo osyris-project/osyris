@@ -44,7 +44,7 @@ class Loader:
         meta["nout"] = self.nout
         meta["path"] = self.path
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                                        meta["unit_t"], meta["scale"])
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta

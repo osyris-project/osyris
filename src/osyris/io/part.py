@@ -14,6 +14,9 @@ class PartReader(Reader):
 
     def initialize(self, meta, select):
         self.initialized = False
+        if select is False:
+            return
+
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "part_file_descriptor.txt")
@@ -22,14 +25,14 @@ class PartReader(Reader):
         except IOError:
             return
 
-        scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
-                                            meta["unit_t"], meta["scale"])
+        # scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
+        #                                     meta["unit_t"], meta["scale"])
 
-        part_units = {
-            'position_x': scaling,
-            'position_y': scaling,
-            'position_z': scaling
-        }
+        # part_units = {
+        #     'position_x': scaling,
+        #     'position_y': scaling,
+        #     'position_z': scaling
+        # }
 
         for i in range(len(descriptor)):
             key = descriptor[i, 1].strip()
@@ -48,12 +51,16 @@ class PartReader(Reader):
                 None,
                 "pieces": {},
                 "unit":
-                part_units[key] if key in part_units else config.get_unit(
-                    key, meta["unit_d"], meta["unit_l"], meta["unit_t"])
+                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
+                                meta["scale"])
+                # part_units[key] if key in part_units else config.get_unit(
+                #     key, meta["unit_d"], meta["unit_l"], meta["unit_t"])
             }
         self.initialized = True
 
     def read_header(self, info):
+        if not self.initialized:
+            return
         self.offsets["i"] += 2
         self.offsets["n"] += 2
         [nparticles] = utils.read_binary_data(fmt="i",

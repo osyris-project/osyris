@@ -13,6 +13,9 @@ class HydroReader(Reader):
 
     def initialize(self, meta, select):
         self.initialized = False
+        if select is False:
+            return
+
         # Read the number of variables from the hydro_file_descriptor.txt
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "hydro_file_descriptor.txt")
@@ -30,12 +33,16 @@ class HydroReader(Reader):
                 if isinstance(select[key], bool):
                     read = select[key]
             self.variables[key] = {
-                "read": read,
-                "type": descriptor[i, 2].strip(),
-                "buffer": None,
+                "read":
+                read,
+                "type":
+                descriptor[i, 2].strip(),
+                "buffer":
+                None,
                 "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                "unit":
+                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
+                                meta["scale"])
             }
         self.initialized = True
 
