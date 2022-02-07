@@ -3,7 +3,6 @@
 import numpy as np
 import os
 from .reader import Reader, ReaderKind
-from .. import config
 from ..core import Array
 from . import utils
 

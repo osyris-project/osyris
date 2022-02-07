@@ -2,7 +2,6 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 import os
 from .reader import Reader, ReaderKind
-from .. import config
 from . import utils
 
 

@@ -6,8 +6,6 @@ import os
 import struct
 import numpy as np
 from ..core import Array
-from .. import config
-from .. import units
 
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):

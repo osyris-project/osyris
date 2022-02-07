@@ -4,7 +4,6 @@ import numpy as np
 from .hilbert import hilbert_cpu_list
 from .reader import Reader, ReaderKind
 from .. import config
-from .. import units
 from . import utils
 
 
