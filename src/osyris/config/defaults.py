@@ -29,7 +29,6 @@ def get_unit(string, ud, ul, ut, scale):
     length = ul * ureg.cm
     mass = density * (length**3)
 
-    # length_unit = config.get_unit("x", ud, ul, ut)
     scaling = length
     if scale is not None:
         scale = ureg(scale)

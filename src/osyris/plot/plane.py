@@ -7,7 +7,8 @@ import warnings
 
 def plane(*args, **kwargs):
     """
-    Old alias for think map, will be deprecated soon.
+    Old deprecated alias for think map, will be removed soon.
     """
-    warnings.warn("The plane function will be deprecated soon, use map instead.")
+    warnings.warn("The plane function is deprecated  and will be removed soon, "
+                  "use map instead.")
     return _map(*args, dz=None, **kwargs)
