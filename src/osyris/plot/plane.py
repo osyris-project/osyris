@@ -9,6 +9,6 @@ def plane(*args, **kwargs):
     """
     Old deprecated alias for think map, will be removed soon.
     """
-    warnings.warn("The plane function is deprecated  and will be removed soon, "
+    warnings.warn("The plane function is deprecated and will be removed soon, "
                   "use map instead.")
     return _map(*args, dz=None, **kwargs)
