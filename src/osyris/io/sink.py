@@ -15,9 +15,9 @@ class SinkReader:
         self.initialized = False
 
     def initialize(self, meta, select):
-        sink = Datagroup()
         if select is False:
-            return sink
+            return
+        sink = Datagroup()
         sink_file = utils.generate_fname(meta["nout"],
                                          meta["path"],
                                          ftype="sink",

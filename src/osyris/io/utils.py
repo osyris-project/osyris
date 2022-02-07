@@ -6,8 +6,6 @@ import os
 import struct
 import numpy as np
 from ..core import Array
-from .. import config
-from .. import units
 
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
@@ -142,17 +140,3 @@ def find_max_amr_level(levelmax, select):
     func_test = select["level"](possible_levels)
     inds = np.argwhere(func_test).ravel()
     return possible_levels[inds.max()]
-
-
-def get_spatial_scaling(ud, ul, ut, scale):
-    """
-    Compute the scaling factor to convert between code units and requested spatial
-    scale.
-    """
-    length_unit = config.get_unit("x", ud, ul, ut)
-    if scale is not None:
-        scale = units(scale)
-        scaling = (length_unit.to(scale) / scale).magnitude * scale
-    else:
-        scaling = length_unit
-    return scaling

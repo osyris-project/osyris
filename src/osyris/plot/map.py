@@ -226,6 +226,8 @@ def map(*layers,
         ymax = (datay + datadx).max().values
         zmin = (dataz - datadx).min().values
         zmax = (dataz + datadx).max().values
+        dx = (xmax - xmin) * datadx.unit.units
+        dy = (ymax - ymin) * datadx.unit.units
 
     scalar_layer = []
     to_binning = []  # contains the variables in cells close to the plane

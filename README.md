@@ -31,7 +31,7 @@ data = osyris.Dataset(8, scale="au", path="data").load()
 osyris.histogram2d(data["hydro"]["density"], data["hydro"]["B_field"],
                    norm="log", loglog=True)
 ```
-![hist2d](https://osyris.readthedocs.io/en/stable/_images/plotting_3_1.png)
+![hist2d](https://osyris.readthedocs.io/en/stable/_images/plotting_histograms_13_1.png)
 
 Create a 2D gas density slice 2000 au wide through the plane normal to ``z``,
 with velocity vectors overlayed as arrows, once again using ``layers``:
@@ -45,7 +45,7 @@ osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
              origin=center,
              direction="z")
 ```
-![map2d](https://osyris.readthedocs.io/en/stable/_images/plotting_7_1.png)
+![map2d](https://osyris.readthedocs.io/en/stable/_images/plotting_maps_23_1.png)
 
 ## Have a problem or need a new feature?
 
