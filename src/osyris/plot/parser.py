@@ -50,7 +50,8 @@ def parse_layer(layer,
     else:
         params = {
             "norm":
-            get_norm(norm=norm, vmin=vmin, vmax=vmax) if isinstance(norm, str) else norm
+            get_norm(norm=norm, vmin=vmin, vmax=vmax) if
+            (isinstance(norm, str) or None) else norm
         }
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
