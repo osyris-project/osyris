@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
-from matplotlib.colors import LogNorm, Normalize
+from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
 
-def get_norm(norm=None, vmin=None, vmax=None):
+def get_norm(norm=None, vmin=None, vmax=None, linthresh):
     if norm == "log":
         return LogNorm(vmin=vmin, vmax=vmax)
+    elif norm == "SymLog":
+        return SymLogNorm(linthresh=3e-2, vmin=vmin, vmax=vmax)
     else:
         return Normalize(vmin=vmin, vmax=vmax)
 
@@ -33,7 +35,8 @@ def parse_layer(layer,
             vmax = params["vmax"]
             del params["vmax"]
 
-        params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
+        if isinstance(params["norm"], str):
+            params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
 
         for key, arg in kwargs.items():
             if key not in params:
