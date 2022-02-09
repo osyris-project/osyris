@@ -4,11 +4,11 @@
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
 
-def get_norm(norm=None, vmin=None, vmax=None, linthresh):
+def get_norm(norm=None, vmin=None, vmax=None, linthresh=1e-2):
     if norm == "log":
         return LogNorm(vmin=vmin, vmax=vmax)
     elif norm == "SymLog":
-        return SymLogNorm(linthresh=3e-2, vmin=vmin, vmax=vmax)
+        return SymLogNorm(linthresh=linthresh, vmin=vmin, vmax=vmax)
     else:
         return Normalize(vmin=vmin, vmax=vmax)
 
@@ -19,6 +19,7 @@ def parse_layer(layer,
                 vmin=None,
                 vmax=None,
                 operation=None,
+                linthresh=1e-2,
                 **kwargs):
 
     if isinstance(layer, dict):
@@ -47,7 +48,10 @@ def parse_layer(layer,
             settings[key] = layer[key] if key in layer else eval(key)
         return layer["data"], settings, params
     else:
-        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
+        params = {
+            "norm":
+            get_norm(norm=norm, vmin=vmin, vmax=vmax) if isinstance(norm, str) else norm
+        }
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
         return layer, settings, params
