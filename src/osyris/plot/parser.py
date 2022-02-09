@@ -8,7 +8,7 @@ def get_norm(norm=None, vmin=None, vmax=None, linthresh=1e-2):
     if norm == "log":
         return LogNorm(vmin=vmin, vmax=vmax)
     elif norm == "SymLog":
-        return SymLogNorm(linthresh=linthresh, vmin=vmin, vmax=vmax)
+        return SymLogNorm(linthresh=linthresh, vmin=vmin, vmax=vmax, base=10)
     else:
         return Normalize(vmin=vmin, vmax=vmax)
 
