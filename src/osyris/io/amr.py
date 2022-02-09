@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 import numpy as np
 from .hilbert import hilbert_cpu_list
 from .reader import Reader, ReaderKind
 from .. import config
-from .. import units
 from . import utils
 
 
@@ -14,58 +13,17 @@ class AmrReader(Reader):
         self.cpu_list = None
 
     def initialize(self, meta, select):
-        length_unit = config.get_unit("x", meta["unit_d"], meta["unit_l"],
-                                      meta["unit_t"])
-        if meta["scale"] is not None:
-            scale = units(meta["scale"])
-            scaling = (length_unit.to(scale) / scale).magnitude * scale
-        else:
-            scaling = length_unit
+        self.initialized = False
 
-        scaling = utils.get_spatial_scaling(meta["unit_d"], meta["unit_l"],
-                                            meta["unit_t"], meta["scale"])
+        descriptor = {"level": "i", "cpu": "i", "dx": "d"}
+        descriptor.update({"xyz_{}".format(c): "d" for c in "xyz"[:meta["ndim"]]})
 
-        if select is False:
-            meta["lmax"] = 0
-            return
-
-        # AMR grid variables
-        self.variables.update({
-            "level": {
-                "read": True,
-                "type": "i",
-                "buffer": None,
-                "pieces": {},
-                "unit": 1.0 * units.dimensionless
-            },
-            "cpu": {
-                "read": True,
-                "type": "i",
-                "buffer": None,
-                "pieces": {},
-                "unit": 1.0 * units.dimensionless
-            },
-            "dx": {
-                "read": True,
-                "type": "d",
-                "buffer": None,
-                "pieces": {},
-                "unit": scaling
-            }
-        })
-        self.variables.update({
-            "xyz_{}".format(c): {
-                "read": True,
-                "type": "d",
-                "buffer": None,
-                "pieces": {},
-                "unit": scaling
-            }
-            for c in "xyz"[:meta["ndim"]]
-        })
+        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
         self.cpu_list = hilbert_cpu_list(meta=meta,
-                                         scaling=scaling,
+                                         scaling=config.get_unit(
+                                             "z", meta["unit_d"], meta["unit_l"],
+                                             meta["unit_t"], meta["scale"]),
                                          select=select,
                                          infofile=meta["infofile"])
         self.initialized = True
@@ -191,15 +149,19 @@ class AmrReader(Reader):
                                                         content=self.bytes,
                                                         offsets=self.offsets)
 
-        self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
+        if self.variables["level"]["read"]:
+            self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
             key = "xyz_" + "xyz"[n]
-            self.variables[key]["buffer"]._array[:ncache, ind] = (
-                self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
-            ) * info["boxlen"] * self.variables[key]["unit"].magnitude
-        self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
-            "boxlen"] * self.variables["dx"]["unit"].magnitude
-        self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
+            if self.variables[key]["read"]:
+                self.variables[key]["buffer"]._array[:ncache, ind] = (
+                    self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
+                ) * info["boxlen"] * self.variables[key]["unit"].magnitude
+        if self.variables["dx"]["read"]:
+            self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
+                "boxlen"] * self.variables["dx"]["unit"].magnitude
+        if self.variables["cpu"]["read"]:
+            self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
 
         # Note: use lmax here instead of levelmax because the user might not
         # want to load all levels. levelmax is always the max level in the

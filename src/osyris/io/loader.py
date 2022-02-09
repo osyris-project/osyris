@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
 import os
@@ -44,7 +44,7 @@ class Loader:
         meta["nout"] = self.nout
         meta["path"] = self.path
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                                        meta["unit_t"], meta["scale"])
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta
@@ -54,33 +54,38 @@ class Loader:
         out = {}
         groups = list(self.readers.keys())
 
-        if select is None:
-            select = {group: {} for group in self.readers}
-        else:
+        _select = {group: {} for group in self.readers}
+        if isinstance(select, dict):
             for key in select:
                 if key not in self.readers:
                     print("Warning: {} found in select is not a valid "
                           "Datagroup.".format(key))
-            for group in self.readers:
-                if group not in select:
-                    select[group] = {}
+                else:
+                    _select[key] = select[key]
+        elif isinstance(select, str):
+            for key in _select:
+                if key != select:
+                    _select[key] = False
+        elif isinstance(select, list) or isinstance(select, tuple):
+            for key in _select:
+                if key not in select:
+                    _select[key] = False
 
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]
-        if "amr" in select:
-            if select["amr"]:
-                if "level" in select["amr"]:
+        if "amr" in _select:
+            if _select["amr"]:
+                if "level" in _select["amr"]:
                     meta["lmax"] = utils.find_max_amr_level(levelmax=meta["levelmax"],
-                                                            select=select["amr"])
+                                                            select=_select["amr"])
 
         # Initialize readers
         readers = {}
         for group in groups:
-            if not self.readers[group].initialized:
-                first_load = self.readers[group].initialize(meta=meta,
-                                                            select=select[group])
-                if first_load is not None:
-                    out[group] = first_load
+            loaded_on_init = self.readers[group].initialize(meta=meta,
+                                                            select=_select[group])
+            if loaded_on_init is not None:
+                out[group] = loaded_on_init
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
 
@@ -160,7 +165,7 @@ class Loader:
                             conditions = {}
                             for group, reader in readers.items():
                                 conditions.update(
-                                    reader.make_conditions(select[group], ncache))
+                                    reader.make_conditions(_select[group], ncache))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
                             sel = np.where(

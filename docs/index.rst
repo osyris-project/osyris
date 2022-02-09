@@ -64,13 +64,53 @@ Loading data
 
    loading_data
 
-Plotting
-========
+Plotting: 1D and 2D data
+========================
 
 .. toctree::
    :maxdepth: 2
 
-   plotting
+   plotting_1d_2d
+
+Plotting: histograms
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_histograms
+
+Plotting: spatial maps
+======================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_maps
+
+Plotting: thick maps
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_thick_maps
+
+Plotting: scatter plots
+=======================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_scatter
+
+Recipes
+=======
+
+.. toctree::
+   :maxdepth: 2
+
+   recipes
 
 API
 ===

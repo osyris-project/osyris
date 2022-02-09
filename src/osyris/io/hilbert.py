@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
 from ..core import Array
@@ -161,6 +161,8 @@ def _get_cpu_list(bounding_box, lmax, levelmax, infofile, ncpu, ndim):
 
 def hilbert_cpu_list(meta, scaling, select, infofile):
     if meta["ordering type"] != "hilbert":
+        return
+    if isinstance(select, bool):
         return
     bounding_box = {"xmin": 0, "xmax": 1, "ymin": 0, "ymax": 1, "zmin": 0, "zmax": 1}
     # Make an array of cell centers according to lmax

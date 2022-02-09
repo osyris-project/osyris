@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+
 from .. import config
 from ..core import Array
 from contextlib import redirect_stderr
@@ -134,7 +135,7 @@ def scatter(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
     If PatchCollection is used, we convert the scatter args to the
     PatchCollection syntax (e.g. "c" -> "color").
     """
-    default_args = {"c": "b", "edgecolors": "k", "zorder": zorder}
+    default_args = {"c": "C0", "edgecolors": "k", "zorder": zorder}
     default_args.update(kwargs)
     use_patchcollection = False
     need_cbar = False
@@ -188,7 +189,6 @@ def line_integral_convolution(ax,
                               cblabel=None,
                               length=None,
                               color=None,
-                              verbose=False,
                               **kwargs):
     """
     Wrapper that plots a line integral convolution of a vector field.
@@ -199,11 +199,8 @@ def line_integral_convolution(ax,
     # Compute line integral convolution
     if length is None:
         length = int(max(z.shape[:-1]) * 15 / 128)
-    if verbose:
+    with redirect_stderr(io.StringIO()) as _:
         lic_res = lic(z[..., 1], z[..., 0], length=length)
-    else:
-        with redirect_stderr(io.StringIO()) as _:
-            lic_res = lic(z[..., 1], z[..., 0], length=length)
 
     if color is not None:
         plot_args = {**kwargs}

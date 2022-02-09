@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2021 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 """
 Define default values so that you don't have to specify them every time.
 """
@@ -17,7 +17,7 @@ parameters = {
 }
 
 
-def get_unit(string, ud, ul, ut):
+def get_unit(string, ud, ul, ut, scale):
 
     density = ud * (ureg.g / (ureg.cm**3))
     velocity = (ul / ut) * (ureg.cm / ureg.s)
@@ -28,6 +28,11 @@ def get_unit(string, ud, ul, ut):
     time = ut * ureg.s
     length = ul * ureg.cm
     mass = density * (length**3)
+
+    scaling = length
+    if scale is not None:
+        scale = ureg(scale)
+        scaling = (length.to(scale) / scale).magnitude * scale
 
     ramses_units = {
         'density': density,
@@ -65,13 +70,18 @@ def get_unit(string, ud, ul, ut):
         'pressure': energy,
         'radiative_energy': energy,
         'radiative_energy_1': energy,
-        'internal_energy': energy,
         'temperature': 1.0 * ureg.K,
         'time': time,
-        'x': length,
-        'y': length,
-        'z': length,
-        'dx': length,
+        'x': scaling,
+        'y': scaling,
+        'z': scaling,
+        'xyz_x': scaling,
+        'xyz_y': scaling,
+        'xyz_z': scaling,
+        'position_x': scaling,
+        'position_y': scaling,
+        'position_z': scaling,
+        'dx': scaling,
         'mass': mass
     }
 
@@ -86,7 +96,6 @@ def additional_units():
     Define additional useful ureg and constants
     """
     ureg.define('solar_mass = 1.9889e+33 * g = msun')
-    ureg.define('solar_luminosity = 3.83e+26 * watt = lsun')
     ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
