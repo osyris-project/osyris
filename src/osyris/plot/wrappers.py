@@ -3,7 +3,7 @@
 
 from .. import config
 from ..core import Array
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, nullcontext
 import io
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
@@ -189,7 +189,7 @@ def line_integral_convolution(ax,
                               cblabel=None,
                               length=None,
                               color=None,
-                              verbose=True,
+                              verbose=False,
                               **kwargs):
     """
     Wrapper that plots a line integral convolution of a vector field.
@@ -200,11 +200,9 @@ def line_integral_convolution(ax,
     # Compute line integral convolution
     if length is None:
         length = int(max(z.shape[:-1]) * 15 / 128)
-    if verbose:
+    cm = nullcontext() if verbose else redirect_stderr(io.StringIO())
+    with cm:
         lic_res = lic(z[..., 1], z[..., 0], length=length)
-    else:
-        with redirect_stderr(io.StringIO()) as _:
-            lic_res = lic(z[..., 1], z[..., 0], length=length)
 
     if color is not None:
         plot_args = {**kwargs}

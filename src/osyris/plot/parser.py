@@ -5,12 +5,18 @@ from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
 
 def get_norm(norm=None, vmin=None, vmax=None):
-    if norm == "log":
-        return LogNorm(vmin=vmin, vmax=vmax)
-    elif norm == "SymLog":
-        return SymLogNorm(linthresh=1e-2, vmin=vmin, vmax=vmax, base=10)
-    else:
+    if norm is None:
         return Normalize(vmin=vmin, vmax=vmax)
+    if isinstance(norm, str):
+        norm_lowercase = norm.lower()
+        if norm_lowercase == "log":
+            return LogNorm(vmin=vmin, vmax=vmax)
+        elif norm_lowercase == "symlog":
+            return SymLogNorm(linthresh=1e-2, vmin=vmin, vmax=vmax, base=10)
+        elif norm_lowercase == "linear":
+            return Normalize(vmin=vmin, vmax=vmax)
+    else:
+        return norm
 
 
 def parse_layer(layer,
@@ -35,8 +41,7 @@ def parse_layer(layer,
             vmax = params["vmax"]
             del params["vmax"]
 
-        if isinstance(params["norm"], str):
-            params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
+        params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
 
         for key, arg in kwargs.items():
             if key not in params:
@@ -47,11 +52,7 @@ def parse_layer(layer,
             settings[key] = layer[key] if key in layer else eval(key)
         return layer["data"], settings, params
     else:
-        params = {
-            "norm":
-            get_norm(norm=norm, vmin=vmin, vmax=vmax) if
-            (isinstance(norm, str) or norm is None) else norm
-        }
+        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
         settings = {"mode": mode, "operation": operation}
         params.update(kwargs)
         return layer, settings, params
