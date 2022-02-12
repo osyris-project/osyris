@@ -173,15 +173,16 @@ def hilbert_cpu_list(meta, scaling, select, infofile):
                         unit=1.0 * scaling.units)
     new_bbox = False
     for c in "xyz":
-        if c in select:
+        key = f"position_{c}"
+        if key in select:
             new_bbox = True
-            func_test = select[c](xyz_centers)
+            func_test = select[key](xyz_centers)
             inds = np.argwhere(func_test).ravel()
             start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
             end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
             bounding_box["{}min".format(c)] = start._array / box_size
             bounding_box["{}max".format(c)] = end._array / box_size
-            select["xyz_{}".format(c)] = select.pop(c)
+            # select["xyz_{}".format(c)] = select.pop(c)
 
     if new_bbox:
         return _get_cpu_list(bounding_box=bounding_box,
