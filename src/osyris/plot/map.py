@@ -14,7 +14,7 @@ from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
+def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax):
     xyz = to_scatter[0]["data"] - origin
     viewport = max(dx.magnitude, dy.magnitude)
     radius = None
@@ -48,6 +48,8 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
             if isinstance(to_scatter[0]["params"]["c"], Array):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection]
+        datax.name = dir_labs["x"]
+        datay.name = dir_labs["y"]
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
@@ -364,6 +366,7 @@ def map(*layers,
             _add_scatter(to_scatter=to_scatter,
                          origin=origin,
                          dir_vecs=dir_vecs,
+                         dir_labs=dir_labs,
                          dx=dx,
                          dy=dy,
                          ax=figure["ax"])
