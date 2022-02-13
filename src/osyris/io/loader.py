@@ -70,14 +70,12 @@ class Loader:
             for key in _select:
                 if key not in select:
                     _select[key] = False
-        print(_select)
-
         # Replace aliases in select: x -> position_x, etc.
-        for name, group in _select.items():
-            # if isinstance(group, dict)
-            for c in "xyz":
-                if c in _select[group]:
-                    _select[f"position_{c}"] = _select.pop(c)
+        for group in _select.values():
+            if isinstance(group, dict):
+                for c in "xyz":
+                    if c in group:
+                        group[f"position_{c}"] = group.pop(c)
 
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]
