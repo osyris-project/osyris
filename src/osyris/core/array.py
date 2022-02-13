@@ -18,7 +18,7 @@ def _comparison_operator(lhs, rhs, op):
 
 
 class Array:
-    def __init__(self, values=None, unit=None, parent=None, name=""):
+    def __init__(self, values=0, unit=None, parent=None, name=""):
 
         if isinstance(values, np.ndarray):
             self._array = values

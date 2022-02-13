@@ -5,7 +5,7 @@ import numpy as np
 import numpy.ma as ma
 from pint.quantity import Quantity
 from typing import Union
-from .slice import get_slice_direction
+from .direction import get_direction
 from .render import render
 from .scatter import scatter
 from .parser import parse_layer
@@ -162,27 +162,29 @@ def map(*layers,
 
     thick = dz is not None
 
+    spatial_unit = dataset["amr"]["position"].unit
+
     # Set window size
     if dy is None:
         dy = dx
     if dz is None:
         dz = dx
     if dx is not None and not isinstance(dx, Quantity):
-        dx *= dataset["amr"]["xyz"].unit
+        dx *= spatial_unit
     if dy is not None and not isinstance(dy, Quantity):
-        dy *= dataset["amr"]["xyz"].unit
+        dy *= spatial_unit
     if dz is not None and not isinstance(dz, Quantity):
-        dz *= dataset["amr"]["xyz"].unit
+        dz *= spatial_unit
 
-    dir_vecs, origin = get_slice_direction(direction=direction,
-                                           dataset=dataset,
-                                           dx=dx,
-                                           dy=dy,
-                                           origin=origin)
+    dir_vecs, dir_labs, origin = get_direction(direction=direction,
+                                               dataset=dataset,
+                                               dx=dx,
+                                               dy=dy,
+                                               origin=origin)
 
     # Distance to the plane
     diagonal = np.sqrt(dataset.meta["ndim"])
-    xyz = dataset["amr"]["xyz"] - origin
+    xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
@@ -349,8 +351,11 @@ def map(*layers,
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(dataset["amr"]["xyz"].x.label)
-        figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
+        print(Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
+        figure["ax"].set_xlabel(
+            Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
+        figure["ax"].set_ylabel(
+            Array(values=0, unit=spatial_unit.units, name=dir_labs["y"]).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 

@@ -70,7 +70,7 @@ class Loader:
             for key in _select:
                 if key not in select:
                     _select[key] = False
-        # Replace aliases in select: x -> position_x, etc.
+        # Replace aliases for x,y,z in select: x,y,x -> position_x,y,z
         for group in _select.values():
             if isinstance(group, dict):
                 for c in "xyz":

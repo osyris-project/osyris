@@ -2,11 +2,25 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
-from ..core.tools import perpendicular_vector
 from ..core import Array
 
 
-def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
+def _perpendicular_vector(v):
+    """
+    Compute a vector perpendicular to the input vector
+    """
+
+    # x = y = z = 0 is not an acceptable solution
+    if v[0] == v[1] == v[2] == 0:
+        raise ValueError("zero-vector")
+
+    if v[2] == 0:
+        return [-v[1], v[0], 0]
+    else:
+        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
+
+
+def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     """
     Find direction vectors for slice.
 
@@ -30,12 +44,14 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
     ndim = dataset.meta["ndim"]
 
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
-    # dir_type = len(np.shape(direction))
+    lab_list = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
+    dir_labs = {"x": "pos_u", "y": "pos_v", "z": "pos_w"}
 
     if ndim < 3:
         dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
+        dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
 
-    elif direction in ["auto", "top", "side"]:
+    elif direction in ["top", "side"]:
         if dx is None or dy is None:
             raise RuntimeError("When using automatic slice orientation, "
                                "dx cannot be None.")
@@ -59,9 +75,6 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
             dir1 = AngMom
             dir2 = perpendicular_vector(dir1)
             dir3 = np.cross(dir1, dir2)
-        # elif view ==
-        # else:
-        #     raise ValueError("Unknown view direction.")
         norm1 = np.linalg.norm(dir1)
         print("Normal slice vector: [%.5e,%.5e,%.5e]" %
               (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
@@ -74,10 +87,16 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
             ])
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
+            dir_labs = {"x": "pos_y", "y": "pos_z", "z": "pos_x"}
+            # dir_labs = [dir_labs["x"], dir_labs["y"], dir_labs["z"]]
         elif direction == "y":
             dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
+            # dir_labs = [dir_labs["y"], dir_labs["z"], dir_labs["x"]]
+            dir_labs = {"x": "pos_z", "y": "pos_x", "z": "pos_y"}
         elif direction == "z":
             dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
+            dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
+            # dir_labs = [dir_labs["z"], dir_labs["x"], dir_labs["y"]]
     # This is the case where direction = [1,1,2]
     # (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
@@ -92,8 +111,7 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
             [direction[0], direction[1],
              np.cross(direction[0], direction[1])])
     else:
-        print("Bad direction for slice: ", direction)
-        return
+        raise ValueError(f"Bad direction for slice: {direction}.")
 
     # Avoid division by zero in norm
     norm = np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
@@ -101,6 +119,6 @@ def get_slice_direction(direction=None, dataset=None, dx=None, dy=None, origin=N
     dir_vecs = dir_vecs / norm
 
     if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["xyz"].unit)
+        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
 
-    return dir_vecs, origin
+    return dir_vecs, dir_labs, origin
