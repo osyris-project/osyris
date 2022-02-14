@@ -56,7 +56,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
 
         xyz = dataset["amr"]["position"]
         if origin is not None:
-            xyz -= origin
+            xyz = xyz - origin
         # Compute angular momentum vector
         sphere = xyz.norm < sphere_rad.magnitude
         pos = xyz * dataset["hydro"]["mass"]
