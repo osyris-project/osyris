@@ -161,6 +161,7 @@ def map(*layers,
             })
 
     dataset = to_process[0].parent.parent
+    ndim = dataset.meta["ndim"]
 
     thick = dz is not None
 
@@ -188,7 +189,7 @@ def map(*layers,
                                        origin=origin)
 
     # Distance to the plane
-    diagonal = np.sqrt(dataset.meta["ndim"])
+    diagonal = np.sqrt(ndim)
     xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
@@ -311,7 +312,7 @@ def map(*layers,
                               grid_spacing_in_new_basis=np.array(
                                   [xspacing, yspacing, zspacing]),
                               grid_positions_in_original_basis=pixel_positions,
-                              ndim=dataset.meta["ndim"])
+                              ndim=ndim)
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
@@ -354,7 +355,6 @@ def map(*layers,
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        print(Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
         figure["ax"].set_xlabel(
             Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
         figure["ax"].set_ylabel(
