@@ -178,11 +178,14 @@ def map(*layers,
     if dz is not None and not isinstance(dz, Quantity):
         dz *= spatial_unit
 
-    dir_vecs, dir_labs, origin = get_direction(direction=direction,
-                                               dataset=dataset,
-                                               dx=dx,
-                                               dy=dy,
-                                               origin=origin)
+    if origin is None:
+        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
+
+    dir_vecs, dir_labs = get_direction(direction=direction,
+                                       dataset=dataset,
+                                       dx=dx,
+                                       dy=dy,
+                                       origin=origin)
 
     # Distance to the plane
     diagonal = np.sqrt(dataset.meta["ndim"])

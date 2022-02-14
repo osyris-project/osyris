@@ -52,16 +52,26 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
 
     elif direction in ["top", "side"]:
-        if dx is None or dy is None:
-            raise RuntimeError("When using automatic slice orientation, "
-                               "dx cannot be None.")
-        sphere_rad = 0.25 * (dx + dy)
-        if origin is not None:
-            xyz = dataset["amr"]["xyz"] - origin
+        # sphere_rad = 0.0 * dataset["amr"]["position"].unit.units
+        if dx is None:
+            pos = dataset["amr"]["position"].values
+            sphere_rad = (0.5 * (pos[:, 0].max() - pos[:, 0].min() + pos[:, 1].max() -
+                                 pos[:, 1].min() + pos[:, 2].max() - pos[:, 2].min()) /
+                          3.) * dataset["amr"]["position"].unit.units
         else:
-            xyz = dataset["amr"]["xyz"]
+            sphere_rad = 0.25 * (dx + dy)
+
+        #    sphere_rad
+        # or dy is None:
+        #    raise RuntimeError("When using automatic slice orientation, "
+        #                       "dx cannot be None.")
+        # sphere_rad = 0.25 * (dx + dy)
+        xyz = dataset["amr"]["position"] - origin
+        # if origin is not None:
+        #     xyz -= origin
         # Compute angular momentum vector
-        sphere = np.where(xyz.norm < sphere_rad.magnitude)
+        # sphere = np.where(xyz.norm < sphere_rad.magnitude)
+        sphere = xyz.norm < sphere_rad.magnitude
         pos = xyz * dataset["hydro"]["mass"]
         vel = dataset["hydro"]["velocity"]
 
@@ -69,11 +79,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         if direction == "side":
             # Choose a vector perpendicular to the angular momentum vector
             dir3 = AngMom
-            dir1 = perpendicular_vector(dir3)
+            dir1 = _perpendicular_vector(dir3)
             dir2 = np.cross(dir1, dir3)
         else:
             dir1 = AngMom
-            dir2 = perpendicular_vector(dir1)
+            dir2 = _perpendicular_vector(dir1)
             dir3 = np.cross(dir1, dir2)
         norm1 = np.linalg.norm(dir1)
         print("Normal slice vector: [%.5e,%.5e,%.5e]" %
@@ -85,6 +95,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             dir_vecs = np.array([
                 dir_list[direction[0]], dir_list[direction[1]], dir_list[direction[2]]
             ])
+            dir_labs = {
+                "x": f"pos_{direction[1]}",
+                "y": f"pos_{direction[2]}",
+                "z": f"pos_{direction[0]}"
+            }
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
             dir_labs = {"x": "pos_y", "y": "pos_z", "z": "pos_x"}
@@ -101,7 +116,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     # (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
         dir1 = direction
-        dir2 = perpendicular_vector(dir1)
+        dir2 = _perpendicular_vector(dir1)
         dir3 = np.cross(dir1, dir2).tolist()
         dir_vecs = np.array([dir1, dir2, dir3])
     # This is the case where two vectors are specified:
@@ -118,7 +133,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     norm[norm == 0.] = 1.0
     dir_vecs = dir_vecs / norm
 
-    if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
+    # if origin is None:
+    #     origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
 
-    return dir_vecs, dir_labs, origin
+    return dir_vecs, dir_labs
