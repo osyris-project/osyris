@@ -182,7 +182,6 @@ def hilbert_cpu_list(meta, scaling, select, infofile):
             end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
             bounding_box["{}min".format(c)] = start._array / box_size
             bounding_box["{}max".format(c)] = end._array / box_size
-            # select["xyz_{}".format(c)] = select.pop(c)
 
     if new_bbox:
         return _get_cpu_list(bounding_box=bounding_box,
