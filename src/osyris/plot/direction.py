@@ -26,20 +26,18 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
 
     Direction can be:
 
+    - a single letter ``"x"``, ``"y"``, ``"z"`` representing the normal to the plane
+    - three letters, e.g. ``"zyx"``, where the first letter is the normal to the plane,
+      and the following two letters are the two other perpendicual vectors
+    - a list of 3 numbers, representing the 3 components of the normal to the plane
+    - ``"top"`` for a 'top' view according to local angular momentum
+    - ``"side"`` for a 'side' view according to local angular momentum
+    - a list of 2 lists of 3 numbers, representing the normal to the plane and the first
+      of the two other perpendicular vectors (the third one will be computed from the
+      other two)
 
-    The origin can be either a vector of 3 numbers (xyz), or it can be "sink17"
-    for sink particles.
+    The origin is a vector of 3 numbers (xyz).
     """
-
-    # # Transform origin to coordinates if sink is requested
-    # try:
-    #     if origin.startswith("sink"):
-    #         isink = np.where(holder.sinks["id"] ==
-    #          int(origin.split(":")[1]))[0][0]
-    #         origin = [holder.sinks["x"][isink], holder.sinks["y"]
-    #                   [isink], holder.sinks["z"][isink]]
-    # except AttributeError:
-    #     pass
 
     ndim = dataset.meta["ndim"]
 
@@ -52,7 +50,6 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
 
     elif direction in ["top", "side"]:
-        # sphere_rad = 0.0 * dataset["amr"]["position"].unit.units
         if dx is None:
             pos = dataset["amr"]["position"].values
             sphere_rad = (0.5 * (pos[:, 0].max() - pos[:, 0].min() + pos[:, 1].max() -
@@ -61,16 +58,10 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         else:
             sphere_rad = 0.25 * (dx + dy)
 
-        #    sphere_rad
-        # or dy is None:
-        #    raise RuntimeError("When using automatic slice orientation, "
-        #                       "dx cannot be None.")
-        # sphere_rad = 0.25 * (dx + dy)
-        xyz = dataset["amr"]["position"] - origin
-        # if origin is not None:
-        #     xyz -= origin
+        xyz = dataset["amr"]["position"]
+        if origin is not None:
+            xyz -= origin
         # Compute angular momentum vector
-        # sphere = np.where(xyz.norm < sphere_rad.magnitude)
         sphere = xyz.norm < sphere_rad.magnitude
         pos = xyz * dataset["hydro"]["mass"]
         vel = dataset["hydro"]["velocity"]
@@ -103,15 +94,12 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
             dir_labs = {"x": "pos_y", "y": "pos_z", "z": "pos_x"}
-            # dir_labs = [dir_labs["x"], dir_labs["y"], dir_labs["z"]]
         elif direction == "y":
             dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
-            # dir_labs = [dir_labs["y"], dir_labs["z"], dir_labs["x"]]
             dir_labs = {"x": "pos_z", "y": "pos_x", "z": "pos_y"}
         elif direction == "z":
             dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
             dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
-            # dir_labs = [dir_labs["z"], dir_labs["x"], dir_labs["y"]]
     # This is the case where direction = [1,1,2]
     # (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
@@ -132,8 +120,5 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     norm = np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
     norm[norm == 0.] = 1.0
     dir_vecs = dir_vecs / norm
-
-    # if origin is None:
-    #     origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
 
     return dir_vecs, dir_labs
