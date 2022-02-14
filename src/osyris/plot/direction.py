@@ -2,7 +2,6 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
 
 import numpy as np
-from ..core import Array
 
 
 def _perpendicular_vector(v):
