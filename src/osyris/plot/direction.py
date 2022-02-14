@@ -39,7 +39,8 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     The origin is a vector of 3 numbers (xyz).
     """
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
-    dir_labs = {"x": "pos_u", "y": "pos_v"}
+    dir_labs = {"x": "pos_u",
+                "y": "pos_v"}
 
     if dataset.meta["ndim"] < 3:
         dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
