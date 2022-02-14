@@ -42,12 +42,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     ndim = dataset.meta["ndim"]
 
     dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
-    lab_list = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
-    dir_labs = {"x": "pos_u", "y": "pos_v", "z": "pos_w"}
+    dir_labs = {"x": "pos_u", "y": "pos_v"}
 
     if ndim < 3:
         dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
-        dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
+        dir_labs = {"x": "x", "y": "y"}
 
     elif direction in ["top", "side"]:
         if dx is None:
@@ -86,20 +85,16 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             dir_vecs = np.array([
                 dir_list[direction[0]], dir_list[direction[1]], dir_list[direction[2]]
             ])
-            dir_labs = {
-                "x": f"pos_{direction[1]}",
-                "y": f"pos_{direction[2]}",
-                "z": f"pos_{direction[0]}"
-            }
+            dir_labs = {"x": direction[1], "y": direction[2]}
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
-            dir_labs = {"x": "pos_y", "y": "pos_z", "z": "pos_x"}
+            dir_labs = {"x": "y", "y": "z"}
         elif direction == "y":
             dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
-            dir_labs = {"x": "pos_z", "y": "pos_x", "z": "pos_y"}
+            dir_labs = {"x": "z", "y": "x"}
         elif direction == "z":
             dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
-            dir_labs = {"x": "pos_x", "y": "pos_y", "z": "pos_z"}
+            dir_labs = {"x": "x", "y": "y"}
     # This is the case where direction = [1,1,2]
     # (i.e. is a vector with 3 numbers)
     elif len(direction) == 3:
