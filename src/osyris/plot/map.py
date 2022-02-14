@@ -195,7 +195,7 @@ def map(*layers,
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
-    close_to_plane = np.ravel(np.where(np.abs(dist_to_plane) <= selection_distance))
+    close_to_plane = np.abs(dist_to_plane) <= selection_distance
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -213,10 +213,8 @@ def map(*layers,
         # Limit selection further by using distance from center
         radial_distance = xyz[indices_close_to_plane] - 0.5 * dataset["amr"]["dx"][
             indices_close_to_plane] * diagonal
-        radial_selection = np.ravel(
-            np.where(
-                np.abs(radial_distance.norm.values) <=
-                max(dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal))
+        radial_selection = np.abs(radial_distance.norm.values) <= max(
+            dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
         indices_close_to_plane = indices_close_to_plane[radial_selection]
 
     # Project coordinates onto the plane by taking dot product with axes vectors
@@ -277,21 +275,21 @@ def map(*layers,
                 resolution[xy] = default_resolution
     xspacing = (xmax - xmin) / resolution['x']
     yspacing = (ymax - ymin) / resolution['y']
-
-    if 'z' not in resolution:
-        if not thick:
-            resolution['z'] = 1
-        else:
-            # Try to keep spacing similar to other spacings
-            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
-    zspacing = (zmax - zmin) / resolution['z']
-
     xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
                            resolution['x'])
     ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
                            resolution['y'])
-    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
-                           resolution['z'])
+
+    if thick:
+        if 'z' not in resolution:
+            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
+        zspacing = (zmax - zmin) / resolution['z']
+        zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
+                               resolution['z'])
+    else:
+        zmin = 0.
+        zspacing = 1.0
+        zcenters = [0.]
 
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
     xgrid = xg.T
