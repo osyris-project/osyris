@@ -65,7 +65,6 @@ class Array:
             values_str = "Min: " + value_to_string(
                 self.min(use_norm=True).values) + " Max: " + value_to_string(
                     self.max(use_norm=True).values)
-
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
