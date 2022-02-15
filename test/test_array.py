@@ -303,15 +303,25 @@ def test_to_bad_units():
 
 
 def test_min():
-    a = osyris.Array(values=[1., 2., 0.3, 4., 5.], unit='m')
-    b = osyris.Array(values=[0.3], unit='m')
-    assert all(a.min() == b)
+    a = osyris.Array(values=[1., -2., 3., 0.4, 0.5, 0.6], unit='m')
+    assert a.min() == osyris.Array(values=-2., unit='m')
+    assert a.min(use_norm=True) == osyris.Array(values=-2., unit='m')
+    b = osyris.Array(values=np.array([1., -2., 3., 0.4, 0.5, 0.6]).reshape(2, 3),
+                     unit='m')
+    assert b.min() == osyris.Array(values=-2., unit='m')
+    assert b.min(use_norm=True) == osyris.Array(values=np.linalg.norm([0.4, 0.5, 0.6]),
+                                                unit='m')
 
 
 def test_max():
-    a = osyris.Array(values=[1., 2., 3., 45., 5.], unit='m')
-    b = osyris.Array(values=[45.0], unit='m')
-    assert all(a.max() == b)
+    a = osyris.Array(values=[1., 2., 3., -15., 5., 6.], unit='m')
+    assert a.max() == osyris.Array(values=6.0, unit='m')
+    assert a.max(use_norm=True) == osyris.Array(values=6.0, unit='m')
+    b = osyris.Array(values=np.array([1., 2., 3., -15., 5., 6.]).reshape(2, 3),
+                     unit='m')
+    assert b.max() == osyris.Array(values=6.0, unit='m')
+    assert b.max(use_norm=True) == osyris.Array(values=np.linalg.norm([-15., 5., 6.]),
+                                                unit='m')
 
 
 def test_reshape():
