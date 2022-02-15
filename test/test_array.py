@@ -318,3 +318,18 @@ def test_reshape():
     a = osyris.Array(values=[1., 2., 3., 4., 5., 6.], unit='m')
     expected = osyris.Array(values=[[1., 2., 3.], [4., 5., 6.]], unit='m')
     assert all(np.ravel(a.reshape(2, 3) == expected))
+
+
+def test_slicing():
+    a = osyris.Array(values=[11., 12., 13., 14., 15.], unit='m')
+    assert a[2] == osyris.Array(values=[13.], unit='m')
+    assert all(a[:4] == osyris.Array(values=[11., 12., 13., 14.], unit='m'))
+    assert all(a[2:4] == osyris.Array(values=[13., 14.], unit='m'))
+
+
+def test_slicing_vector():
+    a = osyris.Array(values=np.arange(12.).reshape(4, 3), unit='m')
+    assert all(np.ravel(a[2] == osyris.Array(values=[[6., 7., 8.]], unit='m')))
+    assert a[2].shape == (1, 3)
+    assert all(
+        np.ravel(a[:2] == osyris.Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m')))

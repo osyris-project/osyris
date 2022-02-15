@@ -43,10 +43,13 @@ class Array:
     #     return self._array
 
     def __getitem__(self, slice_):
-        return self.__class__(values=self._array[slice_],
-                              unit=self._unit,
-                              parent=self._parent,
-                              name=self._name)
+        out = self.__class__(values=self._array[slice_],
+                             unit=self._unit,
+                             parent=self._parent,
+                             name=self._name)
+        if isinstance(slice_, int) and self.ndim > 1:
+            return out.reshape(1, len(out))
+        return out
 
     def __len__(self):
         if self._array.shape:
@@ -108,7 +111,10 @@ class Array:
     @property
     def ndim(self):
         if self._array.shape:
-            return self._array.shape[-1]
+            if len(self._array.shape) == 2:
+                return self._array.shape[-1]
+            else:
+                return 1
         return 0
 
     @property
