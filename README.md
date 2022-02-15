@@ -38,7 +38,7 @@ with velocity vectors overlayed as arrows, once again using ``layers``:
 
 ```python
 ind = np.argmax(data["hydro"]["density"])
-center = data["amr"]["xyz"][ind.values]
+center = data["amr"]["position"][ind.values]
 osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
              {"data": data["hydro"]["velocity"], "mode": "vec"}, # layer 2
              dx=2000 * osyris.units("au"),
@@ -49,7 +49,7 @@ osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
 
 ## Have a problem or need a new feature?
 
-- Bugs reports or feature requests should be submitted by opening an [issue](https://github.com/osyris-project/osyris/issues)
+- Bug reports or feature requests should be submitted by opening an [issue](https://github.com/osyris-project/osyris/issues)
 - For general discussions or questions about how to do something with `osyris`, start a new [discussion](https://github.com/osyris-project/osyris/discussions)
 
 ## Logo credit
