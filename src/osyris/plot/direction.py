@@ -44,40 +44,42 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
         dir_labs = {"x": "x", "y": "y"}
 
-    elif direction in ["top", "side"]:
-        if dx is None:
-            pos = dataset["amr"]["position"].values
-            sphere_rad = (0.5 * (pos[:, 0].max() - pos[:, 0].min() + pos[:, 1].max() -
-                                 pos[:, 1].min() + pos[:, 2].max() - pos[:, 2].min()) /
-                          3.) * dataset["amr"]["position"].unit.units
-        else:
-            sphere_rad = 0.25 * (dx + dy)
-
-        xyz = dataset["amr"]["position"]
-        if origin is not None:
-            xyz = xyz - origin
-        # Compute angular momentum vector
-        sphere = xyz.norm < sphere_rad.magnitude
-        pos = xyz * dataset["hydro"]["mass"]
-        vel = dataset["hydro"]["velocity"]
-
-        AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
-        if direction == "side":
-            # Choose a vector perpendicular to the angular momentum vector
-            dir3 = AngMom
-            dir1 = _perpendicular_vector(dir3)
-            dir2 = np.cross(dir1, dir3)
-        else:
-            dir1 = AngMom
-            dir2 = _perpendicular_vector(dir1)
-            dir3 = np.cross(dir1, dir2)
-        norm1 = np.linalg.norm(dir1)
-        print("Normal slice vector: [%.5e,%.5e,%.5e]" %
-              (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
-        dir_vecs = np.array([dir1, dir2, dir3])
-
     elif isinstance(direction, str):
-        if len(direction) == 3:  # This is the case where direction = "xyz"
+        direction = direction.lower()
+        if direction in ["top", "side"]:
+            if dx is None:
+                pos = dataset["amr"]["position"].values
+                sphere_rad = (0.5 *
+                              (pos[:, 0].max() - pos[:, 0].min() + pos[:, 1].max() -
+                               pos[:, 1].min() + pos[:, 2].max() - pos[:, 2].min()) /
+                              3.) * dataset["amr"]["position"].unit.units
+            else:
+                sphere_rad = 0.25 * (dx + dy)
+
+            xyz = dataset["amr"]["position"]
+            if origin is not None:
+                xyz = xyz - origin
+            # Compute angular momentum vector
+            sphere = xyz.norm < sphere_rad.magnitude
+            pos = xyz * dataset["hydro"]["mass"]
+            vel = dataset["hydro"]["velocity"]
+
+            AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
+            if direction == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                dir3 = AngMom
+                dir1 = _perpendicular_vector(dir3)
+                dir2 = np.cross(dir1, dir3)
+            else:
+                dir1 = AngMom
+                dir2 = _perpendicular_vector(dir1)
+                dir3 = np.cross(dir1, dir2)
+            norm1 = np.linalg.norm(dir1)
+            print("Normal slice vector: [%.5e,%.5e,%.5e]" %
+                  (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
+            dir_vecs = np.array([dir1, dir2, dir3])
+
+        if set(direction) == set("xyz"):  # case where direction = "xyz", "zyx" etc.
             dir_vecs = np.array([
                 dir_list[direction[0]], dir_list[direction[1]], dir_list[direction[2]]
             ])
