@@ -49,7 +49,7 @@ class Loader:
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None):
+    def load(self, select=None, cpu_list=None, meta=None, sortby=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -210,5 +210,12 @@ class Loader:
 
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
+
+        # Apply sorting if any
+        if sortby is not None:
+            for group, key in sortby.items():
+                inds = np.argsort(out[group][key])
+                for var in out[group]:
+                    out[group][var] = out[group][var][inds]
 
         return out
