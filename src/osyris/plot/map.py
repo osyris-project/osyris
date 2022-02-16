@@ -5,7 +5,7 @@ import numpy as np
 import numpy.ma as ma
 from pint.quantity import Quantity
 from typing import Union
-from .slice import get_slice_direction
+from .direction import get_direction
 from .render import render
 from .scatter import scatter
 from .parser import parse_layer
@@ -14,7 +14,7 @@ from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
+def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax):
     xyz = to_scatter[0]["data"] - origin
     viewport = max(dx.magnitude, dy.magnitude)
     radius = None
@@ -48,6 +48,8 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax):
             if isinstance(to_scatter[0]["params"]["c"], Array):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection]
+        datax.name = dir_labs["x"]
+        datay.name = dir_labs["y"]
         scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
 
 
@@ -159,8 +161,11 @@ def map(*layers,
             })
 
     dataset = to_process[0].parent.parent
+    ndim = dataset.meta["ndim"]
 
     thick = dz is not None
+
+    spatial_unit = dataset["amr"]["position"].unit
 
     # Set window size
     if dy is None:
@@ -168,27 +173,30 @@ def map(*layers,
     if dz is None:
         dz = dx
     if dx is not None and not isinstance(dx, Quantity):
-        dx *= dataset["amr"]["xyz"].unit
+        dx *= spatial_unit
     if dy is not None and not isinstance(dy, Quantity):
-        dy *= dataset["amr"]["xyz"].unit
+        dy *= spatial_unit
     if dz is not None and not isinstance(dz, Quantity):
-        dz *= dataset["amr"]["xyz"].unit
+        dz *= spatial_unit
 
-    dir_vecs, origin = get_slice_direction(direction=direction,
-                                           dataset=dataset,
-                                           dx=dx,
-                                           dy=dy,
-                                           origin=origin)
+    if origin is None:
+        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
+
+    dir_vecs, dir_labs = get_direction(direction=direction,
+                                       dataset=dataset,
+                                       dx=dx,
+                                       dy=dy,
+                                       origin=origin)
 
     # Distance to the plane
-    diagonal = np.sqrt(dataset.meta["ndim"])
-    xyz = dataset["amr"]["xyz"] - origin
+    diagonal = np.sqrt(ndim)
+    xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
-    close_to_plane = np.ravel(np.where(np.abs(dist_to_plane) <= selection_distance))
+    close_to_plane = np.abs(dist_to_plane) <= selection_distance
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -206,10 +214,8 @@ def map(*layers,
         # Limit selection further by using distance from center
         radial_distance = xyz[indices_close_to_plane] - 0.5 * dataset["amr"]["dx"][
             indices_close_to_plane] * diagonal
-        radial_selection = np.ravel(
-            np.where(
-                np.abs(radial_distance.norm.values) <=
-                max(dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal))
+        radial_selection = np.abs(radial_distance.norm.values) <= max(
+            dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
         indices_close_to_plane = indices_close_to_plane[radial_selection]
 
     # Project coordinates onto the plane by taking dot product with axes vectors
@@ -270,21 +276,21 @@ def map(*layers,
                 resolution[xy] = default_resolution
     xspacing = (xmax - xmin) / resolution['x']
     yspacing = (ymax - ymin) / resolution['y']
-
-    if 'z' not in resolution:
-        if not thick:
-            resolution['z'] = 1
-        else:
-            # Try to keep spacing similar to other spacings
-            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
-    zspacing = (zmax - zmin) / resolution['z']
-
     xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
                            resolution['x'])
     ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
                            resolution['y'])
-    zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
-                           resolution['z'])
+
+    if thick:
+        if 'z' not in resolution:
+            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
+        zspacing = (zmax - zmin) / resolution['z']
+        zcenters = np.linspace(zmin + 0.5 * zspacing, zmax - 0.5 * zspacing,
+                               resolution['z'])
+    else:
+        zmin = 0.
+        zspacing = 1.0
+        zcenters = [0.]
 
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
     xgrid = xg.T
@@ -306,7 +312,7 @@ def map(*layers,
                               grid_spacing_in_new_basis=np.array(
                                   [xspacing, yspacing, zspacing]),
                               grid_positions_in_original_basis=pixel_positions,
-                              ndim=dataset.meta["ndim"])
+                              ndim=ndim)
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
@@ -349,8 +355,10 @@ def map(*layers,
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(dataset["amr"]["xyz"].x.label)
-        figure["ax"].set_ylabel(dataset["amr"]["xyz"].y.label)
+        figure["ax"].set_xlabel(
+            Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
+        figure["ax"].set_ylabel(
+            Array(values=0, unit=spatial_unit.units, name=dir_labs["y"]).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 
@@ -359,6 +367,7 @@ def map(*layers,
             _add_scatter(to_scatter=to_scatter,
                          origin=origin,
                          dir_vecs=dir_vecs,
+                         dir_labs=dir_labs,
                          dx=dx,
                          dy=dy,
                          ax=figure["ax"])

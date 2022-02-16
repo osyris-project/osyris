@@ -44,21 +44,6 @@ def to_bin_edges(x):
     return np.append(np.insert(centers, 0, left), right)
 
 
-def perpendicular_vector(v):
-    """
-    Compute a vector perpendicular to the input vector
-    """
-
-    # x = y = z = 0 is not an acceptable solution
-    if v[0] == v[1] == v[2] == 0:
-        raise ValueError("zero-vector")
-
-    if v[2] == 0:
-        return [-v[1], v[0], 0]
-    else:
-        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
-
-
 def value_to_string(val, precision=3):
     """
     Convert a number to a human readable string.

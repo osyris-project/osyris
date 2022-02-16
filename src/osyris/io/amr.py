@@ -16,7 +16,7 @@ class AmrReader(Reader):
         self.initialized = False
 
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
-        descriptor.update({"xyz_{}".format(c): "d" for c in "xyz"[:meta["ndim"]]})
+        descriptor.update({f"position_{c}": "d" for c in "xyz"[:meta["ndim"]]})
 
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
@@ -152,7 +152,7 @@ class AmrReader(Reader):
         if self.variables["level"]["read"]:
             self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
         for n in range(info["ndim"]):
-            key = "xyz_" + "xyz"[n]
+            key = "position_" + "xyz"[n]
             if self.variables[key]["read"]:
                 self.variables[key]["buffer"]._array[:ncache, ind] = (
                     self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]

@@ -122,7 +122,7 @@ def make_vector_arrays(data, ndim):
                     cut = ind - 1 if key[ind - 1] == "_" else ind
                     rawkey = key[:cut] + key[ind + 1:]
                     if len(rawkey) == 0:
-                        rawkey = "xyz"
+                        rawkey = "position"
                     data[rawkey] = Array(values=np.array(
                         [data[c].values for c in comp_list]).T,
                                          unit=data[key].unit)
