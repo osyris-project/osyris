@@ -43,10 +43,13 @@ class Array:
     #     return self._array
 
     def __getitem__(self, slice_):
-        return self.__class__(values=self._array[slice_],
-                              unit=self._unit,
-                              parent=self._parent,
-                              name=self._name)
+        out = self.__class__(values=self._array[slice_],
+                             unit=self._unit,
+                             parent=self._parent,
+                             name=self._name)
+        if isinstance(slice_, int) and self.ndim > 1:
+            return out.reshape(1, len(out))
+        return out
 
     def __len__(self):
         if self._array.shape:
@@ -60,7 +63,8 @@ class Array:
             values_str = "Value: " + value_to_string(self.values)
         else:
             values_str = "Min: " + value_to_string(
-                self.values.min()) + " Max: " + value_to_string(self.values.max())
+                self.min(use_norm=True).values) + " Max: " + value_to_string(
+                    self.max(use_norm=True).values)
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
         return name_str + values_str + unit_str + shape_str
@@ -75,7 +79,10 @@ class Array:
 
     @property
     def values(self):
-        return self._array
+        if not self._array.shape:
+            return self._array[()]
+        else:
+            return self._array
 
     @values.setter
     def values(self, values_):
@@ -108,7 +115,10 @@ class Array:
     @property
     def ndim(self):
         if self._array.shape:
-            return self._array.shape[-1]
+            if len(self._array.shape) == 2:
+                return self._array.shape[-1]
+            else:
+                return 1
         return 0
 
     @property
@@ -392,11 +402,19 @@ class Array:
         """
         return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self):
-        return self.__class__(values=self._array.min(), unit=self._unit)
+    def min(self, use_norm=False):
+        if use_norm:
+            out = self.norm._array.min()
+        else:
+            out = self._array.min()
+        return self.__class__(values=out, unit=self._unit)
 
-    def max(self):
-        return self.__class__(values=self._array.max(), unit=self._unit)
+    def max(self, use_norm=False):
+        if use_norm:
+            out = self.norm._array.max()
+        else:
+            out = self._array.max()
+        return self.__class__(values=out, unit=self._unit)
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self._unit)
