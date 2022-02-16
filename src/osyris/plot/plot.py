@@ -64,6 +64,13 @@ def plot(x: Array,
     yaxis_unit = None
     xvals = None
 
+    if y:
+        if isinstance(y, Array):
+            y = [y]
+    else:
+        y = [x]
+        x = Array(values=np.arange(len(x)))
+
     if isinstance(x, dict):
         to_plot.append({
             "x": x["x"].norm,
@@ -77,9 +84,6 @@ def plot(x: Array,
         yaxis_unit = x["y"].unit
     else:
         xvals = x.norm
-
-    if isinstance(y, Array):
-        y = [y]
 
     for layer in y:
 
