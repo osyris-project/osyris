@@ -48,8 +48,9 @@ class Array:
                              parent=self._parent,
                              name=self._name)
         if self.shape[0] == 1:
-                return out
-        if (isinstance(slice_, int) or isinstance(slice_, np.integer)) and self.ndim > 1:
+            return out
+        if (isinstance(slice_, int)
+                or isinstance(slice_, np.integer)) and self.ndim > 1:
             return out.reshape(1, len(out))
         return out
 
@@ -255,7 +256,6 @@ class Array:
                                   unit=1.0 * result.units)
         return self.__class__(values=self._array * other, unit=self._unit)
 
-
     def __matmul__(self, other):
         if isinstance(other, self.__class__):
             scale_l = self._unit.to_base_units()
@@ -264,7 +264,8 @@ class Array:
             lhs = self._array
             rhs = other._array * result.magnitude
             lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=np.transpose(lhs @ rhs.T), unit=1.0 * result.units)
+            return self.__class__(values=np.transpose(lhs @ rhs.T),
+                                  unit=1.0 * result.units)
         if isinstance(other, Quantity):
             scale_l = self._unit.to_base_units()
             scale_r = other.to_base_units()
