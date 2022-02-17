@@ -101,4 +101,4 @@ def cylindrical_to_cartesian(radius, azimuth, elevation):
     """
     x, y, z = (radius * np.cos(azimuth), radius * np.sin(azimuth), elevation)
     xyz = np.vstack([x, y, z])
-    return Array(values=np.transpose(xyz).values, unit=r.unit, name="position")
+    return Array(values=np.transpose(xyz).values, unit=radius.unit, name="position")
