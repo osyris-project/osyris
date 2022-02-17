@@ -6,28 +6,13 @@ from ..core import Array
 from ..config import units
 
 
-def rotation_matrix(alpha, beta, gamma):
-    """
-    Returns the 3D rotation matrix of angles 'alpha' (yaw) around x axis
-                                             'beta' (pitch) around y axis
-                                             'gamma' (roll) around z axis
-    """
-    Rx = np.array([[1, 0, 0], [0, np.cos(alpha), -np.sin(alpha)],
-                   [0, np.sin(alpha), np.cos(alpha)]])
-    Ry = np.array([[np.cos(beta), 0, np.sin(beta)], [0, 1, 0],
-                   [-np.sin(beta), 0, np.cos(beta)]])
-    Rz = np.array([[np.cos(gamma), -np.sin(gamma), 0],
-                   [np.sin(gamma), np.cos(gamma), 0], [0, 0, 1]])
-
-    return Rz @ Ry @ Rx
-
-
-def rotation_matrix_axis_angle(vec, angle):
+def rotation_matrix(vec, angle):
     """
     Returns 3D rotation matrix of angle 'angle' around rotation vector 'vec'.
     """
     if isinstance(vec, list):
         vec = np.array(vec)
+    vec = vec / np.linalg.norm(vec)
     R = np.cos(angle) * np.identity(3) + (np.sin(angle)) * np.cross(
         vec,
         np.identity(vec.shape[0]) * -1) + (1 - np.cos(angle)) * (np.outer(vec, vec))
@@ -97,7 +82,7 @@ def cartesian_to_cylindrical(position, origin=[0, 0, 0]):
 def cylindrical_to_cartesian(radius, azimuth, elevation):
     """
     Converts cylindrical components radius, azimuth and elevation to x,y,z
-    Returns an osyris array of shape (len(r), 3) containing a stacked xyz
+    Returns an osyris array of shape (len(radius), 3) containing a stacked xyz
     """
     x, y, z = (radius * np.cos(azimuth), radius * np.sin(azimuth), elevation)
     xyz = np.vstack([x, y, z])
