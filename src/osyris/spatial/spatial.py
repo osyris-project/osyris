@@ -36,7 +36,7 @@ def rotation_matrix_axis_angle(vec, angle):
 
 def spherical_to_cartesian(r, theta, phi):
     """
-    Converts spherical components radius, colatitude and azimuth to x,y,z cartesian coordinates
+    Converts spherical components radius, colatitude and azimuth to x,y,z
     Returns an osyris array of shape (len(r), 3) containing a stacked xyz
     """
     x, y, z = (r * np.cos(phi) * np.sin(theta), r * np.sin(phi) * np.sin(theta),
@@ -94,9 +94,9 @@ def cartesian_to_cylindrical(position, origin=[0, 0, 0]):
     return radius, azimuth, elevation
 
 
-def cylindrical_to_cartesian(r, azimuth, elevation):
+def cylindrical_to_cartesian(radius, azimuth, elevation):
     """
-    Converts cylindrical components radius, azimuth and elevation to x,y,z cartesian coordinates
+    Converts cylindrical components radius, azimuth and elevation to x,y,z
     Returns an osyris array of shape (len(r), 3) containing a stacked xyz
     """
     x, y, z = (radius * np.cos(azimuth), radius * np.sin(azimuth), elevation)
