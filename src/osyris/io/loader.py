@@ -114,7 +114,7 @@ class Loader:
             cpu_list = self.readers["amr"].cpu_list if self.readers[
                 "amr"].cpu_list is not None else range(1, meta["ncpu"] + 1)
 
-        # If not reader requires the CPUs (if loading only sinks), make empty cpu list
+        # If no reader requires the CPUs (if loading only sinks), make empty cpu list
         if do_not_load_cpus:
             cpu_list = []
         else:
