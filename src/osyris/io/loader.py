@@ -100,13 +100,14 @@ class Loader:
                     do_not_load_amr = False
                 if self.readers[group].kind in (ReaderKind.AMR, ReaderKind.PART):
                     do_not_load_cpus = False
-        # If not reader requires the AMR tree to be read, set lmax to zero
+        # If no reader requires the AMR tree to be read, set lmax to zero
         if do_not_load_amr:
             lmax = 0
-            del readers['amr']
         else:
             meta["ncells"] = 0
             lmax = meta["lmax"]
+            if "amr" not in readers:
+                readers["amr"] = self.readers["amr"]
 
         # Take into account user specified cpu list
         if cpu_list is None:
