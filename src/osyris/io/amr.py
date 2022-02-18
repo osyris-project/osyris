@@ -26,7 +26,8 @@ class AmrReader(Reader):
                                              meta["unit_t"], meta["scale"]),
                                          select=select,
                                          infofile=meta["infofile"])
-        self.initialized = True
+        if select is not False:
+            self.initialized = True
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)
