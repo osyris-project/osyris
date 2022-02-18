@@ -256,24 +256,6 @@ class Array:
                                   unit=1.0 * result.units)
         return self.__class__(values=self._array * other, unit=self._unit)
 
-    def __matmul__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            lhs = self._array
-            rhs = other._array * result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=np.transpose(lhs @ rhs.T),
-                                  unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array @ other, unit=self._unit)
-
     def __imul__(self, other):
         if isinstance(other, self.__class__):
             scale_l = self._unit.to_base_units()
