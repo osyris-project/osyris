@@ -103,6 +103,7 @@ class Loader:
         # If not reader requires the AMR tree to be read, set lmax to zero
         if do_not_load_amr:
             lmax = 0
+            del readers['amr']
         else:
             meta["ncells"] = 0
             lmax = meta["lmax"]
