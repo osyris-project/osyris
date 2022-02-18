@@ -102,6 +102,9 @@ class Datagroup:
 
     def sortby(self, key):
         if key is not None:
-            inds = np.argsort(self[key]).values
+            if isinstance(key, str):
+                inds = np.argsort(self[key]).values
+            else:
+                inds = key
             for var in self.keys():
                 self[var] = self[var][inds]
