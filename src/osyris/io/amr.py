@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 from .hilbert import hilbert_cpu_list
 from .reader import Reader, ReaderKind
@@ -26,7 +26,8 @@ class AmrReader(Reader):
                                              meta["unit_t"], meta["scale"]),
                                          select=select,
                                          infofile=meta["infofile"])
-        self.initialized = True
+        if select is not False:
+            self.initialized = True
 
     def allocate_buffers(self, ngridmax, twotondim):
         super().allocate_buffers(ngridmax, twotondim)

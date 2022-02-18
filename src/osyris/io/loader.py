@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
 import os
@@ -87,6 +87,8 @@ class Loader:
 
         # Initialize readers
         readers = {}
+        do_not_load_amr = True
+        do_not_load_cpus = True
         for group in groups:
             loaded_on_init = self.readers[group].initialize(meta=meta,
                                                             select=_select[group])
@@ -94,13 +96,30 @@ class Loader:
                 out[group] = loaded_on_init
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
+                if self.readers[group].kind == ReaderKind.AMR:
+                    do_not_load_amr = False
+                if self.readers[group].kind in (ReaderKind.AMR, ReaderKind.PART):
+                    do_not_load_cpus = False
+        # If no reader requires the AMR tree to be read, set lmax to zero
+        if do_not_load_amr:
+            lmax = 0
+        else:
+            meta["ncells"] = 0
+            lmax = meta["lmax"]
+            if "amr" not in readers:
+                readers["amr"] = self.readers["amr"]
 
         # Take into account user specified cpu list
         if cpu_list is None:
             cpu_list = self.readers["amr"].cpu_list if self.readers[
                 "amr"].cpu_list is not None else range(1, meta["ncpu"] + 1)
 
-        print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
+        # If no reader requires the CPUs (if loading only sinks), make empty cpu list
+        if do_not_load_cpus:
+            cpu_list = []
+        else:
+            meta["nparticles"] = 0
+            print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
 
         # Allocate work arrays
         twotondim = 2**meta["ndim"]
@@ -139,7 +158,7 @@ class Loader:
                 reader.read_header(meta)
 
             # Loop over levels
-            for ilevel in range(meta["lmax"]):
+            for ilevel in range(lmax):
 
                 for reader in readers.values():
                     reader.read_level_header(ilevel, twotondim)
