@@ -41,4 +41,7 @@ for obj in objects:
     else:
         setattr(config, obj, getattr(default_config, obj))
 
+# Additional merging of parameters dict to add any missing values from the defaults
+config.parameters = {**default_config.parameters, **config.parameters}
+
 config.additional_units()

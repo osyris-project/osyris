@@ -13,7 +13,10 @@ parameters = {
     'path': None,
     'select': None,
     'cmap': 'viridis',
-    'render_mode': 'pcolormesh'
+    'render_mode': 'pcolormesh',
+    'sortby': {
+        'part': 'identity'
+    }
 }
 
 

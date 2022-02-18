@@ -231,10 +231,10 @@ class Loader:
                                                        meta["nparticles"]))
 
         # Apply sorting if any
+        _sortby = config.parameters['sortby']
         if sortby is not None:
-            for group, key in sortby.items():
-                inds = np.argsort(out[group][key])
-                for var in out[group]:
-                    out[group][var] = out[group][var][inds]
+            _sortby.update(sortby)
+        for group, key in _sortby.items():
+            out[group].sortby(key)
 
         return out
