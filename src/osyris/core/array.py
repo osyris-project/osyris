@@ -47,7 +47,10 @@ class Array:
                              unit=self._unit,
                              parent=self._parent,
                              name=self._name)
-        if isinstance(slice_, int) and self.ndim > 1:
+        if self.shape[0] == 1:
+            return out
+        if (isinstance(slice_, int)
+                or isinstance(slice_, np.integer)) and self.ndim > 1:
             return out.reshape(1, len(out))
         return out
 
@@ -252,6 +255,24 @@ class Array:
             return self.__class__(values=self._array * result.magnitude,
                                   unit=1.0 * result.units)
         return self.__class__(values=self._array * other, unit=self._unit)
+
+    def __matmul__(self, other):
+        if isinstance(other, self.__class__):
+            scale_l = self._unit.to_base_units()
+            scale_r = other._unit.to_base_units()
+            result = scale_l * scale_r
+            lhs = self._array
+            rhs = other._array * result.magnitude
+            lhs, rhs = self._broadcast(lhs, rhs)
+            return self.__class__(values=np.transpose(lhs @ rhs),
+                                  unit=1.0 * result.units)
+        if isinstance(other, Quantity):
+            scale_l = self._unit.to_base_units()
+            scale_r = other.to_base_units()
+            result = scale_l * scale_r
+            return self.__class__(values=self._array * result.magnitude,
+                                  unit=1.0 * result.units)
+        return self.__class__(values=self._array @ other, unit=self._unit)
 
     def __imul__(self, other):
         if isinstance(other, self.__class__):
