@@ -49,8 +49,7 @@ class Array:
                              name=self._name)
         if self.shape[0] == 1:
             return out
-        if (isinstance(slice_, int)
-                or isinstance(slice_, np.integer)) and self.ndim > 1:
+        if isinstance(slice_, (int, np.integer)) and self.ndim > 1:
             return out.reshape(1, len(out))
         return out
 
