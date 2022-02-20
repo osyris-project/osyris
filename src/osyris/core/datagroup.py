@@ -99,3 +99,10 @@ class Datagroup:
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())
+
+    def sortby(self, key):
+        if key is not None:
+            if isinstance(key, str):
+                key = np.argsort(self[key]).values
+            for var in self.keys():
+                self[var] = self[var][key]

@@ -49,7 +49,7 @@ class Loader:
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None):
+    def load(self, select=None, cpu_list=None, meta=None, sortby=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -229,5 +229,13 @@ class Loader:
 
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
+
+        # Apply sorting if any requested from args or from config file
+        _sortby = config.parameters['sortby']
+        if sortby is not None:
+            _sortby.update(sortby)
+        for group, key in _sortby.items():
+            if group in out:
+                out[group].sortby(key)
 
         return out
