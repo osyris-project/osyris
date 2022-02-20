@@ -230,11 +230,12 @@ class Loader:
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
 
-        # Apply sorting if any
+        # Apply sorting if any requested from args or from config file
         _sortby = config.parameters['sortby']
         if sortby is not None:
             _sortby.update(sortby)
         for group, key in _sortby.items():
-            out[group].sortby(key)
+            if group in out:
+                out[group].sortby(key)
 
         return out
