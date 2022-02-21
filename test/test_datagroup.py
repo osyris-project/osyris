@@ -118,3 +118,40 @@ def test_datagroup_sortby_indices():
     })
     assert all(dg['a'] == expected['a'])
     assert all(dg['b'] == expected['b'])
+
+
+def test_datagroup_clear():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg = Datagroup({'a': a, 'b': b})
+    dg.clear()
+    assert len(dg) == 0
+
+
+def test_datagroup_get():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    c = Array(values=[11., 12., 13., 14., 15.], unit='K')
+    dg = Datagroup({'a': a, 'b': b})
+    assert all(dg.get('a', 42) == a)
+    assert dg.get('c', 42) == 42
+    assert all(dg.get('c', c) == c)
+
+
+def test_datagroup_pop():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg = Datagroup({'a': a, 'b': b})
+    c = dg.pop('a')
+    assert 'a' not in dg
+    assert all(c == a)
+
+
+def test_datagroup_update():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    c = Array(values=[11., 12., 13., 14., 15.], unit='K')
+    dg = Datagroup({'a': a, 'b': b})
+    dg.update({'b': 2.0 * b, 'c': c})
+    assert all(dg['b'] == Array(values=[12., 14., 16., 18., 20.], unit='s'))
+    assert all(dg['c'] == c)

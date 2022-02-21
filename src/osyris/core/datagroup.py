@@ -106,3 +106,17 @@ class Datagroup:
                 key = np.argsort(self[key]).values
             for var in self.keys():
                 self[var] = self[var][key]
+
+    def clear(self):
+        self._container.clear()
+        self.shape = None
+
+    def get(self, key, default):
+        return self._container.get(key, default)
+
+    def pop(self, key):
+        return self._container.pop(key)
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value
