@@ -75,9 +75,6 @@ def test_datagroup_slice():
         'b': Array(values=[7.], unit='s')
     })
     assert dg[1] == expected
-    # sliced = dg[1]
-    # assert sliced['a'] == expected['a']
-    # assert sliced['b'] == expected['b']
 
 
 def test_datagroup_slice_range():
