@@ -5,6 +5,7 @@ sphinx
 nbsphinx
 jupyter
 pint
+pythreejs
 sphinx-copybutton
 sphinx-book-theme
 lic
