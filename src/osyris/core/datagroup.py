@@ -64,6 +64,14 @@ class Datagroup:
             output += str(item) + "\n"
         return output
 
+    def __eq__(self, other):
+        if self.keys() != other.keys():
+            return False
+        for key, value in self.items():
+            if all(value != other[key]):
+                return False
+        return True
+
     @property
     def parent(self):
         return self._parent
@@ -106,3 +114,17 @@ class Datagroup:
                 key = np.argsort(self[key]).values
             for var in self.keys():
                 self[var] = self[var][key]
+
+    def clear(self):
+        self._container.clear()
+        self.shape = None
+
+    def get(self, key, default):
+        return self._container.get(key, default)
+
+    def pop(self, key):
+        return self._container.pop(key)
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value

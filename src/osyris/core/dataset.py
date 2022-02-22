@@ -71,3 +71,17 @@ class Dataset:
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())
+
+    def clear(self):
+        self.groups.clear()
+        self.meta.clear()
+
+    def get(self, key, default):
+        return self.groups.get(key, default)
+
+    def pop(self, key):
+        return self.groups.pop(key)
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value
