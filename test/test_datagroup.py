@@ -33,9 +33,7 @@ def test_datagroup_insert_vector():
     b = Array(values=[[6., 7., 8.], [9., 10., 11.], [12., 13., 14.], [15., 16., 17.],
                       [18., 19., 20.]],
               unit='s')
-    dg = Datagroup()
-    dg['a'] = a
-    dg['b'] = b
+    dg = Datagroup({'a': a, 'b': b})
     assert 'a' in dg.keys()
     assert 'b' in dg.keys()
     assert dg['a'].name == 'a'
@@ -55,43 +53,42 @@ def test_datagroup_bad_length_insertion():
 def test_datagroup_delitem():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='s')
-    dg = Datagroup()
-    dg['a'] = a
-    dg['b'] = b
+    dg = Datagroup({'a': a, 'b': b})
     del dg['a']
     assert 'a' not in dg.keys()
     assert 'b' in dg.keys()
     assert len(dg) == 1
 
 
+def test_datagroup_equal_operator():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    assert Datagroup({'a': a, 'b': b}) == Datagroup({'a': a, 'b': b})
+
+
 def test_datagroup_slice():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='s')
-    dg = Datagroup()
-    dg['a'] = a
-    dg['b'] = b
+    dg = Datagroup({'a': a, 'b': b})
     expected = Datagroup({
         'a': Array(values=[2.], unit='m'),
         'b': Array(values=[7.], unit='s')
     })
-    sliced = dg[1]
-    assert sliced['a'] == expected['a']
-    assert sliced['b'] == expected['b']
+    assert dg[1] == expected
+    # sliced = dg[1]
+    # assert sliced['a'] == expected['a']
+    # assert sliced['b'] == expected['b']
 
 
 def test_datagroup_slice_range():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='s')
-    dg = Datagroup()
-    dg['a'] = a
-    dg['b'] = b
+    dg = Datagroup({'a': a, 'b': b})
     expected = Datagroup({
         'a': Array(values=[2., 3., 4.], unit='m'),
         'b': Array(values=[7., 8., 9.], unit='s')
     })
-    sliced = dg[1:4]
-    assert all(sliced['a'] == expected['a'])
-    assert all(sliced['b'] == expected['b'])
+    assert dg[1:4] == expected
 
 
 def test_datagroup_sortby_key():

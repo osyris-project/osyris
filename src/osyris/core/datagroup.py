@@ -64,6 +64,14 @@ class Datagroup:
             output += str(item) + "\n"
         return output
 
+    def __eq__(self, other):
+        if self.keys() != other.keys():
+            return False
+        for key, value in self.items():
+            if all(value != other[key]):
+                return False
+        return True
+
     @property
     def parent(self):
         return self._parent
