@@ -339,7 +339,7 @@ def test_slicing():
 
 def test_slicing_vector():
     a = osyris.Array(values=np.arange(12.).reshape(4, 3), unit='m')
-    assert all(np.ravel(a[2] == osyris.Array(values=[[6., 7., 8.]], unit='m')))
-    assert a[2].shape == (1, 3)
+    assert all(np.ravel(a[2:3] == osyris.Array(values=[[6., 7., 8.]], unit='m')))
+    assert a[2:3].shape == (1, 3)
     assert all(
         np.ravel(a[:2] == osyris.Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m')))
