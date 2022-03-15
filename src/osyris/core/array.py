@@ -17,27 +17,43 @@ def _comparison_operator(lhs, rhs, op):
     return func(lhs._array, rhs)
 
 
+def _unit_parser(unit):
+    if unit is None:
+        return 1.0 * units.dimensionless
+    elif isinstance(unit, str):
+        return units(unit)
+    elif isinstance(unit, Quantity):
+        return unit
+    elif isinstance(unit, Unit):
+        return 1.0 * unit
+    else:
+        raise TypeError("Unsupported unit type {}".format(type(unit)))
+
+
 class Array:
-    def __init__(self, values=0, unit=None, parent=None, name=""):
+    def __init__(self, values=0, unit=None, parent=None, name="", system="cartesian"):
 
         if isinstance(values, np.ndarray):
             self._array = values
         else:
             self._array = np.asarray(values)
 
-        if unit is None:
-            self._unit = 1.0 * units.dimensionless
-        elif isinstance(unit, str):
-            self._unit = units(unit)
-        elif isinstance(unit, Quantity):
-            self._unit = unit
-        elif isinstance(unit, Unit):
-            self._unit = 1.0 * unit
+        if isinstance(unit, list):
+            units = [_unit_parser(u) for u in unit]
+            self.unit = units
         else:
-            raise TypeError("Unsupported unit type {}".format(type(unit)))
+            self._unit = _unit_parser(unit)
         self._parent = parent
         self._name = name
         self.special_functions = ["sqrt", "power"]
+        coordinate_systems = ["cartesian", "spherical", "cylindrical"]
+        system = system.lower()
+        if system not in coordinate_systems:
+            raise RuntimeError(
+                "Unknown coordinate system keyword '{}'.\nAvailable keywords"
+                " are 'cartesian', 'spherical' and 'cylindrical'.".format(system))
+        else:
+            self._system = system
 
     # def __array__(self):
     #     return self._array
@@ -45,13 +61,20 @@ class Array:
     def __getitem__(self, slice_):
         out = self.__class__(values=self._array[slice_],
                              unit=self._unit,
+                             system=self._system,
                              parent=self._parent,
                              name=self._name)
         if self.shape[0] == 1:
             return out
-        if (isinstance(slice_, int)
-                or isinstance(slice_, np.integer)) and self.ndim > 1:
-            return out.reshape(1, len(out))
+        if isinstance(slice_, (int, np.integer)):
+            if self.ndim > 1:
+                return out.reshape(1, len(out))
+            else:
+                if isinstance(self._unit, list):
+                    out._unit = self._unit[slice_]
+                return out
+        if isinstance(slice_[0], slice) and isinstance(self._unit, list):
+            out._unit = self._unit[slice_[-1]]
         return out
 
     def __len__(self):
@@ -68,9 +91,13 @@ class Array:
             values_str = "Min: " + value_to_string(
                 self.min(use_norm=True).values) + " Max: " + value_to_string(
                     self.max(use_norm=True).values)
-        unit_str = " [{:~}] ".format(self._unit.units)
+        if isinstance(self._unit, list):
+            unit_str = " {} ".format(["{:~}".format(u.units) for u in self._unit])
+        else:
+            unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
-        return name_str + values_str + unit_str + shape_str
+        system_str = "\nSystem: " + self._system
+        return name_str + values_str + unit_str + shape_str + system_str
 
     def __repr__(self):
         return str(self)
@@ -146,27 +173,81 @@ class Array:
 
     @property
     def x(self):
-        if self.ndim > 1:
+        if (self.ndim > 1) and (self._system == "cartesian"):
             return self.__class__(values=self._array[:, 0],
                                   unit=self._unit,
                                   parent=self._parent,
                                   name=self._name + "_x")
+        elif self._system != "cartesian":
+            raise AttributeError(
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                .format(self._name, self._system))
 
     @property
     def y(self):
-        if self.ndim > 1:
+        if (self.ndim > 1) and (self._system == "cartesian"):
             return self.__class__(values=self._array[:, 1],
                                   unit=self._unit,
                                   parent=self._parent,
                                   name=self._name + "_y")
+        elif self._system != "cartesian":
+            raise AttributeError(
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                .format(self._name, self._system))
 
     @property
     def z(self):
-        if self.ndim > 2:
+        if (self.ndim > 2) and (self._system == "cartesian"):
             return self.__class__(values=self._array[:, 2],
                                   unit=self._unit,
                                   parent=self._parent,
                                   name=self._name + "_z")
+        elif self._system != "cartesian":
+            raise AttributeError(
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                .format(self._name, self._system))
+
+    @property
+    def r(self):
+        if (self.ndim > 1) and (self._system == "spherical"):
+            unit = self._unit if not isinstance(self._unit, list) else self._unit[0]
+            return self.__class__(values=self._array[:, 0],
+                                  unit=unit,
+                                  parent=self._parent,
+                                  system=self._system,
+                                  name=self._name + "_r")
+        elif self._system != "spherical":
+            raise AttributeError(
+                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                .format(self._name, self._system))
+
+    @property
+    def theta(self):
+        if (self.ndim > 1) and (self._system == "spherical"):
+            unit = self._unit if not isinstance(self._unit, list) else self._unit[1]
+            return self.__class__(values=self._array[:, 1],
+                                  unit=unit,
+                                  parent=self._parent,
+                                  system=self._system,
+                                  name=self._name + "_theta")
+        elif self._system != "spherical":
+            raise AttributeError(
+                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                .format(self._name, self._system))
+
+    @property
+    def phi(self):
+        if (self.ndim > 2) and (self._system == "spherical"):
+            unit = self._unit if not isinstance(self._unit, list) else self._unit[2]
+            return self.__class__(values=self._array[:, 2],
+                                  unit=unit,
+                                  parent=self._parent,
+                                  system=self._system,
+                                  name=self._name + "_phi")
+        elif self._system != "spherical":
+            raise AttributeError(
+                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                .format(self._name, self._system))
 
     @property
     def label(self):
@@ -438,4 +519,6 @@ class Array:
         return self.__class__(values=out, unit=self._unit)
 
     def reshape(self, *shape):
-        return self.__class__(values=self._array.reshape(*shape), unit=self._unit)
+        return self.__class__(values=self._array.reshape(*shape),
+                              unit=self._unit,
+                              system=self._system)
