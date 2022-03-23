@@ -350,9 +350,7 @@ class Array:
         else:
             new_unit = unit
         ratio = self._unit.to(new_unit) / new_unit
-        self._unit = 1.0 * new_unit
-        self._array *= ratio.magnitude
-        return self
+        return self.__class__(values=self._array * ratio.magnitude, unit=1.0 * new_unit)
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if func.__name__ in self.special_functions:
