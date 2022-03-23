@@ -294,6 +294,7 @@ def test_to():
     a = osyris.Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = osyris.Array(values=[1.0e-3, 2.0e-3, 3.0e-3, 4.0e-3, 5.0e-3], unit='km')
     assert all(a.to('km') == b)
+    assert a.unit.units == osyris.units('m')
 
 
 def test_to_bad_units():
