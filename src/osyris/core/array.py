@@ -96,7 +96,7 @@ class Array:
         else:
             unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self._array.shape)
-        system_str = "\nSystem: " + self._system
+        system_str = " System: " + self._system
         return name_str + values_str + unit_str + shape_str + system_str
 
     def __repr__(self):
@@ -180,7 +180,7 @@ class Array:
                                   name=self._name + "_x")
         elif self._system != "cartesian":
             raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
                 .format(self._name, self._system))
 
     @property
@@ -192,7 +192,7 @@ class Array:
                                   name=self._name + "_y")
         elif self._system != "cartesian":
             raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
                 .format(self._name, self._system))
 
     @property
@@ -204,7 +204,7 @@ class Array:
                                   name=self._name + "_z")
         elif self._system != "cartesian":
             raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {}."
+                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
                 .format(self._name, self._system))
 
     @property
@@ -218,7 +218,7 @@ class Array:
                                   name=self._name + "_r")
         elif self._system != "spherical":
             raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
                 .format(self._name, self._system))
 
     @property
@@ -232,7 +232,7 @@ class Array:
                                   name=self._name + "_theta")
         elif self._system != "spherical":
             raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
                 .format(self._name, self._system))
 
     @property
@@ -246,7 +246,7 @@ class Array:
                                   name=self._name + "_phi")
         elif self._system != "spherical":
             raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {}."
+                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
                 .format(self._name, self._system))
 
     @property
