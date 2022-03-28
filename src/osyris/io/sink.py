@@ -41,14 +41,18 @@ class SinkReader:
 
         # Parse units
         unit_list = []
+        m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
+        l = meta['unit_l'] * units.cm  # noqa: F841, E741
+        t = meta['unit_t'] * units.s  # noqa: F841
         for u in unit_combinations:
-            m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
-            l = meta['unit_l'] * units.cm  # noqa: F841, E741
-            t = meta['unit_t'] * units.s  # noqa: F841
-            if u.strip() == '1':
+            if u.strip().replace("[", "").replace("]", "") == '1':
                 unit_list.append(1.0 * units.dimensionless)
             else:
-                unit_list.append(eval(u.replace(' ', '*')))
+                if all(x in u for x in ["[", "]"]):
+                    # Legacy sink format quantities are not in code units
+                    unit_list.append(units(u.replace("[", "").replace("]", "")))
+                else:
+                    unit_list.append(eval(u.replace(' ', '*')))
 
         sink = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):

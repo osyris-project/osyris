@@ -99,7 +99,7 @@ def additional_units():
     Define additional useful ureg and constants
     """
     ureg.define('bolometric_luminosity = 3.0128e+28 * W = L_bol0')
-    ureg.define('solar_luminosity = 3.828e+26 * W = L_sun')
+    ureg.define('solar_luminosity = 3.828e+26 * W = L_sun = L_sol')
     ureg.define('earth_mass = 5.97216787e+27 * g = M_earth')
     ureg.define('jupiter_mass = 1.8981246e+30 * g = M_jup')
     ureg.define('solar_mass = 1.9889e+33 * g = M_sun = M_sol')
