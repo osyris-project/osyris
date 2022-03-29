@@ -128,7 +128,7 @@ def additional_variables(data):
 
     # Mass
     try:
-        data['hydro']['mass'] = data['hydro']['density'] * data['amr']['dx']**3
-        data['hydro']['mass'].to('msun')
+        data['hydro']['mass'] = (data['hydro']['density'] *
+                                 data['amr']['dx']**3).to('M_sun')
     except KeyError:
         pass
