@@ -98,7 +98,14 @@ def additional_units():
     """
     Define additional useful ureg and constants
     """
-    ureg.define('solar_mass = 1.9889e+33 * g = msun')
+    ureg.define('bolometric_luminosity = 3.0128e+28 * W = L_bol0')
+    ureg.define('solar_luminosity = 3.828e+26 * W = L_sun = L_sol')
+    ureg.define('earth_mass = 5.97216787e+27 * g = M_earth')
+    ureg.define('jupiter_mass = 1.8981246e+30 * g = M_jup')
+    ureg.define('solar_mass = 1.9889e+33 * g = M_sun = M_sol')
+    ureg.define('earth_radius = 6.3781e+08 * cm = R_earth')
+    ureg.define('jupiter_radius = 7.1492e+09 * cm = R_jup')
+    ureg.define('solar_radius = 6.957e+10 * cm = R_sun = R_sol')
     ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
@@ -121,7 +128,7 @@ def additional_variables(data):
 
     # Mass
     try:
-        data['hydro']['mass'] = data['hydro']['density'] * data['amr']['dx']**3
-        data['hydro']['mass'].to('msun')
+        data['hydro']['mass'] = (data['hydro']['density'] *
+                                 data['amr']['dx']**3).to('M_sun')
     except KeyError:
         pass
