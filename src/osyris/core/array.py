@@ -367,7 +367,10 @@ class Array:
             if hasattr(args[0], "_array"):
                 # Case of a binary operation, with two Arrays, e.g. `dot`
                 # TODO: what should we do with the unit? Apply the func to it?
-                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+                # unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+                # if args[0].unit != args[1].unit:
+                #     print(args[0].unit, args[1].unit)
+                #     raise RuntimeError("Units do not match in binary operation.")
                 args = (args[0]._array, args[1]._array) + args[2:]
             else:
                 # Case of a binary operation: ndarray with Array
@@ -413,3 +416,18 @@ class Array:
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self._unit)
+
+    @property
+    def r(self):
+        if self.name in ("position", ""):
+            return self.norm
+        else:
+            pos = None
+            if "position" in self.parent:
+                pos = self.parent["position"]
+            elif "position" in self.parent.parent["amr"]:
+                pos = self.parent.parent["amr"]["position"]
+            if pos is None:
+                return self.norm
+            else:
+                np.inner(self, pos / pos.norm).norm
