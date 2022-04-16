@@ -9,7 +9,7 @@ from pint import UnitRegistry
 ureg = UnitRegistry(system="cgs")
 
 parameters = {
-    'scale': 'au',
+    # 'scale': 'au',
     'path': None,
     'select': None,
     'cmap': 'viridis',
@@ -20,7 +20,7 @@ parameters = {
 }
 
 
-def get_unit(string, ud, ul, ut, scale):
+def get_unit(string, ud, ul, ut):
 
     density = ud * (ureg.g / (ureg.cm**3))
     velocity = (ul / ut) * (ureg.cm / ureg.s)
@@ -32,10 +32,10 @@ def get_unit(string, ud, ul, ut, scale):
     length = ul * ureg.cm
     mass = density * (length**3)
 
-    scaling = length
-    if scale is not None:
-        scale = ureg(scale)
-        scaling = (length.to(scale) / scale).magnitude * scale
+    # scaling = length
+    # if scale is not None:
+    #     scale = ureg(scale)
+    #     scaling = (length.to(scale) / scale).magnitude * scale
 
     ramses_units = {
         'density': density,
@@ -75,16 +75,16 @@ def get_unit(string, ud, ul, ut, scale):
         'radiative_energy_1': energy,
         'temperature': 1.0 * ureg.K,
         'time': time,
-        'x': scaling,
-        'y': scaling,
-        'z': scaling,
-        'xyz_x': scaling,
-        'xyz_y': scaling,
-        'xyz_z': scaling,
-        'position_x': scaling,
-        'position_y': scaling,
-        'position_z': scaling,
-        'dx': scaling,
+        'x': length,
+        'y': length,
+        'z': length,
+        'xyz_x': length,
+        'xyz_y': length,
+        'xyz_z': length,
+        'position_x': length,
+        'position_y': length,
+        'position_z': length,
+        'dx': length,
         'mass': mass
     }
 
