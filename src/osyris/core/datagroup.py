@@ -72,6 +72,15 @@ class Datagroup:
                 return False
         return True
 
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self):
+        return self.__class__(data={key: array.copy() for key, array in self.items()})
+
+    def copy(self):
+        return self.__class__(data=self._container.copy())
+
     @property
     def parent(self):
         return self._parent
