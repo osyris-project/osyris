@@ -9,7 +9,6 @@ from pint import UnitRegistry
 ureg = UnitRegistry(system="cgs")
 
 parameters = {
-    # 'scale': 'au',
     'path': None,
     'select': None,
     'cmap': 'viridis',
@@ -31,11 +30,6 @@ def get_unit(string, ud, ul, ut):
     time = ut * ureg.s
     length = ul * ureg.cm
     mass = density * (length**3)
-
-    # scaling = length
-    # if scale is not None:
-    #     scale = ureg(scale)
-    #     scaling = (length.to(scale) / scale).magnitude * scale
 
     ramses_units = {
         'density': density,

@@ -20,7 +20,6 @@ class Loader:
         # Generate directory name from output number
         self.nout = nout
         self.path = path
-        # self.scale = scale
         self.infile = utils.generate_fname(nout, path)
         self.readers = {
             "amr": AmrReader(),
@@ -39,12 +38,11 @@ class Loader:
         meta = utils.read_parameter_file(fname=infofile)
         # Add additional information
         meta["infofile"] = infofile
-        # meta["scale"] = self.scale
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
         meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])  #, meta["scale"])
+                                        meta["unit_t"])
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta

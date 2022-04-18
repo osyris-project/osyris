@@ -97,11 +97,6 @@ class Datagroup:
     def values(self):
         return self._container.values()
 
-    # def set_scale(self, scale):
-    #     for key in ["x", "y", "z", "dx"]:
-    #         if key in self:
-    #             self[key].to(scale)
-
     def nbytes(self):
         return np.sum([item._array.nbytes for item in self.values()])
 

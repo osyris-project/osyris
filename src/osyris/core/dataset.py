@@ -12,8 +12,6 @@ class Dataset:
         self.groups = {}
         self.meta = {}
         self.loader = None
-        # if scale is None:
-        #     scale = config.parameters["scale"]
         if nout is not None:
             self.loader = Loader(nout=nout, path=path)
             self.meta.update(self.loader.load_metadata())
