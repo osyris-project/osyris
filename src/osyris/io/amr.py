@@ -22,7 +22,7 @@ class AmrReader(Reader):
 
         self.cpu_list = hilbert_cpu_list(meta=meta,
                                          scaling=config.get_unit(
-                                             "z", meta["unit_d"], meta["unit_l"],
+                                             "x", meta["unit_d"], meta["unit_l"],
                                              meta["unit_t"]),
                                          select=select,
                                          infofile=meta["infofile"])

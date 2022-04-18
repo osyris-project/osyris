@@ -168,19 +168,21 @@ def map(*layers,
     spatial_unit = dataset["amr"]["position"].unit
 
     # Set window size
+    if dx is not None:
+        dx = dx.to(spatial_unit)
     if dy is None:
         dy = dx
     if dz is None:
         dz = dx
-    if dx is not None and not isinstance(dx, Quantity):
-        dx *= spatial_unit
-    if dy is not None and not isinstance(dy, Quantity):
-        dy *= spatial_unit
-    if dz is not None and not isinstance(dz, Quantity):
-        dz *= spatial_unit
+    # if dx is not None and not isinstance(dx, Quantity):
+    #     dx *= spatial_unit
+    # if dy is not None and not isinstance(dy, Quantity):
+    #     dy *= spatial_unit
+    # if dz is not None and not isinstance(dz, Quantity):
+    #     dz *= spatial_unit
 
     if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
+        origin = Array(values=np.zeros([1, ndim]), unit=spatial_unit)
 
     dir_vecs, dir_labs = get_direction(direction=direction,
                                        dataset=dataset,
