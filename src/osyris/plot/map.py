@@ -169,16 +169,14 @@ def map(*layers,
     thick = dz is not None
 
     spatial_unit = dataset["amr"]["position"].unit
-    map_unit = None
+    map_unit = spatial_unit
 
     # Set window size
     if dx is not None:
         map_unit = dx.units
         dx = dx.to(spatial_unit)
-    if dy is None:
-        dy = dx
-    if dz is None:
-        dz = dx
+    dy = dx if dy is None else dy.to(spatial_unit)
+    dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
         origin = Array(values=np.zeros([1, ndim]), unit=spatial_unit)
