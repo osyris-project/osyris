@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 from osyris import Array, units
-from copy import copy
+from copy import copy, deepcopy
 import numpy as np
 from pint.errors import DimensionalityError
 import pytest
@@ -352,5 +352,12 @@ def test_copy():
 def test_copy_overload():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     b = copy(a)
+    a *= 10.
+    assert all(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
+
+
+def test_deepcopy():
+    a = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    b = deepcopy(a)
     a *= 10.
     assert all(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
