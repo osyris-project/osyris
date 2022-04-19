@@ -75,7 +75,7 @@ class Datagroup:
     def __copy__(self):
         return self.copy()
 
-    def __deepcopy__(self):
+    def __deepcopy__(self, memo):
         return self.__class__(data={key: array.copy() for key, array in self.items()})
 
     def copy(self):

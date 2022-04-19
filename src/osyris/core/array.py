@@ -78,7 +78,7 @@ class Array:
     def copy(self):
         return self.__class__(values=self._array.copy(),
                               unit=self._unit.copy(),
-                              name=self._name.copy())
+                              name=str(self._name))
 
     @property
     def values(self):

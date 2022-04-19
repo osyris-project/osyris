@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
+from copy import copy, deepcopy
 from .. import config
 from ..io import Loader
 from .datagroup import Datagroup
@@ -47,6 +48,25 @@ class Dataset:
         for key, item in self.items():
             output += str(item) + "\n"
         return output
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        nout = self.loader.nout if self.loader is not None else None
+        path = self.loader.path if self.loader is not None else ""
+        out = self.__class__(nout=nout, path=path)
+        out.groups = {key: deepcopy(group) for key, group in self.groups.items()}
+        out.meta = {key: copy(item) for key, item in self.meta.items()}
+        return out
+
+    def copy(self):
+        nout = self.loader.nout if self.loader is not None else None
+        path = self.loader.path if self.loader is not None else ""
+        out = self.__class__(nout=nout, path=path)
+        out.groups = self.groups.copy()
+        out.meta = self.meta.copy()
+        return out
 
     def keys(self):
         return self.groups.keys()
