@@ -56,7 +56,8 @@ class Dataset:
         nout = self.loader.nout if self.loader is not None else None
         path = self.loader.path if self.loader is not None else ""
         out = self.__class__(nout=nout, path=path)
-        out.groups = {key: deepcopy(group) for key, group in self.groups.items()}
+        for key, group in self.groups.items():
+            out[key] = deepcopy(group)
         out.meta = {key: copy(item) for key, item in self.meta.items()}
         return out
 
@@ -64,7 +65,8 @@ class Dataset:
         nout = self.loader.nout if self.loader is not None else None
         path = self.loader.path if self.loader is not None else ""
         out = self.__class__(nout=nout, path=path)
-        out.groups = self.groups.copy()
+        for key, group in self.groups.items():
+            out[key] = group
         out.meta = self.meta.copy()
         return out
 
