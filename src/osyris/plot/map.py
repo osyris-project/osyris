@@ -14,7 +14,7 @@ from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax):
+def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
     viewport = max(dx.magnitude, dy.magnitude)
     radius = None
@@ -50,7 +50,10 @@ def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax):
                     global_selection]
         datax.name = dir_labs["x"]
         datay.name = dir_labs["y"]
-        scatter(x=datax, y=datay, ax=ax, **to_scatter[0]["params"])
+        scatter(x=datax.to(map_unit),
+                y=datay.to(map_unit),
+                ax=ax,
+                **to_scatter[0]["params"])
 
 
 def map(*layers,
@@ -166,21 +169,17 @@ def map(*layers,
     thick = dz is not None
 
     spatial_unit = dataset["amr"]["position"].unit
+    map_unit = spatial_unit
 
     # Set window size
-    if dy is None:
-        dy = dx
-    if dz is None:
-        dz = dx
-    if dx is not None and not isinstance(dx, Quantity):
-        dx *= spatial_unit
-    if dy is not None and not isinstance(dy, Quantity):
-        dy *= spatial_unit
-    if dz is not None and not isinstance(dz, Quantity):
-        dz *= spatial_unit
+    if dx is not None:
+        map_unit = dx.units
+        dx = dx.to(spatial_unit)
+    dy = dx if dy is None else dy.to(spatial_unit)
+    dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=dataset["amr"]["position"].unit)
+        origin = Array(values=np.zeros([1, ndim]), unit=spatial_unit)
 
     dir_vecs, dir_labs = get_direction(direction=direction,
                                        dataset=dataset,
@@ -346,6 +345,10 @@ def map(*layers,
                                                      copy=False)
             counter += 3
 
+    scale_ratio = spatial_unit.to(map_unit).magnitude
+    xcenters *= scale_ratio
+    ycenters *= scale_ratio
+
     to_return = {
         "x": xcenters,
         "y": ycenters,
@@ -356,9 +359,9 @@ def map(*layers,
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
         figure["ax"].set_xlabel(
-            Array(values=0, unit=spatial_unit.units, name=dir_labs["x"]).label)
+            Array(values=0, unit=map_unit, name=dir_labs["x"]).label)
         figure["ax"].set_ylabel(
-            Array(values=0, unit=spatial_unit.units, name=dir_labs["y"]).label)
+            Array(values=0, unit=map_unit, name=dir_labs["y"]).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 
@@ -370,8 +373,13 @@ def map(*layers,
                          dir_labs=dir_labs,
                          dx=dx,
                          dy=dy,
-                         ax=figure["ax"])
+                         ax=figure["ax"],
+                         map_unit=map_unit)
 
+        xmin *= scale_ratio
+        xmax *= scale_ratio
+        ymin *= scale_ratio
+        ymax *= scale_ratio
         figure["ax"].set_xlim(xmin, xmax)
         figure["ax"].set_ylim(ymin, ymax)
 
