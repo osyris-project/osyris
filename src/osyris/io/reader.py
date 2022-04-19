@@ -37,16 +37,12 @@ class Reader():
             elif drop_others:
                 read = False
             self.variables[key] = {
-                "read":
-                read,
-                "type":
-                descriptor[key],
-                "buffer":
-                None,
+                "read": read,
+                "type": descriptor[key],
+                "buffer": None,
                 "pieces": {},
-                "unit":
-                config.get_unit(key, meta["unit_d"], meta["unit_l"], meta["unit_t"],
-                                meta["scale"])
+                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
+                                        meta["unit_t"])
             }
 
     def allocate_buffers(self, ngridmax, twotondim):
