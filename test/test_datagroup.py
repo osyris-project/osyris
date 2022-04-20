@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 from osyris import Array, Datagroup
+from copy import copy, deepcopy
 import pytest
 
 
@@ -149,3 +150,36 @@ def test_datagroup_update():
     dg.update({'b': 2.0 * b, 'c': c})
     assert all(dg['b'] == Array(values=[12., 14., 16., 18., 20.], unit='s'))
     assert all(dg['c'] == c)
+
+
+def test_copy():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = dg1.copy()
+    del dg1['b']
+    assert 'b' in dg2
+    dg1['a'] *= 10.
+    assert all(dg2['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+
+
+def test_copy_overload():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = copy(dg1)
+    del dg1['b']
+    assert 'b' in dg2
+    dg1['a'] *= 10.
+    assert all(dg2['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+
+
+def test_deepcopy():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = deepcopy(dg1)
+    del dg1['b']
+    assert 'b' in dg2
+    dg1['a'] *= 10.
+    assert all(dg2['a'] == Array(values=[1., 2., 3., 4., 5.], unit='m'))

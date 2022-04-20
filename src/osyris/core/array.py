@@ -69,10 +69,16 @@ class Array:
     def __repr__(self):
         return str(self)
 
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy()
+
     def copy(self):
         return self.__class__(values=self._array.copy(),
                               unit=self._unit.copy(),
-                              name=self._name)
+                              name=str(self._name))
 
     @property
     def values(self):
