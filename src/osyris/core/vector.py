@@ -44,7 +44,8 @@ class Vector(Array):
     # #     return self._array
 
     def __getitem__(self, slice_):
-        slice_ = slice_ + (slice(None, None, None), )
+        slice_ = tuple((slice_, )) + (slice(None, None, None), )
+        print(slice_)
         return self.__class__(values=self._array[slice_],
                               unit=self._unit,
                               parent=self._parent,
@@ -61,95 +62,50 @@ class Vector(Array):
 
     @property
     def values(self):
-        if not self.shape:
-            return self._array[()]
-        else:
-            return self._array
-
-    @values.setter
-    def values(self, values_):
-        self._array = values_
-
-    @property
-    def array(self):
+        # if not self.shape:
+        #     return self._array[0]
+        # else:
         return self._array
-
-    @array.setter
-    def array(self, array_):
-        self._array = array_
 
     @property
     def norm(self):
-        if self._array.ndim < 2:
-            return self
-        else:
-            return self.__class__(values=np.linalg.norm(self._array, axis=1),
-                                  unit=self.unit)
+        return Array(values=np.linalg.norm(self._array, axis=-1), unit=self.unit)
 
-    @property
-    def unit(self):
-        return self._unit
-
-    @unit.setter
-    def unit(self, unit_):
-        self._unit = unit_
-
-    @property
-    def ndim(self):
-        if self._array.shape:
-            if len(self._array.shape) == 2:
-                return self._array.shape[-1]
-            else:
-                return 1
-        return 0
+    # @property
+    # def nvec(self):
+    #     if self._array.shape:
+    #         if len(self._array.shape) == 2:
+    #             return self._array.shape[-1]
+    #         else:
+    #             return 1
+    #     return 0
 
     @property
     def shape(self):
         return self._array[..., 0].shape
 
     @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, parent_):
-        self._parent = parent_
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name_):
-        self._name = name_
-
-    @property
     def x(self):
-        if self.ndim > 1:
-            return self.__class__(values=self._array[:, 0],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_x")
+        return Array(values=self._array[..., 0],
+                     unit=self._unit,
+                     parent=self._parent,
+                     name=self._name + "_x")
 
     @property
     def y(self):
-        if self.ndim > 1:
-            return self.__class__(values=self._array[:, 1],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_y")
+        if self._array.shape[-1] > 1:
+            return Array(values=self._array[..., 1],
+                         unit=self._unit,
+                         parent=self._parent,
+                         name=self._name + "_y")
 
     @property
     def z(self):
-        if self.ndim > 2:
-            return self.__class__(values=self._array[:, 2],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_z")
-
-    @property
-    def label(self):
-        return make_label(name=self._name, unit=self._unit.units)
+        if self._array.shape[-1] > 2:
+            return Array(values=self._array[..., 2],
+                         unit=self._unit,
+                         parent=self._parent,
+                         name=self._name + "_z")
 
     def _broadcast(self, lhs, rhs):
         if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
@@ -382,19 +338,11 @@ class Vector(Array):
         """
         return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self, use_norm=False):
-        if use_norm:
-            out = self.norm._array.min()
-        else:
-            out = self._array.min()
-        return self.__class__(values=out, unit=self._unit)
+    def min(self):
+        return Array(values=self.norm._array.min(), unit=self._unit)
 
-    def max(self, use_norm=False):
-        if use_norm:
-            out = self.norm._array.max()
-        else:
-            out = self._array.max()
-        return self.__class__(values=out, unit=self._unit)
+    def max(self):
+        return Array(values=self.norm._array.max(), unit=self._unit)
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self._unit)

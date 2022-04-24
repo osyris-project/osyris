@@ -62,7 +62,7 @@ class Array:
             values_str = "Min: " + value_to_string(
                 self.min().values) + " Max: " + value_to_string(self.max().values)
         unit_str = " [{:~}] ".format(self._unit.units)
-        shape_str = str(self._array.shape)
+        shape_str = str(self.shape)
         return name_str + values_str + unit_str + shape_str
 
     def __str__(self):
@@ -119,12 +119,7 @@ class Array:
 
     @property
     def ndim(self):
-        if self._array.shape:
-            if len(self._array.shape) == 2:
-                return self._array.shape[-1]
-            else:
-                return 1
-        return 0
+        return self._array.ndim
 
     @property
     def shape(self):
@@ -146,29 +141,29 @@ class Array:
     def name(self, name_):
         self._name = name_
 
-    @property
-    def x(self):
-        if self.ndim > 1:
-            return self.__class__(values=self._array[:, 0],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_x")
+    # @property
+    # def x(self):
+    #     if self.ndim > 1:
+    #         return self.__class__(values=self._array[:, 0],
+    #                               unit=self._unit,
+    #                               parent=self._parent,
+    #                               name=self._name + "_x")
 
-    @property
-    def y(self):
-        if self.ndim > 1:
-            return self.__class__(values=self._array[:, 1],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_y")
+    # @property
+    # def y(self):
+    #     if self.ndim > 1:
+    #         return self.__class__(values=self._array[:, 1],
+    #                               unit=self._unit,
+    #                               parent=self._parent,
+    #                               name=self._name + "_y")
 
-    @property
-    def z(self):
-        if self.ndim > 2:
-            return self.__class__(values=self._array[:, 2],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_z")
+    # @property
+    # def z(self):
+    #     if self.ndim > 2:
+    #         return self.__class__(values=self._array[:, 2],
+    #                               unit=self._unit,
+    #                               parent=self._parent,
+    #                               name=self._name + "_z")
 
     @property
     def label(self):
