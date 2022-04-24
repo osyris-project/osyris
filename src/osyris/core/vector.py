@@ -3,6 +3,7 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
+from .array import Array
 from .tools import value_to_string, make_label
 from .. import units
 
@@ -17,74 +18,50 @@ def _comparison_operator(lhs, rhs, op):
     return func(lhs._array, rhs)
 
 
-class Array:
-    def __init__(self, values=0, unit=None, parent=None, name=""):
+class Vector(Array):
+    # def __init__(self, *args, **kwargs):
 
-        # if isinstance(values, np.ndarray):
-        #     self._array = values
-        # else:
-        self._array = np.asarray(values)
+    #     if isinstance(values, np.ndarray):
+    #         self._array = values
+    #     else:
+    #         self._array = np.asarray(values)
 
-        if unit is None:
-            self._unit = 1.0 * units.dimensionless
-        elif isinstance(unit, str):
-            self._unit = units(unit)
-        elif isinstance(unit, Quantity):
-            self._unit = unit
-        elif isinstance(unit, Unit):
-            self._unit = 1.0 * unit
-        else:
-            raise TypeError("Unsupported unit type {}".format(type(unit)))
-        self._parent = parent
-        self._name = name
-        self.special_functions = ["sqrt", "power"]
+    #     if unit is None:
+    #         self._unit = 1.0 * units.dimensionless
+    #     elif isinstance(unit, str):
+    #         self._unit = units(unit)
+    #     elif isinstance(unit, Quantity):
+    #         self._unit = unit
+    #     elif isinstance(unit, Unit):
+    #         self._unit = 1.0 * unit
+    #     else:
+    #         raise TypeError("Unsupported unit type {}".format(type(unit)))
+    #     self._parent = parent
+    #     self._name = name
+    #     self.special_functions = ["sqrt", "power"]
 
-    # def __array__(self):
-    #     return self._array
+    # # def __array__(self):
+    # #     return self._array
 
     def __getitem__(self, slice_):
+        slice_ = slice_ + (slice(None, None, None), )
         return self.__class__(values=self._array[slice_],
                               unit=self._unit,
                               parent=self._parent,
                               name=self._name)
 
     def __len__(self):
-        if self._array.shape:
-            return len(self._array)
+        if self.shape:
+            return self.shape[0]
         else:
             return 0
 
-    def _make_string(self):
-        name_str = "'" + self._name + "' "
-        if len(self) == 0:
-            values_str = "Value: " + value_to_string(self.values)
-        else:
-            values_str = "Min: " + value_to_string(
-                self.min().values) + " Max: " + value_to_string(self.max().values)
-        unit_str = " [{:~}] ".format(self._unit.units)
-        shape_str = str(self._array.shape)
-        return name_str + values_str + unit_str + shape_str
-
     def __str__(self):
-        return "Array<{}>".format(self._make_string())
-
-    def __repr__(self):
-        return str(self)
-
-    def __copy__(self):
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        return self.copy()
-
-    def copy(self):
-        return self.__class__(values=self._array.copy(),
-                              unit=self._unit.copy(),
-                              name=str(self._name))
+        return "Vector<{}, (x,y,z)>".format(self._make_string())
 
     @property
     def values(self):
-        if not self._array.shape:
+        if not self.shape:
             return self._array[()]
         else:
             return self._array
@@ -128,7 +105,7 @@ class Array:
 
     @property
     def shape(self):
-        return self._array.shape
+        return self._array[..., 0].shape
 
     @property
     def parent(self):
@@ -405,19 +382,19 @@ class Array:
         """
         return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self):  #, use_norm=False):
-        # if use_norm:
-        #     out = self.norm._array.min()
-        # else:
-        #     out = self._array.min()
-        return self.__class__(values=self._array.min(), unit=self._unit)
+    def min(self, use_norm=False):
+        if use_norm:
+            out = self.norm._array.min()
+        else:
+            out = self._array.min()
+        return self.__class__(values=out, unit=self._unit)
 
-    def max(self):  #, use_norm=False):
-        # if use_norm:
-        #     out = self.norm._array.max()
-        # else:
-        #     out = self._array.max()
-        return self.__class__(values=self._array.max(), unit=self._unit)
+    def max(self, use_norm=False):
+        if use_norm:
+            out = self.norm._array.max()
+        else:
+            out = self._array.max()
+        return self.__class__(values=out, unit=self._unit)
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self._unit)
