@@ -107,37 +107,41 @@ class Vector(Array):
                          parent=self._parent,
                          name=self._name + "_z")
 
-    def _broadcast(self, lhs, rhs):
-        if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
-            return lhs, rhs
-        if lhs.ndim > rhs.ndim:
-            ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
-            if ind == 0:
-                return lhs, rhs.reshape(rhs.shape + tuple([1]))
-            else:
-                return lhs, rhs.reshape(tuple([1]) + rhs.shape)
-        else:
-            ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
-            if ind == 0:
-                return lhs.reshape(lhs.shape + tuple([1])), rhs
-            else:
-                return lhs.reshape(tuple([1]) + lhs.shape), rhs
+    # def _broadcast(self, lhs, rhs):
+    #     if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
+    #         return lhs, rhs
+    #     if lhs.ndim > rhs.ndim:
+    #         ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
+    #         if ind == 0:
+    #             return lhs, rhs.reshape(rhs.shape + tuple([1]))
+    #         else:
+    #             return lhs, rhs.reshape(tuple([1]) + rhs.shape)
+    #     else:
+    #         ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
+    #         if ind == 0:
+    #             return lhs.reshape(lhs.shape + tuple([1])), rhs
+    #         else:
+    #             return lhs.reshape(tuple([1]) + lhs.shape), rhs
 
     def _raise_incompatible_units_error(self, other, op):
         raise TypeError("Could not {} types {} and {}.".format(op, self, other))
 
     def __add__(self, other):
-        if isinstance(other, self.__class__):
+        if isinstance(other, Array):
             scale_r = other.unit.to(self._unit.units)
             lhs = self._array
             rhs = other._array * scale_r.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
+            if not isinstance(other, self.__class__):
+                rhs = rhs.reshape(rhs.shape + (1, ))
             return self.__class__(values=lhs + rhs, unit=self._unit)
         if isinstance(other, Quantity):
             return self.__class__(values=self._array +
                                   other.to(self._unit.units).magnitude,
                                   unit=self._unit)
         self._raise_incompatible_units_error(other, "add")
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def __iadd__(self, other):
         if isinstance(other, self.__class__):

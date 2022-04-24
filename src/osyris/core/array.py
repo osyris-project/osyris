@@ -3,6 +3,7 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
+from .operators import add, iadd, sub, isub
 from .tools import value_to_string, make_label
 from .. import units
 
@@ -169,81 +170,100 @@ class Array:
     def label(self):
         return make_label(name=self._name, unit=self._unit.units)
 
-    def _broadcast(self, lhs, rhs):
-        if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
-            return lhs, rhs
-        if lhs.ndim > rhs.ndim:
-            ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
-            if ind == 0:
-                return lhs, rhs.reshape(rhs.shape + tuple([1]))
-            else:
-                return lhs, rhs.reshape(tuple([1]) + rhs.shape)
-        else:
-            ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
-            if ind == 0:
-                return lhs.reshape(lhs.shape + tuple([1])), rhs
-            else:
-                return lhs.reshape(tuple([1]) + lhs.shape), rhs
+    # def _broadcast(self, lhs, rhs):
+    #     if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
+    #         return lhs, rhs
+    #     if lhs.ndim > rhs.ndim:
+    #         ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
+    #         if ind == 0:
+    #             return lhs, rhs.reshape(rhs.shape + tuple([1]))
+    #         else:
+    #             return lhs, rhs.reshape(tuple([1]) + rhs.shape)
+    #     else:
+    #         ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
+    #         if ind == 0:
+    #             return lhs.reshape(lhs.shape + tuple([1])), rhs
+    #         else:
+    #             return lhs.reshape(tuple([1]) + lhs.shape), rhs
 
-    def _raise_incompatible_units_error(self, other, op):
+    def _raise_incompatible_types_error(self, other, op):
         raise TypeError("Could not {} types {} and {}.".format(op, self, other))
 
     def __add__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            lhs = self._array
-            rhs = other._array * scale_r.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs + rhs, unit=self._unit)
-        if isinstance(other, Quantity):
-            return self.__class__(values=self._array +
-                                  other.to(self._unit.units).magnitude,
-                                  unit=self._unit)
-        self._raise_incompatible_units_error(other, "add")
+        return add(self, other)
+
+    # def __add__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         if self.ndim != other.ndim:
+    #             return NotImplemented
+    #         scale_r = other.unit.to(self._unit.units)
+    #         lhs = self._array
+    #         rhs = other._array * scale_r.magnitude
+    #         return self.__class__(values=lhs + rhs, unit=self._unit)
+    #     if isinstance(other, Quantity):
+    #         return self.__class__(values=self._array +
+    #                               other.to(self._unit.units).magnitude,
+    #                               unit=self._unit)
+    #     self._raise_incompatible_types_error(other, "add")
 
     def __iadd__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            rhs = other._array * scale_r.magnitude
-            self._array += rhs
-        elif isinstance(other, Quantity):
-            self._array += other.to(self._unit.units).magnitude
-        else:
-            self._raise_incompatible_units_error(other, "add")
-        return self
+        return iadd(self, other)
+
+    # def __iadd__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         if self.ndim != other.ndim:
+    #             return NotImplemented
+    #         scale_r = other.unit.to(self._unit.units)
+    #         rhs = other._array * scale_r.magnitude
+    #         self._array += rhs
+    #     elif isinstance(other, Quantity):
+    #         self._array += other.to(self._unit.units).magnitude
+    #     else:
+    #         self._raise_incompatible_types_error(other, "add")
+    #     return self
 
     def __sub__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            lhs = self._array
-            rhs = other._array * scale_r.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs - rhs, unit=self._unit)
-        if isinstance(other, Quantity):
-            return self.__class__(values=self._array -
-                                  other.to(self._unit.units).magnitude,
-                                  unit=self._unit)
-        self._raise_incompatible_units_error(other, "subtract")
+        return sub(self, other)
 
     def __isub__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            rhs = other._array * scale_r.magnitude
-            self._array -= rhs
-        elif isinstance(other, Quantity):
-            self._array -= other.to(self._unit.units).magnitude
-        else:
-            self._raise_incompatible_units_error(other, "subtract")
-        return self
+        return isub(self, other)
+
+    # def __sub__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         if self.ndim != other.ndim:
+    #             return NotImplemented
+    #         scale_r = other.unit.to(self._unit.units)
+    #         lhs = self._array
+    #         rhs = other._array * scale_r.magnitude
+    #         return self.__class__(values=lhs - rhs, unit=self._unit)
+    #     if isinstance(other, Quantity):
+    #         return self.__class__(values=self._array -
+    #                               other.to(self._unit.units).magnitude,
+    #                               unit=self._unit)
+    #     self._raise_incompatible_types_error(other, "subtract")
+
+    # def __isub__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         if self.ndim != other.ndim:
+    #             return NotImplemented
+    #         scale_r = other.unit.to(self._unit.units)
+    #         rhs = other._array * scale_r.magnitude
+    #         self._array -= rhs
+    #     elif isinstance(other, Quantity):
+    #         self._array -= other.to(self._unit.units).magnitude
+    #     else:
+    #         self._raise_incompatible_types_error(other, "subtract")
+    #     return self
 
     def __mul__(self, other):
         if isinstance(other, self.__class__):
+            if self.ndim != other.ndim:
+                return NotImplemented
             scale_l = self._unit.to_base_units()
             scale_r = other._unit.to_base_units()
             result = scale_l * scale_r
             lhs = self._array
             rhs = other._array * result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
             return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
         if isinstance(other, Quantity):
             scale_l = self._unit.to_base_units()
@@ -364,7 +384,7 @@ class Array:
             # Case where we have a sequence of arrays, e.g. `concatenate`
             for a in args[0]:
                 if a.unit != unit:
-                    self._raise_incompatible_units_error(a, func.__name__)
+                    self._raise_incompatible_types_error(a, func.__name__)
             args = (tuple(a._array for a in args[0]), ) + args[1:]
         elif (len(args) > 1 and hasattr(args[1], "_array")):
             if hasattr(args[0], "_array"):
