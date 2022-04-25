@@ -64,6 +64,7 @@ def get_unit(string, ud, ul, ut):
         'grav_acceleration_y': acceleration,
         'grav_acceleration_z': acceleration,
         'grav_potential': energy,
+        'internal_energy': energy,
         'thermal_pressure': energy,
         'pressure': energy,
         'radiative_energy': energy,
