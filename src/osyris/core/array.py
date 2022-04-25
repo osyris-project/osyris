@@ -3,7 +3,7 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
-from .operators import add, iadd, sub, isub
+from .operators import add, iadd, sub, isub, mul, imul, div, idiv
 from .tools import value_to_string, make_label
 from .. import units
 
@@ -256,75 +256,87 @@ class Array:
     #     return self
 
     def __mul__(self, other):
-        if isinstance(other, self.__class__):
-            if self.ndim != other.ndim:
-                return NotImplemented
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            lhs = self._array
-            rhs = other._array * result.magnitude
-            return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array * other, unit=self._unit)
+        return mul(self, other)
 
     def __imul__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            rhs = other._array * result.magnitude
-            self._array *= rhs
-            self._unit = 1.0 * result.units
-        elif isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            self._array *= result.magnitude
-            self._unit = 1.0 * result.units
-        else:
-            self._array *= other
-        return self
+        return imul(self, other)
+
+    # def __mul__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         if self.ndim != other.ndim:
+    #             return NotImplemented
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other._unit.to_base_units()
+    #         result = scale_l * scale_r
+    #         lhs = self._array
+    #         rhs = other._array * result.magnitude
+    #         return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
+    #     if isinstance(other, Quantity):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other.to_base_units()
+    #         result = scale_l * scale_r
+    #         return self.__class__(values=self._array * result.magnitude,
+    #                               unit=1.0 * result.units)
+    #     return self.__class__(values=self._array * other, unit=self._unit)
+
+    # def __imul__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other._unit.to_base_units()
+    #         result = scale_l * scale_r
+    #         rhs = other._array * result.magnitude
+    #         self._array *= rhs
+    #         self._unit = 1.0 * result.units
+    #     elif isinstance(other, Quantity):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other.to_base_units()
+    #         result = scale_l * scale_r
+    #         self._array *= result.magnitude
+    #         self._unit = 1.0 * result.units
+    #     else:
+    #         self._array *= other
+    #     return self
 
     def __truediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l / scale_r
-            lhs = self._array
-            rhs = other._array / result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l / scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array / other, unit=self._unit)
+        return div(self, other)
 
     def __itruediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l / scale_r
-            rhs = other._array / result.magnitude
-            self._array /= rhs
-            self._unit = 1.0 * result.units
-        elif isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l / scale_r
-            self._array *= result.magnitude
-            self._unit = 1.0 * result.units
-        else:
-            self._array /= other
-        return self
+        return idiv(self, other)
+
+    # def __truediv__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other._unit.to_base_units()
+    #         result = scale_l / scale_r
+    #         lhs = self._array
+    #         rhs = other._array / result.magnitude
+    #         lhs, rhs = self._broadcast(lhs, rhs)
+    #         return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
+    #     if isinstance(other, Quantity):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other.to_base_units()
+    #         result = scale_l / scale_r
+    #         return self.__class__(values=self._array * result.magnitude,
+    #                               unit=1.0 * result.units)
+    #     return self.__class__(values=self._array / other, unit=self._unit)
+
+    # def __itruediv__(self, other):
+    #     if isinstance(other, self.__class__):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other._unit.to_base_units()
+    #         result = scale_l / scale_r
+    #         rhs = other._array / result.magnitude
+    #         self._array /= rhs
+    #         self._unit = 1.0 * result.units
+    #     elif isinstance(other, Quantity):
+    #         scale_l = self._unit.to_base_units()
+    #         scale_r = other.to_base_units()
+    #         result = scale_l / scale_r
+    #         self._array *= result.magnitude
+    #         self._unit = 1.0 * result.units
+    #     else:
+    #         self._array /= other
+    #     return self
 
     def __rmul__(self, other):
         return self * other
