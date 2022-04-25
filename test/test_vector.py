@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 from common import allclose
-from osyris import Array, units
+from osyris import Vector, units
 from copy import copy, deepcopy
 import numpy as np
 from pint.errors import DimensionalityError
@@ -9,12 +9,12 @@ import pytest
 
 
 def test_constructor():
-    a = np.arange(100.)
-    array = Array(values=a, unit='m')
-    assert array.unit == units('m')
-    assert len(array) == len(a)
-    assert array.shape == a.shape
-    assert np.allclose(array.values, a)
+    a = np.ones(100, 3)
+    v = Vector(values=a, unit='m')
+    assert v.unit == units('m')
+    assert len(v) == len(a)
+    assert v.shape == (100, )
+    assert np.allclose(v.values, a)
 
 
 def test_equal():
