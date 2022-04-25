@@ -215,22 +215,22 @@ class Array:
         return np.power(self, number)
 
     def __lt__(self, other):
-        return comp(self, other, "less")
+        return comp(np.less, self, other)
 
     def __le__(self, other):
-        return comp(self, other, "less_equal")
+        return comp(np.less_equal, self, other)
 
     def __gt__(self, other):
-        return comp(self, other, "greater")
+        return comp(np.greater, self, other)
 
     def __ge__(self, other):
-        return comp(self, other, "greater_equal")
+        return comp(np.greater_equal, self, other)
 
     def __eq__(self, other):
-        return comp(self, other, "equal")
+        return comp(np.equal, self, other)
 
     def __ne__(self, other):
-        return comp(self, other, "not_equal")
+        return comp(np.not_equal, self, other)
 
     def to(self, unit):
         if isinstance(unit, str):

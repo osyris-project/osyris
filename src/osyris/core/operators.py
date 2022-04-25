@@ -67,11 +67,10 @@ def idiv(lhs, rhs):
     return _operator(np.divide, lhs, rhs, to_base_units=True, out=lhs._array)
 
 
-def comp(lhs, rhs, op):
-    func = getattr(np, op)
-    if isinstance(rhs, Array):
+def comp(op, lhs, rhs):
+    if isinstance(rhs, lhs.__class__):
         scale_r = rhs.unit.to(lhs._unit.units)
-        return func(lhs._array, rhs._array * scale_r.magnitude)
+        return op(lhs._array, rhs._array * scale_r.magnitude)
     if isinstance(rhs, Quantity):
-        return func(lhs._array, rhs.to(lhs._unit.units).magnitude)
-    return func(lhs._array, rhs)
+        return op(lhs._array, rhs.to(lhs._unit.units).magnitude)
+    return op(lhs._array, rhs)
