@@ -16,13 +16,13 @@ def test_1d_array():
     assert np.allclose(array.values, a)
 
 
-def test_2d_array():
-    a = np.random.random([100, 3])
-    array = Array(values=a, unit='m')
-    assert array.unit == units('m')
-    assert np.allclose(array.x.values, a[:, 0])
-    assert np.allclose(array.y.values, a[:, 1])
-    assert np.allclose(array.z.values, a[:, 2])
+# def test_2d_array():
+#     a = np.random.random([100, 3])
+#     array = Array(values=a, unit='m')
+#     assert array.unit == units('m')
+#     assert np.allclose(array.x.values, a[:, 0])
+#     assert np.allclose(array.y.values, a[:, 1])
+#     assert np.allclose(array.z.values, a[:, 2])
 
 
 def test_equal():

@@ -22,16 +22,16 @@ def _to_lhs_unit(lhs, rhs):
     return rhs.unit.to(lhs._unit.units).magnitude
 
 
-def _to_base_units(lhs, rhs):
+def _to_base_units(op, lhs, rhs):
     scale_l = lhs._unit.to_base_units()
     scale_r = other._unit.to_base_units()
-    result = scale_l * scale_r
+    return op(scale_l, scale_r)
 
 
-def add_subtract(op, lhs, rhs, out=None):
+def _add_subtract(op, lhs, rhs, out=None):
     result = None
     if isinstance(rhs, Quantity):
-        rhs = lhs.__class__(values=rhs.magnitude, unit=rhs.units)
+        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
         # print("here", rhs)
     if not isinstance(rhs, lhs.__class__):
         # print("bad")
@@ -62,20 +62,52 @@ def add_subtract(op, lhs, rhs, out=None):
     # _raise_incompatible_types_error(lhs, rhs, op.__name__)
 
 
+def _multiply_divide(op, lhs, rhs, out=None):
+    result = None
+    if isinstance(rhs, Quantity):
+        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+        # print("here", rhs)
+    if not isinstance(rhs, lhs.__class__):
+        # print("bad")
+        return NotImplemented
+    rhs = _maybe_broadcast(lhs, rhs)
+    # print("after boradcast", rhs)
+    if rhs is NotImplemented:
+        return rhs
+    # print("two", rhs)
+    ratio = _to_base_units(op, lhs, rhs)
+    # print("ratio", ratio)
+    # rhs = rhs._array * ratio
+    result = op(lhs._array, rhs._array, out=out)
+    result *= ratio
+    # # return lhs.__class__(values=op(lhs._array, rhs), unit=lhs._unit)
+    # if isinstance(rhs, Quantity):
+    #     result = op(lhs._array, rhs._array, out=out)
+
+    #     return lhs.__class__(values=op(lhs._array,
+    #                                    rhs.to(lhs._unit.units).magnitude),
+    #                          unit=lhs._unit)
+    # if result is not None:
+    if out is None:
+        return lhs.__class__(values=result, unit=result._unit)
+    else:
+        return lhs
+
+
 def add(lhs, rhs):
-    return add_subtract(np.add, lhs, rhs)
+    return _add_subtract(np.add, lhs, rhs)
 
 
 def iadd(lhs, rhs):
-    return add_subtract(np.add, lhs, rhs, out=lhs._array)
+    return _add_subtract(np.add, lhs, rhs, out=lhs._array)
 
 
 def sub(lhs, rhs):
-    return add_subtract(np.subtract, lhs, rhs)
+    return _add_subtract(np.subtract, lhs, rhs)
 
 
 def isub(lhs, rhs):
-    return add_subtract(np.subtract, lhs, rhs, out=lhs._array)
+    return _add_subtract(np.subtract, lhs, rhs, out=lhs._array)
 
 
 # def operator(op, lhs, rhs):
