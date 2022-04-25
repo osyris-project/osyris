@@ -3,19 +3,9 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
-from .operators import add, iadd, sub, isub, mul, imul, div, idiv
+from .operators import add, iadd, sub, isub, mul, imul, div, idiv, comp
 from .tools import value_to_string, make_label
 from .. import units
-
-
-def _comparison_operator(lhs, rhs, op):
-    func = getattr(np, op)
-    if isinstance(rhs, Array):
-        scale_r = rhs.unit.to(lhs._unit.units)
-        return func(lhs._array, rhs._array * scale_r.magnitude)
-    if isinstance(rhs, Quantity):
-        return func(lhs._array, rhs.to(lhs._unit.units).magnitude)
-    return func(lhs._array, rhs)
 
 
 class Array:
@@ -192,35 +182,8 @@ class Array:
     def __add__(self, other):
         return add(self, other)
 
-    # def __add__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         if self.ndim != other.ndim:
-    #             return NotImplemented
-    #         scale_r = other.unit.to(self._unit.units)
-    #         lhs = self._array
-    #         rhs = other._array * scale_r.magnitude
-    #         return self.__class__(values=lhs + rhs, unit=self._unit)
-    #     if isinstance(other, Quantity):
-    #         return self.__class__(values=self._array +
-    #                               other.to(self._unit.units).magnitude,
-    #                               unit=self._unit)
-    #     self._raise_incompatible_types_error(other, "add")
-
     def __iadd__(self, other):
         return iadd(self, other)
-
-    # def __iadd__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         if self.ndim != other.ndim:
-    #             return NotImplemented
-    #         scale_r = other.unit.to(self._unit.units)
-    #         rhs = other._array * scale_r.magnitude
-    #         self._array += rhs
-    #     elif isinstance(other, Quantity):
-    #         self._array += other.to(self._unit.units).magnitude
-    #     else:
-    #         self._raise_incompatible_types_error(other, "add")
-    #     return self
 
     def __sub__(self, other):
         return sub(self, other)
@@ -228,74 +191,11 @@ class Array:
     def __isub__(self, other):
         return isub(self, other)
 
-    # def __sub__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         if self.ndim != other.ndim:
-    #             return NotImplemented
-    #         scale_r = other.unit.to(self._unit.units)
-    #         lhs = self._array
-    #         rhs = other._array * scale_r.magnitude
-    #         return self.__class__(values=lhs - rhs, unit=self._unit)
-    #     if isinstance(other, Quantity):
-    #         return self.__class__(values=self._array -
-    #                               other.to(self._unit.units).magnitude,
-    #                               unit=self._unit)
-    #     self._raise_incompatible_types_error(other, "subtract")
-
-    # def __isub__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         if self.ndim != other.ndim:
-    #             return NotImplemented
-    #         scale_r = other.unit.to(self._unit.units)
-    #         rhs = other._array * scale_r.magnitude
-    #         self._array -= rhs
-    #     elif isinstance(other, Quantity):
-    #         self._array -= other.to(self._unit.units).magnitude
-    #     else:
-    #         self._raise_incompatible_types_error(other, "subtract")
-    #     return self
-
     def __mul__(self, other):
         return mul(self, other)
 
     def __imul__(self, other):
         return imul(self, other)
-
-    # def __mul__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         if self.ndim != other.ndim:
-    #             return NotImplemented
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other._unit.to_base_units()
-    #         result = scale_l * scale_r
-    #         lhs = self._array
-    #         rhs = other._array * result.magnitude
-    #         return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
-    #     if isinstance(other, Quantity):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other.to_base_units()
-    #         result = scale_l * scale_r
-    #         return self.__class__(values=self._array * result.magnitude,
-    #                               unit=1.0 * result.units)
-    #     return self.__class__(values=self._array * other, unit=self._unit)
-
-    # def __imul__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other._unit.to_base_units()
-    #         result = scale_l * scale_r
-    #         rhs = other._array * result.magnitude
-    #         self._array *= rhs
-    #         self._unit = 1.0 * result.units
-    #     elif isinstance(other, Quantity):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other.to_base_units()
-    #         result = scale_l * scale_r
-    #         self._array *= result.magnitude
-    #         self._unit = 1.0 * result.units
-    #     else:
-    #         self._array *= other
-    #     return self
 
     def __truediv__(self, other):
         return div(self, other)
@@ -303,81 +203,34 @@ class Array:
     def __itruediv__(self, other):
         return idiv(self, other)
 
-    # def __truediv__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other._unit.to_base_units()
-    #         result = scale_l / scale_r
-    #         lhs = self._array
-    #         rhs = other._array / result.magnitude
-    #         lhs, rhs = self._broadcast(lhs, rhs)
-    #         return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
-    #     if isinstance(other, Quantity):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other.to_base_units()
-    #         result = scale_l / scale_r
-    #         return self.__class__(values=self._array * result.magnitude,
-    #                               unit=1.0 * result.units)
-    #     return self.__class__(values=self._array / other, unit=self._unit)
-
-    # def __itruediv__(self, other):
-    #     if isinstance(other, self.__class__):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other._unit.to_base_units()
-    #         result = scale_l / scale_r
-    #         rhs = other._array / result.magnitude
-    #         self._array /= rhs
-    #         self._unit = 1.0 * result.units
-    #     elif isinstance(other, Quantity):
-    #         scale_l = self._unit.to_base_units()
-    #         scale_r = other.to_base_units()
-    #         result = scale_l / scale_r
-    #         self._array *= result.magnitude
-    #         self._unit = 1.0 * result.units
-    #     else:
-    #         self._array /= other
-    #     return self
-
     def __rmul__(self, other):
         return self * other
 
     def __rtruediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = self._unit.to_base_units()
-            scale_l = other._unit.to_base_units()
-            result = scale_l / scale_r
-            lhs = self._array
-            rhs = other._array / result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_r = self._unit.to_base_units()
-            scale_l = other.to_base_units()
-            result = scale_l / scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=other / self._array, unit=1.0 / self._unit)
+        out = np.reciprocal(div(self, other))
+        out._unit = 1.0 / out._unit
+        return out
 
     def __pow__(self, number):
         return np.power(self, number)
 
     def __lt__(self, other):
-        return _comparison_operator(self, other, "less")
+        return comp(self, other, "less")
 
     def __le__(self, other):
-        return _comparison_operator(self, other, "less_equal")
+        return comp(self, other, "less_equal")
 
     def __gt__(self, other):
-        return _comparison_operator(self, other, "greater")
+        return comp(self, other, "greater")
 
     def __ge__(self, other):
-        return _comparison_operator(self, other, "greater_equal")
+        return comp(self, other, "greater_equal")
 
     def __eq__(self, other):
-        return _comparison_operator(self, other, "equal")
+        return comp(self, other, "equal")
 
     def __ne__(self, other):
-        return _comparison_operator(self, other, "not_equal")
+        return comp(self, other, "not_equal")
 
     def to(self, unit):
         if isinstance(unit, str):
