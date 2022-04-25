@@ -3,9 +3,18 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
-from .operators import add, iadd, sub, isub, mul, imul, div, idiv, comp
+# from .operators import add, iadd, sub, isub, mul, imul, div, idiv, comp
 from .tools import value_to_string, make_label
 from .. import units
+
+
+def _comparison_op(op, lhs, rhs):
+    if isinstance(rhs, lhs.__class__):
+        scale_r = rhs.unit.to(lhs._unit.units)
+        return op(lhs._array, rhs._array * scale_r.magnitude)
+    if isinstance(rhs, Quantity):
+        return op(lhs._array, rhs.to(lhs._unit.units).magnitude)
+    return op(lhs._array, rhs)
 
 
 class Array:
@@ -132,105 +141,92 @@ class Array:
     def name(self, name_):
         self._name = name_
 
-    # @property
-    # def x(self):
-    #     if self.ndim > 1:
-    #         return self.__class__(values=self._array[:, 0],
-    #                               unit=self._unit,
-    #                               parent=self._parent,
-    #                               name=self._name + "_x")
-
-    # @property
-    # def y(self):
-    #     if self.ndim > 1:
-    #         return self.__class__(values=self._array[:, 1],
-    #                               unit=self._unit,
-    #                               parent=self._parent,
-    #                               name=self._name + "_y")
-
-    # @property
-    # def z(self):
-    #     if self.ndim > 2:
-    #         return self.__class__(values=self._array[:, 2],
-    #                               unit=self._unit,
-    #                               parent=self._parent,
-    #                               name=self._name + "_z")
-
     @property
     def label(self):
         return make_label(name=self._name, unit=self._unit.units)
 
-    # def _broadcast(self, lhs, rhs):
-    #     if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
-    #         return lhs, rhs
-    #     if lhs.ndim > rhs.ndim:
-    #         ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
-    #         if ind == 0:
-    #             return lhs, rhs.reshape(rhs.shape + tuple([1]))
-    #         else:
-    #             return lhs, rhs.reshape(tuple([1]) + rhs.shape)
-    #     else:
-    #         ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
-    #         if ind == 0:
-    #             return lhs.reshape(lhs.shape + tuple([1])), rhs
-    #         else:
-    #             return lhs.reshape(tuple([1]) + lhs.shape), rhs
-
     def _raise_incompatible_types_error(self, other, op):
         raise TypeError("Could not {} types {} and {}.".format(op, self, other))
 
+    def _compute_binary_op(self, op, lhs, rhs, mul_or_div, out):
+        ratio = op(lhs._unit, rhs._unit) if mul_or_div else rhs.unit.to(lhs._unit.units)
+        result = op(lhs._array, rhs._array, out=out)
+        result *= ratio.magnitude
+        if out is None:
+            return lhs.__class__(values=result, unit=1.0 * ratio.units)
+        else:
+            if mul_or_div:
+                lhs._unit = 1.0 * ratio.units
+            return lhs
+
+    def _binary_op(self, op, lhs, rhs, mul_or_div=False, out=None):
+        if isinstance(rhs, Quantity):
+            rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+        if isinstance(rhs, (int, float)):
+            rhs = lhs.__class__(values=rhs)
+        if (len(rhs) > 1) and (lhs.ndim != rhs.ndim):
+            return NotImplemented
+        return self._compute_binary_op(op, lhs, rhs, mul_or_div, out)
+
     def __add__(self, other):
-        return add(self, other)
+        return self._binary_op(np.add, self, other)
 
     def __iadd__(self, other):
-        return iadd(self, other)
+        return self._binary_op(np.add, self, other, out=self._array)
 
     def __sub__(self, other):
-        return sub(self, other)
+        return self._binary_op(np.subtract, self, other)
 
     def __isub__(self, other):
-        return isub(self, other)
+        return self._binary_op(np.subtract, self, other, out=self._array)
 
     def __mul__(self, other):
-        return mul(self, other)
+        return self._binary_op(np.multiply, self, other, mul_or_div=True)
 
     def __imul__(self, other):
-        return imul(self, other)
+        return self._binary_op(np.multiply,
+                               self,
+                               other,
+                               mul_or_div=True,
+                               out=self._array)
 
     def __truediv__(self, other):
-        return div(self, other)
+        return self._binary_op(np.divide, self, other, mul_or_div=True)
 
     def __itruediv__(self, other):
-        return idiv(self, other)
+        return self._binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
 
     def __rmul__(self, other):
         return self * other
 
     def __rtruediv__(self, other):
-        out = np.reciprocal(div(self, other))
+        out = np.reciprocal(self / other)
         out._unit = 1.0 / out._unit
         return out
 
     def __pow__(self, number):
         return np.power(self, number)
 
+    def __neg__(self):
+        return np.negative(self)
+
     def __lt__(self, other):
-        return comp(np.less, self, other)
+        return _comparison_op(np.less, self, other)
 
     def __le__(self, other):
-        return comp(np.less_equal, self, other)
+        return _comparison_op(np.less_equal, self, other)
 
     def __gt__(self, other):
-        return comp(np.greater, self, other)
+        return _comparison_op(np.greater, self, other)
 
     def __ge__(self, other):
-        return comp(np.greater_equal, self, other)
+        return _comparison_op(np.greater_equal, self, other)
 
     def __eq__(self, other):
-        return comp(np.equal, self, other)
+        return _comparison_op(np.equal, self, other)
 
     def __ne__(self, other):
-        return comp(np.not_equal, self, other)
+        return _comparison_op(np.not_equal, self, other)
 
     def to(self, unit):
         if isinstance(unit, str):
@@ -285,18 +281,10 @@ class Array:
         """
         return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self):  #, use_norm=False):
-        # if use_norm:
-        #     out = self.norm._array.min()
-        # else:
-        #     out = self._array.min()
+    def min(self):
         return self.__class__(values=self._array.min(), unit=self._unit)
 
-    def max(self):  #, use_norm=False):
-        # if use_norm:
-        #     out = self.norm._array.max()
-        # else:
-        #     out = self._array.max()
+    def max(self):
         return self.__class__(values=self._array.max(), unit=self._unit)
 
     def reshape(self, *shape):

@@ -5,32 +5,39 @@ from pint.quantity import Quantity
 
 
 def _maybe_broadcast(lhs, rhs):
+    print(type(lhs), type(rhs))
+    print("_maybe_broadcast 1", lhs, rhs)
     if (not rhs.shape) or (lhs.ndim == rhs.ndim):
+        print("_maybe_broadcast 2")
         return rhs
+    print("_maybe_broadcast 3")
     if hasattr(lhs, "x") and (not hasattr(rhs, "x")):
-        rhs = rhs.reshape(rhs.shape + (1, ))
+        print("_maybe_broadcast 4")
+        return rhs.reshape(rhs.shape + (1, ))
     else:
+        print("_maybe_broadcast 5")
         return NotImplemented
 
 
-def _operator(op, lhs, rhs, to_base_units=False, out=None):
+def _operator(op, lhs, rhs, mul_or_div=False, out=None):
     result = None
     if isinstance(rhs, Quantity):
         rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
     if isinstance(rhs, (int, float)):
         rhs = lhs.__class__(values=rhs)
-    if not isinstance(rhs, lhs.__class__):
-        return NotImplemented
+    # if not isinstance(rhs, lhs.__class__):
+    #     return NotImplemented
     rhs = _maybe_broadcast(lhs, rhs)
     if rhs is NotImplemented:
+        print("NotImplemented!")
         return rhs
-    ratio = op(lhs._unit, rhs._unit) if to_base_units else rhs.unit.to(lhs._unit.units)
+    ratio = op(lhs._unit, rhs._unit) if mul_or_div else rhs.unit.to(lhs._unit.units)
     result = op(lhs._array, rhs._array, out=out)
     result *= ratio.magnitude
     if out is None:
         return lhs.__class__(values=result, unit=1.0 * ratio.units)
     else:
-        if to_base_units:
+        if mul_or_div:
             lhs._unit = 1.0 * ratio.units
         return lhs
 
@@ -52,19 +59,19 @@ def isub(lhs, rhs):
 
 
 def mul(lhs, rhs):
-    return _operator(np.multiply, lhs, rhs, to_base_units=True)
+    return _operator(np.multiply, lhs, rhs, mul_or_div=True)
 
 
 def imul(lhs, rhs):
-    return _operator(np.multiply, lhs, rhs, to_base_units=True, out=lhs._array)
+    return _operator(np.multiply, lhs, rhs, mul_or_div=True, out=lhs._array)
 
 
 def div(lhs, rhs):
-    return _operator(np.divide, lhs, rhs, to_base_units=True)
+    return _operator(np.divide, lhs, rhs, mul_or_div=True)
 
 
 def idiv(lhs, rhs):
-    return _operator(np.divide, lhs, rhs, to_base_units=True, out=lhs._array)
+    return _operator(np.divide, lhs, rhs, mul_or_div=True, out=lhs._array)
 
 
 def comp(op, lhs, rhs):
