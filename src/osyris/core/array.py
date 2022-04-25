@@ -5,6 +5,7 @@ from pint.quantity import Quantity
 from pint.unit import Unit
 from .tools import value_to_string, make_label
 from .. import units
+from .. import spatial as sp
 
 
 def _comparison_operator(lhs, rhs, op):
@@ -161,6 +162,117 @@ class Array:
                                   unit=self._unit,
                                   parent=self._parent,
                                   name=self._name + "_z")
+
+    def r(self, origin=[0, 0, 0]):
+        radius = False
+        radial_vel = False
+        radial_B = False
+
+        # figure out what kind of computation this is
+        if self.name in ("position", ""):
+            position = self.parent["position"]
+            radius = True
+        elif self.name == "velocity":
+            position = self.parent.parent["amr"]["position"]
+            radial_vel = True
+        elif self.name == "B_field":
+            position = self.parent.parent["amr"]["position"]
+            radial_B = True
+
+
+        # parse origin and compute centered position vector
+        if isinstance(origin, Array):
+            centered_pos = (position - origin).values
+        else:
+            centered_pos = position.values - np.asarray(origin)
+        if radius:
+            r_comp = sp.compute_radius(centered_pos)
+        elif radial_vel:
+            ""
+        elif radial_B:
+            ""
+
+        return self.__class__(name=self.name + "_r", values=r_comp, unit=self._unit)
+
+    def theta(self, origin=[0, 0, 0], basis=None):
+        colatitude = False
+        meridional_vel = False
+        meridional_B = False
+
+        # figure out what kind of computation this is
+        if self.name in ("position", ""):
+            position = self.parent["position"]
+            colatitude = True
+        elif self.name == "velocity":
+            position = self.parent.parent["amr"]["position"]
+            meridional_vel = True
+        elif self.name == "B_field":
+            position = self.parent.parent["amr"]["position"]
+            meridional_B = True
+
+
+        # parse origin and compute centered position vector
+        if isinstance(origin, Array):
+            centered_pos = (position - origin).values
+        else:
+            centered_pos = position.values - np.asarray(origin)
+
+        # rotate coordinates to align with new basis if needed
+        if basis is not None:
+            if isinstance(basis, str):
+                if basis.lower() == "top":
+                    ""
+                elif basis.lower() == "side":
+                    ""
+            else:
+                # normalize vector
+                basis = basis/np.linalg.norm(basis)
+            angle = np.arccos(np.dot([0,0,1], basis))
+            vec = np.cross(basis, [0,0,1])
+            R = sp.rotation_matrix(vec, angle)
+            new_pos = R @ np.transpose(self.parent["position"].values)            
+
+        # compute desired spherical component
+        if colatitude:
+            theta_comp = sp.compute_colatitude(centered_pos)
+        elif meridional_vel:
+            ""
+        elif meridional_B:
+            ""
+
+        return self.__class__(name=self.name + "_theta", values=theta_comp, unit="rad")
+
+    def phi(self, origin=[0, 0, 0], basis=None):
+        azimuth = False
+        azimuthal_vel = False
+        azimuthal_B = False
+
+        # figure out what kind of computation this is
+        if self.name in ("position", ""):
+            position = self.parent["position"]
+            azimuth = True
+        elif self.name == "velocity":
+            position = self.parent.parent["amr"]["position"]
+            radial_vel = True
+        elif self.name == "B_field":
+            position = self.parent.parent["amr"]["position"]
+
+
+        # parse origin and compute centered position vector
+        if isinstance(origin, Array):
+            centered_pos = (position - origin).values
+        else:
+            centered_pos = position.values - np.asarray(origin)
+
+        # compute desired spherical component
+        if azimuth:
+            phi_comp = sp.compute_azimuth(centered_pos)
+        elif azimuthal_vel:
+            ""
+        elif azimuthal_B:
+            ""
+
+        return self.__class__(name=self.name + "_phi", values=phi_comp, unit="rad")
 
     @property
     def label(self):
