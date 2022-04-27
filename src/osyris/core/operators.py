@@ -19,6 +19,23 @@ def _maybe_broadcast(lhs, rhs):
         return NotImplemented
 
 
+def _maybe_broadcast(lhs, rhs):
+    if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
+        return lhs, rhs
+    if lhs.ndim > rhs.ndim:
+        ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
+        if ind == 0:
+            return lhs, rhs.reshape(rhs.shape + tuple([1]))
+        else:
+            return lhs, rhs.reshape(tuple([1]) + rhs.shape)
+    else:
+        ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
+        if ind == 0:
+            return lhs.reshape(lhs.shape + tuple([1])), rhs
+        else:
+            return lhs.reshape(tuple([1]) + lhs.shape), rhs
+
+
 def _operator(op, lhs, rhs, mul_or_div=False, out=None):
     result = None
     if isinstance(rhs, Quantity):

@@ -12,7 +12,6 @@ from .. import units
 class Vector(Array):
     def __getitem__(self, slice_):
         slice_ = tuple((slice_, )) + (slice(None, None, None), )
-        print(slice_)
         return self.__class__(values=self._array[slice_],
                               unit=self._unit,
                               parent=self._parent,
@@ -74,7 +73,7 @@ class Vector(Array):
     def _binary_op(self, op, lhs, rhs, mul_or_div=False, out=None):
         if isinstance(rhs, Quantity):
             rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
-        if isinstance(rhs, (int, float)):
+        if isinstance(rhs, (int, float, np.ndarray)):
             rhs = Array(values=rhs)
         if not hasattr(rhs, "x"):
             rhs = rhs.reshape(rhs.shape + (1, ))

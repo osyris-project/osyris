@@ -145,9 +145,6 @@ class Array:
     def label(self):
         return make_label(name=self._name, unit=self._unit.units)
 
-    def _raise_incompatible_types_error(self, other, op):
-        raise TypeError("Could not {} types {} and {}.".format(op, self, other))
-
     def _compute_binary_op(self, op, lhs, rhs, mul_or_div, out):
         ratio = op(lhs._unit, rhs._unit) if mul_or_div else rhs.unit.to(lhs._unit.units)
         result = op(lhs._array, rhs._array, out=out)
@@ -162,7 +159,7 @@ class Array:
     def _binary_op(self, op, lhs, rhs, mul_or_div=False, out=None):
         if isinstance(rhs, Quantity):
             rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
-        if isinstance(rhs, (int, float)):
+        if isinstance(rhs, (int, float, np.ndarray)):
             rhs = lhs.__class__(values=rhs)
         if (len(rhs) > 1) and (lhs.ndim != rhs.ndim):
             return NotImplemented
@@ -245,7 +242,8 @@ class Array:
             # Case where we have a sequence of arrays, e.g. `concatenate`
             for a in args[0]:
                 if a.unit != unit:
-                    self._raise_incompatible_types_error(a, func.__name__)
+                    raise TypeError("Could not {} types {} and {}.".format(
+                        func.__name__, self, a))
             args = (tuple(a._array for a in args[0]), ) + args[1:]
         elif (len(args) > 1 and hasattr(args[1], "_array")):
             if hasattr(args[0], "_array"):

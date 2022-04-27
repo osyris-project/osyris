@@ -191,7 +191,9 @@ def map(*layers,
     diagonal = np.sqrt(ndim)
     xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
+    print(dir_vecs, selection_distance)
     dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
+    print(dist_to_plane)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
@@ -238,7 +240,8 @@ def map(*layers,
     to_binning = []  # contains the variables in cells close to the plane
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
-            if to_process[ind].ndim < 3:
+            # if to_process[ind].ndim < 3:
+            if to_process[ind].z is None:
                 uv = to_process[ind].array[indices_close_to_plane]
             else:
                 uv = np.inner(

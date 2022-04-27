@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
+from ..core import Vector
+
 import numpy as np
 
 
@@ -114,4 +116,4 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     norm[norm == 0.] = 1.0
     dir_vecs = dir_vecs / norm
 
-    return dir_vecs, dir_labs
+    return Vector(dir_vecs), dir_labs
