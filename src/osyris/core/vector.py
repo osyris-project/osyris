@@ -9,22 +9,58 @@ from .tools import value_to_string, make_label
 from .. import units
 
 
-class Vector(Array):
+class Vector:
+    def __init__(self, x, y=None, z=None, unit=None, parent=None, name=""):
+
+        self._x = np.asarray(x)
+        self._y = np.asarray(y) if y is not None else None
+        self._z = np.asarray(z) if z is not None else None
+
+        if unit is None:
+            self._unit = 1.0 * units.dimensionless
+        elif isinstance(unit, str):
+            self._unit = units(unit)
+        elif isinstance(unit, Quantity):
+            self._unit = unit
+        elif isinstance(unit, Unit):
+            self._unit = 1.0 * unit
+        else:
+            raise TypeError("Unsupported unit type {}".format(type(unit)))
+        self._parent = parent
+        self._name = name
+        # self.special_functions = ["sqrt", "power"]
+
     def __getitem__(self, slice_):
         slice_ = tuple((slice_, )) + (slice(None, None, None), )
-        return self.__class__(values=self._array[slice_],
+        x = self._x[slice_]
+        y = self._y[slice_] if self._y is not None else None
+        z = self._z[slice_] if self._z is not None else None
+
+        return self.__class__(x=x,
+                              y=y,
+                              z=z,
                               unit=self._unit,
                               parent=self._parent,
                               name=self._name)
 
     def __len__(self):
-        if self.shape:
-            return self.shape[0]
+        if self._x.shape:
+            return self._x.shape[0]
         else:
             return 0
 
     def __str__(self):
-        return "Vector<{}, (x,y,z)>".format(self._make_string())
+        name_str = "'" + self._name + "' "
+        if len(self) == 0:
+            values_str = "Value: " + value_to_string(self.values)
+        else:
+            values_str = "Min: " + value_to_string(
+                self.min().values) + " Max: " + value_to_string(self.max().values)
+        unit_str = " [{:~}] ".format(self._unit.units)
+        shape_str = str(self.shape)
+        return "Vector<" + name_str + values_str + unit_str + shape_str
+
+        # return "Vector<{}, (x,y,z)>".format(self._make_string())
 
     @property
     def values(self):
