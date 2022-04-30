@@ -98,3 +98,31 @@ def comp(op, lhs, rhs):
     if isinstance(rhs, Quantity):
         return op(lhs._array, rhs.to(lhs._unit.units).magnitude)
     return op(lhs._array, rhs)
+
+
+def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
+    if isinstance(rhs, Quantity):
+        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+    if isinstance(rhs, (int, float, np.ndarray)):
+        rhs = lhs.__class__(values=rhs)
+    if (len(rhs) > 1) and (lhs.ndim != rhs.ndim):
+        return NotImplemented
+
+    ratio = op(lhs._unit, rhs._unit) if mul_or_div else rhs.unit.to(lhs._unit.units)
+    result = op(lhs._array, rhs._array, out=out)
+    result *= ratio.magnitude
+    if out is None:
+        return lhs.__class__(values=result, unit=1.0 * ratio.units)
+    else:
+        if mul_or_div:
+            lhs._unit = 1.0 * ratio.units
+        return lhs
+
+
+def comparison_op(op, lhs, rhs):
+    if isinstance(rhs, lhs.__class__):
+        scale_r = rhs.unit.to(lhs._unit.units)
+        return op(lhs._array, rhs._array * scale_r.magnitude)
+    if isinstance(rhs, Quantity):
+        return op(lhs._array, rhs.to(lhs._unit.units).magnitude)
+    return op(lhs._array, rhs)
