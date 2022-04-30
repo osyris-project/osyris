@@ -95,7 +95,6 @@ class Vector(Base):
         return Array(values=np.linalg.norm(np.asarray(comps).T, axis=-1),
                      unit=self.unit)
 
-
     @property
     def ndim(self):
         return self._x.ndim
@@ -111,7 +110,6 @@ class Vector(Base):
     @property
     def shape(self):
         return self._x.shape
-
 
     @property
     def name(self):
@@ -148,17 +146,63 @@ class Vector(Base):
                          parent=self._parent,
                          name=self._name + "_z")
 
-    def _binary_op(self, op, lhs, rhs, mul_or_div=False, out=None):
-        x = op(
-
-
+    def _to_vector(self, op, lhs, rhs, mul_or_div=False, out=None):
         if isinstance(rhs, Quantity):
             rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
         if isinstance(rhs, (int, float, np.ndarray)):
             rhs = Array(values=rhs)
-        if not hasattr(rhs, "x"):
-            rhs = rhs.reshape(rhs.shape + (1, ))
-        return self._compute_binary_op(op, lhs, rhs, mul_or_div, out)
+        if isinstance(rhs, Array):
+            rhs = self.__class__(
+                {c: rhs
+                 for c in "xyz" if getattr(self, f"_{c}") is not None},
+                unit=rhs.unit)
+        return rhs
+        # if isinstance(rhs, Quantity):
+        #     rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
+        # if isinstance(rhs, (int, float, np.ndarray)):
+        #     rhs = Array(values=rhs)
+        # if not hasattr(rhs, "x"):
+        #     rhs = rhs.reshape(rhs.shape + (1, ))
+        # return self._compute_binary_op(op, lhs, rhs, mul_or_div, out)
+
+    def __add__(self, other):
+        return self.__class__(
+            {c: rhs
+             for c in "xyz" if getattr(self, f"_{c}") is not None},
+            unit=rhs.unit)
+
+    def __iadd__(self, other):
+        return self._binary_op(np.add, self, other, out=self._array)
+
+    def __sub__(self, other):
+        return self._binary_op(np.subtract, self, other)
+
+    def __isub__(self, other):
+        return self._binary_op(np.subtract, self, other, out=self._array)
+
+    def __mul__(self, other):
+        return self._binary_op(np.multiply, self, other, mul_or_div=True)
+
+    def __imul__(self, other):
+        return self._binary_op(np.multiply,
+                               self,
+                               other,
+                               mul_or_div=True,
+                               out=self._array)
+
+    def __truediv__(self, other):
+        return self._binary_op(np.divide, self, other, mul_or_div=True)
+
+    def __itruediv__(self, other):
+        return self._binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __rtruediv__(self, other):
+        out = np.reciprocal(self / other)
+        out._unit = 1.0 / out._unit
+        return out
 
     def __radd__(self, other):
         return add(self, other)
