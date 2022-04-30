@@ -156,7 +156,7 @@ class Vector:
                 for c in "xyz" if getattr(self, c) is not None
             },
                                  unit=rhs.unit)
-        if self.nvec != other.nvec:
+        if self.nvec != rhs.nvec:
             raise ValueError("Operands do not have the same number of components.")
         return rhs
         # if isinstance(rhs, Quantity):
