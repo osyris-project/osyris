@@ -8,22 +8,8 @@ from .tools import value_to_string, make_label
 from .. import units
 
 
-def _comparison_op(op, lhs, rhs):
-    if isinstance(rhs, lhs.__class__):
-        scale_r = rhs.unit.to(lhs._unit.units)
-        return op(lhs._array, rhs._array * scale_r.magnitude)
-    if isinstance(rhs, Quantity):
-        return op(lhs._array, rhs.to(lhs._unit.units).magnitude)
-    return op(lhs._array, rhs)
-
-
-class Array:
-    def __init__(self, values=0, unit=None, parent=None, name=""):
-
-        # if isinstance(values, np.ndarray):
-        #     self._array = values
-        # else:
-        self._array = np.asarray(values)
+class Base:
+    def __init__(self, unit=None, parent=None, name=""):
 
         if unit is None:
             self._unit = 1.0 * units.dimensionless
@@ -37,33 +23,6 @@ class Array:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
         self._parent = parent
         self._name = name
-        self.special_functions = ["sqrt", "power"]
-
-    # def __array__(self):
-    #     return self._array
-
-    def __getitem__(self, slice_):
-        return self.__class__(values=self._array[slice_],
-                              unit=self._unit,
-                              parent=self._parent,
-                              name=self._name)
-
-    def __len__(self):
-        if self._array.shape:
-            return len(self._array)
-        else:
-            return 0
-
-    def __str__(self):
-        name_str = "'" + self._name + "' "
-        if len(self) == 0:
-            values_str = "Value: " + value_to_string(self.values)
-        else:
-            values_str = "Min: " + value_to_string(
-                self.min().values) + " Max: " + value_to_string(self.max().values)
-        unit_str = " [{:~}] ".format(self._unit.units)
-        shape_str = str(self.shape)
-        return "Array<" + name_str + values_str + unit_str + shape_str + ">"
 
     def __repr__(self):
         return str(self)
@@ -74,38 +33,6 @@ class Array:
     def __deepcopy__(self, memo):
         return self.copy()
 
-    def copy(self):
-        return self.__class__(values=self._array.copy(),
-                              unit=self._unit.copy(),
-                              name=str(self._name))
-
-    @property
-    def values(self):
-        if not self._array.shape:
-            return self._array[()]
-        else:
-            return self._array
-
-    @values.setter
-    def values(self, values_):
-        self._array = values_
-
-    @property
-    def array(self):
-        return self._array
-
-    @array.setter
-    def array(self, array_):
-        self._array = array_
-
-    @property
-    def norm(self):
-        if self._array.ndim < 2:
-            return self
-        else:
-            return self.__class__(values=np.linalg.norm(self._array, axis=1),
-                                  unit=self.unit)
-
     @property
     def unit(self):
         return self._unit
@@ -113,14 +40,6 @@ class Array:
     @unit.setter
     def unit(self, unit_):
         self._unit = unit_
-
-    @property
-    def ndim(self):
-        return self._array.ndim
-
-    @property
-    def shape(self):
-        return self._array.shape
 
     @property
     def parent(self):

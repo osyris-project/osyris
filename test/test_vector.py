@@ -9,7 +9,7 @@ import pytest
 
 
 def test_constructor():
-    a = np.ones(100, 3)
+    a = np.random.random([100, 3])
     v = Vector(values=a, unit='m')
     assert v.unit == units('m')
     assert len(v) == len(a)
@@ -18,9 +18,9 @@ def test_constructor():
 
 
 def test_equal():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    c = Array(values=[100., 200., 300., 400., 500.], unit='cm')
+    a = Vector(values=[[1., 2.], [3., 4.], [5., 6.]], unit='m')
+    b = Vector(values=[[1., 2.], [3., 4.], [5., 6.]], unit='m')
+    c = Vector(values=[[100., 200.], [300., 400.], [500., 600.]], unit='cm')
     assert all(a == b)
     assert all(a == c)
 
@@ -29,8 +29,10 @@ def test_not_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[1., 2., 3., 4., 5.], unit='cm')
     c = Array(values=[100., 200., 300., 400., 500.], unit='m')
+    a = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
     assert all(a != b)
     assert all(a != c)
+    assert all(a != d)
 
 
 def test_addition():

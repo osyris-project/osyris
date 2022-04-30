@@ -4,38 +4,40 @@ import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
 from .array import Array
+from .base import Base
 from .operators import add, sub
 from .tools import value_to_string, make_label
 from .. import units
 
 
-class Vector:
+class Vector(Base):
     def __init__(self, x, y=None, z=None, unit=None, parent=None, name=""):
+        super().__init__(unit=unit, parent=parent, name=name)
 
-        self._x = np.asarray(x)
-        self._y = np.asarray(y) if y is not None else None
-        self._z = np.asarray(z) if z is not None else None
+        self._x = x
+        self._x.name = self._name + "_x"
 
-        if unit is None:
-            self._unit = 1.0 * units.dimensionless
-        elif isinstance(unit, str):
-            self._unit = units(unit)
-        elif isinstance(unit, Quantity):
-            self._unit = unit
-        elif isinstance(unit, Unit):
-            self._unit = 1.0 * unit
-        else:
-            raise TypeError("Unsupported unit type {}".format(type(unit)))
-        self._parent = parent
-        self._name = name
-        # self.special_functions = ["sqrt", "power"]
+        self._y = None
+        if y is not None:
+            self._y = y
+            self._y.name = self._name + "_y"
+            if self._y.shape != self._x.shape:
+                raise ValueError("The shape of component y must be the same as the "
+                                 "shape of the x component")
+
+        self._z = None
+        if z is not None:
+            self._z = z
+            self._z.name = self._name + "_z"
+            if self._z.shape != self._x.shape:
+                raise ValueError("The shape of component z must be the same as the "
+                                 "shape of the x component")
 
     def __getitem__(self, slice_):
         slice_ = tuple((slice_, )) + (slice(None, None, None), )
         x = self._x[slice_]
         y = self._y[slice_] if self._y is not None else None
         z = self._z[slice_] if self._z is not None else None
-
         return self.__class__(x=x,
                               y=y,
                               z=z,
@@ -44,10 +46,7 @@ class Vector:
                               name=self._name)
 
     def __len__(self):
-        if self._x.shape:
-            return self._x.shape[0]
-        else:
-            return 0
+        return len(self._x)
 
     def __str__(self):
         name_str = "'" + self._name + "' "
@@ -55,58 +54,104 @@ class Vector:
             values_str = "Value: " + value_to_string(self.values)
         else:
             values_str = "Min: " + value_to_string(
-                self.min().values) + " Max: " + value_to_string(self.max().values)
+                self.norm.min().values) + " Max: " + value_to_string(
+                    self.norm.max().values)
         unit_str = " [{:~}] ".format(self._unit.units)
         shape_str = str(self.shape)
-        return "Vector<" + name_str + values_str + unit_str + shape_str
+        return "Vector<" + name_str + values_str + unit_str + shape_str + ", (x,y,z)>"
 
         # return "Vector<{}, (x,y,z)>".format(self._make_string())
 
-    @property
-    def values(self):
-        return self._array
+    def __repr__(self):
+        return str(self)
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.copy()
+
+    def copy(self):
+        x = self._x.copy()
+        y = self._y.copy() if self._y is not None else None
+        z = self._z.copy() if self._z is not None else None
+        return self.__class__(x=x,
+                              y=y,
+                              z=z,
+                              unit=self._unit.copy(),
+                              name=str(self._name))
+
+    # @property
+    # def values(self):
+    #     return self._array
 
     @property
     def norm(self):
-        return Array(values=np.linalg.norm(self._array, axis=-1), unit=self.unit)
+        if (self._y is None) and (self._z is None):
+            return self._x
+        comps = [self._x, self._y]
+        if self._z is not None:
+            comps.append(self._z)
+        return Array(values=np.linalg.norm(np.asarray(comps).T, axis=-1),
+                     unit=self.unit)
 
-    # @property
-    # def nvec(self):
-    #     if self._array.shape:
-    #         if len(self._array.shape) == 2:
-    #             return self._array.shape[-1]
-    #         else:
-    #             return 1
-    #     return 0
+
+    @property
+    def ndim(self):
+        return self._x.ndim
+
+    @property
+    def nvec(self):
+        if (self._y is None) and (self._z is None):
+            return 1
+        if self._z is None:
+            return 2
+        return 3
 
     @property
     def shape(self):
-        return self._array[..., 0].shape
+        return self._x.shape
+
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name_):
+        self._name = name_
+
+    @property
+    def label(self):
+        return make_label(name=self._name, unit=self._unit.units)
 
     @property
     def x(self):
-        return Array(values=self._array[..., 0],
+        return Array(values=self._x,
                      unit=self._unit,
                      parent=self._parent,
                      name=self._name + "_x")
 
     @property
     def y(self):
-        if self._array.shape[-1] > 1:
-            return Array(values=self._array[..., 1],
+        if self._y is not None:
+            return Array(values=self._y,
                          unit=self._unit,
                          parent=self._parent,
                          name=self._name + "_y")
 
     @property
     def z(self):
-        if self._array.shape[-1] > 2:
-            return Array(values=self._array[..., 2],
+        if self._z is not None:
+            return Array(values=self._z,
                          unit=self._unit,
                          parent=self._parent,
                          name=self._name + "_z")
 
     def _binary_op(self, op, lhs, rhs, mul_or_div=False, out=None):
+        x = op(
+
+
         if isinstance(rhs, Quantity):
             rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
         if isinstance(rhs, (int, float, np.ndarray)):

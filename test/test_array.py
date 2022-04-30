@@ -29,8 +29,10 @@ def test_not_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[1., 2., 3., 4., 5.], unit='cm')
     c = Array(values=[100., 200., 300., 400., 500.], unit='m')
+    d = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
     assert all(a != b)
     assert all(a != c)
+    assert all(a != d)
 
 
 def test_addition():
