@@ -89,13 +89,13 @@ class Array:
     def values(self, values_):
         self._array = values_
 
-    @property
-    def array(self):
-        return self._array
+    # @property
+    # def array(self):
+    #     return self._array
 
-    @array.setter
-    def array(self, array_):
-        self._array = array_
+    # @array.setter
+    # def array(self, array_):
+    #     self._array = array_
 
     @property
     def norm(self):

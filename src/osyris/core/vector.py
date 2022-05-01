@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+from functools import lru_cache
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
@@ -88,6 +89,7 @@ class Vector:
     #     return self._array
 
     @property
+    @lru_cache
     def norm(self):
         if (self.y is None) and (self.z is None):
             return self.x
@@ -151,11 +153,9 @@ class Vector:
         if isinstance(rhs, (int, float, np.ndarray)):
             rhs = Array(values=rhs)
         if isinstance(rhs, Array):
-            rhs = self.__class__(**{
-                c: rhs
-                for c in "xyz" if getattr(self, c) is not None
-            },
-                                 unit=rhs.unit)
+            rhs = self.__class__(
+                **{c: rhs
+                   for c in "xyz" if getattr(self, c) is not None})
         if self.nvec != rhs.nvec:
             raise ValueError("Operands do not have the same number of components.")
         return rhs
@@ -306,28 +306,29 @@ class Vector:
         # #     unit = func(self.unit, *args[1:], **kwargs)
         # # else:
         # #     unit = self.unit
-        # if isinstance(args[0], tuple) or isinstance(args[0], list):
-        #     # Case where we have a sequence of arrays, e.g. `concatenate`
-        #     for a in args[0]:
-        #         if a.unit != unit:
-        #             raise TypeError("Could not {} types {} and {}.".format(
-        #                 func.__name__, self, a))
-        #     args = (tuple(a._array for a in args[0]), ) + args[1:]
-        # elif (len(args) > 1 and hasattr(args[1], "_array")):
-        #     if hasattr(args[0], "_array"):
-        #         # Case of a binary operation, with two Arrays, e.g. `dot`
-        #         # TODO: what should we do with the unit? Apply the func to it?
-        #         unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
-        #         args = (args[0]._array, args[1]._array) + args[2:]
-        #     else:
-        #         # Case of a binary operation: ndarray with Array
-        #         # In this case, only multiply is allowed?
-        #         if func.__name__ != "multiply":
-        #             raise RuntimeError("Cannot use operation {} between ndarray and "
-        #                                "Array".format(func.__name__))
-        #         args = (args[0], args[1]._array) + args[2:]
-        # else:
-        #     args = (args[0]._array, ) + args[1:]
+        if isinstance(args[0], tuple) or isinstance(args[0], list):
+            # Case where we have a sequence of arrays, e.g. `concatenate`
+            for a in args[0]:
+                if a.unit != unit:
+                    raise TypeError("Could not {} types {} and {}.".format(
+                        func.__name__, self, a))
+            args = (tuple(a._array for a in args[0]), ) + args[1:]
+        elif (len(args) > 1 and hasattr(args[1], "_array")):
+            if hasattr(args[0], "_array"):
+                # Case of a binary operation, with two Arrays, e.g. `dot`
+                # TODO: what should we do with the unit? Apply the func to it?
+                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+                args = (args[0]._array, args[1]._array) + args[2:]
+            else:
+                # Case of a binary operation: ndarray with Array
+                # In this case, only multiply is allowed?
+                if func.__name__ != "multiply":
+                    raise RuntimeError("Cannot use operation {} between ndarray and "
+                                       "Array".format(func.__name__))
+                args = (args[0], args[1]._array) + args[2:]
+        else:
+            args = (args[0]._array, ) + args[1:]
+
         x = func(self.x, *args[1:], **kwargs)
         y = func(self.y, *args[1:], **kwargs) if self.y is not None else None
         z = func(self.z, *args[1:], **kwargs) if self.z is not None else None
