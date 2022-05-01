@@ -54,16 +54,19 @@ class Vector:
     def __str__(self):
         name_str = "'" + self._name + "' "
         if len(self) == 0:
-            values_str = "Value: " + value_to_string(self.values)
+            values_str = "Value: " + value_to_string(self.x.values)
+            if self.y is not None:
+                values_str += ", " + value_to_string(self.y.values)
+            if self.z is not None:
+                values_str += ", " + value_to_string(self.z.values)
         else:
             values_str = "Min: " + value_to_string(
-                self.norm.min().values) + " Max: " + value_to_string(
-                    self.norm.max().values)
+                self.min().values) + " Max: " + value_to_string(self.max().values)
         unit_str = " [{:~}] ".format(self.unit.units)
         shape_str = str(self.shape)
-        return "Vector<" + name_str + values_str + unit_str + shape_str + ", (x,y,z)>"
-
-        # return "Vector<{}, (x,y,z)>".format(self._make_string())
+        comps_str = ", (" + ",".join(
+            x for x in "xyz" if getattr(self, x) is not None) + ")>"
+        return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
 
     def __repr__(self):
         return str(self)
@@ -84,20 +87,15 @@ class Vector:
                               unit=self._unit.copy(),
                               name=str(self._name))
 
-    # @property
-    # def values(self):
-    #     return self._array
-
     @property
-    @lru_cache
     def norm(self):
         if (self.y is None) and (self.z is None):
             return self.x
-        comps = [self.x.array, self.y.array]
+        out = self.x.values * self.x.values
+        out += self.y.values * self.y.values
         if self.z is not None:
-            comps.append(self.z.array)
-        return Array(values=np.linalg.norm(np.asarray(comps).T, axis=-1),
-                     unit=self.unit)
+            out += self.z.values * self.z.values
+        return Array(values=np.sqrt(out), unit=self.x.unit)
 
     @property
     def unit(self):
@@ -107,9 +105,9 @@ class Vector:
     def unit(self, unit_):
         self.x.unit = unit_
         if self.y is not None:
-            self.y = unit_
+            self.y.unit = unit_
         if self.z is not None:
-            self.z = unit_
+            self.z.unit = unit_
 
     @property
     def ndim(self):
@@ -227,19 +225,19 @@ class Vector:
         if self.z is not None:
             self.z /= other.z
 
-    # def __rmul__(self, other):
-    #     return self * other
+    def __rmul__(self, other):
+        return self * other
 
-    # def __rtruediv__(self, other):
-    #     out = np.reciprocal(self / other)
-    #     out._unit = 1.0 / out._unit
-    #     return out
+    def __rtruediv__(self, other):
+        out = np.reciprocal(self / other)
+        out._unit = 1.0 / out._unit
+        return out
 
-    # def __radd__(self, other):
-    #     return add(self, other)
+    def __radd__(self, other):
+        return self + other
 
-    # def __rsub__(self, other):
-    #     return -sub(self, other)
+    def __rsub__(self, other):
+        return -(self - other)
 
     def __pow__(self, number):
         x = self.x**number
@@ -307,31 +305,38 @@ class Vector:
         # # else:
         # #     unit = self.unit
         if isinstance(args[0], tuple) or isinstance(args[0], list):
-            # Case where we have a sequence of arrays, e.g. `concatenate`
-            for a in args[0]:
-                if a.unit != unit:
-                    raise TypeError("Could not {} types {} and {}.".format(
-                        func.__name__, self, a))
-            args = (tuple(a._array for a in args[0]), ) + args[1:]
-        elif (len(args) > 1 and hasattr(args[1], "_array")):
-            if hasattr(args[0], "_array"):
-                # Case of a binary operation, with two Arrays, e.g. `dot`
-                # TODO: what should we do with the unit? Apply the func to it?
-                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
-                args = (args[0]._array, args[1]._array) + args[2:]
-            else:
-                # Case of a binary operation: ndarray with Array
-                # In this case, only multiply is allowed?
-                if func.__name__ != "multiply":
-                    raise RuntimeError("Cannot use operation {} between ndarray and "
-                                       "Array".format(func.__name__))
-                args = (args[0], args[1]._array) + args[2:]
+            # # Case where we have a sequence of arrays, e.g. `concatenate`
+            # for a in args[0]:
+            #     if a.unit != unit:
+            #         raise TypeError("Could not {} types {} and {}.".format(
+            #             func.__name__, self, a))
+            x = func(tuple(a.x for a in args[0]), *args[1:], **kwargs)
+            y = func(tuple(a.y for a in args[0]), *args[1:], **
+                     kwargs) if args[0][0].y is not None else None
+            z = func(tuple(a.z for a in args[0]), *args[1:], **
+                     kwargs) if args[0][0].z is not None else None
+            # args = (tuple(a._array for a in args[0]), ) + args[1:]
+        elif (len(args) > 1 and isinstance(args[1], self.__class__)):
+            # if hasattr(args[0], "_array"):
+            # Case of a binary operation, with two Arrays, e.g. `dot`
+            # args = (args[0]._array, args[1]._array) + args[2:]
+            x = func(args[0].x, args[1].x, *args[2:], **kwargs)
+            y = func(args[0].y, args[1].y, *args[2:], **
+                     kwargs) if self.y is not None else None
+            z = func(args[0].z, args[1].z, *args[2:], **
+                     kwargs) if self.z is not None else None
+            # else:
+            #     # Case of a binary operation: ndarray with Array
+            #     # In this case, only multiply is allowed?
+            #     if func.__name__ != "multiply":
+            #         raise RuntimeError("Cannot use operation {} between ndarray and "
+            #                            "Array".format(func.__name__))
+            #     args = (args[0], args[1]._array) + args[2:]
         else:
-            args = (args[0]._array, ) + args[1:]
-
-        x = func(self.x, *args[1:], **kwargs)
-        y = func(self.y, *args[1:], **kwargs) if self.y is not None else None
-        z = func(self.z, *args[1:], **kwargs) if self.z is not None else None
+            # args = (args[0]._array, ) + args[1:]
+            x = func(args[0].x, *args[1:], **kwargs)
+            y = func(args[0].y, *args[1:], **kwargs) if self.y is not None else None
+            z = func(args[0].z, *args[1:], **kwargs) if self.z is not None else None
         return self.__class__(x=x, y=y, z=z)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -351,10 +356,10 @@ class Vector:
         return self._wrap_numpy(func, *args, **kwargs)
 
     def min(self):
-        return Array(values=self.norm._array.min(), unit=self._unit)
+        return self.norm.min()
 
     def max(self):
-        return Array(values=self.norm._array.max(), unit=self._unit)
+        return self.norm.max()
 
     def reshape(self, *shape):
         x = self.x.reshape(*shape)
