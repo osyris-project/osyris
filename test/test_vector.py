@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import allclose
-from osyris import Vector, units
+from common import allclose, alltrue
+from osyris import Array, Vector, units
 from copy import copy, deepcopy
 import numpy as np
 from pint.errors import DimensionalityError
@@ -9,30 +9,42 @@ import pytest
 
 
 def test_constructor():
-    a = np.random.random([100, 3])
-    v = Vector(values=a, unit='m')
-    assert v.unit == units('m')
-    assert len(v) == len(a)
-    assert v.shape == (100, )
-    assert np.allclose(v.values, a)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    assert len(v) == len(x)
+    assert v.shape == x.shape
+
+
+def test_components():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y)
+    assert alltrue(v.x == x)
+    assert alltrue(v.y == y)
+    assert v.z is None
+    v.z = z
+    assert alltrue(v.z == z)
 
 
 def test_equal():
-    a = Vector(values=[[1., 2.], [3., 4.], [5., 6.]], unit='m')
-    b = Vector(values=[[1., 2.], [3., 4.], [5., 6.]], unit='m')
-    c = Vector(values=[[100., 200.], [300., 400.], [500., 600.]], unit='cm')
-    assert all(a == b)
-    assert all(a == c)
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    c = Array(values=[100., 200., 300., 400., 500.], unit='cm')
+    assert alltrue(a == b)
+    assert alltrue(a == c)
 
 
 def test_not_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[1., 2., 3., 4., 5.], unit='cm')
     c = Array(values=[100., 200., 300., 400., 500.], unit='m')
-    a = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
-    assert all(a != b)
-    assert all(a != c)
-    assert all(a != d)
+    d = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
+    assert alltrue(a != b)
+    assert alltrue(a != c)
+    assert all((a != d).values == [True, False, False, False, False])
 
 
 def test_addition():
@@ -234,7 +246,14 @@ def test_less_than():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
     expected = [True, True, False, False, True]
-    np.array_equal(a < b, expected)
+    assert all((a < b).values == expected)
+
+
+def test_less_than_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[600., 700., 100., 400., 1000.], unit='cm')
+    expected = [True, True, False, False, True]
+    assert all((a < b).values == expected)
 
 
 def test_less_than_bad_units():
@@ -248,7 +267,7 @@ def test_less_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
     expected = [True, True, False, True, True]
-    np.array_equal(a <= b, expected)
+    assert all((a <= b).values == expected)
 
 
 def test_less_equal_bad_units():
@@ -262,7 +281,7 @@ def test_greater_than():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
     expected = [True, True, False, False, True]
-    np.array_equal(b > a, expected)
+    assert all((b > a).values == expected)
 
 
 def test_greater_than_bad_units():
@@ -276,7 +295,7 @@ def test_greater_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
     expected = [True, True, False, True, True]
-    np.array_equal(b <= a, expected)
+    assert all((b >= a).values == expected)
 
 
 def test_greater_equal_bad_units():
@@ -301,60 +320,84 @@ def test_to_bad_units():
 
 def test_min():
     a = Array(values=[1., -2., 3., 0.4, 0.5, 0.6], unit='m')
-    assert a.min() == Array(values=-2., unit='m')
-    # assert a.min(use_norm=True) == Array(values=-2., unit='m')
+    assert (a.min() == Array(values=-2., unit='m')).values
     b = Array(values=np.array([1., -2., 3., 0.4, 0.5, 0.6]).reshape(2, 3), unit='m')
-    assert b.min() == Array(values=-2., unit='m')
-    # assert b.min(use_norm=True) == Array(values=np.linalg.norm([0.4, 0.5, 0.6]),
-    #                                      unit='m')
+    assert (b.min() == Array(values=-2., unit='m')).values
 
 
 def test_max():
     a = Array(values=[1., 2., 3., -15., 5., 6.], unit='m')
-    assert a.max() == Array(values=6.0, unit='m')
-    # assert a.max(use_norm=True) == Array(values=6.0, unit='m')
+    assert (a.max() == Array(values=6.0, unit='m')).values
     b = Array(values=np.array([1., 2., 3., -15., 5., 6.]).reshape(2, 3), unit='m')
-    assert b.max() == Array(values=6.0, unit='m')
-    # assert b.max(use_norm=True) == Array(values=np.linalg.norm([-15., 5., 6.]),
-    #                                      unit='m')
+    assert (b.max() == Array(values=6.0, unit='m')).values
 
 
 def test_reshape():
     a = Array(values=[1., 2., 3., 4., 5., 6.], unit='m')
     expected = Array(values=[[1., 2., 3.], [4., 5., 6.]], unit='m')
-    assert all(np.ravel(a.reshape(2, 3) == expected))
+    assert alltrue(np.ravel(a.reshape(2, 3) == expected))
 
 
 def test_slicing():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     assert a[2] == Array(values=[13.], unit='m')
-    assert all(a[:4] == Array(values=[11., 12., 13., 14.], unit='m'))
-    assert all(a[2:4] == Array(values=[13., 14.], unit='m'))
+    assert alltrue(a[:4] == Array(values=[11., 12., 13., 14.], unit='m'))
+    assert alltrue(a[2:4] == Array(values=[13., 14.], unit='m'))
 
 
 def test_slicing_vector():
     a = Array(values=np.arange(12.).reshape(4, 3), unit='m')
-    assert all(np.ravel(a[2:3] == Array(values=[[6., 7., 8.]], unit='m')))
+    assert alltrue(np.ravel(a[2:3] == Array(values=[[6., 7., 8.]], unit='m')))
     assert a[2:3].shape == (1, 3)
-    assert all(np.ravel(a[:2] == Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m')))
+    assert alltrue(
+        np.ravel(a[:2] == Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m')))
 
 
 def test_copy():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     b = a.copy()
     a *= 10.
-    assert all(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
+    assert alltrue(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
 
 
 def test_copy_overload():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     b = copy(a)
     a *= 10.
-    assert all(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
+    assert alltrue(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
 
 
 def test_deepcopy():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     b = deepcopy(a)
     a *= 10.
-    assert all(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
+    assert alltrue(b == Array(values=[11., 12., 13., 14., 15.], unit='m'))
+
+
+def test_numpy_unary():
+    values = [1., 2., 3., 4., 5.]
+    a = Array(values=values, unit='m')
+    expected = np.log10(values)
+    result = np.log10(a)
+    assert np.allclose(result.values, expected)
+    assert result.unit == units('m')
+
+
+def test_numpy_sqrt():
+    values = [1., 2., 3., 4., 5.]
+    a = Array(values=values, unit='m*m')
+    expected = np.sqrt(values)
+    result = np.sqrt(a)
+    assert np.allclose(result.values, expected)
+    assert result.unit == units('m')
+
+
+def test_numpy_binary():
+    a_buf = [1., 2., 3., 4., 5.]
+    b_buf = [6., 7., 8., 9., 10.]
+    a = Array(values=a_buf, unit='m')
+    b = Array(values=b_buf, unit='m')
+    expected = np.dot(a_buf, b_buf)
+    result = np.dot(a, b)
+    assert result.values == expected
+    assert result.unit == units('m')
