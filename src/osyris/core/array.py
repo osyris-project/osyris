@@ -43,12 +43,12 @@ class Array:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
         self.parent = parent
         self.name = name
-        self._special_functions = ["sqrt", "power"]
+        self._special_functions = ["sqrt", "power", "multiply", "divide"]
 
     def __getitem__(self, slice_):
         return self.__class__(values=self._array[slice_],
                               unit=self.unit,
-                              parent=self._parent,
+                              parent=self.parent,
                               name=self.name)
 
     def __len__(self):

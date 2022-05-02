@@ -8,3 +8,7 @@ def allclose(a, b):
     if a.unit != b.unit:
         return False
     return np.allclose(a.values, b.values)
+
+
+def alltrue(a):
+    return all(a.values)
