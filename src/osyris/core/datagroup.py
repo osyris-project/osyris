@@ -45,12 +45,12 @@ class Datagroup:
                     "Size mismatch on element insertion. Item "
                     "shape is {} while container accepts shape {}.".format(
                         shape, self.shape))
-        if isinstance(value, Array):
-            value.name = key
-            value.parent = self
-            self._container[key] = value
-        else:
-            self._container[key] = Array(values=value, name=key, parent=self)
+        # if isinstance(value, Array):
+        value.name = key
+        value.parent = self
+        self._container[key] = value
+        # else:
+        #     self._container[key] = Array(values=value, name=key, parent=self)
 
     def __delitem__(self, key):
         return self._container.__delitem__(key)

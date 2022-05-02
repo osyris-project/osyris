@@ -36,15 +36,17 @@ class Vector:
                 raise ValueError("The shape of component z must be the same as the "
                                  "shape of the x component")
 
+    def _xyz(self):
+        return {c: getattr(self, c) for c in "xyz" if c is not None}
+
     def __getitem__(self, slice_):
-        slice_ = tuple((slice_, )) + (slice(None, None, None), )
-        x = self.x[slice_]
-        y = self.y[slice_] if self.y is not None else None
-        z = self.z[slice_] if self.z is not None else None
-        return self.__class__(x=x,
-                              y=y,
-                              z=z,
-                              unit=self._unit,
+        # slice_ = tuple((slice_, )) + (slice(None, None, None), )
+        # x = self.x[slice_]
+        # y = self.y[slice_] if self.y is not None else None
+        # z = self.z[slice_] if self.z is not None else None
+        # xyz = _xyz()
+        return self.__class__(**{c: xyz[slice_]
+                                 for c, xyz in self._xyz().items()},
                               parent=self._parent,
                               name=self._name)
 
@@ -53,19 +55,22 @@ class Vector:
 
     def __str__(self):
         name_str = "'" + self._name + "' "
+        xyz = self._xyz()
         if len(self) == 0:
-            values_str = "Value: " + value_to_string(self.x.values)
-            if self.y is not None:
-                values_str += ", " + value_to_string(self.y.values)
-            if self.z is not None:
-                values_str += ", " + value_to_string(self.z.values)
+            values_str = "Value: " + ",".join(
+                value_to_string(x.values) for x in xyz.values())
+            # values_str = "Value: " +
+            # values_str = "Value: " + value_to_string(self.x.values)
+            # if self.y is not None:
+            #     values_str += ", " + value_to_string(self.y.values)
+            # if self.z is not None:
+            #     values_str += ", " + value_to_string(self.z.values)
         else:
             values_str = "Min: " + value_to_string(
                 self.min().values) + " Max: " + value_to_string(self.max().values)
         unit_str = " [{:~}] ".format(self.unit.units)
         shape_str = str(self.shape)
-        comps_str = ", (" + ",".join(
-            x for x in "xyz" if getattr(self, x) is not None) + ")>"
+        comps_str = ", (" + ",".join(x for x in xyz) + ")>"
         return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
 
     def __repr__(self):
@@ -78,12 +83,12 @@ class Vector:
         return self.copy()
 
     def copy(self):
-        x = self.x.copy()
-        y = self.y.copy() if self.y is not None else None
-        z = self.z.copy() if self.z is not None else None
-        return self.__class__(x=x,
-                              y=y,
-                              z=z,
+
+        # x = self.x.copy()
+        # y = self.y.copy() if self.y is not None else None
+        # z = self.z.copy() if self.z is not None else None
+        return self.__class__(**{c: xyz.copy()
+                                 for c, xyz in self._xyz().items()},
                               unit=self._unit.copy(),
                               name=str(self._name))
 
@@ -167,10 +172,14 @@ class Vector:
 
     def __add__(self, other):
         other = self._to_vector(other)
-        x = (self.x + other.x)
-        y = (self.y + other.y) if self.y is not None else None
-        z = (self.z + other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x + other.x)
+        # y = (self.y + other.y) if self.y is not None else None
+        # z = (self.z + other.z) if self.z is not None else None
+
+        return self.__class__(
+            **{c: xyz + getattr(other, c)
+               for c, xyz in self._xyz().items()})
+        # return self.__class__(x=x, y=y, z=z)
 
     def __iadd__(self, other):
         other = self._to_vector(other)
@@ -182,10 +191,13 @@ class Vector:
 
     def __sub__(self, other):
         other = self._to_vector(other)
-        x = (self.x - other.x)
-        y = (self.y - other.y) if self.y is not None else None
-        z = (self.z - other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz - getattr(other, c)
+               for c, xyz in self._xyz().items()})
+        # x = (self.x - other.x)
+        # y = (self.y - other.y) if self.y is not None else None
+        # z = (self.z - other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
 
     def __isub__(self, other):
         other = self._to_vector(other)
@@ -197,10 +209,13 @@ class Vector:
 
     def __mul__(self, other):
         other = self._to_vector(other)
-        x = (self.x * other.x)
-        y = (self.y * other.y) if self.y is not None else None
-        z = (self.z * other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz * getattr(other, c)
+               for c, xyz in self._xyz().items()})
+        # x = (self.x * other.x)
+        # y = (self.y * other.y) if self.y is not None else None
+        # z = (self.z * other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
 
     def __imul__(self, other):
         other = self._to_vector(other)
@@ -212,10 +227,13 @@ class Vector:
 
     def __truediv__(self, other):
         other = self._to_vector(other)
-        x = (self.x / other.x)
-        y = (self.y / other.y) if self.y is not None else None
-        z = (self.z / other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz / getattr(other, c)
+               for c, xyz in self._xyz().items()})
+        # x = (self.x / other.x)
+        # y = (self.y / other.y) if self.y is not None else None
+        # z = (self.z / other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
 
     def __itruediv__(self, other):
         other = self._to_vector(other)
@@ -240,58 +258,78 @@ class Vector:
         return -(self - other)
 
     def __pow__(self, number):
-        x = self.x**number
-        y = self.y**number if self.y is not None else None
-        z = self.z**number if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = self.x**number
+        # y = self.y**number if self.y is not None else None
+        # z = self.z**number if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(**{c: xyz**number for c, xyz in self._xyz().items()})
 
     def __neg__(self):
-        x = -self.x
-        y = -self.y if self.y is not None else None
-        z = -self.z if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = -self.x
+        # y = -self.y if self.y is not None else None
+        # z = -self.z if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(**{c: -xyz for c, xyz in self._xyz().items()})
 
     def __lt__(self, other):
         other = self._to_vector(other)
-        x = (self.x < other.x)
-        y = (self.y < other.y) if self.y is not None else None
-        z = (self.z < other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x < other.x)
+        # y = (self.y < other.y) if self.y is not None else None
+        # z = (self.z < other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz < getattr(other, c)
+               for c, xyz in self._xyz().items()})
 
     def __le__(self, other):
         other = self._to_vector(other)
-        x = (self.x <= other.x)
-        y = (self.y <= other.y) if self.y is not None else None
-        z = (self.z <= other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x <= other.x)
+        # y = (self.y <= other.y) if self.y is not None else None
+        # z = (self.z <= other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz <= getattr(other, c)
+               for c, xyz in self._xyz().items()})
 
     def __gt__(self, other):
         other = self._to_vector(other)
-        x = (self.x > other.x)
-        y = (self.y > other.y) if self.y is not None else None
-        z = (self.z > other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x > other.x)
+        # y = (self.y > other.y) if self.y is not None else None
+        # z = (self.z > other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz > getattr(other, c)
+               for c, xyz in self._xyz().items()})
 
     def __ge__(self, other):
         other = self._to_vector(other)
-        x = (self.x >= other.x)
-        y = (self.y >= other.y) if self.y is not None else None
-        z = (self.z >= other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x >= other.x)
+        # y = (self.y >= other.y) if self.y is not None else None
+        # z = (self.z >= other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz >= getattr(other, c)
+               for c, xyz in self._xyz().items()})
 
     def __eq__(self, other):
         other = self._to_vector(other)
-        x = (self.x == other.x)
-        y = (self.y == other.y) if self.y is not None else None
-        z = (self.z == other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+        # x = (self.x == other.x)
+        # y = (self.y == other.y) if self.y is not None else None
+        # z = (self.z == other.z) if self.z is not None else None
+        # return self.__class__(x=x, y=y, z=z)
+        return self.__class__(
+            **{c: xyz == getattr(other, c)
+               for c, xyz in self._xyz().items()})
 
-    def __ne__(self, other):
-        other = self._to_vector(other)
-        x = (self.x != other.x)
-        y = (self.y != other.y) if self.y is not None else None
-        z = (self.z != other.z) if self.z is not None else None
-        return self.__class__(x=x, y=y, z=z)
+    # def __ne__(self, other):
+    #     other = self._to_vector(other)
+    #     # x = (self.x != other.x)
+    #     # y = (self.y != other.y) if self.y is not None else None
+    #     # z = (self.z != other.z) if self.z is not None else None
+    #     # return self.__class__(x=x, y=y, z=z)
+    #     return self.__class__(
+    #         **{c: xyz < getattr(other, c)
+    #            for c, xyz in self._xyz().items()})
 
     def to(self, unit):
         x = self.x.to(unit)
@@ -366,3 +404,6 @@ class Vector:
         y = self.y.reshape(*shape) if self.y is not None else None
         z = self.z.reshape(*shape) if self.z is not None else None
         return self.__class__(x=x, y=y, z=z)
+
+    def nbytes(self):
+        return np.sum([getattr(self, c).nbytes for c in "xyz" if c is not None])

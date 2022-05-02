@@ -237,6 +237,13 @@ def test_less_than():
     np.array_equal(a < b, expected)
 
 
+def test_less_than_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[600., 700., 100., 400., 1000.], unit='cm')
+    expected = [True, True, False, False, True]
+    np.array_equal(a < b, expected)
+
+
 def test_less_than_bad_units():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='m')

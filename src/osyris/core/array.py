@@ -28,6 +28,9 @@ def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
 
 
 def _comparison_op(op, lhs, rhs):
+    if isinstance(rhs, Quantity):
+        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+
     if isinstance(rhs, lhs.__class__):
         scale_r = rhs.unit.to(lhs._unit.units)
         return op(lhs._array, rhs._array * scale_r.magnitude)
@@ -256,35 +259,47 @@ class Array:
         ratio = self._unit.to(new_unit) / new_unit
         return self.__class__(values=self._array * ratio.magnitude, unit=1.0 * new_unit)
 
+    def _extract_underlying(self, args):
+        return tuple(a._array if isinstance(a, self.__class__) else a for a in args)
+        # for a in args:
+
     def _wrap_numpy(self, func, *args, **kwargs):
         if func.__name__ in self.special_functions:
             unit = func(self.unit, *args[1:], **kwargs)
         else:
             unit = self.unit
-        if isinstance(args[0], tuple) or isinstance(args[0], list):
-            # Case where we have a sequence of arrays, e.g. `concatenate`
-            for a in args[0]:
-                if a.unit != unit:
-                    raise TypeError("Could not {} types {} and {}.".format(
-                        func.__name__, self, a))
-            args = (tuple(a._array for a in args[0]), ) + args[1:]
-        elif (len(args) > 1 and hasattr(args[1], "_array")):
-            if hasattr(args[0], "_array"):
-                # Case of a binary operation, with two Arrays, e.g. `dot`
-                # TODO: what should we do with the unit? Apply the func to it?
-                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
-                args = (args[0]._array, args[1]._array) + args[2:]
-            else:
-                # Case of a binary operation: ndarray with Array
-                # In this case, only multiply is allowed?
-                if func.__name__ != "multiply":
-                    raise RuntimeError("Cannot use operation {} between ndarray and "
-                                       "Array".format(func.__name__))
-                args = (args[0], args[1]._array) + args[2:]
+        if isinstance(args[0], (tuple, list)):
+            args = (self._extract_underlying(args[0]), ) + self._extract_underlying(
+                args[1:])
         else:
-            args = (args[0]._array, ) + args[1:]
+            args = self._extract_underlying(args)
         result = func(*args, **kwargs)
-        return self.__class__(values=result, unit=unit)
+        return self.__class__(values=result,
+                              unit=unit if result.dtype in (int, float) else None)
+
+        #     # Case where we have a sequence of arrays, e.g. `concatenate`
+        #     for a in args[0]:
+        #         if a.unit != unit:
+        #             raise TypeError("Could not {} types {} and {}.".format(
+        #                 func.__name__, self, a))
+        #     args = (tuple(a._array for a in args[0]), ) + args[1:]
+        # elif (len(args) > 1 and hasattr(args[1], "_array")):
+        #     if hasattr(args[0], "_array"):
+        #         # Case of a binary operation, with two Arrays, e.g. `dot`
+        #         # TODO: what should we do with the unit? Apply the func to it?
+        #         unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
+        #         args = (args[0]._array, args[1]._array) + args[2:]
+        #     else:
+        #         # Case of a binary operation: ndarray with Array
+        #         # In this case, only multiply is allowed?
+        #         if func.__name__ != "multiply":
+        #             raise RuntimeError("Cannot use operation {} between ndarray and "
+        #                                "Array".format(func.__name__))
+        #         args = (args[0], args[1]._array) + args[2:]
+        # else:
+        #     args = (args[0]._array, ) + args[1:]
+        # result = func(*args, **kwargs)
+        # return self.__class__(values=result, unit=unit)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
@@ -310,3 +325,6 @@ class Array:
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self._unit)
+
+    def nbytes(self):
+        return self._array.nbytes
