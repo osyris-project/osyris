@@ -13,39 +13,32 @@ from .. import units
 
 class Vector:
     def __init__(self, x, y=None, z=None, parent=None, name=""):
-
         self._parent = parent
-        self._name = name
-
         self.x = x
-        self.x.name = self._name + "_x"
+        self.y = self._validate_component(y)
+        self.z = self._validate_component(z)
+        self.name = name
 
-        self.y = None
-        if y is not None:
-            self.y = y
-            self.y.name = self._name + "_y"
-            if self.y.shape != self.x.shape:
-                raise ValueError("The shape of component y must be the same as the "
+    def _validate_component(self, array):
+        if array is not None:
+            if array.shape != self.x.shape:
+                raise ValueError(f"The shape of the component does not match the "
                                  "shape of the x component")
-
-        self.z = None
-        if z is not None:
-            self.z = z
-            self.z.name = self._name + "_z"
-            if self.z.shape != self.x.shape:
-                raise ValueError("The shape of component z must be the same as the "
-                                 "shape of the x component")
+            if array.unit != self.x.unit:
+                raise ValueError(f"The unit of the component does not match the "
+                                 "unit of the x component")
+        return array
 
     @property
     def _xyz(self):
-        return {c: getattr(self, c) for c in "xyz" if c is not None}
+        out = {'x': self.x}
+        if self.y is not None:
+            out['y'] = self.y
+        if self.z is not None:
+            out['z'] = self.z
+        return out
 
     def __getitem__(self, slice_):
-        # slice_ = tuple((slice_, )) + (slice(None, None, None), )
-        # x = self.x[slice_]
-        # y = self.y[slice_] if self.y is not None else None
-        # z = self.z[slice_] if self.z is not None else None
-        # xyz = _xyz()
         return self.__class__(**{c: xyz[slice_]
                                  for c, xyz in self._xyz.items()},
                               parent=self._parent,
@@ -60,12 +53,6 @@ class Vector:
         if len(self) == 0:
             values_str = "Value: " + ",".join(
                 value_to_string(x.values) for x in xyz.values())
-            # values_str = "Value: " +
-            # values_str = "Value: " + value_to_string(self.x.values)
-            # if self.y is not None:
-            #     values_str += ", " + value_to_string(self.y.values)
-            # if self.z is not None:
-            #     values_str += ", " + value_to_string(self.z.values)
         else:
             values_str = "Min: " + value_to_string(
                 self.min().values) + " Max: " + value_to_string(self.max().values)
@@ -84,10 +71,6 @@ class Vector:
         return self.copy()
 
     def copy(self):
-
-        # x = self.x.copy()
-        # y = self.y.copy() if self.y is not None else None
-        # z = self.z.copy() if self.z is not None else None
         return self.__class__(**{c: xyz.copy()
                                  for c, xyz in self._xyz.items()},
                               unit=self._unit.copy(),
@@ -146,6 +129,8 @@ class Vector:
     @name.setter
     def name(self, name_):
         self._name = name_
+        for c, xyz in self._xyz.items():
+            xyz.name = self._name + "_" + c
 
     @property
     def label(self):
@@ -157,30 +142,16 @@ class Vector:
         if isinstance(rhs, (int, float, np.ndarray)):
             rhs = Array(values=rhs)
         if isinstance(rhs, Array):
-            rhs = self.__class__(
-                **{c: rhs
-                   for c in "xyz" if getattr(self, c) is not None})
+            rhs = self.__class__(**{c: rhs for c in self._xyz.keys()})
         if self.nvec != rhs.nvec:
             raise ValueError("Operands do not have the same number of components.")
         return rhs
-        # if isinstance(rhs, Quantity):
-        #     rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
-        # if isinstance(rhs, (int, float, np.ndarray)):
-        #     rhs = Array(values=rhs)
-        # if not hasattr(rhs, "x"):
-        #     rhs = rhs.reshape(rhs.shape + (1, ))
-        # return self._compute_binary_op(op, lhs, rhs, mul_or_div, out)
 
     def __add__(self, other):
         other = self._to_vector(other)
-        # x = (self.x + other.x)
-        # y = (self.y + other.y) if self.y is not None else None
-        # z = (self.z + other.z) if self.z is not None else None
-
         return self.__class__(
             **{c: xyz + getattr(other, c)
                for c, xyz in self._xyz.items()})
-        # return self.__class__(x=x, y=y, z=z)
 
     def __iadd__(self, other):
         other = self._to_vector(other)
@@ -195,10 +166,6 @@ class Vector:
         return self.__class__(
             **{c: xyz - getattr(other, c)
                for c, xyz in self._xyz.items()})
-        # x = (self.x - other.x)
-        # y = (self.y - other.y) if self.y is not None else None
-        # z = (self.z - other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
 
     def __isub__(self, other):
         other = self._to_vector(other)
@@ -213,10 +180,6 @@ class Vector:
         return self.__class__(
             **{c: xyz * getattr(other, c)
                for c, xyz in self._xyz.items()})
-        # x = (self.x * other.x)
-        # y = (self.y * other.y) if self.y is not None else None
-        # z = (self.z * other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
 
     def __imul__(self, other):
         other = self._to_vector(other)
@@ -231,10 +194,6 @@ class Vector:
         return self.__class__(
             **{c: xyz / getattr(other, c)
                for c, xyz in self._xyz.items()})
-        # x = (self.x / other.x)
-        # y = (self.y / other.y) if self.y is not None else None
-        # z = (self.z / other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
 
     def __itruediv__(self, other):
         other = self._to_vector(other)
@@ -259,137 +218,65 @@ class Vector:
         return -(self - other)
 
     def __pow__(self, number):
-        # x = self.x**number
-        # y = self.y**number if self.y is not None else None
-        # z = self.z**number if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(**{c: xyz**number for c, xyz in self._xyz.items()})
 
     def __neg__(self):
-        # x = -self.x
-        # y = -self.y if self.y is not None else None
-        # z = -self.z if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(**{c: -xyz for c, xyz in self._xyz.items()})
 
     def __lt__(self, other):
         other = self._to_vector(other)
-        # x = (self.x < other.x)
-        # y = (self.y < other.y) if self.y is not None else None
-        # z = (self.z < other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(
             **{c: xyz < getattr(other, c)
                for c, xyz in self._xyz.items()})
 
     def __le__(self, other):
         other = self._to_vector(other)
-        # x = (self.x <= other.x)
-        # y = (self.y <= other.y) if self.y is not None else None
-        # z = (self.z <= other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(
             **{c: xyz <= getattr(other, c)
                for c, xyz in self._xyz.items()})
 
     def __gt__(self, other):
         other = self._to_vector(other)
-        # x = (self.x > other.x)
-        # y = (self.y > other.y) if self.y is not None else None
-        # z = (self.z > other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(
             **{c: xyz > getattr(other, c)
                for c, xyz in self._xyz.items()})
 
     def __ge__(self, other):
         other = self._to_vector(other)
-        # x = (self.x >= other.x)
-        # y = (self.y >= other.y) if self.y is not None else None
-        # z = (self.z >= other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(
             **{c: xyz >= getattr(other, c)
                for c, xyz in self._xyz.items()})
 
     def __eq__(self, other):
         other = self._to_vector(other)
-        # x = (self.x == other.x)
-        # y = (self.y == other.y) if self.y is not None else None
-        # z = (self.z == other.z) if self.z is not None else None
-        # return self.__class__(x=x, y=y, z=z)
         return self.__class__(
             **{c: xyz == getattr(other, c)
                for c, xyz in self._xyz.items()})
 
-    # def __ne__(self, other):
-    #     other = self._to_vector(other)
-    #     # x = (self.x != other.x)
-    #     # y = (self.y != other.y) if self.y is not None else None
-    #     # z = (self.z != other.z) if self.z is not None else None
-    #     # return self.__class__(x=x, y=y, z=z)
-    #     return self.__class__(
-    #         **{c: xyz < getattr(other, c)
-    #            for c, xyz in self._xyz.items()})
+    def __ne__(self, other):
+        other = self._to_vector(other)
+        return self.__class__(
+            **{c: xyz != getattr(other, c)
+               for c, xyz in self._xyz.items()})
 
     def to(self, unit):
-        # x = self.x.to(unit)
-        # y = self.y.to(unit) if self.y is not None else None
-        # z = self.z.to(unit) if self.z is not None else None
         return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
     def _wrap_numpy(self, func, *args, **kwargs):
-        # # if func.__name__ in self.special_functions:
-        # #     unit = func(self.unit, *args[1:], **kwargs)
-        # # else:
-        # #     unit = self.unit
-        if isinstance(args[0], tuple) or isinstance(args[0], list):
-            # # Case where we have a sequence of arrays, e.g. `concatenate`
-            # for a in args[0]:
-            #     if a.unit != unit:
-            #         raise TypeError("Could not {} types {} and {}.".format(
-            #             func.__name__, self, a))
-            # x = func(tuple(a.x for a in args[0]), *args[1:], **kwargs)
-            # y = func(tuple(a.y for a in args[0]), *args[1:], **
-            #          kwargs) if args[0][0].y is not None else None
-            # z = func(tuple(a.z for a in args[0]), *args[1:], **
-            #          kwargs) if args[0][0].z is not None else None
-            # out = {c: -xyz for c, xyz in self._xyz.items()}
-
+        if isinstance(args[0], (tuple, list)):
+            # # Case where we have a sequence of vectors, e.g. `concatenate`
             out = {
                 c: func(tuple(getattr(a, c) for a in args[0]), *args[1:], **kwargs)
                 for c, xyz in args[0][0]._xyz.items()
             }
-
-            # args = (tuple(a._array for a in args[0]), ) + args[1:]
         elif (len(args) > 1 and isinstance(args[1], self.__class__)):
-            # # if hasattr(args[0], "_array"):
-            # # Case of a binary operation, with two Arrays, e.g. `dot`
-            # # args = (args[0]._array, args[1]._array) + args[2:]
-            # x = func(args[0].x, args[1].x, *args[2:], **kwargs)
-            # y = func(args[0].y, args[1].y, *args[2:], **
-            #          kwargs) if self.y is not None else None
-            # z = func(args[0].z, args[1].z, *args[2:], **
-            #          kwargs) if self.z is not None else None
+            # Case of a binary operation, with two vectors, e.g. `dot`
             out = {
                 c: func(xyz, getattr(args[1], c), *args[2:], **kwargs)
                 for c, xyz in args[0]._xyz.items()
             }
-
-            # else:
-            #     # Case of a binary operation: ndarray with Array
-            #     # In this case, only multiply is allowed?
-            #     if func.__name__ != "multiply":
-            #         raise RuntimeError("Cannot use operation {} between ndarray and "
-            #                            "Array".format(func.__name__))
-            #     args = (args[0], args[1]._array) + args[2:]
         else:
-            # # args = (args[0]._array, ) + args[1:]
-            # x = func(args[0].x, *args[1:], **kwargs)
-            # y = func(args[0].y, *args[1:], **kwargs) if self.y is not None else None
-            # z = func(args[0].z, *args[1:], **kwargs) if self.z is not None else None
             out = {c: func(xyz, *args[1:], **kwargs) for c, xyz in args[0]._xyz.items()}
-
         return self.__class__(**out)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -415,9 +302,6 @@ class Vector:
         return self.norm.max()
 
     def reshape(self, *shape):
-        # x = self.x.reshape(*shape)
-        # y = self.y.reshape(*shape) if self.y is not None else None
-        # z = self.z.reshape(*shape) if self.z is not None else None
         return self.__class__(
             **{c: xyz.reshape(*shape)
                for c, xyz in self._xyz.items()})

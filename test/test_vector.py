@@ -17,6 +17,22 @@ def test_constructor():
     assert v.shape == x.shape
 
 
+def test_constructor_bad_length():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14.], unit='m')
+    with pytest.raises(ValueError):
+        _ = Vector(x, y, z)
+
+
+def test_constructor_bad_unit():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='cm')
+    with pytest.raises(ValueError):
+        _ = Vector(x, y, z)
+
+
 def test_components():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
@@ -27,24 +43,27 @@ def test_components():
     assert v.z is None
     v.z = z
     assert alltrue(v.z == z)
+    assert v.x.name == "_x"
+    assert v.y.name == "_y"
 
 
 def test_equal():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    c = Array(values=[100., 200., 300., 400., 500.], unit='cm')
-    assert alltrue(a == b)
-    assert alltrue(a == c)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x, y, z)
+    v2 = Vector(x, y, z)
+    assert alltrue(v1 == v2)
 
 
 def test_not_equal():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[1., 2., 3., 4., 5.], unit='cm')
-    c = Array(values=[100., 200., 300., 400., 500.], unit='m')
-    d = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
-    assert alltrue(a != b)
-    assert alltrue(a != c)
-    assert all((a != d).values == [True, False, False, False, False])
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x, y, z)
+    z = Array(values=[11., 12., 13., 19., 15.], unit='m')
+    v2 = Vector(x, y, z)
+    assert all((v1 != v2).values == [True, False, False, False, False])
 
 
 def test_addition():
