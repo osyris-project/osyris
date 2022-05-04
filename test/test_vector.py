@@ -193,8 +193,8 @@ def test_multiplication():
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
-    expected = Vector(x=x - x, y=y - y, z=z - z)
-    assert vectorequal(v - v, expected)
+    expected = Vector(x=x * x, y=y * y, z=z * z)
+    assert vectorequal(v * v, expected)
 
 
 def test_multiplication_array():
@@ -202,27 +202,40 @@ def test_multiplication_array():
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
-    expected = Vector(x=x - x, y=y - x, z=z - x)
-    assert vectorequal(v - x, expected)
+    expected = Vector(x=x * x, y=y * x, z=z * x)
+    assert vectorequal(v * x, expected)
+    assert vectorequal(x * v, expected)
 
 
-def test_multiplication_array():
+def test_multiplication_float():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
-    expected = Vector(x=x - x, y=y - x, z=z - x)
-    assert vectorequal(v - x, expected)
+    f = 3.5
+    expected = Vector(x=x * f, y=y * f, z=z * f)
+    assert vectorequal(v * f, expected)
+    assert vectorequal(f * v, expected)
 
 
-def test_multiplicationquantity():
+def test_multiplication_ndarray():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = np.arange(5.)
+    expected = Vector(x=x * a, y=y * a, z=z * a)
+    assert vectorequal(v * a, expected)
+
+
+def test_multiplication_quantity():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
     q = 3.5 * units('m')
-    expected = Vector(x=x - q, y=y - q, z=z - q)
-    assert vectorequal(v - q, expected)
+    expected = Vector(x=x * q, y=y * q, z=z * q)
+    assert vectorequal(v * q, expected)
 
 
 def test_multiplication_inplace():
@@ -230,8 +243,8 @@ def test_multiplication_inplace():
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
-    expected = Vector(x=x - x, y=y - y, z=z - z)
-    v -= v
+    expected = Vector(x=x * x, y=y * y, z=z * z)
+    v *= v
     assert vectorequal(v, expected)
 
 
@@ -241,8 +254,30 @@ def test_multiplication_array_inplace():
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
     a = Array(values=[1.1, 2.2, 3.3, 4.4, 5.5], unit='m')
-    expected = Vector(x=x - a, y=y - a, z=z - a)
-    v -= a
+    expected = Vector(x=x * a, y=y * a, z=z * a)
+    v *= a
+    assert vectorequal(v, expected)
+
+
+def test_multiplication_float_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    f = 3.5
+    expected = Vector(x=x * f, y=y * f, z=z * f)
+    v *= f
+    assert vectorequal(v, expected)
+
+
+def test_multiplication_ndarray_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = np.arange(5.)
+    expected = Vector(x=x * a, y=y * a, z=z * a)
+    v *= a
     assert vectorequal(v, expected)
 
 
@@ -252,55 +287,9 @@ def test_multiplication_quantity_inplace():
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
     q = 3.5 * units('m')
-    expected = Vector(x=x - q, y=y - q, z=z - q)
-    v -= q
+    expected = Vector(x=x * q, y=y * q, z=z * q)
+    v *= q
     assert vectorequal(v, expected)
-
-
-def test_multiplication():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[6., 14., 24., 36., 50.], unit='m*m')
-    assert allclose(a * b, expected)
-
-
-def test_multiplication_float():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.0
-    expected = Array(values=[3., 6., 9., 12., 15.], unit='m')
-    assert allclose(a * b, expected)
-    assert allclose(b * a, expected)
-
-
-def test_multiplication_quantity():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('s')
-    expected = Array(values=[3.5, 7.0, 10.5, 14.0, 17.5], unit='m*s')
-    assert allclose(a * b, expected)
-
-
-def test_multiplication_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[6., 14., 24., 36., 50.], unit='m*m')
-    a *= b
-    assert allclose(a, expected)
-
-
-def test_multiplication_float_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.0
-    expected = Array(values=[3., 6., 9., 12., 15.], unit='m')
-    a *= b
-    assert allclose(a, expected)
-
-
-def test_multiplication_quantity_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('s')
-    expected = Array(values=[3.5, 7.0, 10.5, 14.0, 17.5], unit='m*s')
-    a *= b
-    assert allclose(a, expected)
 
 
 def test_division():
