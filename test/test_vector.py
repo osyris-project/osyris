@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import allclose, alltrue
+from common import vectorclose, vectortrue, vectorequal, arraytrue, arrayequal
 from osyris import Array, Vector, units
 from copy import copy, deepcopy
 import numpy as np
@@ -38,11 +38,11 @@ def test_components():
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y)
-    assert alltrue(v.x == x)
-    assert alltrue(v.y == y)
+    assert arrayequal(v.x, x)
+    assert arrayequal(v.y, y)
     assert v.z is None
     v.z = z
-    assert alltrue(v.z == z)
+    assert arrayequal(v.z, z)
     assert v.x.name == "_x"
     assert v.y.name == "_y"
 
@@ -53,7 +53,7 @@ def test_equal():
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v1 = Vector(x, y, z)
     v2 = Vector(x, y, z)
-    assert alltrue(v1 == v2)
+    assert vectortrue(v1 == v2)
 
 
 def test_not_equal():
@@ -63,85 +63,198 @@ def test_not_equal():
     v1 = Vector(x, y, z)
     z = Array(values=[11., 12., 13., 19., 15.], unit='m')
     v2 = Vector(x, y, z)
-    assert all((v1 != v2).values == [True, False, False, False, False])
+    result = v1 != v2
+    assert all(result.x.values == [False, False, False, False, False])
+    assert all(result.z.values == [False, False, False, True, False])
 
 
 def test_addition():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[7., 9., 11., 13., 15.], unit='m')
-    assert allclose(a + b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x + x, y=y + y, z=z + z)
+    assert vectorequal(v + v, expected)
 
 
-def test_addition_bad_units():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
-    with pytest.raises(DimensionalityError):
-        _ = a + b
-    with pytest.raises(TypeError):
-        _ = a + 3.0
+def test_addition_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x + x, y=y + x, z=z + x)
+    assert vectorequal(v + x, expected)
 
 
 def test_addition_quantity():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('m')
-    expected = Array(values=[4.5, 5.5, 6.5, 7.5, 8.5], unit='m')
-    assert allclose(a + b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x + q, y=y + q, z=z + q)
+    assert vectorequal(v + q, expected)
 
 
 def test_addition_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[7., 9., 11., 13., 15.], unit='m')
-    a += b
-    assert allclose(a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x + x, y=y + y, z=z + z)
+    v += v
+    assert vectorequal(v, expected)
+
+
+def test_addition_array_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[1.1, 2.2, 3.3, 4.4, 5.5], unit='m')
+    expected = Vector(x=x + a, y=y + a, z=z + a)
+    v += a
+    assert vectorequal(v, expected)
 
 
 def test_addition_quantity_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('m')
-    expected = Array(values=[4.5, 5.5, 6.5, 7.5, 8.5], unit='m')
-    a += b
-    assert allclose(a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x + q, y=y + q, z=z + q)
+    v += q
+    assert vectorequal(v, expected)
 
 
 def test_subtraction():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[5., 5., 5., 5., 5.], unit='m')
-    assert allclose(b - a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - y, z=z - z)
+    assert vectorequal(v - v, expected)
 
 
-def test_subtraction_bad_units():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
-    with pytest.raises(DimensionalityError):
-        _ = a - b
-    with pytest.raises(TypeError):
-        _ = a - 3.0
+def test_subtraction_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - x, z=z - x)
+    assert vectorequal(v - x, expected)
 
 
 def test_subtraction_quantity():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('m')
-    expected = Array(values=[-2.5, -1.5, -0.5, 0.5, 1.5], unit='m')
-    assert allclose(a - b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x - q, y=y - q, z=z - q)
+    assert vectorequal(v - q, expected)
 
 
 def test_subtraction_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[5., 5., 5., 5., 5.], unit='m')
-    b -= a
-    assert allclose(b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - y, z=z - z)
+    v -= v
+    assert vectorequal(v, expected)
+
+
+def test_subtraction_array_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[1.1, 2.2, 3.3, 4.4, 5.5], unit='m')
+    expected = Vector(x=x - a, y=y - a, z=z - a)
+    v -= a
+    assert vectorequal(v, expected)
 
 
 def test_subtraction_quantity_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = 3.5 * units('m')
-    expected = Array(values=[-2.5, -1.5, -0.5, 0.5, 1.5], unit='m')
-    a -= b
-    assert allclose(a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x - q, y=y - q, z=z - q)
+    v -= q
+    assert vectorequal(v, expected)
+
+
+def test_multiplication():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - y, z=z - z)
+    assert vectorequal(v - v, expected)
+
+
+def test_multiplication_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - x, z=z - x)
+    assert vectorequal(v - x, expected)
+
+
+def test_multiplication_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - x, z=z - x)
+    assert vectorequal(v - x, expected)
+
+
+def test_multiplicationquantity():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x - q, y=y - q, z=z - q)
+    assert vectorequal(v - q, expected)
+
+
+def test_multiplication_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x - x, y=y - y, z=z - z)
+    v -= v
+    assert vectorequal(v, expected)
+
+
+def test_multiplication_array_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[1.1, 2.2, 3.3, 4.4, 5.5], unit='m')
+    expected = Vector(x=x - a, y=y - a, z=z - a)
+    v -= a
+    assert vectorequal(v, expected)
+
+
+def test_multiplication_quantity_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x - q, y=y - q, z=z - q)
+    v -= q
+    assert vectorequal(v, expected)
 
 
 def test_multiplication():

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from functools import lru_cache
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
@@ -13,7 +12,7 @@ from .. import units
 
 class Vector:
     def __init__(self, x, y=None, z=None, parent=None, name=""):
-        self._parent = parent
+        self.parent = parent
         self.x = x
         self.y = self._validate_component(y)
         self.z = self._validate_component(z)
@@ -115,14 +114,6 @@ class Vector:
         return self.x.shape
 
     @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, parent_):
-        self._parent = parent_
-
-    @property
     def name(self):
         return self._name
 
@@ -160,6 +151,7 @@ class Vector:
             self.y += other.y
         if self.z is not None:
             self.z += other.z
+        return self
 
     def __sub__(self, other):
         other = self._to_vector(other)
@@ -174,6 +166,7 @@ class Vector:
             self.y -= other.y
         if self.z is not None:
             self.z -= other.z
+        return self
 
     def __mul__(self, other):
         other = self._to_vector(other)
@@ -188,6 +181,7 @@ class Vector:
             self.y *= other.y
         if self.z is not None:
             self.z *= other.z
+        return self
 
     def __truediv__(self, other):
         other = self._to_vector(other)
@@ -202,6 +196,7 @@ class Vector:
             self.y /= other.y
         if self.z is not None:
             self.z /= other.z
+        return self
 
     def __rmul__(self, other):
         return self * other
