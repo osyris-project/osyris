@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import vectorclose, vectortrue, vectorequal, arraytrue, arrayequal
+from common import (vectorclose, vectortrue, vectorequal, arraytrue, arrayequal,
+                    arrayclose)
 from osyris import Array, Vector, units
 from copy import copy, deepcopy
 import numpy as np
@@ -293,57 +294,121 @@ def test_multiplication_quantity_inplace():
 
 
 def test_division():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='s')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[6., 3.5, 8. / 3., 2.25, 2.], unit='m/s')
-    assert allclose(b / a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x, y, z)
+    w = Array(values=[16., 17., 18., 19., 20.], unit='m')
+    v2 = Vector(w, y, w)
+    expected = Vector(x=x / w, y=y / y, z=z / w)
+    assert vectorequal(v1 / v2, expected)
+
+
+def test_division_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x / x, y=y / x, z=z / x)
+    assert vectorequal(v / x, expected)
 
 
 def test_division_float():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='s')
-    b = 3.0
-    expected = Array(values=[1. / 3., 2. / 3., 1., 4. / 3., 5. / 3.], unit='s')
-    assert allclose(a / b, expected)
-    expected = Array(values=[3., 3. / 2., 1., 3. / 4., 3. / 5.], unit='1/s')
-    assert allclose(b / a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    f = 3.5
+    expected = Vector(x=x / f, y=y / f, z=z / f)
+    assert vectorequal(v / f, expected)
+
+
+def test_division_ndarray():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = np.arange(3., 8.)
+    expected = Vector(x=x / a, y=y / a, z=z / a)
+    assert vectorequal(v / a, expected)
 
 
 def test_division_quantity():
-    a = Array(values=[0., 2., 4., 6., 200.], unit='s')
-    b = 2.0 * units('s')
-    expected = Array(values=[0., 1., 2., 3., 100.], unit='dimensionless')
-    assert allclose(a / b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x / q, y=y / q, z=z / q)
+    assert vectorequal(v / q, expected)
 
 
 def test_division_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='s')
-    b = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    expected = Array(values=[6., 3.5, 8. / 3., 2.25, 2.], unit='m/s')
-    b /= a
-    assert allclose(b, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x, y, z)
+    w = Array(values=[16., 17., 18., 19., 20.], unit='m')
+    v2 = Vector(w, y, w)
+    expected = Vector(x=x / w, y=y / y, z=z / w)
+    v1 /= v2
+    assert vectorequal(v1, expected)
+
+
+def test_division_array_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[1.1, 2.2, 3.3, 4.4, 5.5], unit='m')
+    expected = Vector(x=x / a, y=y / a, z=z / a)
+    v /= a
+    assert vectorequal(v, expected)
 
 
 def test_division_float_inplace():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='s')
-    b = 3.0
-    expected = Array(values=[1. / 3., 2. / 3., 1., 4. / 3., 5. / 3.], unit='s')
-    a /= b
-    assert allclose(a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    f = 3.5
+    expected = Vector(x=x / f, y=y / f, z=z / f)
+    v /= f
+    assert vectorequal(v, expected)
+
+
+def test_division_ndarray_inplace():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = np.arange(3., 8.)
+    expected = Vector(x=x / a, y=y / a, z=z / a)
+    v /= a
+    assert vectorequal(v, expected)
 
 
 def test_division_quantity_inplace():
-    a = Array(values=[0., 2., 4., 6., 200.], unit='s')
-    b = 2.0 * units('s')
-    expected = Array(values=[0., 1., 2., 3., 100.], unit='dimensionless')
-    a /= b
-    assert allclose(a, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    q = 3.5 * units('m')
+    expected = Vector(x=x / q, y=y / q, z=z / q)
+    v /= q
+    assert vectorequal(v, expected)
 
 
 def test_norm():
-    a2d = Array(values=np.array([[1., 2.], [3., 4.], [5., 6.], [7., 8.]]), unit='s')
-    a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.]]), unit='g')
-    assert allclose(a2d.norm, Array(values=np.sqrt([5., 25., 61., 113.]), unit='s'))
-    assert allclose(a3d.norm, Array(values=np.sqrt([14., 77.]), unit='g'))
+    x = Array(values=[1., 2., 3., 4., 5.], unit='s')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='s')
+    v = Vector(x, y)
+    assert arrayclose(v.norm, Array(values=np.sqrt([37., 53., 73., 97., 125.]),
+                                    unit='s'))
+    v.z = z
+    assert arrayclose(v.norm,
+                      Array(values=np.sqrt([158., 197., 242., 293., 350.]), unit='s'))
 
 
 # def test_broadcast():
