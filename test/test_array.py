@@ -265,6 +265,12 @@ def test_power():
     assert arrayclose(a**3, expected)
 
 
+def test_negative():
+    a = Array(values=[1., 2., 4., 6., 200.], unit='s')
+    expected = Array(values=[-1., -2., -4., -6., -200.], unit='s')
+    assert arrayequal(-a, expected)
+
+
 def test_less_than():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')

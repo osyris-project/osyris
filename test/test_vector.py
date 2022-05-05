@@ -411,28 +411,31 @@ def test_norm():
                       Array(values=np.sqrt([158., 197., 242., 293., 350.]), unit='s'))
 
 
-# def test_broadcast():
-#     a1d = Array(values=np.array([1., 2., 3., 4., 5.]), unit='s')
-#     a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.],
-#                                  [10., 11., 12.], [13., 14., 15.]]),
-#                 unit='g')
-#     expected = Array(values=np.array([[1., 2., 3.], [8., 10., 12.], [21., 24., 27.],
-#                                       [40., 44., 48.], [65., 70., 75.]]),
-#                      unit='g*s')
-#     assert allclose(a1d * a3d, expected)
-
-
 def test_power():
-    a = Array(values=[1., 2., 4., 6., 200.], unit='s')
-    expected = Array(values=[1., 8., 64., 216., 8.0e6], unit='s**3')
-    assert allclose(a**3, expected)
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    expected = Vector(x=x**3, y=y**3, z=z**3)
+    assert vectorequal(v**3, expected)
 
 
 def test_less_than():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='s')
-    b = Array(values=[6., 7., 1., 4., 10.], unit='s')
-    expected = [True, True, False, False, True]
-    assert all((a < b).values == expected)
+    x1 = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y1 = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z1 = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x1, y1, z1)
+    x2 = Array(values=[-1., 2., 13., 4., 2.], unit='m')
+    y2 = Array(values=[6., -7., 8., 3.3, 10.1], unit='m')
+    z2 = Array(values=[11., 22., 7., 7., 15.], unit='m')
+    v2 = Vector(x2, y2, z2)
+    exp_x = [False, False, True, False, False]
+    exp_y = [False, False, False, False, True]
+    exp_z = [False, True, False, False, False]
+    result = v1 < v2
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
 
 
 def test_less_than_conversion():
