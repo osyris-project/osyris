@@ -430,3 +430,14 @@ def test_numpy_binary():
     result = np.dot(a, b)
     assert result.values == expected
     assert result.unit == units('m')
+
+
+def test_numpy_iterable():
+    a_buf = [1., 2., 3., 4., 5.]
+    b_buf = [6., 7., 8., 9., 10.]
+    a = Array(values=a_buf, unit='m')
+    b = Array(values=b_buf, unit='m')
+    expected = np.concatenate([a_buf, b_buf])
+    result = np.concatenate(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')

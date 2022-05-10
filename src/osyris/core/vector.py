@@ -13,9 +13,10 @@ from .. import units
 class Vector:
     def __init__(self, x, y=None, z=None, parent=None, name=""):
         self.parent = parent
-        self.x = x
-        self.y = self._validate_component(y)
-        self.z = self._validate_component(z)
+        unit = x.unit
+        self.x = Array(values=x.values, unit=unit)
+        self.y = Array(values=self._validate_component(y).values, unit=unit)
+        self.z = Array(values=self._validate_component(z).values, unit=unit)
         self.name = name
 
     def _validate_component(self, array):
@@ -40,7 +41,7 @@ class Vector:
     def __getitem__(self, slice_):
         return self.__class__(**{c: xyz[slice_]
                                  for c, xyz in self._xyz.items()},
-                              parent=self._parent,
+                              parent=self.parent,
                               name=self._name)
 
     def __len__(self):
@@ -53,8 +54,9 @@ class Vector:
             values_str = "Value: " + ",".join(
                 value_to_string(x.values) for x in xyz.values())
         else:
+            norm = self.norm
             values_str = "Min: " + value_to_string(
-                self.min().values) + " Max: " + value_to_string(self.max().values)
+                norm.min().values) + " Max: " + value_to_string(norm.max().values)
         unit_str = " [{:~}] ".format(self.unit.units)
         shape_str = str(self.shape)
         comps_str = ", (" + ",".join(x for x in xyz) + ")>"
@@ -72,7 +74,6 @@ class Vector:
     def copy(self):
         return self.__class__(**{c: xyz.copy()
                                  for c, xyz in self._xyz.items()},
-                              unit=self._unit.copy(),
                               name=str(self._name))
 
     @property
@@ -125,7 +126,7 @@ class Vector:
 
     @property
     def label(self):
-        return make_label(name=self._name, unit=self._unit.units)
+        return make_label(name=self._name, unit=self.unit.units)
 
     def _to_vector(self, rhs):
         if isinstance(rhs, Quantity):
@@ -203,7 +204,7 @@ class Vector:
 
     def __rtruediv__(self, other):
         out = np.reciprocal(self / other)
-        out._unit = 1.0 / out._unit
+        out.unit = 1.0 / out.unit
         return out
 
     def __radd__(self, other):
@@ -291,10 +292,10 @@ class Vector:
         return self._wrap_numpy(func, *args, **kwargs)
 
     def min(self):
-        return self.norm.min()
+        return np.amin(self)
 
     def max(self):
-        return self.norm.max()
+        return np.amax(self)
 
     def reshape(self, *shape):
         return self.__class__(

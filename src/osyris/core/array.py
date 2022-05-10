@@ -6,6 +6,10 @@ from pint.unit import Unit
 from .tools import value_to_string, make_label
 from .. import units
 
+# SPECIAL_BINARY_FUNCTIONS = ["multiply", "divide"]
+# SPECIAL_UNARY_FUNCTIONS = ["sqrt", "power"]
+SPECIAL_FUNCTIONS = ("multiply", "divide", "sqrt", "power")
+
 
 def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
     if isinstance(rhs, Quantity):
@@ -41,9 +45,10 @@ class Array:
             self.unit = 1.0 * unit
         else:
             raise TypeError("Unsupported unit type {}".format(type(unit)))
+        self.unit = self.unit  #.units
         self.parent = parent
         self.name = name
-        self._special_functions = ["sqrt", "power", "multiply", "divide"]
+        # self._special_functions = ["sqrt", "power", "multiply", "divide"]
 
     def __getitem__(self, slice_):
         return self.__class__(values=self._array[slice_],
@@ -146,6 +151,9 @@ class Array:
         return binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
 
     def __rmul__(self, other):
+        print(self)
+        print(other)
+        print(self * other)
         return self * other
 
     def __rtruediv__(self, other):
@@ -185,22 +193,45 @@ class Array:
         ratio = self.unit.to(new_unit) / new_unit
         return self.__class__(values=self._array * ratio.magnitude, unit=1.0 * new_unit)
 
-    def _extract_underlying(self, args):
+    def _extract_arrays(self, args):
         return tuple(a._array if isinstance(a, self.__class__) else a for a in args)
 
+    def _maybe_unit(self, arg):
+        if hasattr(arg, "unit"):
+            return arg.unit
+        if hasattr(arg, "units"):
+            return 1.0 * arg.units
+        return arg
+
+    def _extract_units(self, args):
+        return tuple(self._maybe_unit(a) for a in args)
+
     def _wrap_numpy(self, func, *args, **kwargs):
-        if func.__name__ in self._special_functions:
-            unit = func(self.unit, *args[1:], **kwargs)
-        else:
-            unit = self.unit
+        print("_wrap_numpy", func.__name__, self, args)
+        # if func.__name__ in self._special_functions:
+        #     unit = func(self.unit, *args[1:], **kwargs)
+        # else:
+        #     unit = self.unit
         if isinstance(args[0], (tuple, list)):
-            args = (self._extract_underlying(args[0]), ) + self._extract_underlying(
+            array_args = (self._extract_arrays(args[0]), ) + self._extract_arrays(
                 args[1:])
         else:
-            args = self._extract_underlying(args)
-        result = func(*args, **kwargs)
-        return self.__class__(values=result,
-                              unit=unit if result.dtype in (int, float) else None)
+            array_args = self._extract_arrays(args)
+        result = func(*array_args, **kwargs)
+        unit = None
+        if result.dtype in (int, float):
+            if func.__name__ in SPECIAL_FUNCTIONS:
+                # if isinstance(args[0], np.ndarray) or isinstance(args[1], np.ndarray):
+                unit_args = self._extract_units(args)
+                print(unit_args)
+                unit = func(*unit_args, **kwargs)
+                print(unit)
+                unit = 1.0 * unit.units
+
+            # if func.__name__ in SPECIAL_UNARY_FUNCTIONS:
+            #     unit = func(self.unit, *args[1:], **kwargs)
+
+        return self.__class__(values=result, unit=unit)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
