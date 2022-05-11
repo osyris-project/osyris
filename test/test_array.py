@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import arrayclose, arraytrue
+from common import arrayclose, arraytrue, arrayequal
 from osyris import Array, units
 from copy import copy, deepcopy
 import numpy as np
@@ -438,6 +438,80 @@ def test_numpy_iterable():
     a = Array(values=a_buf, unit='m')
     b = Array(values=b_buf, unit='m')
     expected = np.concatenate([a_buf, b_buf])
-    result = np.concatenate(a, b)
+    result = np.concatenate([a, b])
     assert np.array_equal(result.values, expected)
     assert result.unit == units('m')
+
+
+def test_numpy_multiply_with_ndarray():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = np.array([6., 7., 8., 9., 10.])
+    expected = np.multiply(a_buf, b)
+    result = np.multiply(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+    result = np.multiply(b, a)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+
+
+def test_numpy_multiply_with_quantity():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = 3.5 * units('s')
+    expected = np.multiply(a_buf, b.magnitude)
+    result = np.multiply(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m*s')
+
+
+def test_numpy_multiply_with_float():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = 3.5
+    expected = np.multiply(a_buf, b)
+    result = np.multiply(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+    result = np.multiply(b, a)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+
+
+def test_numpy_divide_with_ndarray():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = np.array([6., 7., 8., 9., 10.])
+    expected = np.divide(a_buf, b)
+    result = np.divide(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+    expected = np.divide(b, a_buf)
+    result = np.divide(b, a)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('1/m')
+
+
+def test_numpy_divide_with_quantity():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = 3.5 * units('s')
+    expected = np.divide(a_buf, b.magnitude)
+    result = np.divide(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m/s')
+
+
+def test_numpy_divide_with_float():
+    a_buf = [1., 2., 3., 4., 5.]
+    a = Array(values=a_buf, unit='m')
+    b = 3.5
+    expected = np.divide(a_buf, b)
+    result = np.divide(a, b)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('m')
+    expected = np.divide(b, a_buf)
+    result = np.divide(b, a)
+    assert np.array_equal(result.values, expected)
+    assert result.unit == units('1/m')

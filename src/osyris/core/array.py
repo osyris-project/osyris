@@ -8,7 +8,7 @@ from .. import units
 
 # SPECIAL_BINARY_FUNCTIONS = ["multiply", "divide"]
 # SPECIAL_UNARY_FUNCTIONS = ["sqrt", "power"]
-SPECIAL_FUNCTIONS = ("multiply", "divide", "sqrt", "power")
+SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 
 
 def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
@@ -20,6 +20,8 @@ def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
         return NotImplemented
 
     ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
+    print(op(lhs.unit, rhs.unit))
+    print(lhs.unit, rhs.unit)
     result = op(lhs._array, rhs._array, out=out)
     result *= ratio.magnitude
     if out is None:
@@ -157,9 +159,9 @@ class Array:
         return self * other
 
     def __rtruediv__(self, other):
-        out = np.reciprocal(self / other)
-        out.unit = 1.0 / out.unit
-        return out
+        # out = np.reciprocal(self / other)
+        # out.unit = 1.0 / out.unit
+        return np.reciprocal(self / other)
 
     def __pow__(self, number):
         return np.power(self, number)
@@ -227,6 +229,8 @@ class Array:
                 unit = func(*unit_args, **kwargs)
                 print(unit)
                 unit = 1.0 * unit.units
+            else:
+                unit = self.unit
 
             # if func.__name__ in SPECIAL_UNARY_FUNCTIONS:
             #     unit = func(self.unit, *args[1:], **kwargs)
