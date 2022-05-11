@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+from common import arrayclose, arraytrue, arrayequal
 from osyris import Array, Datagroup
 from copy import copy, deepcopy
 import pytest
@@ -98,8 +99,8 @@ def test_datagroup_sortby_key():
         'a': Array(values=[1., 2., 3., 4., 5.], unit='m'),
         'b': Array(values=[8., 6., 7., 10., 9.], unit='s')
     })
-    assert all(dg['a'] == expected['a'])
-    assert all(dg['b'] == expected['b'])
+    assert arrayequal(dg['a'], expected['a'])
+    assert arrayequal(dg['b'], expected['b'])
 
 
 def test_datagroup_sortby_indices():
@@ -111,8 +112,8 @@ def test_datagroup_sortby_indices():
         'a': Array(values=[5., 4., 2., 3., 1.], unit='m'),
         'b': Array(values=[10., 9., 7., 8., 6.], unit='s')
     })
-    assert all(dg['a'] == expected['a'])
-    assert all(dg['b'] == expected['b'])
+    assert arrayequal(dg['a'], expected['a'])
+    assert arrayequal(dg['b'], expected['b'])
 
 
 def test_datagroup_clear():
@@ -128,9 +129,9 @@ def test_datagroup_get():
     b = Array(values=[6., 7., 8., 9., 10.], unit='s')
     c = Array(values=[11., 12., 13., 14., 15.], unit='K')
     dg = Datagroup({'a': a, 'b': b})
-    assert all(dg.get('a', 42) == a)
+    assert arrayequal(dg.get('a', 42), a)
     assert dg.get('c', 42) == 42
-    assert all(dg.get('c', c) == c)
+    assert arrayequal(dg.get('c', c), c)
 
 
 def test_datagroup_pop():
@@ -139,7 +140,7 @@ def test_datagroup_pop():
     dg = Datagroup({'a': a, 'b': b})
     c = dg.pop('a')
     assert 'a' not in dg
-    assert all(c == a)
+    assert arrayequal(c, a)
 
 
 def test_datagroup_update():
@@ -148,8 +149,8 @@ def test_datagroup_update():
     c = Array(values=[11., 12., 13., 14., 15.], unit='K')
     dg = Datagroup({'a': a, 'b': b})
     dg.update({'b': 2.0 * b, 'c': c})
-    assert all(dg['b'] == Array(values=[12., 14., 16., 18., 20.], unit='s'))
-    assert all(dg['c'] == c)
+    assert arrayequal(dg['b'], Array(values=[12., 14., 16., 18., 20.], unit='s'))
+    assert arrayequal(dg['c'], c)
 
 
 def test_copy():
@@ -160,7 +161,7 @@ def test_copy():
     del dg1['b']
     assert 'b' in dg2
     dg1['a'] *= 10.
-    assert all(dg2['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+    assert arrayequal(dg2['a'], Array(values=[10., 20., 30., 40., 50.], unit='m'))
 
 
 def test_copy_overload():
@@ -171,7 +172,7 @@ def test_copy_overload():
     del dg1['b']
     assert 'b' in dg2
     dg1['a'] *= 10.
-    assert all(dg2['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+    assert arrayequal(dg2['a'], Array(values=[10., 20., 30., 40., 50.], unit='m'))
 
 
 def test_deepcopy():
@@ -182,4 +183,4 @@ def test_deepcopy():
     del dg1['b']
     assert 'b' in dg2
     dg1['a'] *= 10.
-    assert all(dg2['a'] == Array(values=[1., 2., 3., 4., 5.], unit='m'))
+    assert arrayequal(dg2['a'], Array(values=[1., 2., 3., 4., 5.], unit='m'))

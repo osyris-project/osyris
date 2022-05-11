@@ -15,19 +15,20 @@ class Vector:
         self.parent = parent
         unit = x.unit
         self.x = Array(values=x.values, unit=unit)
-        self.y = Array(values=self._validate_component(y).values, unit=unit)
-        self.z = Array(values=self._validate_component(z).values, unit=unit)
+        self.y = self._validate_component(y, unit=unit)
+        self.z = self._validate_component(z, unit=unit)
         self.name = name
 
-    def _validate_component(self, array):
-        if array is not None:
-            if array.shape != self.x.shape:
-                raise ValueError(f"The shape of the component does not match the "
-                                 "shape of the x component")
-            if array.unit != self.x.unit:
-                raise ValueError(f"The unit of the component does not match the "
-                                 "unit of the x component")
-        return array
+    def _validate_component(self, array, unit):
+        if array is None:
+            return array
+        if array.shape != self.x.shape:
+            raise ValueError(f"The shape of the component does not match the "
+                             "shape of the x component")
+        if array.unit != unit:
+            raise ValueError(f"The unit of the component does not match the "
+                             "unit of the x component")
+        return Array(values=array.values, unit=unit)
 
     @property
     def _xyz(self):
