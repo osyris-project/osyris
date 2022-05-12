@@ -5,7 +5,7 @@ from pint.quantity import Quantity
 from pint.unit import Unit
 from .array import Array
 from .base import Base
-from .operators import add, sub
+# from .operators import add, sub
 from .tools import value_to_string, make_label
 from .. import units
 
@@ -18,6 +18,15 @@ class Vector:
         self.y = self._validate_component(y, unit=unit)
         self.z = self._validate_component(z, unit=unit)
         self.name = name
+
+    @classmethod
+    def from_values(cls, values, unit=None):
+        assert values.ndim > 1
+        nvec = values.shape[-1]
+        x = Array(values=values[..., 0], unit=unit)
+        y = Array(values=values[..., 1], unit=unit) if nvec > 1 else None
+        z = Array(values=values[..., 2], unit=unit) if nvec > 2 else None
+        return cls(x=x, y=y, z=z)
 
     def _validate_component(self, array, unit):
         if array is None:
@@ -303,5 +312,12 @@ class Vector:
             **{c: xyz.reshape(*shape)
                for c, xyz in self._xyz.items()})
 
+    @property
     def nbytes(self):
         return np.sum([xyz.nbytes for xyz in self._xyz.values()])
+
+    def dot(self, other):
+        out = np.zeros(self.shape)
+        for (c1, c2) in zip(self._xyz.values(), other._xyz.values()):
+            out += (c1 * c2).values
+        return Array(values=out, unit=self.unit * other.unit)

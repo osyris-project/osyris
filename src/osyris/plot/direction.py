@@ -116,4 +116,4 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     norm[norm == 0.] = 1.0
     dir_vecs = dir_vecs / norm
 
-    return Vector(dir_vecs), dir_labs
+    return dir_vecs, dir_labs

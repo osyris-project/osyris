@@ -107,7 +107,7 @@ class Datagroup:
         return self._container.values()
 
     def nbytes(self):
-        return np.sum([item._array.nbytes for item in self.values()])
+        return np.sum([item.nbytes for item in self.values()])
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())

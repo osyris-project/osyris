@@ -9,7 +9,7 @@ from .direction import get_direction
 from .render import render
 from .scatter import scatter
 from .parser import parse_layer
-from ..core import Plot, Array
+from ..core import Plot, Array, Vector
 from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
@@ -192,12 +192,16 @@ def map(*layers,
     xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     print(dir_vecs, selection_distance)
-    dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
+    # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
+    normal = Vector.from_values(np.array(dir_vecs[0]).reshape(1, ndim))
+    # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
+    dist_to_plane = xyz.dot(normal)
     print(dist_to_plane)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = np.abs(dist_to_plane) <= selection_distance
+    print(close_to_plane)
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -221,9 +225,12 @@ def map(*layers,
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = xyz[indices_close_to_plane]
-    datax = np.inner(coords, dir_vecs[1])
-    datay = np.inner(coords, dir_vecs[2])
-    dataz = np.inner(coords, dir_vecs[0])
+    # datax = np.inner(coords, dir_vecs[1])
+    # datay = np.inner(coords, dir_vecs[2])
+    # dataz = np.inner(coords, dir_vecs[0])
+    datax = coords.dot(Vector.from_values(np.array(dir_vecs[1]).reshape(1, ndim)))
+    datay = coords.dot(Vector.from_values(np.array(dir_vecs[2]).reshape(1, ndim)))
+    dataz = coords.dot(normal)
     datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
 
     if xmin is None:
@@ -242,10 +249,10 @@ def map(*layers,
         if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
             # if to_process[ind].ndim < 3:
             if to_process[ind].z is None:
-                uv = to_process[ind].array[indices_close_to_plane]
+                uv = to_process[ind].values[indices_close_to_plane]
             else:
                 uv = np.inner(
-                    to_process[ind].array.take(indices_close_to_plane, axis=0),
+                    to_process[ind].values.take(indices_close_to_plane, axis=0),
                     dir_vecs[1:])
             w = None
             if "color" in to_render[ind]["params"]:
@@ -304,12 +311,12 @@ def map(*layers,
 
     # Evaluate the values of the data layers at the grid positions
     binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
-        [apply_mask(datax.array),
-         apply_mask(datay.array),
-         apply_mask(dataz.array)]).T,
-                              cell_positions_in_original_basis=coords.array,
+        [apply_mask(datax.values),
+         apply_mask(datay.values),
+         apply_mask(dataz.values)]).T,
+                              cell_positions_in_original_basis=coords.values,
                               cell_values=np.array(to_binning),
-                              cell_sizes=datadx.array,
+                              cell_sizes=datadx.values,
                               grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
                               grid_spacing_in_new_basis=np.array(
                                   [xspacing, yspacing, zspacing]),

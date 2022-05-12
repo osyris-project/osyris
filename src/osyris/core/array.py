@@ -20,8 +20,8 @@ def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
         return NotImplemented
 
     ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
-    print(op(lhs.unit, rhs.unit))
-    print(lhs.unit, rhs.unit)
+    # print(op(lhs.unit, rhs.unit))
+    # print(lhs.unit, rhs.unit)
     result = op(lhs._array, rhs._array, out=out)
     result *= ratio.magnitude
     if out is None:
@@ -153,9 +153,9 @@ class Array:
         return binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
 
     def __rmul__(self, other):
-        print(self)
-        print(other)
-        print(self * other)
+        # print(self)
+        # print(other)
+        # print(self * other)
         return self * other
 
     def __rtruediv__(self, other):
@@ -209,7 +209,7 @@ class Array:
         return tuple(self._maybe_unit(a) for a in args)
 
     def _wrap_numpy(self, func, *args, **kwargs):
-        print("_wrap_numpy", func.__name__, self, args)
+        # print("_wrap_numpy", func.__name__, self, args)
         # if func.__name__ in self._special_functions:
         #     unit = func(self.unit, *args[1:], **kwargs)
         # else:
@@ -225,9 +225,9 @@ class Array:
             if func.__name__ in SPECIAL_FUNCTIONS:
                 # if isinstance(args[0], np.ndarray) or isinstance(args[1], np.ndarray):
                 unit_args = self._extract_units(args)
-                print(unit_args)
+                # print(unit_args)
                 unit = func(*unit_args, **kwargs)
-                print(unit)
+                # print(unit)
                 unit = 1.0 * unit.units
             else:
                 unit = self.unit
@@ -262,5 +262,6 @@ class Array:
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self.unit)
 
+    @property
     def nbytes(self):
         return self._array.nbytes
