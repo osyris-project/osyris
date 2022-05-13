@@ -196,11 +196,11 @@ def map(*layers,
     normal = Vector.from_values(np.array(dir_vecs[0]).reshape(1, ndim))
     # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
-    print(dist_to_plane)
+    print(dist_to_plane.values)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
-    close_to_plane = np.abs(dist_to_plane) <= selection_distance
+    close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
     print(close_to_plane)
     indices_close_to_plane = global_indices[close_to_plane]
 
@@ -222,6 +222,7 @@ def map(*layers,
         radial_selection = np.abs(radial_distance.norm.values) <= max(
             dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
         indices_close_to_plane = indices_close_to_plane[radial_selection]
+        print(np.sum(indices_close_to_plane))
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = xyz[indices_close_to_plane]
@@ -310,21 +311,39 @@ def map(*layers,
                                                            (1, )) * dir_vecs[0]
 
     # Evaluate the values of the data layers at the grid positions
-    binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
-        [apply_mask(datax.values),
-         apply_mask(datay.values),
-         apply_mask(dataz.values)]).T,
-                              cell_positions_in_original_basis=coords.values,
+    # binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
+    #     [apply_mask(datax.values),
+    #      apply_mask(datay.values),
+    #      apply_mask(dataz.values)]).T,
+    #                           cell_positions_in_original_basis=coords.values,
+    #                           cell_values=np.array(to_binning),
+    #                           cell_sizes=datadx.values,
+    #                           grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
+    #                           grid_spacing_in_new_basis=np.array(
+    #                               [xspacing, yspacing, zspacing]),
+    #                           grid_positions_in_original_basis=pixel_positions,
+    #                           ndim=ndim)
+    binned = evaluate_on_grid(cell_positions_in_new_basis_x=apply_mask(datax.values),
+                              cell_positions_in_new_basis_y=apply_mask(datay.values),
+                              cell_positions_in_new_basis_z=apply_mask(dataz.values),
+                              cell_positions_in_original_basis_x=coords.x.values,
+                              cell_positions_in_original_basis_y=coords.y.values,
+                              cell_positions_in_original_basis_z=coords.z.values,
                               cell_values=np.array(to_binning),
                               cell_sizes=datadx.values,
-                              grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
-                              grid_spacing_in_new_basis=np.array(
-                                  [xspacing, yspacing, zspacing]),
+                              grid_lower_edge_in_new_basis_x=xmin,
+                              grid_lower_edge_in_new_basis_y=ymin,
+                              grid_lower_edge_in_new_basis_z=zmin,
+                              grid_spacing_in_new_basis_x=xspacing,
+                              grid_spacing_in_new_basis_y=yspacing,
+                              grid_spacing_in_new_basis_z=zspacing,
                               grid_positions_in_original_basis=pixel_positions,
                               ndim=ndim)
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
+
+    print(binned[0])
 
     # Handle thick maps
     if thick:
