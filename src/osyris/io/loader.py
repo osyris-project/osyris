@@ -13,6 +13,7 @@ from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
 from .reader import ReaderKind
+from .. import units
 
 
 class Loader:
@@ -36,13 +37,13 @@ class Loader:
         infofile = os.path.join(self.infile,
                                 "info_" + self.infile.split("_")[-1] + ".txt")
         meta = utils.read_parameter_file(fname=infofile)
+        units.set_base_units(ud=meta["unit_d"], ul=meta["unit_l"], ut=meta["unit_t"])
         # Add additional information
         meta["infofile"] = infofile
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
-        meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+        meta["time"] *= units.get("time")
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta

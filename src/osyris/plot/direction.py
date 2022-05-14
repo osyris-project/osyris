@@ -62,7 +62,9 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             if origin is not None:
                 xyz = xyz - origin
             # Compute angular momentum vector
-            sphere = xyz.norm < sphere_rad.magnitude
+            # sphere = xyz.norm < sphere_rad.magnitude
+            sphere = (xyz.norm < sphere_rad).values
+            print(sphere)
             pos = xyz * dataset["hydro"]["mass"]
             vel = dataset["hydro"]["velocity"]
 

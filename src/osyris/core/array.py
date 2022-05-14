@@ -10,6 +10,22 @@ from .. import units
 # SPECIAL_UNARY_FUNCTIONS = ["sqrt", "power"]
 SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 
+# def _to_array(x):
+#     if isinstance(x, Quantity):
+#         return Array(values=x.magnitude, unit=1.0 * x.units)
+#     if isinstance(x, (int, float, np.ndarray)):
+#         return Array(values=x)
+#     # if (unit is not None) and (unit != x.unit):
+#     #     x = x.to(unit)
+#     # return x
+#     if isinstance(x, Array):
+#         return x
+#     raise TypeError(f"Cannot convert {x} to an Array.")
+#     # if isinstance(other, self.__class__):
+#     #     if other.unit != self.unit:
+#     #         other = other.to(self.unit)
+#     #     return other
+
 
 def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
     if isinstance(rhs, Quantity):
@@ -32,22 +48,40 @@ def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
         return lhs
 
 
+def add_or_sub(op, lhs, rhs, out=None):
+    if isinstance(rhs, Quantity):
+        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+    if isinstance(rhs, (int, float, np.ndarray)):
+        rhs = lhs.__class__(values=rhs)
+    if not isinstance(rhs, lhs.__class__):
+        return NotImplemented
+
+    ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
+    # print(op(lhs.unit, rhs.unit))
+    # print(lhs.unit, rhs.unit)
+    result = op(lhs._array, rhs._array, out=out)
+    result *= ratio.magnitude
+    if out is None:
+        return lhs.__class__(values=result, unit=1.0 * ratio.units)
+    else:
+        if mul_or_div:
+            lhs.unit = 1.0 * ratio.units
+        return lhs
+
+
 class Array:
-    def __init__(self, values=0, unit=None, parent=None, name=""):
+    def __init__(self, values, unit=None, parent=None, name=""):
 
-        self._array = np.asarray(values)
-
-        if unit is None:
-            self.unit = 1.0 * units.dimensionless
-        elif isinstance(unit, str):
-            self.unit = units(unit)
-        elif isinstance(unit, Quantity):
-            self.unit = unit
-        elif isinstance(unit, Unit):
-            self.unit = 1.0 * unit
+        if isinstance(values, Quantity):
+            if unit is not None:
+                raise ValueError(
+                    "Cannot set unit when creating an Array from a Quantity.")
+            self._array = values.magnitude
+            self.unit = values.units
         else:
-            raise TypeError("Unsupported unit type {}".format(type(unit)))
-        self.unit = self.unit  #.units
+            self._array = np.asarray(values)
+            self.unit = units(unit)
+
         self.parent = parent
         self.name = name
         # self._special_functions = ["sqrt", "power", "multiply", "divide"]
@@ -71,7 +105,7 @@ class Array:
         else:
             values_str = "Min: " + value_to_string(
                 self.min().values) + " Max: " + value_to_string(self.max().values)
-        unit_str = " [{:~}] ".format(self.unit.units)
+        unit_str = " [{:~}] ".format(self.unit)
         shape_str = str(self.shape)
         return "Array<" + name_str + values_str + unit_str + shape_str + ">"
 
@@ -102,11 +136,12 @@ class Array:
 
     @property
     def norm(self):
-        if self._array.ndim < 2:
-            return self
-        else:
-            return self.__class__(values=np.linalg.norm(self._array, axis=1),
-                                  unit=self.unit)
+        return self
+        # if self._array.ndim < 2:
+        #     return self
+        # else:
+        #     return self.__class__(values=np.linalg.norm(self._array, axis=1),
+        #                           unit=self.unit)
 
     @property
     def ndim(self):
@@ -170,7 +205,8 @@ class Array:
         return np.negative(self)
 
     def __lt__(self, other):
-        return np.less(self, self._to_array(other))
+        # return np.less(self, self._to_array(other))
+        return np.less(self, _to_array(other).to())
 
     def __le__(self, other):
         return np.less_equal(self, self._to_array(other))
@@ -192,6 +228,8 @@ class Array:
             new_unit = units(unit)
         else:
             new_unit = unit
+        if self.unit == new_unit:
+            return self
         ratio = self.unit.to(new_unit) / new_unit
         return self.__class__(values=self._array * ratio.magnitude, unit=1.0 * new_unit)
 

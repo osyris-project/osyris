@@ -1,8 +1,11 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+
+from enum import Enum
 import numpy as np
 from . import utils
 from ..core import Array
-from .. import config
-from enum import Enum
+from .. import units
 
 
 class ReaderKind(Enum):
@@ -41,8 +44,9 @@ class Reader():
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                "unit": units.get(key)
+                # , meta["unit_d"], meta["unit_l"],
+                #                         meta["unit_t"])
             }
 
     def allocate_buffers(self, ngridmax, twotondim):

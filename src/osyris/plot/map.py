@@ -191,17 +191,19 @@ def map(*layers,
     diagonal = np.sqrt(ndim)
     xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
-    print(dir_vecs, selection_distance)
+    # print(dir_vecs, selection_distance)
     # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
     normal = Vector.from_values(np.array(dir_vecs[0]).reshape(1, ndim))
+    vec_u = Vector.from_values(np.array(dir_vecs[1]).reshape(1, ndim))
+    vec_v = Vector.from_values(np.array(dir_vecs[2]).reshape(1, ndim))
     # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
-    print(dist_to_plane.values)
+    # print(dist_to_plane.values)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
-    print(close_to_plane)
+    # print(close_to_plane)
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
@@ -222,15 +224,15 @@ def map(*layers,
         radial_selection = np.abs(radial_distance.norm.values) <= max(
             dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
         indices_close_to_plane = indices_close_to_plane[radial_selection]
-        print(np.sum(indices_close_to_plane))
+        # print(np.sum(indices_close_to_plane))
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = xyz[indices_close_to_plane]
     # datax = np.inner(coords, dir_vecs[1])
     # datay = np.inner(coords, dir_vecs[2])
     # dataz = np.inner(coords, dir_vecs[0])
-    datax = coords.dot(Vector.from_values(np.array(dir_vecs[1]).reshape(1, ndim)))
-    datay = coords.dot(Vector.from_values(np.array(dir_vecs[2]).reshape(1, ndim)))
+    datax = coords.dot(vec_u)
+    datay = coords.dot(vec_v)
     dataz = coords.dot(normal)
     datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
 
@@ -249,24 +251,42 @@ def map(*layers,
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
             # if to_process[ind].ndim < 3:
+            uv = to_process[ind][indices_close_to_plane]
             if to_process[ind].z is None:
-                uv = to_process[ind].values[indices_close_to_plane]
+                # uv = to_process[ind].values[indices_close_to_plane]
+                u = uv.x.values
+                v = uv.y.values
             else:
-                uv = np.inner(
-                    to_process[ind].values.take(indices_close_to_plane, axis=0),
-                    dir_vecs[1:])
+                # uv = np.inner(
+                #     to_process[ind].values.take(indices_close_to_plane, axis=0),
+                #     dir_vecs[1:])
+                u = uv.dot(vec_u).values
+                v = uv.dot(vec_v).values
+
             w = None
-            if "color" in to_render[ind]["params"]:
-                if isinstance(to_render[ind]["params"]["color"], Array):
-                    w = to_render[ind]["params"]["color"].norm.values
-                elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
-                    w = to_render[ind]["params"]["color"]
-            if w is None:
-                w = np.linalg.norm(uv, axis=1)
+            if isinstance(to_render[ind]["params"].get("color"), (Array, Vector)):
+                w = to_render[ind]["params"]["color"].norm.values[
+                    indices_close_to_plane]
             else:
-                w = w.take(indices_close_to_plane, axis=0)
-            to_binning.append(apply_mask(uv[:, 0]))
-            to_binning.append(apply_mask(uv[:, 1]))
+
+                # if "color" in to_render[ind]["params"]:
+                #     if isinstance(to_render[ind]["params"]["color"], (Array, Vector)):
+                #         w = to_render[ind]["params"]["color"].norm.values[indices_close_to_plane]
+
+                # if "color" in to_render[ind]["params"]:
+                #     if isinstance(to_render[ind]["params"]["color"], (Array, Vector)):
+                #         w = to_render[ind]["params"]["color"].norm.values[indices_close_to_plane]
+                #     elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
+                #         w = to_render[ind]["params"]["color"]
+                # if w is None:
+                # w = np.linalg.norm(uv, axis=1)
+                w = u * u
+                w += v * v
+                w = np.sqrt(w)
+            # else:
+            #     w = w.take(indices_close_to_plane, axis=0)
+            to_binning.append(apply_mask(u))
+            to_binning.append(apply_mask(v))
             to_binning.append(w)
             scalar_layer.append(False)
         else:
@@ -343,7 +363,7 @@ def map(*layers,
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
 
-    print(binned[0])
+    # print(binned[0])
 
     # Handle thick maps
     if thick:

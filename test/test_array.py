@@ -241,12 +241,11 @@ def test_division_quantity_inplace():
     assert arrayclose(a, expected)
 
 
-def test_norm():
-    a2d = Array(values=np.array([[1., 2.], [3., 4.], [5., 6.], [7., 8.]]), unit='s')
-    a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.]]), unit='g')
-    assert arrayclose(a2d.norm, Array(values=np.sqrt([5., 25., 61., 113.]), unit='s'))
-    assert arrayclose(a3d.norm, Array(values=np.sqrt([14., 77.]), unit='g'))
-
+# def test_norm():
+#     a2d = Array(values=np.array([[1., 2.], [3., 4.], [5., 6.], [7., 8.]]), unit='s')
+#     a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.]]), unit='g')
+#     assert arrayclose(a2d.norm, Array(values=np.sqrt([5., 25., 61., 113.]), unit='s'))
+#     assert arrayclose(a3d.norm, Array(values=np.sqrt([14., 77.]), unit='g'))
 
 # def test_broadcast():
 #     a1d = Array(values=np.array([1., 2., 3., 4., 5.]), unit='s')

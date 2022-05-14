@@ -4,7 +4,7 @@ import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
 from .array import Array
-from .base import Base
+# from .base import Base
 # from .operators import add, sub
 from .tools import value_to_string, make_label
 from .. import units
