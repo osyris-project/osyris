@@ -67,7 +67,7 @@ def make_label(name=None, unit=None):
     lab = ""
     if name:
         lab += name
-    if unit and unit != units.dimensionless:
+    if unit and unit != units('dimensionless'):
         if name:
             lab += " "
         lab += "[{:~}]".format(unit)

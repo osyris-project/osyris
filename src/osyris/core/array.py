@@ -110,7 +110,7 @@ class Array:
                 self.min().values) + " Max: " + value_to_string(self.max().values)
         unit_str = " [{:~}] ".format(self.unit)
         shape_str = str(self.shape)
-        return "Array<" + name_str + values_str + unit_str + shape_str + ">"
+        return name_str + values_str + unit_str + shape_str
 
     def __repr__(self):
         return str(self)
@@ -156,7 +156,7 @@ class Array:
 
     @property
     def label(self):
-        return make_label(name=self.name, unit=self.unit.units)
+        return make_label(name=self.name, unit=self.unit)
 
     def _to_array(self, other):
         if isinstance(other, Quantity):

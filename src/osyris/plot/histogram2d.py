@@ -195,7 +195,7 @@ def histogram2d(x: Array,
         to_render.append({
             "mode": settings["mode"],
             "params": params,
-            "unit": data.unit.units,
+            "unit": data.unit,
             "name": data.name
         })
         operations.append(settings["operation"])

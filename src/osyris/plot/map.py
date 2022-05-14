@@ -159,7 +159,7 @@ def map(*layers,
             to_render.append({
                 "mode": settings["mode"],
                 "params": params,
-                "unit": data.unit.units,
+                "unit": data.unit,
                 "name": data.name
             })
 
@@ -193,9 +193,9 @@ def map(*layers,
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     # print(dir_vecs, selection_distance)
     # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
-    normal = Vector.from_values(np.array(dir_vecs[0]).reshape(1, ndim))
-    vec_u = Vector.from_values(np.array(dir_vecs[1]).reshape(1, ndim))
-    vec_v = Vector.from_values(np.array(dir_vecs[2]).reshape(1, ndim))
+    normal = Vector(values=np.array(dir_vecs[0]).reshape(1, ndim))
+    vec_u = Vector(values=np.array(dir_vecs[1]).reshape(1, ndim))
+    vec_v = Vector(values=np.array(dir_vecs[2]).reshape(1, ndim))
     # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
     # print(dist_to_plane.values)
@@ -369,8 +369,7 @@ def map(*layers,
     if thick:
         binned *= zspacing
         for layer in to_render:
-            layer["unit"] = (Array(values=1, unit=layer["unit"]) *
-                             dataz.unit).unit.units
+            layer["unit"] = (Array(values=1, unit=layer["unit"]) * dataz.unit).unit
 
     # Mask NaN values
     mask = np.isnan(binned[-1, ...])
@@ -394,7 +393,7 @@ def map(*layers,
                                                      copy=False)
             counter += 3
 
-    scale_ratio = spatial_unit.to(map_unit).magnitude
+    scale_ratio = (1.0 * spatial_unit).to(map_unit).magnitude
     xcenters *= scale_ratio
     ycenters *= scale_ratio
 

@@ -11,22 +11,38 @@ from .. import units
 
 
 class Vector:
-    def __init__(self, x, y=None, z=None, parent=None, name=""):
+    def __init__(self,
+                 x=None,
+                 y=None,
+                 z=None,
+                 parent=None,
+                 name="",
+                 values=None,
+                 unit=None):
+
+        if values is not None:
+            assert values.ndim > 1
+            nvec = values.shape[-1]
+            self.x = Array(values=values[..., 0], unit=unit)
+            self.y = Array(values=values[..., 1], unit=unit) if nvec > 1 else None
+            self.z = Array(values=values[..., 2], unit=unit) if nvec > 2 else None
+        else:
+            if unit is not None:
+                raise ValueError("Can only set unit when creating Vector from values.")
+            self.x = Array(values=x.values, unit=x.unit)
+            self.y = self._validate_component(y, unit=x.unit)
+            self.z = self._validate_component(z, unit=x.unit)
         self.parent = parent
-        unit = x.unit
-        self.x = Array(values=x.values, unit=unit)
-        self.y = self._validate_component(y, unit=unit)
-        self.z = self._validate_component(z, unit=unit)
         self.name = name
 
-    @classmethod
-    def from_values(cls, values, unit=None):
-        assert values.ndim > 1
-        nvec = values.shape[-1]
-        x = Array(values=values[..., 0], unit=unit)
-        y = Array(values=values[..., 1], unit=unit) if nvec > 1 else None
-        z = Array(values=values[..., 2], unit=unit) if nvec > 2 else None
-        return cls(x=x, y=y, z=z)
+    # @classmethod
+    # def from_values(cls, values, unit=None):
+    #     assert values.ndim > 1
+    #     nvec = values.shape[-1]
+    #     x = Array(values=values[..., 0], unit=unit)
+    #     y = Array(values=values[..., 1], unit=unit) if nvec > 1 else None
+    #     z = Array(values=values[..., 2], unit=unit) if nvec > 2 else None
+    #     return cls(x=x, y=y, z=z)
 
     def _validate_component(self, array, unit):
         if array is None:
@@ -60,17 +76,18 @@ class Vector:
     def __str__(self):
         name_str = "'" + self._name + "' "
         xyz = self._xyz
+        comps_str = ", {" + ",".join(x for x in xyz) + "}"
         if len(self) == 0:
-            values_str = "Value: " + ",".join(
+            values_str = "Value: " + ", ".join(
                 value_to_string(x.values) for x in xyz.values())
+            unit_str = " [{:~}] ".format(self.unit)
+            shape_str = str(self.shape)
+            return name_str + values_str + unit_str + shape_str + comps_str
         else:
-            norm = self.norm
-            values_str = "Min: " + value_to_string(
-                norm.min().values) + " Max: " + value_to_string(norm.max().values)
-        unit_str = " [{:~}] ".format(self.unit)
-        shape_str = str(self.shape)
-        comps_str = ", (" + ",".join(x for x in xyz) + ")>"
-        return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
+            return str(self.norm) + comps_str
+        #     values_str = "Min: " + value_to_string(
+        #         norm.min().values) + " Max: " + value_to_string(norm.max().values)
+        # return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
 
     def __repr__(self):
         return str(self)
@@ -94,7 +111,7 @@ class Vector:
         out += self.y.values * self.y.values
         if self.z is not None:
             out += self.z.values * self.z.values
-        return Array(values=np.sqrt(out), unit=self.x.unit)
+        return Array(values=np.sqrt(out), unit=self.x.unit, name=self.name)
 
     @property
     def unit(self):
