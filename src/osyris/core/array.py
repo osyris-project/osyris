@@ -28,23 +28,26 @@ SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 
 
 def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
-    if isinstance(rhs, Quantity):
-        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
-    if isinstance(rhs, (int, float, np.ndarray)):
-        rhs = lhs.__class__(values=rhs)
+    if isinstance(rhs, (Quantity, int, float, np.ndarray)):
+        rhs = lhs.__class__(rhs)
+    # if isinstance(rhs, Quantity):
+    #     rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+    # if isinstance(rhs, (int, float, np.ndarray)):
+    #     rhs = lhs.__class__(values=rhs)
     if not isinstance(rhs, lhs.__class__):
         return NotImplemented
 
-    ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
+    ratio = op(1.0 * lhs.unit, 1.0 *
+               rhs.unit) if mul_or_div else (1.0 * rhs.unit).to(lhs.unit)
     # print(op(lhs.unit, rhs.unit))
     # print(lhs.unit, rhs.unit)
     result = op(lhs._array, rhs._array, out=out)
     result *= ratio.magnitude
     if out is None:
-        return lhs.__class__(values=result, unit=1.0 * ratio.units)
+        return lhs.__class__(values=result, unit=ratio.units)
     else:
         if mul_or_div:
-            lhs.unit = 1.0 * ratio.units
+            lhs.unit = ratio.units
         return lhs
 
 
@@ -224,21 +227,22 @@ class Array:
         return np.not_equal(self, self._to_array(other))
 
     def to(self, unit):
-        if isinstance(unit, str):
-            new_unit = units(unit)
-        else:
-            new_unit = unit
+        new_unit = units(unit)
+        # if isinstance(unit, str):
+        #     new_unit = units(unit)
+        # else:
+        #     new_unit = unit
         if self.unit == new_unit:
             return self
-        ratio = self.unit.to(new_unit) / new_unit
-        return self.__class__(values=self._array * ratio.magnitude, unit=1.0 * new_unit)
+        ratio = (1.0 * self.unit).to(new_unit) / (1.0 * new_unit)
+        return self.__class__(values=self._array * ratio.magnitude, unit=new_unit)
 
     def _extract_arrays(self, args):
         return tuple(a._array if isinstance(a, self.__class__) else a for a in args)
 
     def _maybe_unit(self, arg):
         if hasattr(arg, "unit"):
-            return arg.unit
+            return 1.0 * arg.unit
         if hasattr(arg, "units"):
             return 1.0 * arg.units
         return arg
@@ -264,9 +268,9 @@ class Array:
                 # if isinstance(args[0], np.ndarray) or isinstance(args[1], np.ndarray):
                 unit_args = self._extract_units(args)
                 # print(unit_args)
-                unit = func(*unit_args, **kwargs)
+                unit = func(*unit_args, **kwargs).units
                 # print(unit)
-                unit = 1.0 * unit.units
+                # unit = 1.0 * unit.units
             else:
                 unit = self.unit
 

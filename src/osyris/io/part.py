@@ -51,7 +51,7 @@ class PartReader(Reader):
                                            content=self.bytes,
                                            offsets=self.offsets)) *
                                                 item["unit"].magnitude,
-                                                unit=1.0 * item["unit"].units)
+                                                unit=item["unit"].units)
             else:
                 self.offsets[item["type"]] += nparticles
                 self.offsets["n"] += 1

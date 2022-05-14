@@ -41,12 +41,12 @@ class SinkReader:
 
         # Parse units
         unit_list = []
-        m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
-        l = meta['unit_l'] * units.cm  # noqa: F841, E741
-        t = meta['unit_t'] * units.s  # noqa: F841
+        m = meta['unit_d'] * meta['unit_l']**3 * units('g')  # noqa: F841
+        l = meta['unit_l'] * units('cm')  # noqa: F841, E741
+        t = meta['unit_t'] * units('s')  # noqa: F841
         for u in unit_combinations:
             if u.strip().replace("[", "").replace("]", "") == '1':
-                unit_list.append(1.0 * units.dimensionless)
+                unit_list.append(1.0 * units('dimensionless'))
             else:
                 if all(x in u for x in ["[", "]"]):
                     # Legacy sink format quantities are not in code units

@@ -54,7 +54,7 @@ class Reader():
             if item["read"]:
                 item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
                                                        dtype=np.dtype(item["type"])),
-                                       unit=1.0 * item["unit"].units)
+                                       unit=item["unit"].units)
 
     def read_header(self, *args, **kwargs):
         return

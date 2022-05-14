@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from pint import UnitRegistry
+from pint import Quantity, UnitRegistry, Unit
 from math import sqrt, pi
 # from . import config
 
@@ -74,8 +74,12 @@ class Units:
             'mass': 'mass'
         }
 
-    def __call__(self, *args, **kwargs):
-        return self._ureg(*args, **kwargs).units
+    def __call__(self, arg):
+        if isinstance(arg, Quantity):
+            raise TypeError("Cannot create unit from a Quantity. Use `.units` instead.")
+        if isinstance(arg, Unit):
+            return arg
+        return self._ureg(arg).units
 
     def define(self, *args, **kwargs):
         self._ureg.define(*args, **kwargs)
@@ -97,7 +101,6 @@ class Units:
         self._base_units["temperature"] = self("K")
 
     def get(self, string):
-
         if string in self._ramses_units:
             return self._base_units[self._ramses_units[string]]
         return self._ureg('dimensionless')

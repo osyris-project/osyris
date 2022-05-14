@@ -3,7 +3,7 @@
 import numpy as np
 from .hilbert import hilbert_cpu_list
 from .reader import Reader, ReaderKind
-from .. import config
+from .. import units
 from . import utils
 
 
@@ -21,9 +21,7 @@ class AmrReader(Reader):
         self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
 
         self.cpu_list = hilbert_cpu_list(meta=meta,
-                                         scaling=config.get_unit(
-                                             "x", meta["unit_d"], meta["unit_l"],
-                                             meta["unit_t"]),
+                                         scaling=units.get("x"),
                                          select=select,
                                          infofile=meta["infofile"])
         if select is not False:

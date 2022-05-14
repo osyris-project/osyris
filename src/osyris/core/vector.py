@@ -67,7 +67,7 @@ class Vector:
             norm = self.norm
             values_str = "Min: " + value_to_string(
                 norm.min().values) + " Max: " + value_to_string(norm.max().values)
-        unit_str = " [{:~}] ".format(self.unit.units)
+        unit_str = " [{:~}] ".format(self.unit)
         shape_str = str(self.shape)
         comps_str = ", (" + ",".join(x for x in xyz) + ")>"
         return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
@@ -136,11 +136,11 @@ class Vector:
 
     @property
     def label(self):
-        return make_label(name=self._name, unit=self.unit.units)
+        return make_label(name=self._name, unit=self.unit)
 
     def _to_vector(self, rhs):
         if isinstance(rhs, Quantity):
-            rhs = Array(values=rhs.magnitude, unit=1.0 * rhs.units)
+            rhs = Array(values=rhs.magnitude, unit=rhs.units)
         if isinstance(rhs, (int, float, np.ndarray)):
             rhs = Array(values=rhs)
         if isinstance(rhs, Array):
@@ -214,7 +214,7 @@ class Vector:
 
     def __rtruediv__(self, other):
         out = np.reciprocal(self / other)
-        out.unit = 1.0 / out.unit
+        out.unit = (1.0 / out.unit).units
         return out
 
     def __radd__(self, other):
