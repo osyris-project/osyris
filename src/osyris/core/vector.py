@@ -51,10 +51,10 @@ class Vector(Base):
         if array is None:
             return array
         if array.shape != self.x.shape:
-            raise ValueError(f"The shape of the component does not match the "
+            raise ValueError("The shape of the component does not match the "
                              "shape of the x component")
         if array.unit != unit:
-            raise ValueError(f"The unit of the component does not match the "
+            raise ValueError("The unit of the component does not match the "
                              "unit of the x component")
         return Array(values=array.values, unit=unit)
 
