@@ -419,6 +419,36 @@ def test_division_quantity_inplace():
     assert vectorequal(v, expected)
 
 
+def test_rdivision_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[21., 22., 23., 24., 25.], unit='s')
+    expected = Vector(x=a / x, y=a / y, z=a / z)
+    assert vectorclose(a / v, expected)
+
+
+def test_rdivision_float():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    f = 3.5
+    expected = Vector(x=f / x, y=f / y, z=f / z)
+    assert vectorclose(f / v, expected)
+
+
+# def test_division_ndarray():
+#     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+#     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+#     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+#     v = Vector(x, y, z)
+#     a = np.arange(3., 8.)
+#     expected = Vector(x=a / x, y=a / y, z=a / z)
+#     assert vectorclose(a / v, expected)
+
+
 def test_norm():
     x = Array(values=[1., 2., 3., 4., 5.], unit='s')
     y = Array(values=[6., 7., 8., 9., 10.], unit='s')
@@ -458,6 +488,21 @@ def test_less_than():
     assert all(result.z.values == exp_z)
 
 
+def test_less_than_array():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    a = Array(values=[-1., 2., 17., 4., 2.], unit='m')
+    exp_x = [False, False, True, False, False]
+    exp_y = [False, False, True, False, False]
+    exp_z = [False, False, True, False, False]
+    result = v < a
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
 def test_less_equal():
     x1 = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y1 = Array(values=[6., 7., 8., 9., 10.], unit='m')
@@ -489,6 +534,24 @@ def test_equal():
     exp_y = [True, False, True, False, False]
     exp_z = [True, False, False, False, True]
     result = v1 == v2
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
+def test_not_equal():
+    x1 = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y1 = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z1 = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v1 = Vector(x1, y1, z1)
+    x2 = Array(values=[-1., 2., 13., 4., 2.], unit='m')
+    y2 = Array(values=[6., -7., 8., 3.3, 10.1], unit='m')
+    z2 = Array(values=[11., 22., 7., 7., 15.], unit='m')
+    v2 = Vector(x2, y2, z2)
+    exp_x = [True, False, True, False, True]
+    exp_y = [False, True, False, True, True]
+    exp_z = [False, True, True, True, False]
+    result = v1 != v2
     assert all(result.x.values == exp_x)
     assert all(result.y.values == exp_y)
     assert all(result.z.values == exp_z)

@@ -5,10 +5,21 @@ from pint.quantity import Quantity
 from pint.unit import Unit
 from .base import Base
 from .array import Array
-# from .base import Base
-# from .operators import add, sub
 from .tools import value_to_string, make_label
 from .. import units
+
+
+def _binary_op(op, lhs, rhs):
+    if isinstance(rhs, (int, float, np.ndarray, Quantity)):
+        rhs = Array(values=rhs)
+    if isinstance(rhs, Array):
+        rhs = lhs.__class__(**{c: rhs for c in lhs._xyz.keys()})
+    if lhs.nvec != rhs.nvec:
+        raise ValueError("Operands do not have the same number of components.")
+
+    return lhs.__class__(
+        **{c: getattr(xyz, op)(getattr(rhs, c))
+           for c, xyz in lhs._xyz.items()})
 
 
 class Vector(Base):
@@ -35,15 +46,6 @@ class Vector(Base):
             self.z = self._validate_component(z, unit=x.unit)
         self.parent = parent
         self.name = name
-
-    # @classmethod
-    # def from_values(cls, values, unit=None):
-    #     assert values.ndim > 1
-    #     nvec = values.shape[-1]
-    #     x = Array(values=values[..., 0], unit=unit)
-    #     y = Array(values=values[..., 1], unit=unit) if nvec > 1 else None
-    #     z = Array(values=values[..., 2], unit=unit) if nvec > 2 else None
-    #     return cls(x=x, y=y, z=z)
 
     def _validate_component(self, array, unit):
         if array is None:
@@ -86,18 +88,6 @@ class Vector(Base):
             return name_str + values_str + unit_str + shape_str + comps_str
         else:
             return str(self.norm) + comps_str
-        #     values_str = "Min: " + value_to_string(
-        #         norm.min().values) + " Max: " + value_to_string(norm.max().values)
-        # return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
-
-    # def __repr__(self):
-    #     return str(self)
-
-    # def __copy__(self):
-    #     return self.copy()
-
-    # def __deepcopy__(self, memo):
-    #     return self.copy()
 
     def copy(self):
         return self.__class__(**{c: xyz.copy()
@@ -152,88 +142,35 @@ class Vector(Base):
         for c, xyz in self._xyz.items():
             xyz.name = self._name + "_" + c
 
-    # @property
-    # def label(self):
-    #     return make_label(name=self._name, unit=self.unit)
-
-    def _to_vector(self, rhs):
-        # if isinstance(rhs, Quantity):
-        #     rhs = Array(values=rhs.magnitude, unit=rhs.units)
-        if isinstance(rhs, (int, float, np.ndarray, Quantity)):
-            rhs = Array(values=rhs)
-        if isinstance(rhs, Array):
-            rhs = self.__class__(**{c: rhs for c in self._xyz.keys()})
-        if self.nvec != rhs.nvec:
-            raise ValueError("Operands do not have the same number of components.")
-        return rhs
-
     def __add__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz + getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__add__", self, other)
 
     def __iadd__(self, other):
-        other = self._to_vector(other)
-        self.x += other.x
-        if self.y is not None:
-            self.y += other.y
-        if self.z is not None:
-            self.z += other.z
-        return self
+        return _binary_op("__iadd__", self, other)
 
     def __sub__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz - getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__sub__", self, other)
 
     def __isub__(self, other):
-        other = self._to_vector(other)
-        self.x -= other.x
-        if self.y is not None:
-            self.y -= other.y
-        if self.z is not None:
-            self.z -= other.z
-        return self
+        return _binary_op("__isub__", self, other)
 
     def __mul__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz * getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__mul__", self, other)
 
     def __imul__(self, other):
-        other = self._to_vector(other)
-        self.x *= other.x
-        if self.y is not None:
-            self.y *= other.y
-        if self.z is not None:
-            self.z *= other.z
-        return self
+        return _binary_op("__imul__", self, other)
 
     def __truediv__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz / getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__truediv__", self, other)
 
     def __itruediv__(self, other):
-        other = self._to_vector(other)
-        self.x /= other.x
-        if self.y is not None:
-            self.y /= other.y
-        if self.z is not None:
-            self.z /= other.z
-        return self
+        return _binary_op("__itruediv__", self, other)
 
     def __rmul__(self, other):
         return self * other
 
     def __rtruediv__(self, other):
-        out = np.reciprocal(self / other)
-        out.unit = (1.0 / out.unit).units
-        return out
+        return np.reciprocal(self / other)
 
     def __radd__(self, other):
         return self + other
@@ -248,47 +185,29 @@ class Vector(Base):
         return self.__class__(**{c: -xyz for c, xyz in self._xyz.items()})
 
     def __lt__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz < getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__lt__", self, other)
 
     def __le__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz <= getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__le__", self, other)
 
     def __gt__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz > getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__gt__", self, other)
 
     def __ge__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz >= getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__ge__", self, other)
 
     def __eq__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz == getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__eq__", self, other)
 
     def __ne__(self, other):
-        other = self._to_vector(other)
-        return self.__class__(
-            **{c: xyz != getattr(other, c)
-               for c, xyz in self._xyz.items()})
+        return _binary_op("__ne__", self, other)
 
     def to(self, unit):
         return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if isinstance(args[0], (tuple, list)):
-            # # Case where we have a sequence of vectors, e.g. `concatenate`
+            # Case where we have a sequence of vectors, e.g. `concatenate`
             out = {
                 c: func(tuple(getattr(a, c) for a in args[0]), *args[1:], **kwargs)
                 for c, xyz in args[0][0]._xyz.items()
@@ -302,28 +221,6 @@ class Vector(Base):
         else:
             out = {c: func(xyz, *args[1:], **kwargs) for c, xyz in args[0]._xyz.items()}
         return self.__class__(**out)
-
-    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-    #     """
-    #     Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
-    #     """
-    #     if method != "__call__":
-    #         # Only handle ufuncs as callables
-    #         return NotImplemented
-    #     return self._wrap_numpy(ufunc, *inputs, **kwargs)
-
-    # def __array_function__(self, func, types, args, kwargs):
-    #     """
-    #     Numpy array_function protocol to allow Array to work with numpy
-    #     functions.
-    #     """
-    #     return self._wrap_numpy(func, *args, **kwargs)
-
-    # def min(self):
-    #     return np.amin(self)
-
-    # def max(self):
-    #     return np.amax(self)
 
     def reshape(self, *shape):
         return self.__class__(
