@@ -27,50 +27,48 @@ SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 #     #         other = other.to(self.unit)
 #     #     return other
 
+# def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
+#     if isinstance(rhs, (Quantity, int, float, np.ndarray)):
+#         rhs = lhs.__class__(rhs)
+#     # if isinstance(rhs, Quantity):
+#     #     rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+#     # if isinstance(rhs, (int, float, np.ndarray)):
+#     #     rhs = lhs.__class__(values=rhs)
+#     if not isinstance(rhs, lhs.__class__):
+#         return NotImplemented
 
-def binary_op(op, lhs, rhs, mul_or_div=False, out=None):
-    if isinstance(rhs, (Quantity, int, float, np.ndarray)):
-        rhs = lhs.__class__(rhs)
-    # if isinstance(rhs, Quantity):
-    #     rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
-    # if isinstance(rhs, (int, float, np.ndarray)):
-    #     rhs = lhs.__class__(values=rhs)
-    if not isinstance(rhs, lhs.__class__):
-        return NotImplemented
+#     ratio = op(1.0 * lhs.unit, 1.0 *
+#                rhs.unit) if mul_or_div else (1.0 * rhs.unit).to(lhs.unit)
+#     # print(op(lhs.unit, rhs.unit))
+#     # print(lhs.unit, rhs.unit)
+#     result = op(lhs._array, rhs._array, out=out)
+#     result *= ratio.magnitude
+#     if out is None:
+#         return lhs.__class__(values=result, unit=ratio.units)
+#     else:
+#         if mul_or_div:
+#             lhs.unit = ratio.units
+#         return lhs
 
-    ratio = op(1.0 * lhs.unit, 1.0 *
-               rhs.unit) if mul_or_div else (1.0 * rhs.unit).to(lhs.unit)
-    # print(op(lhs.unit, rhs.unit))
-    # print(lhs.unit, rhs.unit)
-    result = op(lhs._array, rhs._array, out=out)
-    result *= ratio.magnitude
-    if out is None:
-        return lhs.__class__(values=result, unit=ratio.units)
-    else:
-        if mul_or_div:
-            lhs.unit = ratio.units
-        return lhs
+# def add_or_sub(op, lhs, rhs, out=None):
+#     if isinstance(rhs, Quantity):
+#         rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
+#     if isinstance(rhs, (int, float, np.ndarray)):
+#         rhs = lhs.__class__(values=rhs)
+#     if not isinstance(rhs, lhs.__class__):
+#         return NotImplemented
 
-
-def add_or_sub(op, lhs, rhs, out=None):
-    if isinstance(rhs, Quantity):
-        rhs = lhs.__class__(values=rhs.magnitude, unit=1.0 * rhs.units)
-    if isinstance(rhs, (int, float, np.ndarray)):
-        rhs = lhs.__class__(values=rhs)
-    if not isinstance(rhs, lhs.__class__):
-        return NotImplemented
-
-    ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
-    # print(op(lhs.unit, rhs.unit))
-    # print(lhs.unit, rhs.unit)
-    result = op(lhs._array, rhs._array, out=out)
-    result *= ratio.magnitude
-    if out is None:
-        return lhs.__class__(values=result, unit=1.0 * ratio.units)
-    else:
-        if mul_or_div:
-            lhs.unit = 1.0 * ratio.units
-        return lhs
+#     ratio = op(lhs.unit, rhs.unit) if mul_or_div else rhs.unit.to(lhs.unit.units)
+#     # print(op(lhs.unit, rhs.unit))
+#     # print(lhs.unit, rhs.unit)
+#     result = op(lhs._array, rhs._array, out=out)
+#     result *= ratio.magnitude
+#     if out is None:
+#         return lhs.__class__(values=result, unit=1.0 * ratio.units)
+#     else:
+#         if mul_or_div:
+#             lhs.unit = 1.0 * ratio.units
+#         return lhs
 
 
 class Array:
@@ -80,7 +78,7 @@ class Array:
             if unit is not None:
                 raise ValueError(
                     "Cannot set unit when creating an Array from a Quantity.")
-            self._array = values.magnitude
+            self._array = np.asarray(values.magnitude)
             self.unit = values.units
         else:
             self._array = np.asarray(values)

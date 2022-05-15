@@ -8,37 +8,60 @@ from pint.errors import DimensionalityError
 import pytest
 
 
-def test_constructor():
+def test_constructor_ndarray():
     a = np.arange(100.)
     array = Array(values=a, unit='m')
     assert array.unit == units('m')
     assert len(array) == len(a)
     assert array.shape == a.shape
-    assert np.allclose(array.values, a)
+    assert np.array_equal(array.values, a)
 
 
-def test_equal():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    c = Array(values=[100., 200., 300., 400., 500.], unit='cm')
-    assert arraytrue(a == b)
-    assert arraytrue(a == c)
+def test_constructor_list():
+    l = [1., 2., 3., 4., 5.]
+    array = Array(values=l, unit='s')
+    assert array.unit == units('s')
+    assert np.array_equal(array.values, l)
 
 
-def test_not_equal():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[1., 2., 3., 4., 5.], unit='cm')
-    c = Array(values=[100., 200., 300., 400., 500.], unit='m')
-    d = Array(values=[1.1, 2., 3., 4., 5.], unit='m')
-    assert arraytrue(a != b)
-    assert arraytrue(a != c)
-    assert all((a != d).values == [True, False, False, False, False])
+def test_constructor_int():
+    num = 15
+    array = Array(values=num, unit='m')
+    assert array.unit == units('m')
+    assert np.array_equal(array.values, np.array(num))
+
+
+def test_constructor_float():
+    num = 154.77
+    array = Array(values=num, unit='m')
+    assert array.unit == units('m')
+    assert np.array_equal(array.values, np.array(num))
+
+
+def test_constructor_quantity():
+    q = 6.7 * units('K')
+    array = Array(values=q)
+    assert array.unit == units('K')
+    assert np.array_equal(array.values, np.array(q.magnitude))
+
+
+def test_bad_constructor_quantity_with_unit():
+    q = 6.7 * units('K')
+    with pytest.raises(ValueError):
+        _ = Array(values=q, unit='s')
 
 
 def test_addition():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='m')
     expected = Array(values=[7., 9., 11., 13., 15.], unit='m')
+    assert arrayclose(a + b, expected)
+
+
+def test_addition_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='cm')
+    expected = Array(values=[1.06, 2.07, 3.08, 4.09, 5.1], unit='m')
     assert arrayclose(a + b, expected)
 
 
@@ -117,6 +140,13 @@ def test_multiplication():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='m')
     expected = Array(values=[6., 14., 24., 36., 50.], unit='m*m')
+    assert arrayclose(a * b, expected)
+
+
+def test_multiplication_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='cm')
+    expected = Array(values=[0.06, 0.14, 0.24, 0.36, 0.5], unit='m*m')
     assert arrayclose(a * b, expected)
 
 
@@ -241,23 +271,6 @@ def test_division_quantity_inplace():
     assert arrayclose(a, expected)
 
 
-# def test_norm():
-#     a2d = Array(values=np.array([[1., 2.], [3., 4.], [5., 6.], [7., 8.]]), unit='s')
-#     a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.]]), unit='g')
-#     assert arrayclose(a2d.norm, Array(values=np.sqrt([5., 25., 61., 113.]), unit='s'))
-#     assert arrayclose(a3d.norm, Array(values=np.sqrt([14., 77.]), unit='g'))
-
-# def test_broadcast():
-#     a1d = Array(values=np.array([1., 2., 3., 4., 5.]), unit='s')
-#     a3d = Array(values=np.array([[1., 2., 3.], [4., 5., 6.], [7., 8., 9.],
-#                                  [10., 11., 12.], [13., 14., 15.]]),
-#                 unit='g')
-#     expected = Array(values=np.array([[1., 2., 3.], [8., 10., 12.], [21., 24., 27.],
-#                                       [40., 44., 48.], [65., 70., 75.]]),
-#                      unit='g*s')
-#     assert arrayclose(a1d * a3d, expected)
-
-
 def test_power():
     a = Array(values=[1., 2., 4., 6., 200.], unit='s')
     expected = Array(values=[1., 8., 64., 216., 8.0e6], unit='s**3')
@@ -268,6 +281,108 @@ def test_negative():
     a = Array(values=[1., 2., 4., 6., 200.], unit='s')
     expected = Array(values=[-1., -2., -4., -6., -200.], unit='s')
     assert arrayequal(-a, expected)
+
+
+def test_equal():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[11., 2., 3., 4.1, 5.], unit='m')
+    expected = [False, True, True, False, True]
+    assert all((a == b).values == expected)
+
+
+def test_equal_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[1100., 200., 300., 410., 500.], unit='cm')
+    expected = [False, True, True, False, True]
+    assert all((a == b).values == expected)
+
+
+def test_equal_bad_units():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[11., 2., 3., 4.1, 5.], unit='s')
+    with pytest.raises(DimensionalityError):
+        _ = a == b
+
+
+def test_equal_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([11., 2., 3., 4.1, 5.])
+    expected = [False, True, True, False, True]
+    assert all((a == b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a == b
+
+
+def test_equal_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [False, False, True, False, False]
+    assert all((a == b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a == b
+
+
+def test_equal_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [False, False, True, False, False]
+    assert all((a == b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a == b
+
+
+def test_not_equal():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[11., 2., 3., 4.1, 5.], unit='m')
+    expected = [True, False, False, True, False]
+    assert all((a != b).values == expected)
+
+
+def test_not_equal_conversion():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[1100., 200., 300., 410., 500.], unit='cm')
+    expected = [True, False, False, True, False]
+    assert all((a != b).values == expected)
+
+
+def test_not_equal_bad_units():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[11., 2., 3., 4.1, 5.], unit='s')
+    with pytest.raises(DimensionalityError):
+        _ = a != b
+
+
+def test_not_equal_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([11., 2., 3., 4.1, 5.])
+    expected = [True, False, False, True, False]
+    assert all((a != b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a != b
+
+
+def test_not_equal_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [True, True, False, True, True]
+    assert all((a != b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a != b
+
+
+def test_not_equal_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [True, True, False, True, True]
+    assert all((a != b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a != b
 
 
 def test_less_than():
@@ -291,6 +406,36 @@ def test_less_than_bad_units():
         _ = a < b
 
 
+def test_less_than_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([6., 7., 1., 4., 10.])
+    expected = [True, True, False, False, True]
+    assert all((a < b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a < b
+
+
+def test_less_than_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [True, True, False, False, False]
+    assert all((a < b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a < b
+
+
+def test_less_than_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [True, True, False, False, False]
+    assert all((a < b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a < b
+
+
 def test_less_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
@@ -303,6 +448,36 @@ def test_less_equal_bad_units():
     b = Array(values=[6., 7., 1., 4., 10.], unit='m')
     with pytest.raises(DimensionalityError):
         _ = a <= b
+
+
+def test_less_equal_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([6., 7., 1., 4., 10.])
+    expected = [True, True, False, True, True]
+    assert all((a <= b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a < b
+
+
+def test_less_equal_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [True, True, True, False, False]
+    assert all((a <= b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a < b
+
+
+def test_less_equal_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [True, True, True, False, False]
+    assert all((a <= b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a < b
 
 
 def test_greater_than():
@@ -319,6 +494,36 @@ def test_greater_than_bad_units():
         _ = b > a
 
 
+def test_greater_than_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([6., 7., 1., 4., 10.])
+    expected = [False, False, True, False, False]
+    assert all((a > b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a > b
+
+
+def test_greater_than_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [False, False, False, True, True]
+    assert all((a > b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a > b
+
+
+def test_greater_than_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [False, False, False, True, True]
+    assert all((a > b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a > b
+
+
 def test_greater_equal():
     a = Array(values=[1., 2., 3., 4., 5.], unit='s')
     b = Array(values=[6., 7., 1., 4., 10.], unit='s')
@@ -331,6 +536,36 @@ def test_greater_equal_bad_units():
     b = Array(values=[6., 7., 1., 4., 10.], unit='K')
     with pytest.raises(DimensionalityError):
         _ = b >= a
+
+
+def test_greater_equal_ndarray():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = np.array([6., 7., 1., 4., 10.])
+    expected = [False, False, True, True, False]
+    assert all((a >= b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a >= b
+
+
+def test_greater_equal_float():
+    a = Array(values=[1., 2., 3., 4., 5.])
+    b = 3.
+    expected = [False, False, True, True, True]
+    assert all((a >= b).values == expected)
+    a.unit = 'm'
+    with pytest.raises(DimensionalityError):
+        _ = a >= b
+
+
+def test_greater_equal_quantity():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = 3. * units('m')
+    expected = [False, False, True, True, True]
+    assert all((a >= b).values == expected)
+    b = 3. * units('s')
+    with pytest.raises(DimensionalityError):
+        _ = a >= b
 
 
 def test_to():

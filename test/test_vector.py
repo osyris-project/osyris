@@ -9,7 +9,7 @@ from pint.errors import DimensionalityError
 import pytest
 
 
-def test_constructor():
+def test_constructor_from_components():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
@@ -46,6 +46,27 @@ def test_components():
     assert arrayequal(v.z, z)
     assert v.x.name == "_x"
     assert v.y.name == "_y"
+
+
+def test_bad_constructor_from_components_with_unit():
+    x = Array(values=[1., 2., 3., 4., 5.])
+    y = Array(values=[6., 7., 8., 9., 10.])
+    z = Array(values=[11., 12., 13., 14., 15.])
+    with pytest.raises(ValueError):
+        _ = Vector(x, y, z, unit='K')
+
+
+def test_constructor_from_values():
+    values = np.arange(1., 16.).reshape(3, 5)
+    v = Vector(values=values, unit='s')
+    assert len(v) == 5
+    assert v.shape == (5, )
+    exp_x = Array(values=[1., 2., 3., 4., 5.], unit='s')
+    exp_y = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    exp_z = Array(values=[11., 12., 13., 14., 15.], unit='s')
+    assert arrayequal(v.x, exp_x)
+    assert arrayequal(v.y, exp_y)
+    assert arrayequal(v.z, exp_z)
 
 
 # def test_equal():

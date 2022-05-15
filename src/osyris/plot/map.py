@@ -193,9 +193,9 @@ def map(*layers,
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     # print(dir_vecs, selection_distance)
     # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
-    normal = Vector(values=np.array(dir_vecs[0]).reshape(1, ndim))
-    vec_u = Vector(values=np.array(dir_vecs[1]).reshape(1, ndim))
-    vec_v = Vector(values=np.array(dir_vecs[2]).reshape(1, ndim))
+    normal = Vector(values=np.array(dir_vecs[0]).reshape(ndim, 1))
+    vec_u = Vector(values=np.array(dir_vecs[1]).reshape(ndim, 1))
+    vec_v = Vector(values=np.array(dir_vecs[2]).reshape(ndim, 1))
     # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
     # print(dist_to_plane.values)
