@@ -3,6 +3,7 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
+from pint.errors import DimensionalityError
 from .tools import value_to_string, make_label
 from .. import units
 
@@ -123,7 +124,7 @@ class Array:
 
     def copy(self):
         return self.__class__(values=self._array.copy(),
-                              unit=self.unit.copy(),
+                              unit=units(self.unit),
                               name=str(self.name))
 
     @property
@@ -159,36 +160,66 @@ class Array:
         return make_label(name=self.name, unit=self.unit)
 
     def _to_array(self, other):
-        if isinstance(other, Quantity):
-            other = self.__class__(values=other.magnitude, unit=1.0 * other.units)
-        if isinstance(other, self.__class__):
-            if other.unit != self.unit:
-                other = other.to(self.unit)
-            return other
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+        # if isinstance(other, self.__class__):
+        if other.unit != self.unit:
+            other = other.to(self.unit)
+        return other
+
+    def _to_array(self, other, forced=True):
+        if not isinstance(other, self.__class__):
+            other = self.__class__(other)
+        if forced:
+            return other.to(self.unit)
+        try:
+            other = other.to(self.unit)
+        except DimensionalityError:
+            pass
+        return other
+
+    # def _to_array_try_convert(self, other):
+    #     if not isinstance(other, self.__class__):
+    #         other = self.__class__(other)
+    #     # if isinstance(other, self.__class__):
+    #     # if other.unit != self.unit:
+    #     try:
+    #         other = other.to(self.unit)
+    #     except DimensionalityError:
+    #         pass
+    #     return other
 
     def __add__(self, other):
-        return binary_op(np.add, self, other)
+        # return binary_op(np.add, self, other)
+        return np.add(self, self._to_array(other))
 
     def __iadd__(self, other):
-        return binary_op(np.add, self, other, out=self._array)
+        # return binary_op(np.add, self, other, out=self._array)
+        return np.add(self, self._to_array(other), out=self)
 
     def __sub__(self, other):
-        return binary_op(np.subtract, self, other)
+        # return binary_op(np.subtract, self, other)
+        return np.subtract(self, self._to_array(other))
 
     def __isub__(self, other):
-        return binary_op(np.subtract, self, other, out=self._array)
+        # return binary_op(np.subtract, self, other, out=self._array)
+        return np.subtract(self, self._to_array(other), out=self)
 
     def __mul__(self, other):
-        return binary_op(np.multiply, self, other, mul_or_div=True)
+        # return binary_op(np.multiply, self, other, mul_or_div=True)
+        return np.multiply(self, self._to_array(other, forced=False))
 
     def __imul__(self, other):
-        return binary_op(np.multiply, self, other, mul_or_div=True, out=self._array)
+        # return binary_op(np.multiply, self, other, mul_or_div=True, out=self._array)
+        return np.multiply(self, self._to_array(other, forced=False), out=self)
 
     def __truediv__(self, other):
-        return binary_op(np.divide, self, other, mul_or_div=True)
+        # return binary_op(np.divide, self, other, mul_or_div=True)
+        return np.divide(self, self._to_array(other, forced=False))
 
     def __itruediv__(self, other):
-        return binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
+        # return binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
+        return np.divide(self, self._to_array(other, forced=False), out=self)
 
     def __rmul__(self, other):
         # print(self)
@@ -209,7 +240,7 @@ class Array:
 
     def __lt__(self, other):
         # return np.less(self, self._to_array(other))
-        return np.less(self, _to_array(other).to())
+        return np.less(self, self._to_array(other))
 
     def __le__(self, other):
         return np.less_equal(self, self._to_array(other))
@@ -237,8 +268,21 @@ class Array:
         ratio = (1.0 * self.unit).to(new_unit) / (1.0 * new_unit)
         return self.__class__(values=self._array * ratio.magnitude, unit=new_unit)
 
-    def _extract_arrays(self, args):
-        return tuple(a._array if isinstance(a, self.__class__) else a for a in args)
+    def _maybe_array(self, arg):
+        if isinstance(arg, self.__class__):
+            return arg._array
+        if isinstance(arg, Quantity):
+            return arg.magnitude
+        return arg
+
+    def _extract_arrays_from_args(self, args):
+        # return tuple(a._array if isinstance(a, self.__class__) else a for a in args)
+        return tuple(self._maybe_array(a) for a in args)
+
+    def _extract_arrays_from_kwargs(self, kwargs):
+        # for key, a in kwargs.items():
+        #     print(key, a, type(a), isinstance(a, self.__class__))
+        return {key: self._extract_arrays_from_args(a) for key, a in kwargs.items()}
 
     def _maybe_unit(self, arg):
         if hasattr(arg, "unit"):
@@ -250,25 +294,36 @@ class Array:
     def _extract_units(self, args):
         return tuple(self._maybe_unit(a) for a in args)
 
+    # def _extract_units_from_kwargs(self, kwargs):
+    #     return {key: self._extract_units_from_args(a) for key, a in kwargs.items()}
+
     def _wrap_numpy(self, func, *args, **kwargs):
         # print("_wrap_numpy", func.__name__, self, args)
         # if func.__name__ in self._special_functions:
         #     unit = func(self.unit, *args[1:], **kwargs)
         # else:
         #     unit = self.unit
+        # print(kwargs)
         if isinstance(args[0], (tuple, list)):
-            array_args = (self._extract_arrays(args[0]), ) + self._extract_arrays(
-                args[1:])
+            array_args = (self._extract_arrays_from_args(
+                args[0]), ) + self._extract_arrays_from_args(args[1:])
         else:
-            array_args = self._extract_arrays(args)
-        result = func(*array_args, **kwargs)
+            array_args = self._extract_arrays_from_args(args)
+        # print(array_args)
+        # print(self._extract_arrays_from_kwargs(kwargs))
+        result = func(*array_args, **self._extract_arrays_from_kwargs(kwargs))
+
         unit = None
         if result.dtype in (int, float):
             if func.__name__ in SPECIAL_FUNCTIONS:
                 # if isinstance(args[0], np.ndarray) or isinstance(args[1], np.ndarray):
-                unit_args = self._extract_units(args)
+                # unit_args = self._extract_units(args)
                 # print(unit_args)
-                unit = func(*unit_args, **kwargs).units
+                # print(self._extract_units_from_args(args))
+                # print(self._extract_units_from_kwargs(kwargs))
+                unit = func(*self._extract_units(args),
+                            **{key: a
+                               for key, a in kwargs.items() if key != "out"}).units
                 # print(unit)
                 # unit = 1.0 * unit.units
             else:
@@ -277,7 +332,12 @@ class Array:
             # if func.__name__ in SPECIAL_UNARY_FUNCTIONS:
             #     unit = func(self.unit, *args[1:], **kwargs)
 
-        return self.__class__(values=result, unit=unit)
+        # print(kwargs)
+        if "out" in kwargs:
+            kwargs["out"][0].unit = unit
+            return kwargs["out"][0]
+        else:
+            return self.__class__(values=result, unit=unit)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """

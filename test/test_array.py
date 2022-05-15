@@ -337,7 +337,7 @@ def test_to():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[1.0e-3, 2.0e-3, 3.0e-3, 4.0e-3, 5.0e-3], unit='km')
     assert arrayclose(a.to('km'), b)
-    assert a.unit.units == units('m')
+    assert a.unit == units('m')
 
 
 def test_to_bad_units():
