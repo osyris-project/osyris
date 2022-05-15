@@ -17,7 +17,7 @@ class Base:
 
     @property
     def label(self):
-        return make_label(name=self._name, unit=self.unit)
+        return make_label(name=self.name, unit=self.unit)
 
     def min(self):
         return np.amin(self)

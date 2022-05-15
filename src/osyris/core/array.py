@@ -8,7 +8,7 @@ from .base import Base
 from .tools import value_to_string, make_label
 from .. import units
 
-WITH_UNIT_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
+APPLY_OP_TO_UNIT = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 
 
 def _binary_op(op, lhs, rhs, strict=True, **kwargs):
@@ -191,7 +191,7 @@ class Array(Base):
 
         unit = None
         if result.dtype in (int, float):
-            if func.__name__ in WITH_UNIT_FUNCTIONS:
+            if func.__name__ in APPLY_OP_TO_UNIT:
                 unit = func(*self._extract_units(args),
                             **{key: a
                                for key, a in kwargs.items() if key != "out"}).units

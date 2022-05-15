@@ -34,7 +34,7 @@ class Vector(Base):
 
         if values is not None:
             assert values.ndim > 1
-            nvec = values.shape[-1]
+            nvec = values.shape[0]
             self.x = Array(values=values[0], unit=unit)
             self.y = Array(values=values[1], unit=unit) if nvec > 1 else None
             self.z = Array(values=values[2], unit=unit) if nvec > 2 else None

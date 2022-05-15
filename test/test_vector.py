@@ -69,26 +69,6 @@ def test_constructor_from_values():
     assert arrayequal(v.z, exp_z)
 
 
-# def test_equal():
-#     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
-#     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
-#     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
-#     v1 = Vector(x, y, z)
-#     v2 = Vector(x, y, z)
-#     assert vectortrue(v1 == v2)
-
-# def test_not_equal():
-#     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
-#     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
-#     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
-#     v1 = Vector(x, y, z)
-#     z = Array(values=[11., 12., 13., 19., 15.], unit='m')
-#     v2 = Vector(x, y, z)
-#     result = v1 != v2
-#     assert all(result.x.values == [False, False, False, False, False])
-#     assert all(result.z.values == [False, False, False, True, False])
-
-
 def test_addition():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')

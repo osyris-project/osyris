@@ -179,7 +179,7 @@ def map(*layers,
     dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Array(values=np.zeros([1, ndim]), unit=spatial_unit)
+        origin = Vector(values=np.zeros([ndim, 1]), unit=spatial_unit)
 
     dir_vecs, dir_labs = get_direction(direction=direction,
                                        dataset=dataset,
