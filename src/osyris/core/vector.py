@@ -3,6 +3,7 @@
 import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
+from .base import Base
 from .array import Array
 # from .base import Base
 # from .operators import add, sub
@@ -10,7 +11,7 @@ from .tools import value_to_string, make_label
 from .. import units
 
 
-class Vector:
+class Vector(Base):
     def __init__(self,
                  x=None,
                  y=None,
@@ -89,14 +90,14 @@ class Vector:
         #         norm.min().values) + " Max: " + value_to_string(norm.max().values)
         # return "Vector<" + name_str + values_str + unit_str + shape_str + comps_str
 
-    def __repr__(self):
-        return str(self)
+    # def __repr__(self):
+    #     return str(self)
 
-    def __copy__(self):
-        return self.copy()
+    # def __copy__(self):
+    #     return self.copy()
 
-    def __deepcopy__(self, memo):
-        return self.copy()
+    # def __deepcopy__(self, memo):
+    #     return self.copy()
 
     def copy(self):
         return self.__class__(**{c: xyz.copy()
@@ -151,9 +152,9 @@ class Vector:
         for c, xyz in self._xyz.items():
             xyz.name = self._name + "_" + c
 
-    @property
-    def label(self):
-        return make_label(name=self._name, unit=self.unit)
+    # @property
+    # def label(self):
+    #     return make_label(name=self._name, unit=self.unit)
 
     def _to_vector(self, rhs):
         # if isinstance(rhs, Quantity):
@@ -302,27 +303,27 @@ class Vector:
             out = {c: func(xyz, *args[1:], **kwargs) for c, xyz in args[0]._xyz.items()}
         return self.__class__(**out)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
-        """
-        if method != "__call__":
-            # Only handle ufuncs as callables
-            return NotImplemented
-        return self._wrap_numpy(ufunc, *inputs, **kwargs)
+    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    #     """
+    #     Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
+    #     """
+    #     if method != "__call__":
+    #         # Only handle ufuncs as callables
+    #         return NotImplemented
+    #     return self._wrap_numpy(ufunc, *inputs, **kwargs)
 
-    def __array_function__(self, func, types, args, kwargs):
-        """
-        Numpy array_function protocol to allow Array to work with numpy
-        functions.
-        """
-        return self._wrap_numpy(func, *args, **kwargs)
+    # def __array_function__(self, func, types, args, kwargs):
+    #     """
+    #     Numpy array_function protocol to allow Array to work with numpy
+    #     functions.
+    #     """
+    #     return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self):
-        return np.amin(self)
+    # def min(self):
+    #     return np.amin(self)
 
-    def max(self):
-        return np.amax(self)
+    # def max(self):
+    #     return np.amax(self)
 
     def reshape(self, *shape):
         return self.__class__(

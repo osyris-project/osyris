@@ -4,12 +4,31 @@ import numpy as np
 from pint.quantity import Quantity
 from pint.unit import Unit
 from pint.errors import DimensionalityError
+from .base import Base
 from .tools import value_to_string, make_label
 from .. import units
 
 # SPECIAL_BINARY_FUNCTIONS = ["multiply", "divide"]
 # SPECIAL_UNARY_FUNCTIONS = ["sqrt", "power"]
-SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
+WITH_UNIT_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
+
+
+def _binary_op(op, lhs, rhs, strict=True, **kwargs):
+    if not isinstance(rhs, lhs.__class__):
+        try:
+            rhs = lhs.__class__(rhs)
+        except NotImplementedError:
+            return NotImplemented
+    if strict:
+        rhs = rhs.to(lhs.unit)
+    else:
+        try:
+            rhs = rhs.to(lhs.unit)
+        except DimensionalityError:
+            pass
+    return op(lhs, rhs, **kwargs)
+    # return other
+
 
 # def _to_array(x):
 #     if isinstance(x, Quantity):
@@ -71,8 +90,11 @@ SPECIAL_FUNCTIONS = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 #         return lhs
 
 
-class Array:
+class Array(Base):
     def __init__(self, values, unit=None, parent=None, name=""):
+
+        if isinstance(values, Base):
+            raise NotImplementedError("Cannot create Array from Array or Vector.")
 
         if isinstance(values, Quantity):
             if unit is not None:
@@ -111,14 +133,14 @@ class Array:
         shape_str = str(self.shape)
         return name_str + values_str + unit_str + shape_str
 
-    def __repr__(self):
-        return str(self)
+    # def __repr__(self):
+    #     return str(self)
 
-    def __copy__(self):
-        return self.copy()
+    # def __copy__(self):
+    #     return self.copy()
 
-    def __deepcopy__(self, memo):
-        return self.copy()
+    # def __deepcopy__(self, memo):
+    #     return self.copy()
 
     def copy(self):
         return self.__class__(values=self._array.copy(),
@@ -153,21 +175,24 @@ class Array:
     def shape(self):
         return self._array.shape
 
-    @property
-    def label(self):
-        return make_label(name=self.name, unit=self.unit)
+    # @property
+    # def label(self):
+    #     return make_label(name=self.name, unit=self.unit)
 
-    def _to_array(self, other):
-        if not isinstance(other, self.__class__):
-            other = self.__class__(other)
-        # if isinstance(other, self.__class__):
-        if other.unit != self.unit:
-            other = other.to(self.unit)
-        return other
+    # def _to_array(self, other):
+    #     if not isinstance(other, self.__class__):
+    #         other = self.__class__(other)
+    #     # if isinstance(other, self.__class__):
+    #     if other.unit != self.unit:
+    #         other = other.to(self.unit)
+    #     return other
 
     def _to_array(self, other, forced=True):
         if not isinstance(other, self.__class__):
-            other = self.__class__(other)
+            try:
+                other = self.__class__(other)
+            except NotImplementedError:
+                return NotImplemented
         if forced:
             return other.to(self.unit)
         try:
@@ -188,36 +213,37 @@ class Array:
     #     return other
 
     def __add__(self, other):
-        # return binary_op(np.add, self, other)
-        return np.add(self, self._to_array(other))
+        # print("__add__", self, other)
+        return _binary_op(np.add, self, other)
+        # return np.add(self, self._to_array(other))
 
     def __iadd__(self, other):
-        # return binary_op(np.add, self, other, out=self._array)
-        return np.add(self, self._to_array(other), out=self)
+        return _binary_op(np.add, self, other, out=self)
+        # return np.add(self, self._to_array(other), out=self)
 
     def __sub__(self, other):
-        # return binary_op(np.subtract, self, other)
-        return np.subtract(self, self._to_array(other))
+        return _binary_op(np.subtract, self, other)
+        # return np.subtract(self, self._to_array(other))
 
     def __isub__(self, other):
-        # return binary_op(np.subtract, self, other, out=self._array)
-        return np.subtract(self, self._to_array(other), out=self)
+        return _binary_op(np.subtract, self, other, out=self)
+        # return np.subtract(self, self._to_array(other), out=self)
 
     def __mul__(self, other):
-        # return binary_op(np.multiply, self, other, mul_or_div=True)
-        return np.multiply(self, self._to_array(other, forced=False))
+        return _binary_op(np.multiply, self, other, strict=False)
+        # return np.multiply(self, self._to_array(other, forced=False))
 
     def __imul__(self, other):
-        # return binary_op(np.multiply, self, other, mul_or_div=True, out=self._array)
-        return np.multiply(self, self._to_array(other, forced=False), out=self)
+        return _binary_op(np.multiply, self, other, strict=False, out=self)
+        # return np.multiply(self, self._to_array(other, forced=False), out=self)
 
     def __truediv__(self, other):
-        # return binary_op(np.divide, self, other, mul_or_div=True)
-        return np.divide(self, self._to_array(other, forced=False))
+        return _binary_op(np.divide, self, other, strict=False)
+        # return np.divide(self, self._to_array(other, forced=False))
 
     def __itruediv__(self, other):
-        # return binary_op(np.divide, self, other, mul_or_div=True, out=self._array)
-        return np.divide(self, self._to_array(other, forced=False), out=self)
+        return _binary_op(np.divide, self, other, strict=False, out=self)
+        # return np.divide(self, self._to_array(other, forced=False), out=self)
 
     def __rmul__(self, other):
         # print(self)
@@ -238,22 +264,28 @@ class Array:
 
     def __lt__(self, other):
         # return np.less(self, self._to_array(other))
-        return np.less(self, self._to_array(other))
+        # return np.less(self, self._to_array(other))
+        return _binary_op(np.less, self, other)
 
     def __le__(self, other):
-        return np.less_equal(self, self._to_array(other))
+        # return np.less_equal(self, self._to_array(other))
+        return _binary_op(np.less_equal, self, other)
 
     def __gt__(self, other):
-        return np.greater(self, self._to_array(other))
+        # return np.greater(self, self._to_array(other))
+        return _binary_op(np.greater, self, other)
 
     def __ge__(self, other):
-        return np.greater_equal(self, self._to_array(other))
+        # return np.greater_equal(self, self._to_array(other))
+        return _binary_op(np.greater_equal, self, other)
 
     def __eq__(self, other):
-        return np.equal(self, self._to_array(other))
+        # return np.equal(self, self._to_array(other))
+        return _binary_op(np.equal, self, other)
 
     def __ne__(self, other):
-        return np.not_equal(self, self._to_array(other))
+        # return np.not_equal(self, self._to_array(other))
+        return _binary_op(np.not_equal, self, other)
 
     def to(self, unit):
         new_unit = units(unit)
@@ -313,7 +345,7 @@ class Array:
 
         unit = None
         if result.dtype in (int, float):
-            if func.__name__ in SPECIAL_FUNCTIONS:
+            if func.__name__ in WITH_UNIT_FUNCTIONS:
                 # if isinstance(args[0], np.ndarray) or isinstance(args[1], np.ndarray):
                 # unit_args = self._extract_units(args)
                 # print(unit_args)
@@ -337,27 +369,29 @@ class Array:
         else:
             return self.__class__(values=result, unit=unit)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
-        """
-        if method != "__call__":
-            # Only handle ufuncs as callables
-            return NotImplemented
-        return self._wrap_numpy(ufunc, *inputs, **kwargs)
+    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    #     """
+    #     Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
+    #     """
+    #     print("__array_ufunc__", ufunc)
+    #     if method != "__call__":
+    #         # Only handle ufuncs as callables
+    #         return NotImplemented
+    #     return self._wrap_numpy(ufunc, *inputs, **kwargs)
 
-    def __array_function__(self, func, types, args, kwargs):
-        """
-        Numpy array_function protocol to allow Array to work with numpy
-        functions.
-        """
-        return self._wrap_numpy(func, *args, **kwargs)
+    # def __array_function__(self, func, types, args, kwargs):
+    #     """
+    #     Numpy array_function protocol to allow Array to work with numpy
+    #     functions.
+    #     """
+    #     print("__array_function__", func)
+    #     return self._wrap_numpy(func, *args, **kwargs)
 
-    def min(self):
-        return self.__class__(values=self._array.min(), unit=self.unit)
+    # def min(self):
+    #     return self.__class__(values=self._array.min(), unit=self.unit)
 
-    def max(self):
-        return self.__class__(values=self._array.max(), unit=self.unit)
+    # def max(self):
+    #     return self.__class__(values=self._array.max(), unit=self.unit)
 
     def reshape(self, *shape):
         return self.__class__(values=self._array.reshape(*shape), unit=self.unit)
