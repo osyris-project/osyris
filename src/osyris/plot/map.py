@@ -243,8 +243,8 @@ def map(*layers,
         ymax = (datay + datadx).max().values
         zmin = (dataz - datadx).min().values
         zmax = (dataz + datadx).max().values
-        dx = (xmax - xmin) * datadx.unit.units
-        dy = (ymax - ymin) * datadx.unit.units
+        dx = (xmax - xmin) * datadx.unit
+        dy = (ymax - ymin) * datadx.unit
 
     scalar_layer = []
     to_binning = []  # contains the variables in cells close to the plane
@@ -347,8 +347,10 @@ def map(*layers,
                               cell_positions_in_new_basis_y=apply_mask(datay.values),
                               cell_positions_in_new_basis_z=apply_mask(dataz.values),
                               cell_positions_in_original_basis_x=coords.x.values,
-                              cell_positions_in_original_basis_y=coords.y.values,
-                              cell_positions_in_original_basis_z=coords.z.values,
+                              cell_positions_in_original_basis_y=coords.y.values
+                              if coords.y is not None else None,
+                              cell_positions_in_original_basis_z=coords.z.values
+                              if coords.z is not None else None,
                               cell_values=np.array(to_binning),
                               cell_sizes=datadx.values,
                               grid_lower_edge_in_new_basis_x=xmin,

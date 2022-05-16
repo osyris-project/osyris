@@ -97,14 +97,21 @@ def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_
                 for i in range(ix1, ix2):
                     # dist = np.abs(grid_positions_in_original_basis[k, j, i, :] -
                     #               cell_positions_in_original_basis[n, :])
-                    dist_x = np.abs(grid_positions_in_original_basis[k, j, i, 0] -
-                                    cell_positions_in_original_basis_x[n])
-                    dist_y = np.abs(grid_positions_in_original_basis[k, j, i, 1] -
-                                    cell_positions_in_original_basis_y[n])
-                    dist_z = np.abs(grid_positions_in_original_basis[k, j, i, 2] -
-                                    cell_positions_in_original_basis_z[n])
-                    if (dist_x <= cell_sizes[n]) and (dist_y <= cell_sizes[n]) and (
-                            dist_z <= cell_sizes[n]):
+                    ok_x = np.abs(
+                        grid_positions_in_original_basis[k, j, i, 0] -
+                        cell_positions_in_original_basis_x[n]) <= cell_sizes[n]
+                    ok_y = True
+                    if cell_positions_in_original_basis_y is not None:
+                        ok_y = np.abs(
+                            grid_positions_in_original_basis[k, j, i, 1] -
+                            cell_positions_in_original_basis_y[n]) <= cell_sizes[n]
+                    ok_z = True
+                    if cell_positions_in_original_basis_z is not None:
+                        dist_z = np.abs(
+                            grid_positions_in_original_basis[k, j, i, 2] -
+                            cell_positions_in_original_basis_z[n]) <= cell_sizes[n]
+
+                    if ok_x and ok_y and ok_z:
                         out[:, k, j, i] = cell_values[:, n]
 
     return out
