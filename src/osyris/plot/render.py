@@ -51,7 +51,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
 
         if func == "line_integral_convolution" and "color" in item["params"]:
             cblabel = make_label(name=item["params"]["color"].name,
-                                 unit=item["params"]["color"].unit.units)
+                                 unit=item["params"]["color"].unit)
         else:
             cblabel = make_label(name=item.get("name", ""), unit=item.get("unit", ""))
 

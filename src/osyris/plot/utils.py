@@ -107,7 +107,7 @@ def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_
                             cell_positions_in_original_basis_y[n]) <= cell_sizes[n]
                     ok_z = True
                     if cell_positions_in_original_basis_z is not None:
-                        dist_z = np.abs(
+                        ok_z = np.abs(
                             grid_positions_in_original_basis[k, j, i, 2] -
                             cell_positions_in_original_basis_z[n]) <= cell_sizes[n]
 
