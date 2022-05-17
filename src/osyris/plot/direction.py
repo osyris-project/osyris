@@ -54,7 +54,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
                 sphere_rad = (0.5 *
                               (pos[:, 0].max() - pos[:, 0].min() + pos[:, 1].max() -
                                pos[:, 1].min() + pos[:, 2].max() - pos[:, 2].min()) /
-                              3.) * dataset["amr"]["position"].unit.units
+                              3.) * dataset["amr"]["position"].unit
             else:
                 sphere_rad = 0.25 * (dx + dy)
 
