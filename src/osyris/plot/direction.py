@@ -69,14 +69,17 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
                 # Choose a vector perpendicular to the angular momentum vector
                 dir3 = AngMom
                 dir1 = _perpendicular_vector(dir3)
-                dir2 = np.cross(dir1, dir3)
+                dir2 = np.cross(dir3, dir1)
             else:
                 dir1 = AngMom
                 dir2 = _perpendicular_vector(dir1)
                 dir3 = np.cross(dir1, dir2)
             norm1 = np.linalg.norm(dir1)
+            norm2 = np.linalg.norm(dir2)
             print("Normal slice vector: [%.5e,%.5e,%.5e]" %
                   (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
+            print("In plane slice vector: [%.5e,%.5e,%.5e]" %
+                  (dir2[0] / norm2, dir2[1] / norm2, dir2[2] / norm2))
             dir_vecs = np.array([dir1, dir2, dir3])
 
         if set(direction) == set("xyz"):  # case where direction = "xyz", "zyx" etc.
