@@ -11,14 +11,10 @@ def _perpendicular_vector(v):
     Compute a vector perpendicular to the input vector
     """
 
-    # x = y = z = 0 is not an acceptable solution
-    if v[0] == v[1] == v[2] == 0:
-        raise ValueError("zero-vector")
-
-    if v[2] == 0:
-        return [-v[1], v[0], 0]
+    if v.z == 0:
+        return Vector(-v.y, v.x, 0)
     else:
-        return [1.0, 1.0, -1.0 * (v[0] + v[1]) / v[2]]
+        return Vector(1.0, 1.0, -1.0 * (v.x + v.y) / v.z)
 
 
 def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
@@ -39,12 +35,18 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
 
     The origin is a vector of 3 numbers (xyz).
     """
-    dir_list = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}
+    dir_list = {"x": Vector(1, 0, 0), "y": Vector(0, 1, 0), "z": Vector(0, 0, 1)}
     dir_labs = {"x": "pos_u", "y": "pos_v"}
 
     if dataset.meta["ndim"] < 3:
-        dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
-        dir_labs = {"x": "x", "y": "y"}
+        # dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
+        dir_vecs = {
+            "n": Vector(0, 0, name="normal"),
+            "u": Vector(1, 0, name="pos_u"),
+            "v": Vector(0, 1, name="pos_v")
+        }
+        # np.array([[0., 0.], [1., 0.], [0., 1.]])
+        # dir_labs = {"x": "x", "y": "y"}
 
     elif isinstance(direction, str):
         direction = direction.lower()

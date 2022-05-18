@@ -23,6 +23,7 @@ def _binary_op(op, lhs, rhs):
 
 
 class Vector(Base):
+
     def __init__(self,
                  x=None,
                  y=None,
@@ -33,11 +34,16 @@ class Vector(Base):
                  unit=None):
 
         if values is not None:
+            values = np.asarray(values)
             assert values.ndim > 1
             nvec = values.shape[0]
             self.x = Array(values=values[0], unit=unit)
             self.y = Array(values=values[1], unit=unit) if nvec > 1 else None
             self.z = Array(values=values[2], unit=unit) if nvec > 2 else None
+        elif isinstance(x, (float, int)):
+            self.x = Array(values=x, unit=unit)
+            self.y = Array(values=y, unit=unit) if y is not None else None
+            self.z = Array(values=z, unit=unit) if z is not None else None
         else:
             if unit is not None:
                 raise ValueError("Can only set unit when creating Vector from values.")
