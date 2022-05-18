@@ -9,7 +9,7 @@ from pint.errors import DimensionalityError
 import pytest
 
 
-def test_constructor_from_components():
+def test_constructor_from_arrays():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
@@ -48,7 +48,7 @@ def test_components():
     assert v.y.name == "_y"
 
 
-def test_bad_constructor_from_components_with_unit():
+def test_bad_constructor_from_arrays_with_unit():
     x = Array(values=[1., 2., 3., 4., 5.])
     y = Array(values=[6., 7., 8., 9., 10.])
     z = Array(values=[11., 12., 13., 14., 15.])
@@ -56,9 +56,22 @@ def test_bad_constructor_from_components_with_unit():
         _ = Vector(x, y, z, unit='K')
 
 
-def test_constructor_from_values():
-    values = np.arange(1., 16.).reshape(3, 5)
-    v = Vector(values=values, unit='s')
+def test_constructor_from_floats():
+    v = Vector(1., 2., 3., unit='s')
+    assert len(v) == 0
+    exp_x = Array(1., unit='s')
+    exp_y = Array(2., unit='s')
+    exp_z = Array(3., unit='s')
+    assert arrayequal(v.x, exp_x)
+    assert arrayequal(v.y, exp_y)
+    assert arrayequal(v.z, exp_z)
+
+
+def test_constructor_from_ndarrays():
+    x = np.array([1., 2., 3., 4., 5.])
+    y = np.array([6., 7., 8., 9., 10.])
+    z = np.array([11., 12., 13., 14., 15.])
+    v = Vector(x, y, z, unit='s')
     assert len(v) == 5
     assert v.shape == (5, )
     exp_x = Array(values=[1., 2., 3., 4., 5.], unit='s')

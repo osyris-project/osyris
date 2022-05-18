@@ -23,46 +23,49 @@ def _binary_op(op, lhs, rhs):
 
 
 class Vector(Base):
+    def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
 
-    def __init__(self,
-                 x=None,
-                 y=None,
-                 z=None,
-                 parent=None,
-                 name="",
-                 values=None,
-                 unit=None):
-
-        if values is not None:
-            values = np.asarray(values)
-            assert values.ndim > 1
-            nvec = values.shape[0]
-            self.x = Array(values=values[0], unit=unit)
-            self.y = Array(values=values[1], unit=unit) if nvec > 1 else None
-            self.z = Array(values=values[2], unit=unit) if nvec > 2 else None
-        elif isinstance(x, (float, int)):
-            self.x = Array(values=x, unit=unit)
-            self.y = Array(values=y, unit=unit) if y is not None else None
-            self.z = Array(values=z, unit=unit) if z is not None else None
-        else:
+        if isinstance(x, Array):
             if unit is not None:
                 raise ValueError("Can only set unit when creating Vector from values.")
-            self.x = Array(values=x.values, unit=x.unit)
-            self.y = self._validate_component(y, unit=x.unit)
-            self.z = self._validate_component(z, unit=x.unit)
+            unit = x.unit
+            x = x.values
+            y = self._validate_component(y, x.shape, unit)
+            z = self._validate_component(z, x.shape, unit)
+        self.x = Array(values=x, unit=unit)
+        self.y = Array(values=y, unit=unit) if y is not None else None
+        self.z = Array(values=z, unit=unit) if z is not None else None
+
+        # if values is not None:
+        #     values = np.asarray(values)
+        #     assert values.ndim > 1
+        #     nvec = values.shape[0]
+        #     self.x = Array(values=values[0], unit=unit)
+        #     self.y = Array(values=values[1], unit=unit) if nvec > 1 else None
+        #     self.z = Array(values=values[2], unit=unit) if nvec > 2 else None
+        # elif isinstance(x, (float, int)):
+        #     self.x = Array(values=x, unit=unit)
+        #     self.y = Array(values=y, unit=unit) if y is not None else None
+        #     self.z = Array(values=z, unit=unit) if z is not None else None
+        # else:
+        #     if unit is not None:
+        #         raise ValueError("Can only set unit when creating Vector from values.")
+        #     self.x = Array(values=x.values, unit=x.unit)
+        #     self.y = self._validate_component(y, unit=x.unit)
+        #     self.z = self._validate_component(z, unit=x.unit)
         self.parent = parent
         self.name = name
 
-    def _validate_component(self, array, unit):
+    def _validate_component(self, array, shape, unit):
         if array is None:
-            return array
-        if array.shape != self.x.shape:
+            return
+        if array.shape != shape:
             raise ValueError("The shape of the component does not match the "
                              "shape of the x component")
         if array.unit != unit:
             raise ValueError("The unit of the component does not match the "
                              "unit of the x component")
-        return Array(values=array.values, unit=unit)
+        return array.values
 
     @property
     def _xyz(self):
