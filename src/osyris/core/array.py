@@ -37,11 +37,13 @@ class Array(Base):
             if unit is not None:
                 raise ValueError(
                     "Cannot set unit when creating an Array from a Quantity.")
-            self._array = np.asarray(values.magnitude)
+            self._array = values.magnitude
             self.unit = values.units
         else:
-            self._array = np.asarray(values)
+            self._array = values
             self.unit = units(unit)
+        if not isinstance(self._array, np.ndarray):
+            self._array = np.asarray(self._array)
 
         self.parent = parent
         self.name = name

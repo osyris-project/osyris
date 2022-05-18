@@ -179,13 +179,13 @@ def map(*layers,
     dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Vector(values=np.zeros([ndim, 1]), unit=spatial_unit)
+        origin = Vector(0, 0, 0, unit=spatial_unit)
 
-    dir_vecs, dir_labs = get_direction(direction=direction,
-                                       dataset=dataset,
-                                       dx=dx,
-                                       dy=dy,
-                                       origin=origin)
+    dir_vecs = get_direction(direction=direction,
+                             dataset=dataset,
+                             dx=dx,
+                             dy=dy,
+                             origin=origin)
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
@@ -193,9 +193,14 @@ def map(*layers,
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
     # print(dir_vecs, selection_distance)
     # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
-    normal = Vector(values=np.array(dir_vecs[0]).reshape(ndim, 1))
-    vec_u = Vector(values=np.array(dir_vecs[1]).reshape(ndim, 1))
-    vec_v = Vector(values=np.array(dir_vecs[2]).reshape(ndim, 1))
+    # normal = Vector(values=np.array(dir_vecs[0]).reshape(ndim, 1))
+    # vec_u = Vector(values=np.array(dir_vecs[1]).reshape(ndim, 1))
+    # vec_v = Vector(values=np.array(dir_vecs[2]).reshape(ndim, 1))
+
+    normal = dir_vecs["normal"]
+    vec_u = dir_vecs["pos_u"]
+    vec_v = dir_vecs["pos_v"]
+
     # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
     # print(dist_to_plane.values)
@@ -326,9 +331,15 @@ def map(*layers,
     xgrid = xg.T
     ygrid = yg.T
     zgrid = zg.T
-    pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
-        ygrid.shape + (1, )) * dir_vecs[2] + zgrid.reshape(zgrid.shape +
-                                                           (1, )) * dir_vecs[0]
+    # pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
+    #     ygrid.shape + (1, )) * dir_vecs[2] + zgrid.reshape(zgrid.shape +
+    #                                                        (1, )) * dir_vecs[0]
+    u_array = np.array([vec_u.x.values, vec_u.y.values, vec_u.z.values])
+    v_array = np.array([vec_v.x.values, vec_v.y.values, vec_v.z.values])
+    n_array = np.array([normal.x.values, normal.y.values, normal.z.values])
+
+    pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * u_array + ygrid.reshape(
+        ygrid.shape + (1, )) * v_array + zgrid.reshape(zgrid.shape + (1, )) * n_array
 
     # Evaluate the values of the data layers at the grid positions
     # binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
@@ -409,9 +420,9 @@ def map(*layers,
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
         figure["ax"].set_xlabel(
-            Array(values=0, unit=map_unit, name=dir_labs["x"]).label)
+            Array(values=0, unit=map_unit, name=dir_vecs["pos_u"].name).label)
         figure["ax"].set_ylabel(
-            Array(values=0, unit=map_unit, name=dir_labs["y"]).label)
+            Array(values=0, unit=map_unit, name=dir_vecs["pos_v"].name).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 

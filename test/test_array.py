@@ -51,6 +51,17 @@ def test_bad_constructor_quantity_with_unit():
         _ = Array(values=q, unit='s')
 
 
+def test_constructor_masked_array():
+    a = np.arange(5.)
+    b = np.ma.masked_where(a > 2, a)
+    array = Array(values=b, unit='m')
+    assert array.unit == units('m')
+    assert len(array) == len(b)
+    assert array.shape == b.shape
+    assert np.array_equal(array.values, b)
+    assert np.array_equal(array.values.mask, [False, False, False, True, True])
+
+
 def test_addition():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='m')
