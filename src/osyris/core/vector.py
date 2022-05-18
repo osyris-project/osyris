@@ -245,3 +245,9 @@ class Vector(Base):
         for (c1, c2) in zip(self._xyz.values(), other._xyz.values()):
             out += (c1 * c2).values
         return Array(values=out, unit=self.unit * other.unit)
+
+    def cross(self, other):
+        x = self.y * other.z - self.z * other.y
+        y = self.z * other.x - self.x * other.z
+        z = self.x * other.y - self.y * other.x
+        return self.__class__(x, y, z)

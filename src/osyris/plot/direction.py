@@ -36,14 +36,14 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     The origin is a vector of 3 numbers (xyz).
     """
     dir_list = {"x": Vector(1, 0, 0), "y": Vector(0, 1, 0), "z": Vector(0, 0, 1)}
-    dir_labs = {"x": "pos_u", "y": "pos_v"}
+    dir_names = ("normal", "pos_u", "pos_v")
 
     if dataset.meta["ndim"] < 3:
         # dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
         dir_vecs = {
-            "n": Vector(0, 0, name="normal"),
-            "u": Vector(1, 0, name="pos_u"),
-            "v": Vector(0, 1, name="pos_v")
+            dir_names[0]: Vector(0, 0, name=dir_names[0]),
+            dir_names[1]: Vector(1, 0, name=dir_names[1]),
+            dir_names[2]: Vector(0, 1, name=dir_names[2])
         }
         # np.array([[0., 0.], [1., 0.], [0., 1.]])
         # dir_labs = {"x": "x", "y": "y"}
@@ -70,25 +70,31 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             pos = xyz * dataset["hydro"]["mass"]
             vel = dataset["hydro"]["velocity"]
 
-            AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
+            # AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
+            ang_mom = np.sum(pos.cross(vel))
+            print(ang_mom)
             if direction == "side":
                 # Choose a vector perpendicular to the angular momentum vector
-                dir3 = AngMom
+                dir3 = ang_mom
                 dir1 = _perpendicular_vector(dir3)
-                dir2 = np.cross(dir1, dir3)
+                dir2 = dir3.cross(dir1)
             else:
-                dir1 = AngMom
+                dir1 = ang_mom
                 dir2 = _perpendicular_vector(dir1)
-                dir3 = np.cross(dir1, dir2)
-            norm1 = np.linalg.norm(dir1)
-            print("Normal slice vector: [%.5e,%.5e,%.5e]" %
-                  (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
-            dir_vecs = np.array([dir1, dir2, dir3])
+                dir3 = dir1.cross(dir2)
+            # norm1 = np.linalg.norm(dir1)
+            # print("Normal slice vector: [%.5e,%.5e,%.5e]" %
+            #       (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
+            dir_vecs = {}
+            print("Basis vectors:")
+            for key, vec in zip(dir_names, (dir1, dir2, dir3)):
+                normalized = vec / vec.norm
+                normalized.name = key
+                dir_vecs[key] = normalized
+                print(key, ":", normalized)
 
         if set(direction) == set("xyz"):  # case where direction = "xyz", "zyx" etc.
-            dir_vecs = np.array([
-                dir_list[direction[0]], dir_list[direction[1]], dir_list[direction[2]]
-            ])
+            # dir_vecs =
             dir_labs = {"x": direction[1], "y": direction[2]}
         elif direction == "x":
             dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
