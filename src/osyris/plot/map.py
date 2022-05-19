@@ -16,7 +16,6 @@ from .utils import evaluate_on_grid
 
 def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
-    # viewport = max(dx.magnitude, dy.magnitude)
     viewport = np.maximum(dx, dy)
     radius = None
     if "s" in to_scatter[0]["params"]:
@@ -26,27 +25,20 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
             to_scatter[0]["params"]["s"] = radius
     if radius is None:
         # Fudge factor to select sinks close to the plane
-        # radius = Array(values=viewport * 0.05, unit=dx.units)
         radius = Array(values=viewport * 0.05)
-    # dist1 = np.sum(xyz * dir_vecs[0], axis=1)
     dist_to_plane = xyz.dot(dir_vecs["normal"])
     global_selection = np.arange(len(to_scatter[0]["data"]))
-    # select = np.ravel(np.where(np.abs(dist1) <= radius))
     select = (np.abs(dist_to_plane) <= radius).values
     global_selection = global_selection[select]
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
-        # datax = np.inner(coords, dir_vecs[1])
-        # datay = np.inner(coords, dir_vecs[2])
         datax = coords.dot(dir_vecs["pos_u"])
         datay = coords.dot(dir_vecs["pos_v"])
 
         if dx is not None:
             # Limit selection further by using distance from center
             dist2 = coords
-            # select2 = np.ravel(
-            #     np.where(np.abs(dist2.norm.values) <= viewport * 0.6 * np.sqrt(2.0)))
             select2 = (np.abs(coords.norm) <= viewport * 0.6 * np.sqrt(2.0)).values
             datax = datax[select2]
             datay = datay[select2]
@@ -199,19 +191,12 @@ def map(*layers,
     diagonal = np.sqrt(ndim)
     xyz = dataset["amr"]["position"] - origin
     selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
-    # print(dir_vecs, selection_distance)
-    # dist_to_plane = np.sum(xyz * dir_vecs[0], axis=1)
-    # normal = Vector(values=np.array(dir_vecs[0]).reshape(ndim, 1))
-    # vec_u = Vector(values=np.array(dir_vecs[1]).reshape(ndim, 1))
-    # vec_v = Vector(values=np.array(dir_vecs[2]).reshape(ndim, 1))
 
     normal = dir_vecs["normal"]
     vec_u = dir_vecs["pos_u"]
     vec_v = dir_vecs["pos_v"]
 
-    # dist_to_plane = (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) + (xyz.x * dir_vecs[0][0]) +
     dist_to_plane = xyz.dot(normal)
-    # print(dist_to_plane.values)
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
@@ -237,13 +222,9 @@ def map(*layers,
         radial_selection = np.abs(radial_distance.norm.values) <= max(
             dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
         indices_close_to_plane = indices_close_to_plane[radial_selection]
-        # print(np.sum(indices_close_to_plane))
 
     # Project coordinates onto the plane by taking dot product with axes vectors
     coords = xyz[indices_close_to_plane]
-    # datax = np.inner(coords, dir_vecs[1])
-    # datay = np.inner(coords, dir_vecs[2])
-    # dataz = np.inner(coords, dir_vecs[0])
     datax = coords.dot(vec_u)
     datay = coords.dot(vec_v)
     dataz = coords.dot(normal)
@@ -263,16 +244,11 @@ def map(*layers,
     to_binning = []  # contains the variables in cells close to the plane
     for ind in range(len(to_process)):
         if to_render[ind]["mode"] in ["vec", "stream", "lic"]:
-            # if to_process[ind].ndim < 3:
             uv = to_process[ind][indices_close_to_plane]
             if to_process[ind].z is None:
-                # uv = to_process[ind].values[indices_close_to_plane]
                 u = uv.x.values
                 v = uv.y.values
             else:
-                # uv = np.inner(
-                #     to_process[ind].values.take(indices_close_to_plane, axis=0),
-                #     dir_vecs[1:])
                 u = uv.dot(vec_u).values
                 v = uv.dot(vec_v).values
 
@@ -281,23 +257,9 @@ def map(*layers,
                 w = to_render[ind]["params"]["color"].norm.values[
                     indices_close_to_plane]
             else:
-
-                # if "color" in to_render[ind]["params"]:
-                #     if isinstance(to_render[ind]["params"]["color"], (Array, Vector)):
-                #         w = to_render[ind]["params"]["color"].norm.values[indices_close_to_plane]
-
-                # if "color" in to_render[ind]["params"]:
-                #     if isinstance(to_render[ind]["params"]["color"], (Array, Vector)):
-                #         w = to_render[ind]["params"]["color"].norm.values[indices_close_to_plane]
-                #     elif isinstance(to_render[ind]["params"]["color"], np.ndarray):
-                #         w = to_render[ind]["params"]["color"]
-                # if w is None:
-                # w = np.linalg.norm(uv, axis=1)
                 w = u * u
                 w += v * v
                 w = np.sqrt(w)
-            # else:
-            #     w = w.take(indices_close_to_plane, axis=0)
             to_binning.append(apply_mask(u))
             to_binning.append(apply_mask(v))
             to_binning.append(w)
@@ -339,9 +301,6 @@ def map(*layers,
     xgrid = xg.T
     ygrid = yg.T
     zgrid = zg.T
-    # pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * dir_vecs[1] + ygrid.reshape(
-    #     ygrid.shape + (1, )) * dir_vecs[2] + zgrid.reshape(zgrid.shape +
-    #                                                        (1, )) * dir_vecs[0]
     u_array = np.array([vec_u.x.values, vec_u.y.values, vec_u.z.values])
     v_array = np.array([vec_v.x.values, vec_v.y.values, vec_v.z.values])
     n_array = np.array([normal.x.values, normal.y.values, normal.z.values])
@@ -350,18 +309,6 @@ def map(*layers,
         ygrid.shape + (1, )) * v_array + zgrid.reshape(zgrid.shape + (1, )) * n_array
 
     # Evaluate the values of the data layers at the grid positions
-    # binned = evaluate_on_grid(cell_positions_in_new_basis=np.array(
-    #     [apply_mask(datax.values),
-    #      apply_mask(datay.values),
-    #      apply_mask(dataz.values)]).T,
-    #                           cell_positions_in_original_basis=coords.values,
-    #                           cell_values=np.array(to_binning),
-    #                           cell_sizes=datadx.values,
-    #                           grid_lower_edge_in_new_basis=np.array([xmin, ymin, zmin]),
-    #                           grid_spacing_in_new_basis=np.array(
-    #                               [xspacing, yspacing, zspacing]),
-    #                           grid_positions_in_original_basis=pixel_positions,
-    #                           ndim=ndim)
     binned = evaluate_on_grid(cell_positions_in_new_basis_x=apply_mask(datax.values),
                               cell_positions_in_new_basis_y=apply_mask(datay.values),
                               cell_positions_in_new_basis_z=apply_mask(dataz.values),
@@ -383,8 +330,6 @@ def map(*layers,
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
-
-    # print(binned[0])
 
     # Handle thick maps
     if thick:
@@ -436,15 +381,13 @@ def map(*layers,
 
         # Add scatter layer
         if len(to_scatter) > 0:
-            _add_scatter(
-                to_scatter=to_scatter,
-                origin=origin,
-                dir_vecs=dir_vecs,
-                # dir_labs=dir_labs,
-                dx=dx,
-                dy=dy,
-                ax=figure["ax"],
-                map_unit=map_unit)
+            _add_scatter(to_scatter=to_scatter,
+                         origin=origin,
+                         dir_vecs=dir_vecs,
+                         dx=dx,
+                         dy=dy,
+                         ax=figure["ax"],
+                         map_unit=map_unit)
 
         xmin *= scale_ratio
         xmax *= scale_ratio

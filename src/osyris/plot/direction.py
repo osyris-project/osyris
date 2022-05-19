@@ -43,14 +43,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     dir_names = ("normal", "pos_u", "pos_v")
 
     if dataset.meta["ndim"] < 3:
-        # dir_vecs = np.array([[0., 0.], [1., 0.], [0., 1.]])
         return {
             dir_names[0]: Vector(0, 0, name="z"),
             dir_names[1]: Vector(1, 0, name="x"),
             dir_names[2]: Vector(0, 1, name="y")
         }
-        # np.array([[0., 0.], [1., 0.], [0., 1.]])
-        # dir_labs = {"x": "x", "y": "y"}
 
     if isinstance(direction, str):
         direction = direction.lower()
@@ -67,15 +64,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             if origin is not None:
                 xyz = xyz - origin
             # Compute angular momentum vector
-            # sphere = xyz.norm < sphere_rad.magnitude
             sphere = (xyz.norm < sphere_rad).values
-            print(sphere)
             pos = xyz * dataset["hydro"]["mass"]
             vel = dataset["hydro"]["velocity"]
 
-            # AngMom = np.sum(np.cross(pos.array[sphere], vel.array[sphere]), axis=0)
             ang_mom = np.sum(pos[sphere].cross(vel[sphere]))
-            print(ang_mom)
             if direction == "side":
                 # Choose a vector perpendicular to the angular momentum vector
                 dir3 = ang_mom
@@ -85,13 +78,9 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
                 dir1 = ang_mom
                 dir2 = _perpendicular_vector(dir1)
                 dir3 = dir1.cross(dir2)
-            # norm1 = np.linalg.norm(dir1)
-            # print("Normal slice vector: [%.5e,%.5e,%.5e]" %
-            #       (dir1[0] / norm1, dir1[1] / norm1, dir1[2] / norm1))
             dir_vecs = {}
             print("Basis vectors:")
             for key, vec in zip(dir_names, (dir1, dir2, dir3)):
-                # normalized = vec / vec.norm
                 vec.name = key
                 dir_vecs[key] = vec
                 print(vec)
@@ -102,33 +91,24 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
                 "pos_u": dir_list[direction[1]],
                 "pos_v": dir_list[direction[2]]
             }
-            # dir_labs = {"x": direction[1], "y": direction[2]}
         elif direction == "x":
             return {
                 "normal": dir_list["x"],
                 "pos_u": dir_list["y"],
                 "pos_v": dir_list["z"]
             }
-            # dir_vecs = np.array([dir_list["x"], dir_list["y"], dir_list["z"]])
-            # dir_labs = {"x": "y", "y": "z"}
         elif direction == "y":
             return {
                 "normal": dir_list["y"],
                 "pos_u": dir_list["z"],
                 "pos_v": dir_list["x"]
             }
-            # dir_vecs = np.array([dir_list["y"], dir_list["z"], dir_list["x"]])
-            # dir_labs = {"x": "z", "y": "x"}
         elif direction == "z":
             return {
                 "normal": dir_list["z"],
                 "pos_u": dir_list["x"],
                 "pos_v": dir_list["y"]
             }
-            # dir_vecs = np.array([dir_list["z"], dir_list["x"], dir_list["y"]])
-            # dir_labs = {"x": "x", "y": "y"}
-    # This is the case where direction = [1,1,2]
-    # (i.e. is a vector with 3 numbers)
     elif isinstance(direction, Vector):
         dir_vecs = {"normal": direction}
         u = _perpendicular_vector(dir_vecs["normal"])
@@ -137,23 +117,8 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         v = direction.cross(dir_vecs["pos_u"])
         v.name = "pos_v"
         dir_vecs["pos_v"] = v
-        # dir1 = direction
-        # dir2 = _perpendicular_vector(dir1)
-        # dir3 = np.cross(dir1, dir2).tolist()
-    #     # dir_vecs = np.array([dir1, dir2, dir3])
-    # # This is the case where two vectors are specified:
-    # # direction = [[1,0,1],[0,1,0]]
-    # elif len(direction) == 2:
-    #     dir_vecs = np.array(
-    #         [direction[0], direction[1],
-    #          np.cross(direction[0], direction[1])])
     else:
         raise ValueError(f"Bad direction for slice: {direction}.")
-
-    # # Avoid division by zero in norm
-    # norm = np.linalg.norm(dir_vecs, axis=1).reshape(3, 1)
-    # norm[norm == 0.] = 1.0
-    # dir_vecs = dir_vecs / norm
 
     for key, vec in dir_vecs.items():
         v = vec / vec.norm

@@ -228,6 +228,7 @@ def line_integral_convolution(ax,
                             0.5 * (3 * x[0] - x[1]), 0.5 * (3 * x[-1] - x[-2]),
                             0.5 * (3 * y[0] - y[1]), 0.5 * (3 * y[-1] - y[-2])
                         ],
+                        aspect='auto',
                         origin='lower',
                         zorder=1)
         # Add the colorbar using the ScalarMappable

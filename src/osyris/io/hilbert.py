@@ -169,7 +169,6 @@ def hilbert_cpu_list(meta, scaling, select, infofile):
     box_size = (meta["boxlen"] * scaling).magnitude
     ncells = 2**min(meta["levelmax"], 18)  # limit to 262000 cells
     half_dxmin = 0.5 * box_size / ncells
-    # print(scaling)
     xyz_centers = Array(values=np.linspace(half_dxmin, box_size - half_dxmin, ncells),
                         unit=scaling.units)
     new_bbox = False

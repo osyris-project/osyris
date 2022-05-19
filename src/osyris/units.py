@@ -3,7 +3,7 @@
 
 from pint import Quantity, UnitRegistry, Unit
 from math import sqrt, pi
-# from . import config
+from . import config
 
 
 class Units:
@@ -58,7 +58,6 @@ class Units:
             'pressure': 'energy',
             'radiative_energy': 'energy',
             'radiative_energy_1': 'energy',
-            # 'temperature': 1.0 * self('K'),
             'time': 'time',
             'x': 'length',
             'y': 'length',
@@ -74,6 +73,13 @@ class Units:
             'mass': 'mass'
         }
 
+        for key, const in config.parameters['constants'].items():
+            self._ureg.define(f"{key} = {const}")
+
+        self._base_units.update(
+            {key: self._ureg(u)
+             for key, u in config.parameters['units'].items()})
+
     def __call__(self, arg):
         if isinstance(arg, Quantity):
             raise TypeError("Cannot create unit from a Quantity. Use `.units` instead.")
@@ -85,7 +91,6 @@ class Units:
         self._ureg.define(*args, **kwargs)
 
     def set_base_units(self, ud, ul, ut):
-        # self._base_units.update({
         self._base_units["density"] = ud * self("g / cm**3")
         self._base_units["velocity"] = (ul / ut) * self("cm / s")
         self._base_units["magnetic_field"] = sqrt(4.0 * pi * ud *
@@ -104,11 +109,6 @@ class Units:
         if string in self._ramses_units:
             return self._base_units[self._ramses_units[string]]
         return self._ureg('dimensionless')
-        # return ramses_units.get(string, self('dimensionless')).units
-
-        # if string in config.parameters['units']:
-        #     return self(config.parameters['units'][string]).units
-        # return ramses_units.get(string, self('dimensionless')).units
 
 
 units = Units()
