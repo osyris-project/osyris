@@ -14,9 +14,10 @@ from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax, map_unit):
+def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
-    viewport = max(dx.magnitude, dy.magnitude)
+    # viewport = max(dx.magnitude, dy.magnitude)
+    viewport = np.maximum(dx, dy)
     radius = None
     if "s" in to_scatter[0]["params"]:
         size = to_scatter[0]["params"]["s"]
@@ -25,21 +26,28 @@ def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax, map_unit):
             to_scatter[0]["params"]["s"] = radius
     if radius is None:
         # Fudge factor to select sinks close to the plane
-        radius = Array(values=viewport * 0.05, unit=dx.units)
-    dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+        # radius = Array(values=viewport * 0.05, unit=dx.units)
+        radius = Array(values=viewport * 0.05)
+    # dist1 = np.sum(xyz * dir_vecs[0], axis=1)
+    dist_to_plane = xyz.dot(dir_vecs["normal"])
     global_selection = np.arange(len(to_scatter[0]["data"]))
-    select = np.ravel(np.where(np.abs(dist1) <= radius))
+    # select = np.ravel(np.where(np.abs(dist1) <= radius))
+    select = (np.abs(dist_to_plane) <= radius).values
     global_selection = global_selection[select]
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
-        datax = np.inner(coords, dir_vecs[1])
-        datay = np.inner(coords, dir_vecs[2])
+        # datax = np.inner(coords, dir_vecs[1])
+        # datay = np.inner(coords, dir_vecs[2])
+        datax = coords.dot(dir_vecs["pos_u"])
+        datay = coords.dot(dir_vecs["pos_v"])
+
         if dx is not None:
             # Limit selection further by using distance from center
             dist2 = coords
-            select2 = np.ravel(
-                np.where(np.abs(dist2.norm.values) <= viewport * 0.6 * np.sqrt(2.0)))
+            # select2 = np.ravel(
+            #     np.where(np.abs(dist2.norm.values) <= viewport * 0.6 * np.sqrt(2.0)))
+            select2 = (np.abs(coords.norm) <= viewport * 0.6 * np.sqrt(2.0)).values
             datax = datax[select2]
             datay = datay[select2]
             global_selection = global_selection[select2]
@@ -48,8 +56,8 @@ def _add_scatter(to_scatter, origin, dir_vecs, dir_labs, dx, dy, ax, map_unit):
             if isinstance(to_scatter[0]["params"]["c"], Array):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection]
-        datax.name = dir_labs["x"]
-        datay.name = dir_labs["y"]
+        datax.name = dir_vecs["pos_u"].name
+        datay.name = dir_vecs["pos_v"].name
         scatter(x=datax.to(map_unit),
                 y=datay.to(map_unit),
                 ax=ax,
@@ -428,14 +436,15 @@ def map(*layers,
 
         # Add scatter layer
         if len(to_scatter) > 0:
-            _add_scatter(to_scatter=to_scatter,
-                         origin=origin,
-                         dir_vecs=dir_vecs,
-                         dir_labs=dir_labs,
-                         dx=dx,
-                         dy=dy,
-                         ax=figure["ax"],
-                         map_unit=map_unit)
+            _add_scatter(
+                to_scatter=to_scatter,
+                origin=origin,
+                dir_vecs=dir_vecs,
+                # dir_labs=dir_labs,
+                dx=dx,
+                dy=dy,
+                ax=figure["ax"],
+                map_unit=map_unit)
 
         xmin *= scale_ratio
         xmax *= scale_ratio
