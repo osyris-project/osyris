@@ -4,7 +4,6 @@
 import matplotlib.pyplot as plt
 
 from . import wrappers
-# from .. import config
 from ..core.tools import make_label
 
 
@@ -32,7 +31,6 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "vector": "quiver",
         "stream": "streamplot",
         "lic": "line_integral_convolution",
-        # None: config.parameters["render_mode"],
         None: "pcolormesh",
         "image": "pcolormesh",
         "imshow": "pcolormesh"
