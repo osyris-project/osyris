@@ -6,6 +6,7 @@ from .. import config
 from ..io import Loader
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
+from .. import units
 
 
 class Dataset:
@@ -13,9 +14,12 @@ class Dataset:
         self.groups = {}
         self.meta = {}
         self.loader = None
+        self.units = None
         if nout is not None:
             self.loader = Loader(nout=nout, path=path)
             self.meta.update(self.loader.load_metadata())
+            self.set_units()
+            self.meta["time"] *= self.units["time"]
 
     def __iter__(self):
         return self.groups.__iter__()
@@ -80,10 +84,11 @@ class Dataset:
         return self.groups.values()
 
     def load(self, *args, **kwargs):
-        groups = self.loader.load(*args, meta=self.meta, **kwargs)
+        groups = self.loader.load(*args, meta=self.meta, units=self.units, **kwargs)
         for name, group in groups.items():
             self[name] = group
         config.additional_variables(self)
+        # self.set_units()
         return self
 
     def nbytes(self):
@@ -105,3 +110,9 @@ class Dataset:
     def update(self, d):
         for key, value in d.items():
             self[key] = value
+
+    def set_units(self):
+        self.units = config.configure_units(units=units,
+                                            unit_d=self.meta['unit_d'],
+                                            unit_l=self.meta['unit_l'],
+                                            unit_t=self.meta['unit_t'])

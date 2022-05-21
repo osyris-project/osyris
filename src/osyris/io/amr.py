@@ -12,13 +12,16 @@ class AmrReader(Reader):
         super().__init__(kind=ReaderKind.AMR)
         self.cpu_list = None
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, units, select):
         self.initialized = False
 
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
         descriptor.update({f"position_{c}": "d" for c in "xyz"[:meta["ndim"]]})
 
-        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
+        self.descriptor_to_variables(descriptor=descriptor,
+                                     meta=meta,
+                                     units=units,
+                                     select=select)
 
         self.cpu_list = hilbert_cpu_list(meta=meta,
                                          scaling=units.get("x"),

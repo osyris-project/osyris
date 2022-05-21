@@ -13,7 +13,7 @@ from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
 from .reader import ReaderKind
-from .. import units
+# from .. import units
 
 
 class Loader:
@@ -37,18 +37,18 @@ class Loader:
         infofile = os.path.join(self.infile,
                                 "info_" + self.infile.split("_")[-1] + ".txt")
         meta = utils.read_parameter_file(fname=infofile)
-        units.set_base_units(ud=meta["unit_d"], ul=meta["unit_l"], ut=meta["unit_t"])
+        # units.set_base_units(ud=meta["unit_d"], ul=meta["unit_l"], ut=meta["unit_t"])
         # Add additional information
         meta["infofile"] = infofile
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
-        meta["time"] *= units.get("time")
+        # meta["time"] *= units.get("time")
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None, sortby=None):
+    def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -90,6 +90,7 @@ class Loader:
         do_not_load_cpus = True
         for group in groups:
             loaded_on_init = self.readers[group].initialize(meta=meta,
+                                                            units=units,
                                                             select=_select[group])
             if loaded_on_init is not None:
                 out[group] = loaded_on_init

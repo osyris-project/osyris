@@ -5,7 +5,6 @@ from enum import Enum
 import numpy as np
 from . import utils
 from ..core import Array
-from .. import units
 
 
 class ReaderKind(Enum):
@@ -23,7 +22,7 @@ class Reader():
         self.initialized = False
         self.kind = kind
 
-    def descriptor_to_variables(self, descriptor, meta, select):
+    def descriptor_to_variables(self, descriptor, meta, units, select):
         drop_others = False
         if isinstance(select, dict):
             for key, value in select.items():
@@ -44,7 +43,7 @@ class Reader():
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
-                "unit": units.get(key)
+                "unit": units[key]
                 # , meta["unit_d"], meta["unit_l"],
                 #                         meta["unit_t"])
             }
