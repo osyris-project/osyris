@@ -5,7 +5,7 @@ import numpy as np
 import os
 from ..core import Array, Datagroup
 from .reader import ReaderKind
-# from .. import units
+from .. import units as ureg
 from . import utils
 
 
@@ -49,11 +49,11 @@ class SinkReader:
         t = units['time']  # noqa: F841
         for u in unit_combinations:
             if u.strip().replace("[", "").replace("]", "") == '1':
-                unit_list.append(1.0 * units('dimensionless'))
+                unit_list.append(1.0 * ureg('dimensionless'))
             else:
                 if all(x in u for x in ["[", "]"]):
                     # Legacy sink format quantities are not in code units
-                    unit_list.append(units(u.replace("[", "").replace("]", "")))
+                    unit_list.append(ureg(u.replace("[", "").replace("]", "")))
                 else:
                     unit_list.append(eval(u.replace(' ', '*')))
 
