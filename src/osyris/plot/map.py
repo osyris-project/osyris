@@ -200,7 +200,6 @@ def map(*layers,
     global_indices = np.arange(len(dataset["amr"]["dx"]))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
-    # print(close_to_plane)
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:

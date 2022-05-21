@@ -88,7 +88,6 @@ class Dataset:
         for name, group in groups.items():
             self[name] = group
         config.additional_variables(self)
-        # self.set_units()
         return self
 
     def nbytes(self):

@@ -44,8 +44,6 @@ class Reader():
                 "buffer": None,
                 "pieces": {},
                 "unit": units[key]
-                # , meta["unit_d"], meta["unit_l"],
-                #                         meta["unit_t"])
             }
 
     def allocate_buffers(self, ngridmax, twotondim):
