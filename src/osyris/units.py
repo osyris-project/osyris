@@ -2,7 +2,6 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 from pint import Quantity, UnitRegistry, Unit
-from math import sqrt, pi
 from . import config
 
 

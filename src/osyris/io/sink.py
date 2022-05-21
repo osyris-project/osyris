@@ -41,9 +41,6 @@ class SinkReader:
 
         # Parse units
         unit_list = []
-        # m = meta['unit_d'] * meta['unit_l']**3 * units('g')  # noqa: F841
-        # l = meta['unit_l'] * units('cm')  # noqa: F841, E741
-        # t = meta['unit_t'] * units('s')  # noqa: F841
         m = units['mass']  # noqa: F841
         l = units['length']  # noqa: F841, E741
         t = units['time']  # noqa: F841

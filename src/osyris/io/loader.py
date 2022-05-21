@@ -4,7 +4,6 @@
 import numpy as np
 import os
 from . import utils
-# from .. import config
 from ..core import Datagroup
 from .amr import AmrReader
 from .grav import GravReader
@@ -13,7 +12,6 @@ from .part import PartReader
 from .rt import RtReader
 from .sink import SinkReader
 from .reader import ReaderKind
-# from .. import units
 
 
 class Loader:
@@ -37,13 +35,11 @@ class Loader:
         infofile = os.path.join(self.infile,
                                 "info_" + self.infile.split("_")[-1] + ".txt")
         meta = utils.read_parameter_file(fname=infofile)
-        # units.set_base_units(ud=meta["unit_d"], ul=meta["unit_l"], ut=meta["unit_t"])
         # Add additional information
         meta["infofile"] = infofile
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
-        # meta["time"] *= units.get("time")
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta
@@ -230,8 +226,7 @@ class Loader:
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
 
-        # Apply sorting if any requested from args or from config file
-        # _sortby = config.parameters['sortby']
+        # Apply sorting if any requested from args
         if sortby is not None:
             for group, key in sortby.items():
                 if group in out:
