@@ -2,10 +2,9 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 from pint.quantity import Quantity
-from pint.unit import Unit
 from pint.errors import DimensionalityError
 from .base import Base
-from .tools import value_to_string, make_label
+from .tools import value_to_string
 from .. import units
 
 APPLY_OP_TO_UNIT = ("multiply", "true_divide", "sqrt", "power", "reciprocal")

@@ -38,7 +38,6 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
 
         if dx is not None:
             # Limit selection further by using distance from center
-            dist2 = coords
             select2 = (np.abs(coords.norm) <= viewport * 0.6 * np.sqrt(2.0)).values
             datax = datax[select2]
             datay = datay[select2]
