@@ -4,7 +4,7 @@
 import numpy as np
 import os
 from . import utils
-from .. import config
+# from .. import config
 from ..core import Datagroup
 from .amr import AmrReader
 from .grav import GravReader
@@ -231,11 +231,10 @@ class Loader:
                                                        meta["nparticles"]))
 
         # Apply sorting if any requested from args or from config file
-        _sortby = config.parameters['sortby']
+        # _sortby = config.parameters['sortby']
         if sortby is not None:
-            _sortby.update(sortby)
-        for group, key in _sortby.items():
-            if group in out:
-                out[group].sortby(key)
+            for group, key in sortby.items():
+                if group in out:
+                    out[group].sortby(key)
 
         return out

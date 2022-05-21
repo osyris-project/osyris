@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from .. import config
+# from .. import config
 from ..core import Array
 from contextlib import redirect_stderr, nullcontext
 import io
@@ -64,7 +64,7 @@ def pcolormesh(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     default_args = {
         "shading": "nearest",
         "zorder": zorder,
-        "cmap": config.parameters["cmap"]
+        # "cmap": config.parameters["cmap"]
     }
     default_args.update(kwargs)
     out = ax.pcolormesh(x, y, z, **default_args)
@@ -99,8 +99,8 @@ def contourf(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     """
     Wrapper around Matplotlib's contourf plot.
     """
-    if "cmap" not in kwargs:
-        kwargs["cmap"] = config.parameters["cmap"]
+    # if "cmap" not in kwargs:
+    #     kwargs["cmap"] = config.parameters["cmap"]
     out = ax.contourf(x, y, z, **kwargs)
     if cbar:
         _add_colorbar(obj=out, ax=ax, label=cblabel)
@@ -111,7 +111,10 @@ def streamplot(ax, x, y, z, cbar=False, cblabel=None, color='w', zorder=2, **kwa
     """
     Wrapper around Matplotlib's streamplot plot.
     """
-    default_args = {"color": "w", "zorder": zorder, "cmap": config.parameters["cmap"]}
+    default_args = {
+        "color": "w",
+        "zorder": zorder
+    }  #, "cmap": config.parameters["cmap"]}
     default_args.update(kwargs)
     if isinstance(color, str):
         default_args["color"] = color

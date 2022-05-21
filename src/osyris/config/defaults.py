@@ -4,6 +4,9 @@
 Define default values so that you don't have to specify them every time.
 """
 
+from collections import defaultdict
+from math import sqrt, pi
+
 
 def configure_constants(units):
 
@@ -21,19 +24,21 @@ def configure_constants(units):
 
 def configure_units(units, unit_d, unit_l, unit_t):
 
-    density = ud * units("g / cm**3")
-    velocity = (ul / ut) * units("cm / s")
-    magnetic_field = sqrt(4.0 * pi * ud * (ul / ut)**2) * units("G")
+    density = unit_d * units("g / cm**3")
+    velocity = (unit_l / unit_t) * units("cm / s")
+    magnetic_field = sqrt(4.0 * pi * unit_d * (unit_l / unit_t)**2) * units("G")
     momentum = density * velocity
-    acceleration = (ul / ut**2) * units("cm / s**2")
-    energy = ud * ((ul / ut)**2) * units("erg / cm**3")
-    time = ut * units("s")
-    length = ul * units("cm")
+    acceleration = (unit_l / unit_t**2) * units("cm / s**2")
+    energy = unit_d * ((unit_l / unit_t)**2) * units("erg / cm**3")
+    time = unit_t * units("s")
+    length = unit_l * units("cm")
     mass = density * length**3
-    temperature = units("K")
+    temperature = 1.0 * units("K")
     grav_potential = velocity**2
 
-    return {
+    library = defaultdict(lambda: 1.0 * units('dimensionless'))
+
+    library.update({
         'unit_d': unit_d,
         'unit_l': unit_l,
         'unit_t': unit_t,
@@ -92,7 +97,8 @@ def configure_units(units, unit_d, unit_l, unit_t):
         'dx': length,
         'mass': mass,
         'temperature': temperature
-    }
+    })
+    return library
 
 
 def additional_variables(data):

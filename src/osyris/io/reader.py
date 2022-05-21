@@ -51,6 +51,7 @@ class Reader():
     def allocate_buffers(self, ngridmax, twotondim):
         for item in self.variables.values():
             if item["read"]:
+                print(item)
                 item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
                                                        dtype=np.dtype(item["type"])),
                                        unit=item["unit"].units)
