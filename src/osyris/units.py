@@ -54,6 +54,8 @@ class Units:
             'grav_acceleration_x': 'acceleration',
             'grav_acceleration_y': 'acceleration',
             'grav_acceleration_z': 'acceleration',
+            'grav_potential': 'grav_potential',
+            'internal_energy': 'energy',
             'thermal_pressure': 'energy',
             'pressure': 'energy',
             'radiative_energy': 'energy',
@@ -104,6 +106,7 @@ class Units:
         self._base_units[
             "mass"] = self._base_units["density"] * self._base_units["length"]**3
         self._base_units["temperature"] = self("K")
+        self._base_units["grav_potential"] = self._base_units["velocity"]**2
 
     def get(self, string):
         if string in self._ramses_units:
