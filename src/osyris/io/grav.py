@@ -19,9 +19,9 @@ class GravReader(Reader):
         if not os.path.exists(fname):
             return
         # Add gravity fields
-        descriptor = {"potential": "d"}
+        descriptor = {"grav_potential": "d"}
         for n in range(meta["ndim"]):
-            descriptor["acceleration_" + "xyz"[n]] = "d"
+            descriptor["grav_acceleration_" + "xyz"[n]] = "d"
 
         self.descriptor_to_variables(descriptor=descriptor,
                                      meta=meta,
