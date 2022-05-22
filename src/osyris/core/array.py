@@ -98,6 +98,10 @@ class Array(Base):
     def shape(self):
         return self._array.shape
 
+    @property
+    def dtype(self):
+        return self._array.dtype
+
     def __add__(self, other):
         return _binary_op(np.add, self, other)
 

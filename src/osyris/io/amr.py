@@ -26,15 +26,17 @@ class AmrReader(Reader):
                                          scaling=units["x"],
                                          select=select,
                                          infofile=meta["infofile"])
+
+        self.xcent = np.zeros([8, 3], dtype=np.float64)
+
         if select is not False:
             self.initialized = True
 
-    def allocate_buffers(self, ngridmax, twotondim):
-        super().allocate_buffers(ngridmax, twotondim)
-        self.xcent = np.zeros([8, 3], dtype=np.float64)
-        self.xg = np.zeros([ngridmax, 3], dtype=np.float64)
-        self.son = np.zeros([ngridmax, twotondim], dtype=np.int32)
-        self.ref = np.zeros([ngridmax, twotondim], dtype=np.bool)
+    def allocate_buffers(self, ncache, twotondim):
+        super().allocate_buffers(ncache, twotondim)
+        self.xg = np.zeros([ncache, 3], dtype=np.float64)
+        self.son = np.zeros([ncache * twotondim], dtype=np.int32)
+        self.ref = np.zeros([ncache * twotondim], dtype=bool)
 
     def read_header(self, info):
         # nx,ny,nz
@@ -136,43 +138,44 @@ class AmrReader(Reader):
         self.offsets['i'] += ncache * 3
         self.offsets['n'] += 3
         for n in range(ndim):
-            self.xg[:ncache, n] = utils.read_binary_data(fmt="{}d".format(ncache),
-                                                         content=self.bytes,
-                                                         offsets=self.offsets)
+            self.xg[:, n] = utils.read_binary_data(fmt="{}d".format(ncache),
+                                                   content=self.bytes,
+                                                   offsets=self.offsets)
 
         # son indices
         self.offsets['i'] += ncache * (1 + 2 * ndim)
         self.offsets['n'] += 1 + 2 * ndim
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
-
-        self.son[:ncache, ind] = utils.read_binary_data(fmt="{}i".format(ncache),
-                                                        content=self.bytes,
-                                                        offsets=self.offsets)
+        begin = ind * ncache
+        end = (ind + 1) * ncache
+        self.son[begin:end] = utils.read_binary_data(fmt="{}i".format(ncache),
+                                                     content=self.bytes,
+                                                     offsets=self.offsets)
 
         if self.variables["level"]["read"]:
-            self.variables["level"]["buffer"]._array[:ncache, ind] = ilevel + 1
+            self.variables["level"]["buffer"]._array[begin:end] = ilevel + 1
         for n in range(info["ndim"]):
             key = "position_" + "xyz"[n]
             if self.variables[key]["read"]:
-                self.variables[key]["buffer"]._array[:ncache, ind] = (
-                    self.xg[:ncache, n] + self.xcent[ind, n] - self.meta["xbound"][n]
+                self.variables[key]["buffer"]._array[begin:end] = (
+                    self.xg[:, n] + self.xcent[ind, n] - self.meta["xbound"][n]
                 ) * info["boxlen"] * self.variables[key]["unit"].magnitude
         if self.variables["dx"]["read"]:
-            self.variables["dx"]["buffer"]._array[:ncache, ind] = self.dxcell * info[
+            self.variables["dx"]["buffer"]._array[begin:end] = self.dxcell * info[
                 "boxlen"] * self.variables["dx"]["unit"].magnitude
         if self.variables["cpu"]["read"]:
-            self.variables["cpu"]["buffer"]._array[:ncache, ind] = cpuid + 1
+            self.variables["cpu"]["buffer"]._array[begin:end] = cpuid + 1
 
         # Note: use lmax here instead of levelmax because the user might not
         # want to load all levels. levelmax is always the max level in the
         # entire simulation.
-        self.ref[:ncache, ind] = np.logical_not(
-            np.logical_and(self.son[:ncache, ind] > 0, ilevel < info["lmax"] - 1))
+        self.ref[begin:end] = np.logical_not(
+            np.logical_and(self.son[begin:end] > 0, ilevel < info["lmax"] - 1))
 
-    def make_conditions(self, select, ncache):
-        conditions = super().make_conditions(select, ncache)
-        conditions.update({"leaf": self.ref[:ncache, :]})
+    def make_conditions(self, select):
+        conditions = super().make_conditions(select)
+        conditions.update({"leaf": self.ref})
         return conditions
 
     def read_footer(self, ncache, twotondim):

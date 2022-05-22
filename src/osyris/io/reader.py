@@ -46,10 +46,10 @@ class Reader():
                 "unit": units[key]
             }
 
-    def allocate_buffers(self, ngridmax, twotondim):
+    def allocate_buffers(self, ncache, twotondim):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
+                item["buffer"] = Array(values=np.empty([ncache * twotondim],
                                                        dtype=np.dtype(item["type"])),
                                        unit=item["unit"].units)
 
@@ -68,7 +68,7 @@ class Reader():
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"]._array[:ncache, ind] = np.array(
+                item["buffer"]._array[ind * ncache:(ind + 1) * ncache] = np.array(
                     utils.read_binary_data(
                         fmt="{}{}".format(ncache, item["type"]),
                         content=self.bytes,
@@ -77,14 +77,13 @@ class Reader():
                 self.offsets[item["type"]] += ncache
                 self.offsets["n"] += 1
 
-    def make_conditions(self, select, ncache):
+    def make_conditions(self, select):
         conditions = {}
         if not isinstance(select, bool):
             for key, func in select.items():
                 if not isinstance(func, bool):
                     if key in self.variables:
-                        conditions[key] = func(
-                            self.variables[key]["buffer"][:ncache, :])
+                        conditions[key] = func(self.variables[key]["buffer"])
         return conditions
 
     def read_footer(self, *args, **kwargs):

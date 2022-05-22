@@ -123,6 +123,10 @@ class Vector(Base):
         return self.x.shape
 
     @property
+    def dtype(self):
+        return self.x.dtype
+
+    @property
     def name(self):
         return self._name
 

@@ -4,7 +4,7 @@
 import numpy as np
 import os
 from . import utils
-from ..core import Datagroup
+from ..core import Datagroup, Array
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
@@ -119,8 +119,6 @@ class Loader:
 
         # Allocate work arrays
         twotondim = 2**meta["ndim"]
-        for reader in readers.values():
-            reader.allocate_buffers(ngridmax=meta["ngridmax"], twotondim=twotondim)
 
         iprog = 1
         istep = 10
@@ -172,6 +170,9 @@ class Loader:
                         if domain == cpu_num - 1:
 
                             for reader in readers.values():
+                                reader.allocate_buffers(ncache, twotondim)
+
+                            for reader in readers.values():
                                 reader.read_cacheline_header(ncache, meta["ndim"])
 
                             for ind in range(twotondim):
@@ -185,15 +186,18 @@ class Loader:
                             # add any criteria requested by the user via select.
                             conditions = {}
                             for group, reader in readers.items():
-                                conditions.update(
-                                    reader.make_conditions(_select[group], ncache))
+                                conditions.update(reader.make_conditions(
+                                    _select[group]))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
-                            sel = np.where(
-                                np.prod(np.array(list(conditions.values())), axis=0))
+                            sel = np.prod(np.array([
+                                c.values if isinstance(c, Array) else c
+                                for c in conditions.values()
+                            ]),
+                                          axis=0).astype(bool)
 
                             # Count the number of cells
-                            ncells = np.shape(sel)[1]
+                            ncells = np.sum(sel)
                             if ncells > 0:
                                 meta["ncells"] += ncells
                                 npieces += 1

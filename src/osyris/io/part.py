@@ -60,13 +60,13 @@ class PartReader(Reader):
                 self.offsets["n"] += 1
         info["nparticles"] += nparticles
 
-    def allocate_buffers(self, ngridmax, twotondim):
+    def allocate_buffers(self, ncache, twotondim):
         return
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         return
 
-    def make_conditions(self, select, ncache):
+    def make_conditions(self, select):
         return {}
 
     def read_footer(self, *args, **kwargs):
