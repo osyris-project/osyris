@@ -156,6 +156,15 @@ class Array(Base):
     def __ne__(self, other):
         return _binary_op(np.not_equal, self, other)
 
+    def __and__(self, other):
+        return _binary_op(np.logical_and, self, other)
+
+    def __or__(self, other):
+        return _binary_op(np.logical_or, self, other)
+
+    def __xor__(self, other):
+        return _binary_op(np.logical_xor, self, other)
+
     def to(self, unit):
         new_unit = units(unit)
         if self.unit == new_unit:

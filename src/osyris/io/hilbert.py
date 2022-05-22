@@ -177,7 +177,7 @@ def hilbert_cpu_list(meta, scaling, select, infofile):
         if key in select:
             new_bbox = True
             func_test = select[key](xyz_centers)
-            inds = np.argwhere(func_test).ravel()
+            inds = np.argwhere(func_test.values).ravel()
             start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
             end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
             bounding_box["{}min".format(c)] = start._array / box_size
