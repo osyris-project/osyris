@@ -342,7 +342,7 @@ def map(*layers,
     if thick:
         binned *= zspacing
         for layer in to_render:
-            layer["unit"] = (Array(values=1, unit=layer["unit"]) * dataz.unit).unit
+            layer["unit"] = layer["unit"] * dataz.unit
 
     # Mask NaN values
     mask = np.isnan(binned[-1, ...])
