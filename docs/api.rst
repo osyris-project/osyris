@@ -14,6 +14,7 @@ Core
    Datagroup
    Dataset
    units
+   Vector
 
 Plotting
 ========
