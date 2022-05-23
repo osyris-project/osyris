@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import arrayclose, arraytrue, arrayequal
+from common import arrayequal
 from osyris import Array, Datagroup, Dataset
 from copy import copy, deepcopy
 

@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import (vectorclose, vectortrue, vectorequal, arraytrue, arrayequal,
-                    arrayclose)
+from common import vectorclose, vectorequal, arrayequal, arrayclose
 from osyris import Array, Vector, units
 from copy import copy, deepcopy
 import numpy as np
-from pint.errors import DimensionalityError
 import pytest
 
 

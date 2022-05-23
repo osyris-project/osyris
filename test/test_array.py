@@ -18,10 +18,10 @@ def test_constructor_ndarray():
 
 
 def test_constructor_list():
-    l = [1., 2., 3., 4., 5.]
-    array = Array(values=l, unit='s')
+    alist = [1., 2., 3., 4., 5.]
+    array = Array(values=alist, unit='s')
     assert array.unit == units('s')
-    assert np.array_equal(array.values, l)
+    assert np.array_equal(array.values, alist)
 
 
 def test_constructor_int():
