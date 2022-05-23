@@ -178,7 +178,7 @@ def map(*layers,
     dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Vector(0, 0, 0, unit=spatial_unit)
+        origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
 
     dir_vecs = get_direction(direction=direction,
                              dataset=dataset,
@@ -299,9 +299,18 @@ def map(*layers,
     xgrid = xg.T
     ygrid = yg.T
     zgrid = zg.T
-    u_array = np.array([vec_u.x.values, vec_u.y.values, vec_u.z.values])
-    v_array = np.array([vec_v.x.values, vec_v.y.values, vec_v.z.values])
-    n_array = np.array([normal.x.values, normal.y.values, normal.z.values])
+    u_array = np.array([
+        vec_u.x.values, vec_u.y.values,
+        vec_u.z.values if vec_u.z is not None else np.zeros_like(vec_u.x.values)
+    ])
+    v_array = np.array([
+        vec_v.x.values, vec_v.y.values,
+        vec_v.z.values if vec_v.z is not None else np.zeros_like(vec_v.x.values)
+    ])
+    n_array = np.array([
+        normal.x.values, normal.y.values,
+        normal.z.values if normal.z is not None else np.zeros_like(normal.x.values)
+    ])
 
     pixel_positions = xgrid.reshape(xgrid.shape + (1, )) * u_array + ygrid.reshape(
         ygrid.shape + (1, )) * v_array + zgrid.reshape(zgrid.shape + (1, )) * n_array
