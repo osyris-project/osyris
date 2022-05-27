@@ -339,7 +339,7 @@ def map(*layers,
     binned = getattr(binned, operation)(axis=1)
 
     # Handle thick maps
-    if thick and (operation != "mean"):
+    if thick and (operation == "sum"):
         binned *= zspacing
         for layer in to_render:
             layer["unit"] = layer["unit"] * dataz.unit
