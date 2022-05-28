@@ -579,6 +579,33 @@ def test_greater_equal_quantity():
         _ = a >= b
 
 
+def test_logical_and():
+    a = Array(values=[True, True, True, False, False, False])
+    b = Array(values=[True, False, True, False, True, False])
+    expected = [True, False, True, False, False, False]
+    assert all((b & a).values == expected)
+
+
+def test_logical_or():
+    a = Array(values=[True, True, True, False, False, False])
+    b = Array(values=[True, False, True, False, True, False])
+    expected = [True, True, True, False, True, False]
+    assert all((b | a).values == expected)
+
+
+def test_logical_xor():
+    a = Array(values=[True, True, True, False, False, False])
+    b = Array(values=[True, False, True, False, True, False])
+    expected = [False, True, False, False, True, False]
+    assert all((b ^ a).values == expected)
+
+
+def test_logical_invert():
+    a = Array(values=[True, True, False, False, True, False])
+    expected = [False, False, True, True, False, True]
+    assert all((~a).values == expected)
+
+
 def test_to():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[1.0e-3, 2.0e-3, 3.0e-3, 4.0e-3, 5.0e-3], unit='km')

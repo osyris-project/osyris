@@ -165,6 +165,9 @@ class Array(Base):
     def __xor__(self, other):
         return _binary_op(np.logical_xor, self, other)
 
+    def __invert__(self):
+        return np.logical_not(self)
+
     def to(self, unit):
         new_unit = units(unit)
         if self.unit == new_unit:

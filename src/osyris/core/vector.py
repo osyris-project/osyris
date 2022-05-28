@@ -196,6 +196,18 @@ class Vector(Base):
     def __ne__(self, other):
         return _binary_op("__ne__", self, other)
 
+    def __and__(self, other):
+        return _binary_op("__and__", self, other)
+
+    def __or__(self, other):
+        return _binary_op("__or__", self, other)
+
+    def __xor__(self, other):
+        return _binary_op("__xor__", self, other)
+
+    def __invert__(self):
+        return np.logical_not(self)
+
     def to(self, unit):
         return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
