@@ -584,6 +584,74 @@ def test_greater_equal():
     assert all(result.z.values == exp_z)
 
 
+def test_logical_and():
+    x1 = Array(values=[True, True, True, False, False])
+    y1 = Array(values=[True, False, True, False, True])
+    z1 = Array(values=[False, False, True, True, True])
+    v1 = Vector(x1, y1, z1)
+    x2 = Array(values=[False, True, False, True, False])
+    y2 = Array(values=[True, True, False, False, False])
+    z2 = Array(values=[True, False, False, False, True])
+    v2 = Vector(x2, y2, z2)
+    exp_x = [False, True, False, False, False]
+    exp_y = [True, False, False, False, False]
+    exp_z = [False, False, False, False, True]
+    result = v1 & v2
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
+def test_logical_or():
+    x1 = Array(values=[True, True, True, False, False])
+    y1 = Array(values=[True, False, True, False, True])
+    z1 = Array(values=[False, False, True, True, True])
+    v1 = Vector(x1, y1, z1)
+    x2 = Array(values=[False, True, False, True, False])
+    y2 = Array(values=[True, True, False, False, False])
+    z2 = Array(values=[True, False, False, False, True])
+    v2 = Vector(x2, y2, z2)
+    exp_x = [True, True, True, True, False]
+    exp_y = [True, True, True, False, True]
+    exp_z = [True, False, True, True, True]
+    result = v1 | v2
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
+def test_logical_xor():
+    x1 = Array(values=[True, True, True, False, False])
+    y1 = Array(values=[True, False, True, False, True])
+    z1 = Array(values=[False, False, True, True, True])
+    v1 = Vector(x1, y1, z1)
+    x2 = Array(values=[False, True, False, True, False])
+    y2 = Array(values=[True, True, False, False, False])
+    z2 = Array(values=[True, False, False, False, True])
+    v2 = Vector(x2, y2, z2)
+    exp_x = [True, False, True, True, False]
+    exp_y = [False, True, True, False, True]
+    exp_z = [True, False, True, True, False]
+    result = v1 ^ v2
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
+def test_logical_invert():
+    x = Array(values=[True, True, True, False, False])
+    y = Array(values=[True, False, True, False, True])
+    z = Array(values=[False, False, True, True, True])
+    v = Vector(x, y, z)
+    exp_x = [False, False, False, True, True]
+    exp_y = [False, True, False, True, False]
+    exp_z = [True, True, False, False, False]
+    result = ~v
+    assert all(result.x.values == exp_x)
+    assert all(result.y.values == exp_y)
+    assert all(result.z.values == exp_z)
+
+
 def test_to():
     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
