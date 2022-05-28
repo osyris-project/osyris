@@ -4,8 +4,7 @@
 import numpy as np
 import os
 from . import utils
-from .. import config
-from ..core import Datagroup
+from ..core import Datagroup, Array
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
@@ -41,13 +40,11 @@ class Loader:
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
-        meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None, sortby=None):
+    def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -89,6 +86,7 @@ class Loader:
         do_not_load_cpus = True
         for group in groups:
             loaded_on_init = self.readers[group].initialize(meta=meta,
+                                                            units=units,
                                                             select=_select[group])
             if loaded_on_init is not None:
                 out[group] = loaded_on_init
@@ -121,8 +119,6 @@ class Loader:
 
         # Allocate work arrays
         twotondim = 2**meta["ndim"]
-        for reader in readers.values():
-            reader.allocate_buffers(ngridmax=meta["ngridmax"], twotondim=twotondim)
 
         iprog = 1
         istep = 10
@@ -174,6 +170,9 @@ class Loader:
                         if domain == cpu_num - 1:
 
                             for reader in readers.values():
+                                reader.allocate_buffers(ncache, twotondim)
+
+                            for reader in readers.values():
                                 reader.read_cacheline_header(ncache, meta["ndim"])
 
                             for ind in range(twotondim):
@@ -187,15 +186,18 @@ class Loader:
                             # add any criteria requested by the user via select.
                             conditions = {}
                             for group, reader in readers.items():
-                                conditions.update(
-                                    reader.make_conditions(_select[group], ncache))
+                                conditions.update(reader.make_conditions(
+                                    _select[group]))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
-                            sel = np.where(
-                                np.prod(np.array(list(conditions.values())), axis=0))
+                            sel = np.prod(np.array([
+                                c.values if isinstance(c, Array) else c
+                                for c in conditions.values()
+                            ]),
+                                          axis=0).astype(bool)
 
                             # Count the number of cells
-                            ncells = np.shape(sel)[1]
+                            ncells = np.sum(sel)
                             if ncells > 0:
                                 meta["ncells"] += ncells
                                 npieces += 1
@@ -228,12 +230,10 @@ class Loader:
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
 
-        # Apply sorting if any requested from args or from config file
-        _sortby = config.parameters['sortby']
+        # Apply sorting if any requested from args
         if sortby is not None:
-            _sortby.update(sortby)
-        for group, key in _sortby.items():
-            if group in out:
-                out[group].sortby(key)
+            for group, key in sortby.items():
+                if group in out:
+                    out[group].sortby(key)
 
         return out

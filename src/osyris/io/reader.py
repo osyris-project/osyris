@@ -1,8 +1,10 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+
+from enum import Enum
 import numpy as np
 from . import utils
 from ..core import Array
-from .. import config
-from enum import Enum
 
 
 class ReaderKind(Enum):
@@ -20,7 +22,7 @@ class Reader():
         self.initialized = False
         self.kind = kind
 
-    def descriptor_to_variables(self, descriptor, meta, select):
+    def descriptor_to_variables(self, descriptor, meta, units, select):
         drop_others = False
         if isinstance(select, dict):
             for key, value in select.items():
@@ -41,16 +43,15 @@ class Reader():
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
-                "unit": config.get_unit(key, meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"])
+                "unit": units[key]
             }
 
-    def allocate_buffers(self, ngridmax, twotondim):
+    def allocate_buffers(self, ncache, twotondim):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"] = Array(values=np.zeros([ngridmax, twotondim],
+                item["buffer"] = Array(values=np.empty([ncache * twotondim],
                                                        dtype=np.dtype(item["type"])),
-                                       unit=1.0 * item["unit"].units)
+                                       unit=item["unit"].units)
 
     def read_header(self, *args, **kwargs):
         return
@@ -67,7 +68,7 @@ class Reader():
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"]._array[:ncache, ind] = np.array(
+                item["buffer"]._array[ind * ncache:(ind + 1) * ncache] = np.array(
                     utils.read_binary_data(
                         fmt="{}{}".format(ncache, item["type"]),
                         content=self.bytes,
@@ -76,14 +77,13 @@ class Reader():
                 self.offsets[item["type"]] += ncache
                 self.offsets["n"] += 1
 
-    def make_conditions(self, select, ncache):
+    def make_conditions(self, select):
         conditions = {}
         if not isinstance(select, bool):
             for key, func in select.items():
                 if not isinstance(func, bool):
                     if key in self.variables:
-                        conditions[key] = func(
-                            self.variables[key]["buffer"][:ncache, :])
+                        conditions[key] = func(self.variables[key]["buffer"])
         return conditions
 
     def read_footer(self, *args, **kwargs):

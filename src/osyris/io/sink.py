@@ -5,7 +5,7 @@ import numpy as np
 import os
 from ..core import Array, Datagroup
 from .reader import ReaderKind
-from .. import units
+from .. import units as ureg
 from . import utils
 
 
@@ -14,7 +14,7 @@ class SinkReader:
         self.kind = ReaderKind.SINK
         self.initialized = False
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, units, select):
         if select is False:
             return
         sink = Datagroup()
@@ -41,16 +41,16 @@ class SinkReader:
 
         # Parse units
         unit_list = []
-        m = meta['unit_d'] * meta['unit_l']**3 * units.g  # noqa: F841
-        l = meta['unit_l'] * units.cm  # noqa: F841, E741
-        t = meta['unit_t'] * units.s  # noqa: F841
+        m = units['mass']  # noqa: F841
+        l = units['length']  # noqa: F841, E741
+        t = units['time']  # noqa: F841
         for u in unit_combinations:
             if u.strip().replace("[", "").replace("]", "") == '1':
-                unit_list.append(1.0 * units.dimensionless)
+                unit_list.append(1.0 * ureg('dimensionless'))
             else:
                 if all(x in u for x in ["[", "]"]):
                     # Legacy sink format quantities are not in code units
-                    unit_list.append(units(u.replace("[", "").replace("]", "")))
+                    unit_list.append(ureg(u.replace("[", "").replace("]", "")))
                 else:
                     unit_list.append(eval(u.replace(' ', '*')))
 

@@ -78,7 +78,7 @@ def plot(x: Array,
             "params": {
                 **kwargs
             },
-            "unit": x["y"].unit.units,
+            "unit": x["y"].unit,
             "name": x["y"].name
         })
         yaxis_unit = x["y"].unit
@@ -99,7 +99,7 @@ def plot(x: Array,
                 "params": {
                     **kwargs
                 },
-                "unit": layer["y"].unit.units,
+                "unit": layer["y"].unit,
                 "name": layer["y"].name
             }
             layer_dict["x"] = layer["x"].norm if "x" in layer else layer_x
@@ -112,7 +112,7 @@ def plot(x: Array,
                 "params": {
                     **kwargs
                 },
-                "unit": layer.unit.units,
+                "unit": layer.unit,
                 "name": layer.name
             })
             layer_unit = layer.unit

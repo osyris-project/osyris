@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+from common import arrayequal
 from osyris import Array, Datagroup, Dataset
 from copy import copy, deepcopy
 
@@ -84,7 +85,8 @@ def test_copy():
     del dg1['b']
     assert 'b' not in ds2['one']
     dg1['a'] *= 10.
-    assert all(ds2['one']['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+    assert arrayequal(ds2['one']['a'], Array(values=[10., 20., 30., 40., 50.],
+                                             unit='m'))
     del ds1.meta['metadata2']
     assert 'metadata2' in ds2.meta
     ds1.meta['metadata1'][0] = 0
@@ -106,7 +108,8 @@ def test_copy_overload():
     del dg1['b']
     assert 'b' not in ds2['one']
     dg1['a'] *= 10.
-    assert all(ds2['one']['a'] == Array(values=[10., 20., 30., 40., 50.], unit='m'))
+    assert arrayequal(ds2['one']['a'], Array(values=[10., 20., 30., 40., 50.],
+                                             unit='m'))
     del ds1.meta['metadata2']
     assert 'metadata2' in ds2.meta
     ds1.meta['metadata1'][0] = 0
@@ -128,7 +131,7 @@ def test_deepcopy():
     del dg1['b']
     assert 'b' in ds2['one']
     dg1['a'] *= 10.
-    assert all(ds2['one']['a'] == Array(values=[1., 2., 3., 4., 5.], unit='m'))
+    assert arrayequal(ds2['one']['a'], Array(values=[1., 2., 3., 4., 5.], unit='m'))
     del ds1.meta['metadata2']
     assert 'metadata2' in ds2.meta
     ds1.meta['metadata1'][0] = 0

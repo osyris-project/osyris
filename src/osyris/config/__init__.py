@@ -21,27 +21,13 @@ sys.path.append(user_config_dir)
 import config_osyris as user_config  # noqa: E402
 
 
-# Create a dummy class
 class Config:
     pass
 
 
-if hasattr(user_config, 'ureg'):
-    units = getattr(user_config, 'ureg')
-else:
-    units = getattr(default_config, 'ureg')
-
 config = Config()
 
 # Import list of object from user config if present, if not, load from defaults.
-objects = ['parameters', 'get_unit', 'additional_units', 'additional_variables']
+objects = ['configure_constants', 'configure_units', 'additional_variables']
 for obj in objects:
-    if hasattr(user_config, obj):
-        setattr(config, obj, getattr(user_config, obj))
-    else:
-        setattr(config, obj, getattr(default_config, obj))
-
-# Additional merging of parameters dict to add any missing values from the defaults
-config.parameters = {**default_config.parameters, **config.parameters}
-
-config.additional_units()
+    setattr(config, obj, getattr(user_config, obj, getattr(default_config, obj)))
