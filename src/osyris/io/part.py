@@ -11,7 +11,7 @@ class PartReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.PART)
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, units, select):
         self.initialized = False
         if select is False:
             return
@@ -29,7 +29,10 @@ class PartReader(Reader):
             for i in range(len(desc_from_file))
         }
 
-        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
+        self.descriptor_to_variables(descriptor=descriptor,
+                                     meta=meta,
+                                     units=units,
+                                     select=select)
         self.initialized = True
 
     def read_header(self, info):
@@ -51,19 +54,19 @@ class PartReader(Reader):
                                            content=self.bytes,
                                            offsets=self.offsets)) *
                                                 item["unit"].magnitude,
-                                                unit=1.0 * item["unit"].units)
+                                                unit=item["unit"].units)
             else:
                 self.offsets[item["type"]] += nparticles
                 self.offsets["n"] += 1
         info["nparticles"] += nparticles
 
-    def allocate_buffers(self, ngridmax, twotondim):
+    def allocate_buffers(self, ncache, twotondim):
         return
 
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         return
 
-    def make_conditions(self, select, ncache):
+    def make_conditions(self, select):
         return {}
 
     def read_footer(self, *args, **kwargs):

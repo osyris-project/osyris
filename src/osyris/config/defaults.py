@@ -3,41 +3,45 @@
 """
 Define default values so that you don't have to specify them every time.
 """
-import math
-from pint import UnitRegistry
 
-ureg = UnitRegistry(system="cgs")
-
-parameters = {
-    'scale': 'au',
-    'path': None,
-    'select': None,
-    'cmap': 'viridis',
-    'render_mode': 'pcolormesh',
-    'sortby': {
-        'part': 'identity'
-    }
-}
+from collections import defaultdict
+from math import sqrt, pi
 
 
-def get_unit(string, ud, ul, ut, scale):
+def configure_constants(units):
 
-    density = ud * (ureg.g / (ureg.cm**3))
-    velocity = (ul / ut) * (ureg.cm / ureg.s)
-    magnetic_field = math.sqrt(4.0 * math.pi * ud * (ul / ut)**2) * ureg.G
+    units.define('bolometric_luminosity = 3.0128e+28 * W = L_bol0')
+    units.define('solar_luminosity = 3.828e+26 * W = L_sun = L_sol')
+    units.define('earth_mass = 5.97216787e+27 * g = M_earth')
+    units.define('jupiter_mass = 1.8981246e+30 * g = M_jup')
+    units.define('solar_mass = 1.9889e+33 * g = M_sun = M_sol')
+    units.define('earth_radius = 6.3781e+08 * cm = R_earth')
+    units.define('jupiter_radius = 7.1492e+09 * cm = R_jup')
+    units.define('solar_radius = 6.957e+10 * cm = R_sun = R_sol')
+    units.define(
+        'radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
+
+
+def configure_units(units, unit_d, unit_l, unit_t):
+
+    density = unit_d * units("g / cm**3")
+    velocity = (unit_l / unit_t) * units("cm / s")
+    magnetic_field = sqrt(4.0 * pi * unit_d * (unit_l / unit_t)**2) * units("G")
     momentum = density * velocity
-    acceleration = (ul / ut**2) * (ureg.cm / (ureg.s**2))
-    energy = ud * ((ul / ut)**2) * (ureg.erg / (ureg.cm**3))
-    time = ut * ureg.s
-    length = ul * ureg.cm
-    mass = density * (length**3)
+    acceleration = (unit_l / unit_t**2) * units("cm / s**2")
+    energy = unit_d * ((unit_l / unit_t)**2) * units("erg / cm**3")
+    time = unit_t * units("s")
+    length = unit_l * units("cm")
+    mass = density * length**3
+    temperature = 1.0 * units("K")
+    grav_potential = velocity**2
 
-    scaling = length
-    if scale is not None:
-        scale = ureg(scale)
-        scaling = (length.to(scale) / scale).magnitude * scale
+    library = defaultdict(lambda: 1.0 * units('dimensionless'))
 
-    ramses_units = {
+    library.update({
+        'unit_d': unit_d,
+        'unit_l': unit_l,
+        'unit_t': unit_t,
         'density': density,
         'velocity': velocity,
         'velocity_x': velocity,
@@ -47,6 +51,7 @@ def get_unit(string, ud, ul, ut, scale):
         'momentum_x': momentum,
         'momentum_y': momentum,
         'momentum_z': momentum,
+        'magnetic_field': magnetic_field,
         'B_left': magnetic_field,
         'B_left_x': magnetic_field,
         'B_left_y': magnetic_field,
@@ -65,48 +70,35 @@ def get_unit(string, ud, ul, ut, scale):
         'B_x_right': magnetic_field,
         'B_y_right': magnetic_field,
         'B_z_right': magnetic_field,
+        'acceleration': acceleration,
         'grav_acceleration': acceleration,
         'grav_acceleration_x': acceleration,
         'grav_acceleration_y': acceleration,
         'grav_acceleration_z': acceleration,
+        'grav_potential': grav_potential,
+        'energy': energy,
+        'internal_energy': energy,
         'thermal_pressure': energy,
         'pressure': energy,
         'radiative_energy': energy,
         'radiative_energy_1': energy,
-        'temperature': 1.0 * ureg.K,
         'time': time,
-        'x': scaling,
-        'y': scaling,
-        'z': scaling,
-        'xyz_x': scaling,
-        'xyz_y': scaling,
-        'xyz_z': scaling,
-        'position_x': scaling,
-        'position_y': scaling,
-        'position_z': scaling,
-        'dx': scaling,
-        'mass': mass
-    }
-
-    if string in ramses_units:
-        return ramses_units[string]
-    else:
-        return 1.0 * ureg.dimensionless
-
-
-def additional_units():
-    """
-    Define additional useful ureg and constants
-    """
-    ureg.define('bolometric_luminosity = 3.0128e+28 * W = L_bol0')
-    ureg.define('solar_luminosity = 3.828e+26 * W = L_sun = L_sol')
-    ureg.define('earth_mass = 5.97216787e+27 * g = M_earth')
-    ureg.define('jupiter_mass = 1.8981246e+30 * g = M_jup')
-    ureg.define('solar_mass = 1.9889e+33 * g = M_sun = M_sol')
-    ureg.define('earth_radius = 6.3781e+08 * cm = R_earth')
-    ureg.define('jupiter_radius = 7.1492e+09 * cm = R_jup')
-    ureg.define('solar_radius = 6.957e+10 * cm = R_sun = R_sol')
-    ureg.define('radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
+        'length': length,
+        'x': length,
+        'y': length,
+        'z': length,
+        'xyz_x': length,
+        'xyz_y': length,
+        'xyz_z': length,
+        'position': length,
+        'position_x': length,
+        'position_y': length,
+        'position_z': length,
+        'dx': length,
+        'mass': mass,
+        'temperature': temperature
+    })
+    return library
 
 
 def additional_variables(data):

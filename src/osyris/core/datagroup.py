@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
-from .array import Array
 from .tools import bytes_to_human_readable
 
 
@@ -45,12 +44,9 @@ class Datagroup:
                     "Size mismatch on element insertion. Item "
                     "shape is {} while container accepts shape {}.".format(
                         shape, self.shape))
-        if isinstance(value, Array):
-            value.name = key
-            value.parent = self
-            self._container[key] = value
-        else:
-            self._container[key] = Array(values=value, name=key, parent=self)
+        value.name = key
+        value.parent = self
+        self._container[key] = value
 
     def __delitem__(self, key):
         return self._container.__delitem__(key)
@@ -71,6 +67,15 @@ class Datagroup:
             if all(value != other[key]):
                 return False
         return True
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.__class__(data={key: array.copy() for key, array in self.items()})
+
+    def copy(self):
+        return self.__class__(data=self._container.copy())
 
     @property
     def parent(self):
@@ -97,13 +102,8 @@ class Datagroup:
     def values(self):
         return self._container.values()
 
-    def set_scale(self, scale):
-        for key in ["x", "y", "z", "dx"]:
-            if key in self:
-                self[key].to(scale)
-
     def nbytes(self):
-        return np.sum([item._array.nbytes for item in self.values()])
+        return np.sum([item.nbytes for item in self.values()])
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())

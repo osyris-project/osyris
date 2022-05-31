@@ -170,14 +170,14 @@ def hilbert_cpu_list(meta, scaling, select, infofile):
     ncells = 2**min(meta["levelmax"], 18)  # limit to 262000 cells
     half_dxmin = 0.5 * box_size / ncells
     xyz_centers = Array(values=np.linspace(half_dxmin, box_size - half_dxmin, ncells),
-                        unit=1.0 * scaling.units)
+                        unit=scaling.units)
     new_bbox = False
     for c in "xyz":
         key = f"position_{c}"
         if key in select:
             new_bbox = True
             func_test = select[key](xyz_centers)
-            inds = np.argwhere(func_test).ravel()
+            inds = np.argwhere(func_test.values).ravel()
             start = xyz_centers[inds.min()] - (half_dxmin * scaling.units)
             end = xyz_centers[inds.max()] + (half_dxmin * scaling.units)
             bounding_box["{}min".format(c)] = start._array / box_size

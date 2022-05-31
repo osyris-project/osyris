@@ -5,7 +5,7 @@ import glob
 import os
 import struct
 import numpy as np
-from ..core import Array
+from ..core import Vector
 
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
@@ -123,9 +123,9 @@ def make_vector_arrays(data, ndim):
                     rawkey = key[:cut] + key[ind + 1:]
                     if len(rawkey) == 0:
                         rawkey = "position"
-                    data[rawkey] = Array(values=np.array(
-                        [data[c].values for c in comp_list]).T,
-                                         unit=data[key].unit)
+                    data[rawkey] = Vector(
+                        **{components[c]: data[comp_list[c]]
+                           for c in range(ndim)})
                     delete += comp_list
         for key in delete:
             del data[key]
