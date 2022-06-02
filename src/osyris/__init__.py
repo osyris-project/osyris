@@ -5,5 +5,5 @@
 
 from .config import config
 from .units import units
-from .core import Array, Datagroup, Dataset, Plot, Vector
+from .core import Array, Datagroup, Dataset, Plot, Vector, Subdomain
 from .plot import histogram1d, histogram2d, plane, scatter, map, plot
