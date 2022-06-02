@@ -5,6 +5,7 @@ from pint.quantity import Quantity
 from .base import Base
 from .array import Array
 from .tools import value_to_string
+from .. import spatial
 
 
 def _binary_op(op, lhs, rhs):
@@ -209,7 +210,7 @@ class Vector(Base):
         return np.logical_not(self)
 
     def to(self, unit):
-        return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
+        return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()}, name=self.name)
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if isinstance(args[0], (tuple, list)):
@@ -251,3 +252,25 @@ class Vector(Base):
         z = self.x * other.y
         z -= self.y * other.x
         return self.__class__(x, y, z)
+
+    @property
+    def r(self):
+        if self.name == "position":
+            v = self.norm; v.name = "position_r"
+            return v
+        else:
+            return spatial.get_spherical_components(self, comp='radius')
+
+    @property
+    def theta(self):
+        if self.name == "position":
+            return spatial.get_spherical_colatitude(self)
+        else:
+            return spatial.get_spherical_components(self, comp='colatitude')
+
+    @property
+    def phi(self):
+        if self.name == "position":
+            return spatial.get_spherical_azimuth(self)
+        else:
+            return spatial.get_spherical_components(self, comp='azimuth')

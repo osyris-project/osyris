@@ -5,10 +5,10 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, data=None, parent=None):
+    def __init__(self, data=None, parent=None, name=""):
         self._container = {}
         self._parent = parent
-        self._name = ""
+        self._name = name
         self.shape = None
         if data is not None:
             for key, array in data.items():

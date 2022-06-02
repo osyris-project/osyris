@@ -8,3 +8,4 @@ from .vector import Vector
 from .datagroup import Datagroup
 from .dataset import Dataset
 from .plot import Plot
+from .subdomain import Subdomain
