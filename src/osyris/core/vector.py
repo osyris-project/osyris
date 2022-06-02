@@ -210,7 +210,9 @@ class Vector(Base):
         return np.logical_not(self)
 
     def to(self, unit):
-        return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()}, name=self.name)
+        return self.__class__(**{c: xyz.to(unit)
+                                 for c, xyz in self._xyz.items()},
+                              name=self.name)
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if isinstance(args[0], (tuple, list)):
@@ -256,7 +258,8 @@ class Vector(Base):
     @property
     def r(self):
         if self.name == "position":
-            v = self.norm; v.name = "position_r"
+            v = self.norm
+            v.name = "position_r"
             return v
         else:
             return spatial.get_spherical_components(self, comp='radius')
