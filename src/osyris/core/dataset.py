@@ -1,22 +1,25 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
+from copy import copy, deepcopy
 from .. import config
 from ..io import Loader
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
+from .. import units
 
 
 class Dataset:
-    def __init__(self, nout=None, scale=None, path=""):
+    def __init__(self, nout=None, path=""):
         self.groups = {}
         self.meta = {}
         self.loader = None
-        if scale is None:
-            scale = config.parameters["scale"]
+        self.units = None
         if nout is not None:
-            self.loader = Loader(nout=nout, scale=scale, path=path)
+            self.loader = Loader(nout=nout, path=path)
             self.meta.update(self.loader.load_metadata())
+            self.set_units()
+            self.meta["time"] *= self.units["time"]
 
     def __iter__(self):
         return self.groups.__iter__()
@@ -50,6 +53,27 @@ class Dataset:
             output += str(item) + "\n"
         return output
 
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        nout = self.loader.nout if self.loader is not None else None
+        path = self.loader.path if self.loader is not None else ""
+        out = self.__class__(nout=nout, path=path)
+        for key, group in self.groups.items():
+            out[key] = deepcopy(group)
+        out.meta = {key: copy(item) for key, item in self.meta.items()}
+        return out
+
+    def copy(self):
+        nout = self.loader.nout if self.loader is not None else None
+        path = self.loader.path if self.loader is not None else ""
+        out = self.__class__(nout=nout, path=path)
+        for key, group in self.groups.items():
+            out[key] = group
+        out.meta = self.meta.copy()
+        return out
+
     def keys(self):
         return self.groups.keys()
 
@@ -60,7 +84,7 @@ class Dataset:
         return self.groups.values()
 
     def load(self, *args, **kwargs):
-        groups = self.loader.load(*args, meta=self.meta, **kwargs)
+        groups = self.loader.load(*args, meta=self.meta, units=self.units, **kwargs)
         for name, group in groups.items():
             self[name] = group
         config.additional_variables(self)
@@ -71,3 +95,23 @@ class Dataset:
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())
+
+    def clear(self):
+        self.groups.clear()
+        self.meta.clear()
+
+    def get(self, key, default):
+        return self.groups.get(key, default)
+
+    def pop(self, key):
+        return self.groups.pop(key)
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value
+
+    def set_units(self):
+        self.units = config.configure_units(units=units,
+                                            unit_d=self.meta['unit_d'],
+                                            unit_l=self.meta['unit_l'],
+                                            unit_t=self.meta['unit_t'])

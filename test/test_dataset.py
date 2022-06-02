@@ -1,19 +1,138 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
-import osyris
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+from common import arrayequal
+from osyris import Array, Datagroup, Dataset
+from copy import copy, deepcopy
 
 
 def test_dataset_creation():
-    a = osyris.Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = osyris.Array(values=[6., 7., 8., 9., 10.], unit='s')
-    dg1 = osyris.Datagroup()
-    dg1['a'] = a
-    dg1['b'] = b
-    dg2 = osyris.Datagroup()
-    dg2['a'] = a[:-1]
-    dg2['b'] = b[:-1]
-    ds = osyris.Dataset()
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds = Dataset()
     ds['one'] = dg1
     ds['two'] = dg2
     assert 'one' in ds
     assert 'two' in ds
+
+
+def test_dataset_clear():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds = Dataset()
+    ds['one'] = dg1
+    ds['two'] = dg2
+    ds.clear()
+    assert len(ds) == 0
+
+
+def test_dataset_get():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds = Dataset()
+    ds['one'] = dg1
+    ds['two'] = dg2
+    assert ds.get('one', 42) == dg1
+    assert ds.get('three', 42) == 42
+
+
+def test_dataset_pop():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds = Dataset()
+    ds['one'] = dg1
+    ds['two'] = dg2
+    c = ds.pop('one')
+    assert 'one' not in ds
+    assert c == dg1
+
+
+def test_dataset_update():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    c = Array(values=[11., 12., 13., 14., 15.], unit='K')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    dg3 = Datagroup({'a': a, 'c': c})
+    ds = Dataset()
+    ds['one'] = dg1
+    ds['two'] = dg2
+    ds.update({'one': Datagroup({'a': a * 2.0}), 'three': dg3})
+    assert 'three' in ds
+    assert 'b' not in ds['one']
+    assert 'c' in ds['three']
+
+
+def test_copy():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds1 = Dataset()
+    ds1['one'] = dg1
+    ds1['two'] = dg2
+    ds1.meta = {'metadata1': [1, 2, 3], 'metadata2': '4,5,6'}
+    ds2 = ds1.copy()
+    del ds1['two']
+    assert 'two' in ds2
+    del dg1['b']
+    assert 'b' not in ds2['one']
+    dg1['a'] *= 10.
+    assert arrayequal(ds2['one']['a'], Array(values=[10., 20., 30., 40., 50.],
+                                             unit='m'))
+    del ds1.meta['metadata2']
+    assert 'metadata2' in ds2.meta
+    ds1.meta['metadata1'][0] = 0
+    assert ds2.meta['metadata1'][0] == 0
+
+
+def test_copy_overload():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds1 = Dataset()
+    ds1['one'] = dg1
+    ds1['two'] = dg2
+    ds1.meta = {'metadata1': [1, 2, 3], 'metadata2': '4,5,6'}
+    ds2 = copy(ds1)
+    del ds1['two']
+    assert 'two' in ds2
+    del dg1['b']
+    assert 'b' not in ds2['one']
+    dg1['a'] *= 10.
+    assert arrayequal(ds2['one']['a'], Array(values=[10., 20., 30., 40., 50.],
+                                             unit='m'))
+    del ds1.meta['metadata2']
+    assert 'metadata2' in ds2.meta
+    ds1.meta['metadata1'][0] = 0
+    assert ds2.meta['metadata1'][0] == 0
+
+
+def test_deepcopy():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    b = Array(values=[6., 7., 8., 9., 10.], unit='s')
+    dg1 = Datagroup({'a': a, 'b': b})
+    dg2 = Datagroup({'a': a[:-1], 'b': b[:-1]})
+    ds1 = Dataset()
+    ds1['one'] = dg1
+    ds1['two'] = dg2
+    ds1.meta = {'metadata1': [1, 2, 3], 'metadata2': '4,5,6'}
+    ds2 = deepcopy(ds1)
+    del ds1['two']
+    assert 'two' in ds2
+    del dg1['b']
+    assert 'b' in ds2['one']
+    dg1['a'] *= 10.
+    assert arrayequal(ds2['one']['a'], Array(values=[1., 2., 3., 4., 5.], unit='m'))
+    del ds1.meta['metadata2']
+    assert 'metadata2' in ds2.meta
+    ds1.meta['metadata1'][0] = 0
+    assert ds2.meta['metadata1'][0] == 1

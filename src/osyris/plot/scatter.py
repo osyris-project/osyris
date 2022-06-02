@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 from pint.quantity import Quantity
 from ..core import Plot, Array
@@ -80,22 +80,22 @@ def scatter(x: Array,
         "params": params,
     }]
     if "c" in params and not isinstance(params["c"], str):
-        to_render[0].update({"unit": params["c"].unit.units, "name": params["c"].name})
+        to_render[0].update({"unit": params["c"].unit, "name": params["c"].name})
         params["c"] = params["c"].norm.values
     if "s" in params:
         unit = None
         if isinstance(params["s"], Array):
-            unit = params["s"].unit.units
+            unit = params["s"].unit
         if isinstance(params["s"], Quantity):
             unit = params["s"].units
         if unit is not None:
-            if unit != units.dimensionless:
-                if x.unit.units != y.unit.units:
+            if unit != units('dimensionless'):
+                if x.unit != y.unit:
                     raise RuntimeError("Scatter: an Array with a unit was supplied "
                                        "as a size, but the units of the x and y "
                                        "Arrays do not agree. The size must either "
                                        "be a float or a dimensionless Array.")
-                params["s"] = params["s"].to(x.unit.units)
+                params["s"] = params["s"].to(x.unit)
 
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
 

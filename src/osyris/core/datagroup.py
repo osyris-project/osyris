@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
-from .array import Array
 from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, data=None, parent=None):
+    def __init__(self, data=None, parent=None, name=""):
         self._container = {}
         self._parent = parent
-        self._name = ""
+        self._name = name
         self.shape = None
         if data is not None:
             for key, array in data.items():
@@ -45,12 +44,9 @@ class Datagroup:
                     "Size mismatch on element insertion. Item "
                     "shape is {} while container accepts shape {}.".format(
                         shape, self.shape))
-        if isinstance(value, Array):
-            value.name = key
-            value.parent = self
-            self._container[key] = value
-        else:
-            self._container[key] = Array(values=value, name=key, parent=self)
+        value.name = key
+        value.parent = self
+        self._container[key] = value
 
     def __delitem__(self, key):
         return self._container.__delitem__(key)
@@ -63,6 +59,23 @@ class Datagroup:
         for key, item in self.items():
             output += str(item) + "\n"
         return output
+
+    def __eq__(self, other):
+        if self.keys() != other.keys():
+            return False
+        for key, value in self.items():
+            if all(value != other[key]):
+                return False
+        return True
+
+    def __copy__(self):
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        return self.__class__(data={key: array.copy() for key, array in self.items()})
+
+    def copy(self):
+        return self.__class__(data=self._container.copy())
 
     @property
     def parent(self):
@@ -89,13 +102,29 @@ class Datagroup:
     def values(self):
         return self._container.values()
 
-    def set_scale(self, scale):
-        for key in ["x", "y", "z", "dx"]:
-            if key in self:
-                self[key].to(scale)
-
     def nbytes(self):
-        return np.sum([item._array.nbytes for item in self.values()])
+        return np.sum([item.nbytes for item in self.values()])
 
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())
+
+    def sortby(self, key):
+        if key is not None:
+            if isinstance(key, str):
+                key = np.argsort(self[key]).values
+            for var in self.keys():
+                self[var] = self[var][key]
+
+    def clear(self):
+        self._container.clear()
+        self.shape = None
+
+    def get(self, key, default):
+        return self._container.get(key, default)
+
+    def pop(self, key):
+        return self._container.pop(key)
+
+    def update(self, d):
+        for key, value in d.items():
+            self[key] = value

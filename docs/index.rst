@@ -104,6 +104,14 @@ Plotting: scatter plots
 
    plotting_scatter
 
+Plotting: particles
+===================
+
+.. toctree::
+   :maxdepth: 2
+
+   plotting_particles
+
 Recipes
 =======
 

@@ -1,81 +1,57 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 from pint.quantity import Quantity
-from pint.unit import Unit
-from .tools import value_to_string, make_label
+from pint.errors import DimensionalityError
+from .base import Base
+from .tools import value_to_string
 from .. import units
 
-
-def _comparison_operator(lhs, rhs, op):
-    func = getattr(np, op)
-    if isinstance(rhs, Array):
-        scale_r = rhs.unit.to(lhs._unit.units)
-        return func(lhs._array, rhs._array * scale_r.magnitude)
-    if isinstance(rhs, Quantity):
-        return func(lhs._array, rhs.to(lhs._unit.units).magnitude)
-    return func(lhs._array, rhs)
+APPLY_OP_TO_UNIT = ("multiply", "true_divide", "sqrt", "power", "reciprocal")
 
 
-def _unit_parser(unit):
-    if unit is None:
-        return 1.0 * units.dimensionless
-    elif isinstance(unit, str):
-        return units(unit)
-    elif isinstance(unit, Quantity):
-        return unit
-    elif isinstance(unit, Unit):
-        return 1.0 * unit
+def _binary_op(op, lhs, rhs, strict=True, **kwargs):
+    if not isinstance(rhs, lhs.__class__):
+        try:
+            rhs = lhs.__class__(rhs)
+        except NotImplementedError:
+            return NotImplemented
+    if strict:
+        rhs = rhs.to(lhs.unit)
     else:
-        raise TypeError("Unsupported unit type {}".format(type(unit)))
+        try:
+            rhs = rhs.to(lhs.unit)
+        except DimensionalityError:
+            pass
+    return op(lhs, rhs, **kwargs)
 
 
-class Array:
-    def __init__(self, values=0, unit=None, parent=None, name="", system="cartesian"):
+class Array(Base):
+    def __init__(self, values, unit=None, parent=None, name=""):
 
-        if isinstance(values, np.ndarray):
+        if isinstance(values, Base):
+            raise NotImplementedError("Cannot create Array from Array or Vector.")
+
+        if isinstance(values, Quantity):
+            if unit is not None:
+                raise ValueError(
+                    "Cannot set unit when creating an Array from a Quantity.")
+            self._array = values.magnitude
+            self.unit = values.units
+        else:
             self._array = values
-        else:
-            self._array = np.asarray(values)
+            self.unit = units(unit)
+        if not isinstance(self._array, np.ndarray):
+            self._array = np.asarray(self._array)
 
-        if isinstance(unit, list):
-            units = [_unit_parser(u) for u in unit]
-            self.unit = units
-        else:
-            self._unit = _unit_parser(unit)
-        self._parent = parent
-        self._name = name
-        self.special_functions = ["sqrt", "power"]
-        coordinate_systems = ["cartesian", "spherical", "cylindrical"]
-        system = system.lower()
-        if system not in coordinate_systems:
-            raise RuntimeError(
-                "Unknown coordinate system keyword '{}'.\nAvailable keywords"
-                " are 'cartesian', 'spherical' and 'cylindrical'.".format(system))
-        else:
-            self._system = system
-
-    # def __array__(self):
-    #     return self._array
+        self.parent = parent
+        self.name = name
 
     def __getitem__(self, slice_):
-        out = self.__class__(values=self._array[slice_],
-                             unit=self._unit,
-                             system=self._system,
-                             parent=self._parent,
-                             name=self._name)
-        if self.shape[0] == 1:
-            return out
-        if isinstance(slice_, (int, np.integer)):
-            if self.ndim > 1:
-                return out.reshape(1, len(out))
-            else:
-                if isinstance(self._unit, list):
-                    out._unit = self._unit[slice_]
-                return out
-        if isinstance(slice_[0], slice) and isinstance(self._unit, list):
-            out._unit = self._unit[slice_[-1]]
-        return out
+        return self.__class__(values=self._array[slice_],
+                              unit=self.unit,
+                              parent=self.parent,
+                              name=self.name)
 
     def __len__(self):
         if self._array.shape:
@@ -84,28 +60,20 @@ class Array:
             return 0
 
     def __str__(self):
-        name_str = "'" + self._name + "' "
+        name_str = "'" + self.name + "' "
         if len(self) == 0:
             values_str = "Value: " + value_to_string(self.values)
         else:
             values_str = "Min: " + value_to_string(
-                self.min(use_norm=True).values) + " Max: " + value_to_string(
-                    self.max(use_norm=True).values)
-        if isinstance(self._unit, list):
-            unit_str = " {} ".format(["{:~}".format(u.units) for u in self._unit])
-        else:
-            unit_str = " [{:~}] ".format(self._unit.units)
-        shape_str = str(self._array.shape)
-        system_str = " System: " + self._system
-        return name_str + values_str + unit_str + shape_str + system_str
-
-    def __repr__(self):
-        return str(self)
+                self.min().values) + " Max: " + value_to_string(self.max().values)
+        unit_str = " [{:~}] ".format(self.unit)
+        shape_str = str(self.shape)
+        return name_str + values_str + unit_str + shape_str
 
     def copy(self):
         return self.__class__(values=self._array.copy(),
-                              unit=self._unit.copy(),
-                              name=self._name)
+                              unit=units(self.unit),
+                              name=str(self.name))
 
     @property
     def values(self):
@@ -119,406 +87,143 @@ class Array:
         self._array = values_
 
     @property
-    def array(self):
-        return self._array
-
-    @array.setter
-    def array(self, array_):
-        self._array = array_
-
-    @property
     def norm(self):
-        if self._array.ndim < 2:
-            return self
-        else:
-            return self.__class__(values=np.linalg.norm(self._array, axis=1),
-                                  unit=self.unit)
-
-    @property
-    def unit(self):
-        return self._unit
-
-    @unit.setter
-    def unit(self, unit_):
-        self._unit = unit_
+        return self
 
     @property
     def ndim(self):
-        if self._array.shape:
-            if len(self._array.shape) == 2:
-                return self._array.shape[-1]
-            else:
-                return 1
-        return 0
+        return self._array.ndim
 
     @property
     def shape(self):
         return self._array.shape
 
     @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, parent_):
-        self._parent = parent_
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name_):
-        self._name = name_
-
-    @property
-    def x(self):
-        if (self.ndim > 1) and (self._system == "cartesian"):
-            return self.__class__(values=self._array[:, 0],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_x")
-        elif self._system != "cartesian":
-            raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
-                .format(self._name, self._system))
-
-    @property
-    def y(self):
-        if (self.ndim > 1) and (self._system == "cartesian"):
-            return self.__class__(values=self._array[:, 1],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_y")
-        elif self._system != "cartesian":
-            raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
-                .format(self._name, self._system))
-
-    @property
-    def z(self):
-        if (self.ndim > 2) and (self._system == "cartesian"):
-            return self.__class__(values=self._array[:, 2],
-                                  unit=self._unit,
-                                  parent=self._parent,
-                                  name=self._name + "_z")
-        elif self._system != "cartesian":
-            raise AttributeError(
-                "Array '{}' does not have a cartesian basis. Its coordinate system is {} (attributes are x,y,z)."
-                .format(self._name, self._system))
-
-    @property
-    def r(self):
-        if (self.ndim > 1) and (self._system == "spherical"):
-            unit = self._unit if not isinstance(self._unit, list) else self._unit[0]
-            return self.__class__(values=self._array[:, 0],
-                                  unit=unit,
-                                  parent=self._parent,
-                                  system=self._system,
-                                  name=self._name + "_r")
-        elif self._system != "spherical":
-            raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
-                .format(self._name, self._system))
-
-    @property
-    def theta(self):
-        if (self.ndim > 1) and (self._system == "spherical"):
-            unit = self._unit if not isinstance(self._unit, list) else self._unit[1]
-            return self.__class__(values=self._array[:, 1],
-                                  unit=unit,
-                                  parent=self._parent,
-                                  system=self._system,
-                                  name=self._name + "_theta")
-        elif self._system != "spherical":
-            raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
-                .format(self._name, self._system))
-
-    @property
-    def phi(self):
-        if (self.ndim > 2) and (self._system == "spherical"):
-            unit = self._unit if not isinstance(self._unit, list) else self._unit[2]
-            return self.__class__(values=self._array[:, 2],
-                                  unit=unit,
-                                  parent=self._parent,
-                                  system=self._system,
-                                  name=self._name + "_phi")
-        elif self._system != "spherical":
-            raise AttributeError(
-                "Array '{}' does not have a spherical basis. Its coordinate system is {} (attributes are r,theta,phi)."
-                .format(self._name, self._system))
-
-    @property
-    def label(self):
-        return make_label(name=self._name, unit=self._unit.units)
-
-    def _broadcast(self, lhs, rhs):
-        if (lhs.ndim == rhs.ndim) or (len(lhs.shape) == 0) or (len(rhs.shape) == 0):
-            return lhs, rhs
-        if lhs.ndim > rhs.ndim:
-            ind = np.argmax(np.array(lhs.shape) == rhs.shape[0])
-            if ind == 0:
-                return lhs, rhs.reshape(rhs.shape + tuple([1]))
-            else:
-                return lhs, rhs.reshape(tuple([1]) + rhs.shape)
-        else:
-            ind = np.argmax(np.array(rhs.shape) == lhs.shape[0])
-            if ind == 0:
-                return lhs.reshape(lhs.shape + tuple([1])), rhs
-            else:
-                return lhs.reshape(tuple([1]) + lhs.shape), rhs
-
-    def _raise_incompatible_units_error(self, other, op):
-        raise TypeError("Could not {} types {} and {}.".format(op, self, other))
+    def dtype(self):
+        return self._array.dtype
 
     def __add__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            lhs = self._array
-            rhs = other._array * scale_r.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs + rhs, unit=self._unit)
-        if isinstance(other, Quantity):
-            return self.__class__(values=self._array +
-                                  other.to(self._unit.units).magnitude,
-                                  unit=self._unit)
-        self._raise_incompatible_units_error(other, "add")
+        return _binary_op(np.add, self, other)
 
     def __iadd__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            rhs = other._array * scale_r.magnitude
-            self._array += rhs
-        elif isinstance(other, Quantity):
-            self._array += other.to(self._unit.units).magnitude
-        else:
-            self._raise_incompatible_units_error(other, "add")
-        return self
+        return _binary_op(np.add, self, other, out=self)
 
     def __sub__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            lhs = self._array
-            rhs = other._array * scale_r.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs - rhs, unit=self._unit)
-        if isinstance(other, Quantity):
-            return self.__class__(values=self._array -
-                                  other.to(self._unit.units).magnitude,
-                                  unit=self._unit)
-        self._raise_incompatible_units_error(other, "subtract")
+        return _binary_op(np.subtract, self, other)
 
     def __isub__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = other.unit.to(self._unit.units)
-            rhs = other._array * scale_r.magnitude
-            self._array -= rhs
-        elif isinstance(other, Quantity):
-            self._array -= other.to(self._unit.units).magnitude
-        else:
-            self._raise_incompatible_units_error(other, "subtract")
-        return self
+        return _binary_op(np.subtract, self, other, out=self)
 
     def __mul__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            lhs = self._array
-            rhs = other._array * result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs * rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array * other, unit=self._unit)
-
-    def __matmul__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            lhs = self._array
-            rhs = other._array * result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=np.transpose(lhs @ rhs),
-                                  unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array @ other, unit=self._unit)
+        return _binary_op(np.multiply, self, other, strict=False)
 
     def __imul__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l * scale_r
-            rhs = other._array * result.magnitude
-            self._array *= rhs
-            self._unit = 1.0 * result.units
-        elif isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l * scale_r
-            self._array *= result.magnitude
-            self._unit = 1.0 * result.units
-        else:
-            self._array *= other
-        return self
+        return _binary_op(np.multiply, self, other, strict=False, out=self)
 
     def __truediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l / scale_r
-            lhs = self._array
-            rhs = other._array / result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l / scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=self._array / other, unit=self._unit)
+        return _binary_op(np.divide, self, other, strict=False)
 
     def __itruediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_l = self._unit.to_base_units()
-            scale_r = other._unit.to_base_units()
-            result = scale_l / scale_r
-            rhs = other._array / result.magnitude
-            self._array /= rhs
-            self._unit = 1.0 * result.units
-        elif isinstance(other, Quantity):
-            scale_l = self._unit.to_base_units()
-            scale_r = other.to_base_units()
-            result = scale_l / scale_r
-            self._array *= result.magnitude
-            self._unit = 1.0 * result.units
-        else:
-            self._array /= other
-        return self
+        return _binary_op(np.divide, self, other, strict=False, out=self)
 
     def __rmul__(self, other):
         return self * other
 
     def __rtruediv__(self, other):
-        if isinstance(other, self.__class__):
-            scale_r = self._unit.to_base_units()
-            scale_l = other._unit.to_base_units()
-            result = scale_l / scale_r
-            lhs = self._array
-            rhs = other._array / result.magnitude
-            lhs, rhs = self._broadcast(lhs, rhs)
-            return self.__class__(values=lhs / rhs, unit=1.0 * result.units)
-        if isinstance(other, Quantity):
-            scale_r = self._unit.to_base_units()
-            scale_l = other.to_base_units()
-            result = scale_l / scale_r
-            return self.__class__(values=self._array * result.magnitude,
-                                  unit=1.0 * result.units)
-        return self.__class__(values=other / self._array, unit=1.0 / self._unit)
+        return np.reciprocal(self / other)
 
     def __pow__(self, number):
         return np.power(self, number)
 
+    def __neg__(self):
+        return np.negative(self)
+
     def __lt__(self, other):
-        return _comparison_operator(self, other, "less")
+        return _binary_op(np.less, self, other)
 
     def __le__(self, other):
-        return _comparison_operator(self, other, "less_equal")
+        return _binary_op(np.less_equal, self, other)
 
     def __gt__(self, other):
-        return _comparison_operator(self, other, "greater")
+        return _binary_op(np.greater, self, other)
 
     def __ge__(self, other):
-        return _comparison_operator(self, other, "greater_equal")
+        return _binary_op(np.greater_equal, self, other)
 
     def __eq__(self, other):
-        return _comparison_operator(self, other, "equal")
+        return _binary_op(np.equal, self, other)
 
     def __ne__(self, other):
-        return _comparison_operator(self, other, "not_equal")
+        return _binary_op(np.not_equal, self, other)
+
+    def __and__(self, other):
+        return _binary_op(np.logical_and, self, other)
+
+    def __or__(self, other):
+        return _binary_op(np.logical_or, self, other)
+
+    def __xor__(self, other):
+        return _binary_op(np.logical_xor, self, other)
+
+    def __invert__(self):
+        return np.logical_not(self)
 
     def to(self, unit):
-        if isinstance(unit, str):
-            new_unit = units(unit)
-        else:
-            new_unit = unit
-        ratio = self._unit.to(new_unit) / new_unit
-        self._unit = 1.0 * new_unit
-        self._array *= ratio.magnitude
-        return self
+        new_unit = units(unit)
+        if self.unit == new_unit:
+            return self
+        ratio = (1.0 * self.unit).to(new_unit) / (1.0 * new_unit)
+        return self.__class__(values=self._array * ratio.magnitude, unit=new_unit)
+
+    def _maybe_array(self, arg):
+        if isinstance(arg, self.__class__):
+            return arg._array
+        if isinstance(arg, Quantity):
+            return arg.magnitude
+        return arg
+
+    def _extract_arrays_from_args(self, args):
+        return tuple(self._maybe_array(a) for a in args)
+
+    def _extract_arrays_from_kwargs(self, kwargs):
+        return {key: self._extract_arrays_from_args(a) for key, a in kwargs.items()}
+
+    def _maybe_unit(self, arg):
+        if hasattr(arg, "unit"):
+            return 1.0 * arg.unit
+        if hasattr(arg, "units"):
+            return 1.0 * arg.units
+        return arg
+
+    def _extract_units(self, args):
+        return tuple(self._maybe_unit(a) for a in args)
 
     def _wrap_numpy(self, func, *args, **kwargs):
-        if func.__name__ in self.special_functions:
-            unit = func(self.unit, *args[1:], **kwargs)
+        if isinstance(args[0], (tuple, list)):
+            array_args = (self._extract_arrays_from_args(
+                args[0]), ) + self._extract_arrays_from_args(args[1:])
         else:
-            unit = self.unit
-        if isinstance(args[0], tuple) or isinstance(args[0], list):
-            # Case where we have a sequence of arrays, e.g. `concatenate`
-            for a in args[0]:
-                if a.unit != unit:
-                    self._raise_incompatible_units_error(a, func.__name__)
-            args = (tuple(a._array for a in args[0]), ) + args[1:]
-        elif (len(args) > 1 and hasattr(args[1], "_array")):
-            if hasattr(args[0], "_array"):
-                # Case of a binary operation, with two Arrays, e.g. `dot`
-                # TODO: what should we do with the unit? Apply the func to it?
-                unit = func(args[0].unit, args[1].unit, *args[2:], **kwargs)
-                args = (args[0]._array, args[1]._array) + args[2:]
+            array_args = self._extract_arrays_from_args(args)
+        result = func(*array_args, **self._extract_arrays_from_kwargs(kwargs))
+
+        unit = None
+        if result.dtype in (int, float):
+            if func.__name__ in APPLY_OP_TO_UNIT:
+                unit = func(*self._extract_units(args),
+                            **{key: a
+                               for key, a in kwargs.items() if key != "out"}).units
             else:
-                # Case of a binary operation: ndarray with Array
-                # In this case, only multiply is allowed?
-                if func.__name__ != "multiply":
-                    raise RuntimeError("Cannot use operation {} between ndarray and "
-                                       "Array".format(func.__name__))
-                args = (args[0], args[1]._array) + args[2:]
+                unit = self.unit
+
+        if "out" in kwargs:
+            kwargs["out"][0].unit = unit
+            return kwargs["out"][0]
         else:
-            args = (args[0]._array, ) + args[1:]
-        result = func(*args, **kwargs)
-        return self.__class__(values=result, unit=unit)
-
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        """
-        Numpy array_ufunc protocol to allow Array to work with numpy ufuncs.
-        """
-        if method != "__call__":
-            # Only handle ufuncs as callables
-            return NotImplemented
-        return self._wrap_numpy(ufunc, *inputs, **kwargs)
-
-    def __array_function__(self, func, types, args, kwargs):
-        """
-        Numpy array_function protocol to allow Array to work with numpy
-        functions.
-        """
-        return self._wrap_numpy(func, *args, **kwargs)
-
-    def min(self, use_norm=False):
-        if use_norm:
-            out = self.norm._array.min()
-        else:
-            out = self._array.min()
-        return self.__class__(values=out, unit=self._unit)
-
-    def max(self, use_norm=False):
-        if use_norm:
-            out = self.norm._array.max()
-        else:
-            out = self._array.max()
-        return self.__class__(values=out, unit=self._unit)
+            return self.__class__(values=result, unit=unit)
 
     def reshape(self, *shape):
-        return self.__class__(values=self._array.reshape(*shape),
-                              unit=self._unit,
-                              system=self._system)
+        return self.__class__(values=self._array.reshape(*shape), unit=self.unit)
+
+    @property
+    def nbytes(self):
+        return self._array.nbytes

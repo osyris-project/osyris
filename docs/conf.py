@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -62,7 +62,7 @@ master_doc = 'index'
 html_theme = 'sphinx_book_theme'
 html_theme_options = {
     'logo_only': True,
-    "repository_url": "https://github.com/nvaytet/osyris",
+    "repository_url": "https://github.com/osyris-project/osyris",
     "repository_branch": "main",
     "use_repository_button": True,
     "use_issues_button": True,
@@ -80,4 +80,4 @@ html_favicon = "images/favicon.ico"
 nbsphinx_timeout = 300
 
 # Get the data files
-os.system('git clone https://github.com/nvaytet/osyrisdata.git')
+os.system('git clone https://github.com/osyris-project/osyrisdata.git')

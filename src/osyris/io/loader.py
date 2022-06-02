@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
 import os
 from . import utils
-from .. import config
-from ..core import Datagroup
+from ..core import Datagroup, Array
 from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
@@ -16,11 +15,10 @@ from .reader import ReaderKind
 
 
 class Loader:
-    def __init__(self, nout, scale, path):
+    def __init__(self, nout, path):
         # Generate directory name from output number
         self.nout = nout
         self.path = path
-        self.scale = scale
         self.infile = utils.generate_fname(nout, path)
         self.readers = {
             "amr": AmrReader(),
@@ -39,17 +37,14 @@ class Loader:
         meta = utils.read_parameter_file(fname=infofile)
         # Add additional information
         meta["infofile"] = infofile
-        meta["scale"] = self.scale
         meta["infile"] = self.infile
         meta["nout"] = self.nout
         meta["path"] = self.path
-        meta["time"] *= config.get_unit("time", meta["unit_d"], meta["unit_l"],
-                                        meta["unit_t"], meta["scale"])
         meta["ncells"] = 0
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, meta=None):
+    def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
 
         out = {}
         groups = list(self.readers.keys())
@@ -87,25 +82,43 @@ class Loader:
 
         # Initialize readers
         readers = {}
+        do_not_load_amr = True
+        do_not_load_cpus = True
         for group in groups:
             loaded_on_init = self.readers[group].initialize(meta=meta,
+                                                            units=units,
                                                             select=_select[group])
             if loaded_on_init is not None:
                 out[group] = loaded_on_init
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
+                if self.readers[group].kind == ReaderKind.AMR:
+                    do_not_load_amr = False
+                if self.readers[group].kind in (ReaderKind.AMR, ReaderKind.PART):
+                    do_not_load_cpus = False
+        # If no reader requires the AMR tree to be read, set lmax to zero
+        if do_not_load_amr:
+            lmax = 0
+        else:
+            meta["ncells"] = 0
+            lmax = meta["lmax"]
+            if "amr" not in readers:
+                readers["amr"] = self.readers["amr"]
 
         # Take into account user specified cpu list
         if cpu_list is None:
             cpu_list = self.readers["amr"].cpu_list if self.readers[
                 "amr"].cpu_list is not None else range(1, meta["ncpu"] + 1)
 
-        print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
+        # If no reader requires the CPUs (if loading only sinks), make empty cpu list
+        if do_not_load_cpus:
+            cpu_list = []
+        else:
+            meta["nparticles"] = 0
+            print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
 
         # Allocate work arrays
         twotondim = 2**meta["ndim"]
-        for reader in readers.values():
-            reader.allocate_buffers(ngridmax=meta["ngridmax"], twotondim=twotondim)
 
         iprog = 1
         istep = 10
@@ -139,7 +152,7 @@ class Loader:
                 reader.read_header(meta)
 
             # Loop over levels
-            for ilevel in range(meta["lmax"]):
+            for ilevel in range(lmax):
 
                 for reader in readers.values():
                     reader.read_level_header(ilevel, twotondim)
@@ -157,6 +170,9 @@ class Loader:
                         if domain == cpu_num - 1:
 
                             for reader in readers.values():
+                                reader.allocate_buffers(ncache, twotondim)
+
+                            for reader in readers.values():
                                 reader.read_cacheline_header(ncache, meta["ndim"])
 
                             for ind in range(twotondim):
@@ -170,15 +186,18 @@ class Loader:
                             # add any criteria requested by the user via select.
                             conditions = {}
                             for group, reader in readers.items():
-                                conditions.update(
-                                    reader.make_conditions(_select[group], ncache))
+                                conditions.update(reader.make_conditions(
+                                    _select[group]))
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools
-                            sel = np.where(
-                                np.prod(np.array(list(conditions.values())), axis=0))
+                            sel = np.prod(np.array([
+                                c.values if isinstance(c, Array) else c
+                                for c in conditions.values()
+                            ]),
+                                          axis=0).astype(bool)
 
                             # Count the number of cells
-                            ncells = np.shape(sel)[1]
+                            ncells = np.sum(sel)
                             if ncells > 0:
                                 meta["ncells"] += ncells
                                 npieces += 1
@@ -210,5 +229,11 @@ class Loader:
 
         print("Loaded: {} cells, {} particles.".format(meta["ncells"],
                                                        meta["nparticles"]))
+
+        # Apply sorting if any requested from args
+        if sortby is not None:
+            for group, key in sortby.items():
+                if group in out:
+                    out[group].sortby(key)
 
         return out

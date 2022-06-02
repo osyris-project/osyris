@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 # Import the config from "/home/user/.osyris/conf.py if it exists.
 # If it doesn't, try to create one by copying the default from the source.
@@ -21,24 +21,13 @@ sys.path.append(user_config_dir)
 import config_osyris as user_config  # noqa: E402
 
 
-# Create a dummy class
 class Config:
     pass
 
 
-if hasattr(user_config, 'ureg'):
-    units = getattr(user_config, 'ureg')
-else:
-    units = getattr(default_config, 'ureg')
-
 config = Config()
 
 # Import list of object from user config if present, if not, load from defaults.
-objects = ['parameters', 'get_unit', 'additional_units', 'additional_variables']
+objects = ['configure_constants', 'configure_units', 'additional_variables']
 for obj in objects:
-    if hasattr(user_config, obj):
-        setattr(config, obj, getattr(user_config, obj))
-    else:
-        setattr(config, obj, getattr(default_config, obj))
-
-config.additional_units()
+    setattr(config, obj, getattr(user_config, obj, getattr(default_config, obj)))

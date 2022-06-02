@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 import os
 from .reader import Reader, ReaderKind
@@ -9,7 +9,7 @@ class RtReader(Reader):
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
-    def initialize(self, meta, select):
+    def initialize(self, meta, units, select):
         self.initialized = False
         if select is False:
             return
@@ -27,7 +27,10 @@ class RtReader(Reader):
             for i in range(len(desc_from_file))
         }
 
-        self.descriptor_to_variables(descriptor=descriptor, meta=meta, select=select)
+        self.descriptor_to_variables(descriptor=descriptor,
+                                     meta=meta,
+                                     units=units,
+                                     select=select)
         self.initialized = True
 
     def read_header(self, info):

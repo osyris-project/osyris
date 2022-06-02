@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/nvaytet/osyris)
+# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
 from pint.quantity import Quantity
@@ -195,7 +195,7 @@ def histogram2d(x: Array,
         to_render.append({
             "mode": settings["mode"],
             "params": params,
-            "unit": data.unit.units,
+            "unit": data.unit,
             "name": data.name
         })
         operations.append(settings["operation"])
