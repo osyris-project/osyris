@@ -49,7 +49,10 @@ class Array(Base):
         self.name = name
 
     def __getitem__(self, slice_):
-        if isinstance(slice_, self.__class__):
+        if isinstance(slice_, Base):
+            if not isinstance(slice_, self.__class__):
+                raise ValueError(
+                    "Cannot slice using a Vector, only Array is supported.")
             slice_ = slice_.values
         return self.__class__(values=self._array[slice_],
                               unit=self.unit,

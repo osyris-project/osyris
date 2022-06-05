@@ -59,6 +59,8 @@ class Vector(Base):
         return out
 
     def __getitem__(self, slice_):
+        if isinstance(slice_, self.__class__):
+            raise ValueError("Cannot slice using a Vector, only Array is supported.")
         if isinstance(slice_, Array):
             slice_ = slice_.values
         return self.__class__(**{c: xyz[slice_]
