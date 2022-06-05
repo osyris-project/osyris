@@ -27,6 +27,7 @@ def _binary_op(op, lhs, rhs, strict=True, **kwargs):
 
 
 class Array(Base):
+
     def __init__(self, values, unit=None, parent=None, name=""):
 
         if isinstance(values, Base):
@@ -48,6 +49,8 @@ class Array(Base):
         self.name = name
 
     def __getitem__(self, slice_):
+        if isinstance(slice_, self.__class__):
+            slice_ = slice_.values
         return self.__class__(values=self._array[slice_],
                               unit=self.unit,
                               parent=self.parent,
