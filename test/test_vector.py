@@ -719,13 +719,21 @@ def test_slicing_with_array():
     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
     v = Vector(x, y, z)
     select = v.norm > (15. * units('m'))
-
-    exp_x = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    exp_y = Array(values=[6., 7., 8., 9., 10.], unit='m')
-    exp_z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    exp_x = Array(values=[3., 4., 5.], unit='m')
+    exp_y = Array(values=[8., 9., 10.], unit='m')
+    exp_z = Array(values=[13., 14., 15.], unit='m')
     expected = Vector(exp_x, exp_y, exp_z)
+    assert vectorequal(v[select], expected)
 
-    assert arrayequal(v[select], Array(values=[4., 5.], unit='m'))
+
+def test_slicing_with_vector_raises():
+    x = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    y = Array(values=[6., 7., 8., 9., 10.], unit='m')
+    z = Array(values=[11., 12., 13., 14., 15.], unit='m')
+    v = Vector(x, y, z)
+    select = v > (16. * units('m'))
+    with pytest.raises(ValueError):
+        _ = v[select]
 
 
 def test_copy():

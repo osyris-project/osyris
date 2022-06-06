@@ -21,7 +21,6 @@ def _binary_op(op, lhs, rhs):
 
 
 class Vector(Base):
-
     def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
 
         if isinstance(x, Array):
@@ -59,10 +58,6 @@ class Vector(Base):
         return out
 
     def __getitem__(self, slice_):
-        if isinstance(slice_, self.__class__):
-            raise ValueError("Cannot slice using a Vector, only Array is supported.")
-        if isinstance(slice_, Array):
-            slice_ = slice_.values
         return self.__class__(**{c: xyz[slice_]
                                  for c, xyz in self._xyz.items()},
                               parent=self.parent,

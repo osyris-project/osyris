@@ -668,6 +668,14 @@ def test_slicing_with_array():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     select = a > (3. * units('m'))
     assert arrayequal(a[select], Array(values=[4., 5.], unit='m'))
+    b = Array(values=[0, 2, 4])
+    assert arrayequal(a[b], Array(values=[1., 3., 5.], unit='m'))
+
+
+def test_slicing_with_array_bad_dtype():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    with pytest.raises(TypeError):
+        _ = a[Array(values=[0., 2., 4.])]
 
 
 def test_copy():
