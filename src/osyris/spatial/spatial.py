@@ -46,6 +46,17 @@ def cartesian_to_spherical_rotation_matrix(colatitude, azimuth):
     return R
 
 
+def cartesian_to_cylindrical_rotation_matrix(azimuth):
+    """
+    Used to convert arbitrary cartesian vectors into cylindrical vectors
+    """
+
+    R = np.array([[np.cos(azimuth), np.sin(azimuth), 0],
+                  [-np.sin(azimuth), np.cos(azimuth), 0], [0, 0, 1]],
+                 dtype=object)
+    return R
+
+
 def get_ang_mom(subdomain, dr_L):
     """
     Compute angular momentum vector in sphere of radius dr_L
@@ -104,7 +115,7 @@ def get_spherical_colatitude(position_vec):
 
 def get_spherical_azimuth(position_vec):
     """
-    Compute colatitude from cartesian position vector
+    Compute azimuth from cartesian position vector
     """
     X = position_vec.x.values
     Y = position_vec.y.values
@@ -112,6 +123,23 @@ def get_spherical_azimuth(position_vec):
 
     return position_vec.x.__class__(values=phi, unit='rad', name="position_phi")
 
+
+def get_cylindrical_radial_component(vec):
+    """
+    Get the radial component of an arbitrary cartesian vector 'vec' in cylindrical coords
+    """
+    if not hasattr(vec, 'nvec'):
+        raise ValueError("This is not a vector")
+    if vec.parent.name == "hydro":
+        position = vec.parent.parent["amr"]["position"]
+    else:
+        position = vec.parent["position"]
+
+    phi = position.phi
+    vec_r = np.cos(phi)*vec.x + np.sin(phi)*vec.y
+    vec_r.name = vec.name + "_cyl_r"
+
+    return vec_r
 
 def get_spherical_components(vec, comp):
     """
@@ -143,5 +171,5 @@ def get_spherical_components(vec, comp):
         return vec_phi
     else:
         raise ValueError(
-            "Urecognized component keyword '{}'. Valid strings are 'radius', 'colatitude' and 'azimuth'".format(comp)
-        )
+            "Urecognized component keyword '{}'. Valid strings are 'radius', 'colatitude' and 'azimuth'"
+            .format(comp))

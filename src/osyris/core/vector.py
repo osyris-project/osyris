@@ -277,3 +277,12 @@ class Vector(Base):
             return spatial.get_spherical_azimuth(self)
         else:
             return spatial.get_spherical_components(self, comp='azimuth')
+
+    @property
+    def cyl_r(self):
+        if self.name == "position":
+            v = Array(values=np.sqrt(self.x.values**2 + self.y.values**2), unit=self.unit)
+            v.name = "position_cyl_r"
+            return v
+        else:
+            return spatial.get_cylindrical_radial_component(self)
