@@ -143,5 +143,5 @@ def get_spherical_components(vec, comp):
         return vec_phi
     else:
         raise ValueError(
-            "Urecognized component keyword '{}'. Valid strings are 'radius', 'colatitude' and 'azimuth'"
+            "Urecognized component keyword '{}'. Valid strings are 'radius', 'colatitude' and 'azimuth'".format(comp)
         )

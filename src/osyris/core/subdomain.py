@@ -73,13 +73,18 @@ class Subdomain(Dataset):
             if len(self._parent["part"]) > 0:
                 self._particles = True
                 centered_particles_pos = self._parent["part"]["position"] - self.origin
+
+        valid_comp_amr, valid_comp_sinks, valid_comp_particles = None, None, None
+
         if isinstance(selection, str):
             if selection.lower() == "spherical":
                 if dr is None:
                     raise ValueError("Please specify a valid selection radius")
                 valid_comp_amr = (centered_pos.norm <= dr).values
-                valid_comp_sinks = (centered_sinks_pos.norm <= dr).values
-                valid_comp_particles = (centered_particles_pos.norm <= dr).values
+                if self._sink_particles:
+                    valid_comp_sinks = (centered_sinks_pos.norm <= dr).values
+                if self._particles:
+                    valid_comp_particles = (centered_particles_pos.norm <= dr).values
             elif selection.lower() == "cubic":
                 if sum(v is not None for v in [dx, dy, dz]) == 3:
                     # find amr indices
