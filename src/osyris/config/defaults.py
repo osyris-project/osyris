@@ -22,7 +22,7 @@ def configure_constants(units):
         'radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
-def configure_units(units, data):
+def configure_units(data, units):
 
     unit_d = data.meta['unit_d']
     unit_l = data.meta['unit_l']
