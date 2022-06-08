@@ -22,11 +22,7 @@ def configure_constants(units):
         'radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
-def configure_units(data, units):
-
-    unit_d = data.meta['unit_d']
-    unit_l = data.meta['unit_l']
-    unit_t = data.meta["unit_t"]
+def configure_units(units, unit_d, unit_l, unit_t):
 
     density = unit_d * units("g / cm**3")
     velocity = (unit_l / unit_t) * units("cm / s")
@@ -102,11 +98,7 @@ def configure_units(data, units):
         'temperature': temperature
     })
 
-    if "ngrp" in data.meta:
-        library.update({
-            "radiative_energy_{}".format(i): energy
-            for i in range(1, data.meta["ngrp"] + 1)
-        })
+    library.update({"radiative_energy_{}".format(i): energy for i in range(1, 31)})
 
     return library
 
@@ -115,7 +107,6 @@ def additional_variables(data):
     """
     Here are some additional variables that are to be computed every time data
     is loaded.
-
     It is recommended to place your variables in a `try/except` block, which
     will prevent errors if the variables are not found, for instance when
     loading data from a different simulation.
