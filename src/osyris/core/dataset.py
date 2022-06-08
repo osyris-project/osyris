@@ -111,7 +111,4 @@ class Dataset:
             self[key] = value
 
     def set_units(self):
-        self.units = config.configure_units(units=units,
-                                            unit_d=self.meta['unit_d'],
-                                            unit_l=self.meta['unit_l'],
-                                            unit_t=self.meta['unit_t'])
+        self.units = config.configure_units(self, units=units)

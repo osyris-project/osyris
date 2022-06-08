@@ -22,7 +22,11 @@ def configure_constants(units):
         'radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar')
 
 
-def configure_units(units, unit_d, unit_l, unit_t):
+def configure_units(units, data):
+
+    unit_d = data.meta['unit_d']
+    unit_l = data.meta['unit_l']
+    unit_t = data.meta["unit_t"]
 
     density = unit_d * units("g / cm**3")
     velocity = (unit_l / unit_t) * units("cm / s")
@@ -81,7 +85,6 @@ def configure_units(units, unit_d, unit_l, unit_t):
         'thermal_pressure': energy,
         'pressure': energy,
         'radiative_energy': energy,
-        'radiative_energy_1': energy,
         'time': time,
         'length': length,
         'x': length,
@@ -98,6 +101,13 @@ def configure_units(units, unit_d, unit_l, unit_t):
         'mass': mass,
         'temperature': temperature
     })
+
+    if "ngrp" in data.meta:
+        library.update({
+            "radiative_energy_{}".format(i): energy
+            for i in range(1, data.meta["ngrp"] + 1)
+        })
+
     return library
 
 
