@@ -107,6 +107,7 @@ def additional_variables(data):
     """
     Here are some additional variables that are to be computed every time data
     is loaded.
+
     It is recommended to place your variables in a `try/except` block, which
     will prevent errors if the variables are not found, for instance when
     loading data from a different simulation.
