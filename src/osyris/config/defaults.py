@@ -4,7 +4,6 @@
 Define default values so that you don't have to specify them every time.
 """
 
-from collections import defaultdict
 from math import sqrt, pi
 
 
@@ -36,68 +35,42 @@ def configure_units(units, unit_d, unit_l, unit_t):
     temperature = 1.0 * units("K")
     grav_potential = velocity**2
 
-    library = defaultdict(lambda: 1.0 * units('dimensionless'))
-
-    library.update({
+    library = {
         'unit_d': unit_d,
         'unit_l': unit_l,
         'unit_t': unit_t,
         'density': density,
         'velocity': velocity,
-        'velocity_x': velocity,
-        'velocity_y': velocity,
-        'velocity_z': velocity,
+        'velocity_*': velocity,
         'momentum': momentum,
-        'momentum_x': momentum,
-        'momentum_y': momentum,
-        'momentum_z': momentum,
+        'momentum_*': momentum,
         'magnetic_field': magnetic_field,
         'B_left': magnetic_field,
-        'B_left_x': magnetic_field,
-        'B_left_y': magnetic_field,
-        'B_left_z': magnetic_field,
+        'B_left_*': magnetic_field,
         'B_right': magnetic_field,
-        'B_right_x': magnetic_field,
-        'B_right_y': magnetic_field,
-        'B_right_z': magnetic_field,
+        'B_right_*': magnetic_field,
         'B_field': magnetic_field,
-        'B_field_x': magnetic_field,
-        'B_field_y': magnetic_field,
-        'B_field_z': magnetic_field,
+        'B_field_*': magnetic_field,
         'B_x_left': magnetic_field,
-        'B_y_left': magnetic_field,
-        'B_z_left': magnetic_field,
         'B_x_right': magnetic_field,
-        'B_y_right': magnetic_field,
-        'B_z_right': magnetic_field,
         'acceleration': acceleration,
         'grav_acceleration': acceleration,
-        'grav_acceleration_x': acceleration,
-        'grav_acceleration_y': acceleration,
-        'grav_acceleration_z': acceleration,
+        'grav_acceleration_*': acceleration,
         'grav_potential': grav_potential,
         'energy': energy,
         'internal_energy': energy,
         'thermal_pressure': energy,
         'pressure': energy,
         'radiative_energy': energy,
-        'radiative_energy_1': energy,
+        'radiative_energy_*': energy,
         'time': time,
         'length': length,
-        'x': length,
-        'y': length,
-        'z': length,
-        'xyz_x': length,
-        'xyz_y': length,
-        'xyz_z': length,
         'position': length,
-        'position_x': length,
-        'position_y': length,
-        'position_z': length,
+        'position_*': length,
         'dx': length,
         'mass': mass,
         'temperature': temperature
-    })
+    }
     return library
 
 

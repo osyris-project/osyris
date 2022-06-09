@@ -6,7 +6,7 @@ from .. import config
 from ..io import Loader
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
-from .. import units
+from ..units import units, UnitsLibrary
 
 
 class Dataset:
@@ -111,7 +111,8 @@ class Dataset:
             self[key] = value
 
     def set_units(self):
-        self.units = config.configure_units(units=units,
-                                            unit_d=self.meta['unit_d'],
-                                            unit_l=self.meta['unit_l'],
-                                            unit_t=self.meta['unit_t'])
+        self.units = UnitsLibrary(
+            config.configure_units(units=units,
+                                   unit_d=self.meta['unit_d'],
+                                   unit_l=self.meta['unit_l'],
+                                   unit_t=self.meta['unit_t']))
