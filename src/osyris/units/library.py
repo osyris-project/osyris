@@ -2,7 +2,6 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import re
-from pint import Unit
 
 
 class UnitsLibrary:
@@ -10,8 +9,9 @@ class UnitsLibrary:
     A small helper class that holds the list of units, and behaves a bit like a
     dict but also performs regex matching on key with wildcard character '*'.
     """
-    def __init__(self, *args, **kwargs):
-        self._library = dict(*args, **kwargs)
+    def __init__(self, library, default_unit):
+        self._library = library
+        self._default_unit = default_unit
 
     def __getitem__(self, key):
         if key in self._library:
@@ -21,7 +21,7 @@ class UnitsLibrary:
                 regex = re.compile(name.replace('*', '.+'))
                 if re.match(regex, key):
                     return unit
-        return 1.0 * Unit('')
+        return self._default_unit
 
     def __setitem__(self, key, value):
         self._library[key] = value
