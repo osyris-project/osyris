@@ -62,6 +62,15 @@ def test_constructor_masked_array():
     assert np.array_equal(array.values.mask, [False, False, False, True, True])
 
 
+def test_constructor_2d():
+    a = np.arange(12.).reshape(4, 3)
+    array = Array(values=a, unit='m')
+    assert array.unit == units('m')
+    assert len(array) == len(a)
+    assert array.shape == a.shape
+    assert np.array_equal(array.values, a)
+
+
 def test_addition():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9., 10.], unit='m')
@@ -636,22 +645,37 @@ def test_max():
 def test_reshape():
     a = Array(values=[1., 2., 3., 4., 5., 6.], unit='m')
     expected = Array(values=[[1., 2., 3.], [4., 5., 6.]], unit='m')
-    assert arraytrue(np.ravel(a.reshape(2, 3) == expected))
+    assert arrayequal(a.reshape(2, 3), expected)
 
 
 def test_slicing():
     a = Array(values=[11., 12., 13., 14., 15.], unit='m')
     assert a[2] == Array(values=[13.], unit='m')
-    assert arraytrue(a[:4] == Array(values=[11., 12., 13., 14.], unit='m'))
-    assert arraytrue(a[2:4] == Array(values=[13., 14.], unit='m'))
+    assert arrayequal(a[:4], Array(values=[11., 12., 13., 14.], unit='m'))
+    assert arrayequal(a[2:4], Array(values=[13., 14.], unit='m'))
 
 
-def test_slicing_vector():
+def test_slicing_2d():
     a = Array(values=np.arange(12.).reshape(4, 3), unit='m')
-    assert arraytrue(np.ravel(a[2:3] == Array(values=[[6., 7., 8.]], unit='m')))
+    assert arrayequal(a[0, :], Array(values=[0., 1., 2.], unit='m'))
+    assert arrayequal(a[1], Array(values=[3., 4., 5.], unit='m'))
+    assert arrayequal(a[2:3], Array(values=[[6., 7., 8.]], unit='m'))
     assert a[2:3].shape == (1, 3)
-    assert arraytrue(
-        np.ravel(a[:2] == Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m')))
+    assert arrayequal(a[:2], Array(values=[[0., 1., 2.], [3., 4., 5.]], unit='m'))
+
+
+def test_slicing_with_array():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    select = a > (3. * units('m'))
+    assert arrayequal(a[select], Array(values=[4., 5.], unit='m'))
+    b = Array(values=[0, 2, 4])
+    assert arrayequal(a[b], Array(values=[1., 3., 5.], unit='m'))
+
+
+def test_slicing_with_array_bad_dtype():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    with pytest.raises(TypeError):
+        _ = a[Array(values=[0., 2., 4.])]
 
 
 def test_copy():

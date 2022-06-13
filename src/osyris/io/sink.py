@@ -50,7 +50,7 @@ class SinkReader:
             else:
                 if all(x in u for x in ["[", "]"]):
                     # Legacy sink format quantities are not in code units
-                    unit_list.append(ureg(u.replace("[", "").replace("]", "")))
+                    unit_list.append(1.0 * ureg(u.replace("[", "").replace("]", "")))
                 else:
                     unit_list.append(eval(u.replace(' ', '*')))
 
