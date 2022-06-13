@@ -5,7 +5,6 @@ from pint.quantity import Quantity
 from .base import Base
 from .array import Array
 from .tools import value_to_string
-from .. import spatial
 
 
 def _binary_op(op, lhs, rhs):
@@ -254,35 +253,3 @@ class Vector(Base):
         z = self.x * other.y
         z -= self.y * other.x
         return self.__class__(x, y, z)
-
-    @property
-    def r(self):
-        if self.name == "position":
-            v = self.norm
-            v.name = "position_r"
-            return v
-        else:
-            return spatial.get_spherical_components(self, comp='radius')
-
-    @property
-    def theta(self):
-        if self.name == "position":
-            return spatial.get_spherical_colatitude(self)
-        else:
-            return spatial.get_spherical_components(self, comp='colatitude')
-
-    @property
-    def phi(self):
-        if self.name == "position":
-            return spatial.get_spherical_azimuth(self)
-        else:
-            return spatial.get_spherical_components(self, comp='azimuth')
-
-    @property
-    def cyl_r(self):
-        if self.name == "position":
-            v = Array(values=np.sqrt(self.x.values**2 + self.y.values**2), unit=self.unit)
-            v.name = "position_cyl_r"
-            return v
-        else:
-            return spatial.get_cylindrical_radial_component(self)
