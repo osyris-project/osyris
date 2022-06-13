@@ -3,7 +3,5 @@
 
 # flake8: noqa
 
-from .config import config
 from .units import units
-from .core import Array, Datagroup, Dataset, Plot, Vector
-from .plot import histogram1d, histogram2d, plane, scatter, map, plot
+from .library import UnitsLibrary
