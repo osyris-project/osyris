@@ -8,7 +8,6 @@ from . import utils
 
 
 class PartReader(Reader):
-
     def __init__(self):
         super().__init__(kind=ReaderKind.PART)
 

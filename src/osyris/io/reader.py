@@ -14,7 +14,6 @@ class ReaderKind(Enum):
 
 
 class Reader():
-
     def __init__(self, kind=None):
         self.variables = {}
         self.offsets = {}
