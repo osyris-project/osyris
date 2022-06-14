@@ -3,4 +3,4 @@
 
 # flake8: noqa
 
-from .spatial import *
+from .subdomain import extract_sphere, extract_box
