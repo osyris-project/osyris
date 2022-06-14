@@ -306,7 +306,7 @@ class Vector(Base):
     @property
     def cyl_r(self):
         if self.unit.is_compatible_with("meter"):
-            v = Array(values=np.sqrt(self.x.values**2 + self.y.values**2),
+            v = Array(values=np.linalg.norm([self.x.values, self.y.values], axis=0),
                       unit=self.unit)
             v.name = "position_cyl_r"
             return v
