@@ -9,6 +9,7 @@ class UnitsLibrary:
     A small helper class that holds the list of units, and behaves a bit like a
     dict but also performs regex matching on key with wildcard character '*'.
     """
+
     def __init__(self, library, default_unit):
         self._library = library
         self._default_unit = default_unit
