@@ -5,7 +5,6 @@ from pint.quantity import Quantity
 from .base import Base
 from .array import Array
 from .tools import value_to_string
-from .. import spatial
 
 
 def _binary_op(op, lhs, rhs):
@@ -255,8 +254,18 @@ class Vector(Base):
         z -= self.y * other.x
         return self.__class__(x, y, z)
 
-def _get_parent_pos(self):
-    
+    def _get_parent_pos(self):
+        group = self.parent
+        return group.get("position", group.parent["amr"]["position"])
+
+    def _get_colatitude(self, pos):
+        colatitude = np.arctan2(np.linalg.norm([pos.y.values, pos.x.values], axis=0),
+                                pos.z.values)
+        return Array(values=colatitude, unit="rad", name=pos.name + "_theta")
+
+    def _get_azimuth(self, pos):
+        azimuth = np.arctan2(pos.y.values, pos.x.values)
+        return Array(values=azimuth, unit="rad", name=pos.name + "_phi")
 
     @property
     def r(self):
@@ -264,28 +273,45 @@ def _get_parent_pos(self):
             v = self.norm
             v.name = "position_r"
             return v
-        else:
-            vr = 
+        pos = self._get_parent_pos()
+        colatitude = self._get_colatitude(pos)
+        azimuth = self._get_azimuth(pos)
+        vec_r = np.cos(azimuth) * np.sin(colatitude) * self.x + np.sin(
+            azimuth) * np.sin(colatitude) * self.y + np.cos(colatitude) * self.z
+        vec_r.name = self.name + "_r"
+        return vec_r
 
     @property
     def theta(self):
         if self.unit.is_compatible_with("meter"):
-            return spatial.get_spherical_colatitude(self)
-        else:
-            return spatial.get_spherical_components(self, comp='colatitude')
+            return self._get_colatitude(self)
+        pos = self._get_parent_pos()
+        colatitude = self._get_colatitude(pos)
+        azimuth = self._get_azimuth(pos)
+        vec_theta = np.cos(colatitude) * np.cos(azimuth) * self.x + np.cos(
+            colatitude) * np.sin(azimuth) * self.y - np.sin(colatitude) * self.z
+        vec_theta.name = self.name + "_theta"
+        return vec_theta
 
     @property
     def phi(self):
         if self.unit.is_compatible_with("meter"):
-            return spatial.get_spherical_azimuth(self)
-        else:
-            return spatial.get_spherical_components(self, comp='azimuth')
+            return self._get_azimuth(self)
+        pos = self._get_parent_pos()
+        azimuth = self._get_azimuth(pos)
+        vec_phi = -np.sin(azimuth) * self.x + np.cos(azimuth) * self.y
+        vec_phi.name = self.name + "_phi"
+        return vec_phi
 
     @property
     def cyl_r(self):
-        if self.name == "position":
-            v = Array(values=np.sqrt(self.x.values**2 + self.y.values**2), unit=self.unit)
+        if self.unit.is_compatible_with("meter"):
+            v = Array(values=np.sqrt(self.x.values**2 + self.y.values**2),
+                      unit=self.unit)
             v.name = "position_cyl_r"
             return v
-        else:
-            return spatial.get_cylindrical_radial_component(self)
+        pos = self._get_parent_pos()
+        azimuth = self._get_azimuth(pos)
+        vec_cyl_r = np.cos(azimuth) * self.x + np.sin(azimuth) * self.y
+        vec_cyl_r.name = self.name + "_cyl_r"
+        return vec_cyl_r
