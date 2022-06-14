@@ -22,7 +22,7 @@ def extract_sphere(dataset, radius, origin):
     return subdomain
 
 
-def extract_cube(dataset, dx, dy, dz, origin):
+def extract_box(dataset, dx, dy, dz, origin):
     """
     Extract a cubic domain of size dx, dy & dz around an origin point
     """
