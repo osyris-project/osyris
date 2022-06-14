@@ -28,17 +28,6 @@ def rotation_matrix(vec, angle):
     return R
 
 
-def get_ang_mom(subdomain, dr_L):
-    """
-    Compute angular momentum vector in sphere of radius dr_L
-    """
-    sphere = (subdomain["amr"]["position"].norm <= dr_L).values
-    pos = subdomain["amr"]["position"][sphere]
-    mv = subdomain["hydro"]["mass"][sphere] * subdomain["hydro"]["velocity"][sphere]
-    L = np.sum(pos.cross(mv))
-    return L
-
-
 def change_basis(subdomain, new_basis):
     """
     Rotates all vectors in dataset to align with vector in 'new_basis'
