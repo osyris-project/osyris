@@ -82,8 +82,9 @@ def _parse_basis(subdomain, basis, dr_L):
             basis = ang_mom / ang_mom.norm
         elif basis.lower() == "side":
             perp_v = ang_mom.__class__(1.0,
-                            1.0, (-1.0 * (ang_mom.x + ang_mom.y) / ang_mom.z).values,
-                            unit=ang_mom.unit)
+                                       1.0, (-1.0 * (ang_mom.x + ang_mom.y) /
+                                             ang_mom.z).values,
+                                       unit=ang_mom.unit)
             basis = perp_v / perp_v.norm
     return basis
 

@@ -255,25 +255,28 @@ class Vector(Base):
         z -= self.y * other.x
         return self.__class__(x, y, z)
 
+def _get_parent_pos(self):
+    
+
     @property
     def r(self):
-        if self.name == "position":
+        if self.unit.is_compatible_with("meter"):
             v = self.norm
             v.name = "position_r"
             return v
         else:
-            return spatial.get_spherical_components(self, comp='radius')
+            vr = 
 
     @property
     def theta(self):
-        if self.name == "position":
+        if self.unit.is_compatible_with("meter"):
             return spatial.get_spherical_colatitude(self)
         else:
             return spatial.get_spherical_components(self, comp='colatitude')
 
     @property
     def phi(self):
-        if self.name == "position":
+        if self.unit.is_compatible_with("meter"):
             return spatial.get_spherical_azimuth(self)
         else:
             return spatial.get_spherical_components(self, comp='azimuth')
