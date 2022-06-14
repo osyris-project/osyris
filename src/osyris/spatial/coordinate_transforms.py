@@ -69,23 +69,3 @@ def change_basis(subdomain, new_basis):
                     z=vector[2],
                     unit=subdomain[g][element].unit)
     subdomain.basis = new_basis
-
-
-def _parse_basis(subdomain, basis, dr_L):
-    if isinstance(basis, str):
-        if dr_L is None:
-            raise ValueError(
-                "Please provide the radius size with which to compute angular momentum (dr_L)"
-            )
-        ang_mom = get_ang_mom(subdomain, dr_L)
-        if basis.lower() == "top":
-            basis = ang_mom / ang_mom.norm
-        elif basis.lower() == "side":
-            perp_v = ang_mom.__class__(1.0,
-                                       1.0, (-1.0 * (ang_mom.x + ang_mom.y) /
-                                             ang_mom.z).values,
-                                       unit=ang_mom.unit)
-            basis = perp_v / perp_v.norm
-    return basis
-
-

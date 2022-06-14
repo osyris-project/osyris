@@ -4,3 +4,4 @@
 # flake8: noqa
 
 from .coordinate_transforms import change_origin, change_basis
+from .subdomain import extract_box, extract_sphere
