@@ -209,9 +209,7 @@ class Vector(Base):
         return np.logical_not(self)
 
     def to(self, unit):
-        return self.__class__(**{c: xyz.to(unit)
-                                 for c, xyz in self._xyz.items()},
-                              name=self.name)
+        return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
     def _wrap_numpy(self, func, *args, **kwargs):
         if isinstance(args[0], (tuple, list)):
