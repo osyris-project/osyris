@@ -7,8 +7,8 @@ from .tools import bytes_to_human_readable
 class Datagroup:
     def __init__(self, data=None, parent=None):
         self._container = {}
-        self._parent = parent
-        self._name = ""
+        self.parent = parent
+        self.name = ""
         self.shape = None
         if data is not None:
             for key, array in data.items():
@@ -76,22 +76,6 @@ class Datagroup:
 
     def copy(self):
         return self.__class__(data=self._container.copy())
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, parent_):
-        self._parent = parent_
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name_):
-        self._name = name_
 
     def keys(self):
         return self._container.keys()

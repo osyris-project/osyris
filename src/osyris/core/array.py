@@ -48,6 +48,14 @@ class Array(Base):
         self.name = name
 
     def __getitem__(self, slice_):
+        if isinstance(slice_, Base):
+            if not isinstance(slice_, self.__class__):
+                raise ValueError(
+                    "Cannot slice using a Vector, only Array is supported.")
+            if slice_.dtype not in ('int32', 'int64', bool):
+                raise TypeError(
+                    "Dtype of the Array must be integer or bool for slicing.")
+            slice_ = slice_.values
         return self.__class__(values=self._array[slice_],
                               unit=self.unit,
                               parent=self.parent,
