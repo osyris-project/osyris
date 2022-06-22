@@ -269,7 +269,7 @@ class Vector(Base):
     def r(self):
         if self.unit.is_compatible_with("meter"):
             v = self.norm
-            v.name = "position_r"
+            v.name = self.name + "_r"
             return v
         pos = self._get_parent_pos()
         colatitude = self._get_colatitude(pos)
@@ -306,7 +306,7 @@ class Vector(Base):
         if self.unit.is_compatible_with("meter"):
             v = Array(values=np.linalg.norm([self.x.values, self.y.values], axis=0),
                       unit=self.unit)
-            v.name = "position_cyl_r"
+            v.name = self.name + "_cyl_r"
             return v
         pos = self._get_parent_pos()
         azimuth = self._get_azimuth(pos)
