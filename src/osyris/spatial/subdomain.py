@@ -8,7 +8,8 @@ def extract_sphere(dataset, radius, origin):
     """
     Extract a spherical subdomain around an origin point.
     """
-    subdomain = dataset.__class__(nout=dataset.meta["nout"], path=dataset.meta["path"])
+    subdomain = dataset.__class__()
+    subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
@@ -24,7 +25,8 @@ def extract_box(dataset, dx, dy, dz, origin):
     """
     Extract a cubic domain of size dx, dy & dz around an origin point
     """
-    subdomain = dataset.__class__(nout=dataset.meta["nout"], path=dataset.meta["path"])
+    subdomain = dataset.__class__()
+    subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
