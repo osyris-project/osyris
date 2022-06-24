@@ -2,7 +2,6 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
-from . import utils
 from .coordinate_transforms import change_origin, change_basis
 
 
@@ -21,8 +20,7 @@ def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
 
     change_origin(subdomain, origin)
     if basis is not None:
-        basis = utils._parse_basis(subdomain, basis, dr_L)
-        change_basis(subdomain, basis)
+        change_basis(subdomain, basis, dr_L)
 
     return subdomain
 
@@ -45,7 +43,6 @@ def extract_box(dataset, dx, dy, dz, origin, basis=None, dr_L=None):
 
     change_origin(subdomain, origin)
     if basis is not None:
-        basis = utils._parse_basis(subdomain, basis, dr_L)
-        change_basis(subdomain, basis)
+        change_basis(subdomain, basis, dr_L)
 
     return subdomain

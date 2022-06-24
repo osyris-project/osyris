@@ -2,6 +2,7 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
+from . import utils
 
 
 def change_origin(dataset, new_origin):
@@ -28,10 +29,12 @@ def rotation_matrix(vec, angle):
     return R
 
 
-def change_basis(subdomain, new_basis):
+def change_basis(subdomain, new_basis, dr_L=None):
     """
     Rotates all vectors in dataset to align with vector in 'new_basis'
     """
+    new_basis = utils._parse_basis(subdomain, new_basis, dr_L)
+
     try:
         old_basis = subdomain.basis
     except AttributeError:
