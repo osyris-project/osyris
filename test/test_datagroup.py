@@ -30,25 +30,12 @@ def test_datagroup_creation_from_dict():
     assert len(dg) == 2
 
 
-def test_datagroup_insert_vector():
-    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
-    b = Array(values=[[6., 7., 8.], [9., 10., 11.], [12., 13., 14.], [15., 16., 17.],
-                      [18., 19., 20.]],
-              unit='s')
-    dg = Datagroup({'a': a, 'b': b})
-    assert 'a' in dg.keys()
-    assert 'b' in dg.keys()
-    assert dg['a'].name == 'a'
-    assert dg['b'].name == 'b'
-    assert len(dg) == 2
-
-
 def test_datagroup_bad_length_insertion():
     a = Array(values=[1., 2., 3., 4., 5.], unit='m')
     b = Array(values=[6., 7., 8., 9.], unit='s')
     dg = Datagroup()
     dg['a'] = a
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         dg['b'] = b
 
 
@@ -184,3 +171,14 @@ def test_deepcopy():
     assert 'b' in dg2
     dg1['a'] *= 10.
     assert arrayequal(dg2['a'], Array(values=[1., 2., 3., 4., 5.], unit='m'))
+
+
+def test_datagroup_shape():
+    a = Array(values=[1., 2., 3., 4., 5.], unit='m')
+    dg = Datagroup()
+    dg['a'] = a
+    assert dg.shape == (5, )
+    a = Array(values=[[1., 2., 3.], [4., 5., 6.]], unit='m')
+    dg = Datagroup()
+    dg['a'] = a
+    assert dg.shape == (2, 3)
