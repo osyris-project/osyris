@@ -7,6 +7,7 @@ from . import utils
 
 
 class AmrReader(Reader):
+
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
         self.cpu_list = None

@@ -27,6 +27,7 @@ def _binary_op(op, lhs, rhs, strict=True, **kwargs):
 
 
 class Array(Base):
+
     def __init__(self, values, unit=None, parent=None, name=""):
 
         if isinstance(values, Base):
