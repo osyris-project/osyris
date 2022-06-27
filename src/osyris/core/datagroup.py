@@ -5,6 +5,7 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
+
     def __init__(self, data=None, parent=None):
         self._container = {}
         self.parent = parent

@@ -10,6 +10,7 @@ from . import utils
 
 
 class SinkReader:
+
     def __init__(self):
         self.kind = ReaderKind.SINK
         self.initialized = False
