@@ -13,6 +13,8 @@ def extract_sphere(dataset, radius, origin):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
+        if pos.shape[0] != group.shape:
+            continue
         r = (pos - origin).norm
         c = (r < radius).values
         if np.any(c):
@@ -30,6 +32,8 @@ def extract_box(dataset, dx, dy, dz, origin):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
+        if pos.shape[0] != group.shape:
+            continue
         centered_pos = pos - origin
         cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
         cy = (centered_pos.y <= dy * .5) & (centered_pos.y >= -dy * .5)
