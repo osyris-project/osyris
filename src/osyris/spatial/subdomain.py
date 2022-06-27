@@ -2,13 +2,14 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
+from .. import Dataset
 
 
 def extract_sphere(dataset, radius, origin):
     """
     Extract a spherical subdomain around an origin point.
     """
-    subdomain = dataset.__class__()
+    subdomain = Dataset()
     subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
@@ -27,7 +28,7 @@ def extract_box(dataset, dx, dy, dz, origin):
     """
     Extract a cubic domain of size dx, dy & dz around an origin point
     """
-    subdomain = dataset.__class__()
+    subdomain = Dataset()
     subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
