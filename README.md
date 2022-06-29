@@ -33,17 +33,17 @@ osyris.histogram2d(data["hydro"]["density"], data["hydro"]["B_field"],
 ```
 ![hist2d](https://osyris.readthedocs.io/en/stable/_images/plotting_histograms_13_1.png)
 
-Create a 2D gas density slice 2000 au wide through the plane normal to ``z``,
+Create a 2D gas density map 2000 au wide through the plane normal to ``z``,
 with velocity vectors overlayed as arrows, once again using ``layers``:
 
 ```python
 ind = np.argmax(data["hydro"]["density"])
 center = data["amr"]["position"][ind.values]
-osyris.plane({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
-             {"data": data["hydro"]["velocity"], "mode": "vec"}, # layer 2
-             dx=2000 * osyris.units("au"),
-             origin=center,
-             direction="z")
+osyris.map({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
+           {"data": data["hydro"]["velocity"], "mode": "vec"}, # layer 2
+           dx=2000 * osyris.units("au"),
+           origin=center,
+           direction="z")
 ```
 ![map2d](https://osyris.readthedocs.io/en/stable/_images/plotting_maps_23_1.png)
 
