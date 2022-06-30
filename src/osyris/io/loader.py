@@ -15,6 +15,7 @@ from .reader import ReaderKind
 
 
 class Loader:
+
     def __init__(self, nout, path):
         # Generate directory name from output number
         self.nout = nout
