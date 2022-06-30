@@ -17,8 +17,8 @@ def extract_sphere(dataset, radius, origin):
         pos = group.get("position", group.parent["amr"]["position"])
         if pos.shape != group.shape:
             warnings.warn(
-                "Ignoring datagroup '{}', which has no position " +
-                "vector and has different shape than 'amr' group.".format(group))
+                "Ignoring datagroup '{}', which has no position ".format(group) +
+                "vector and has different shape than 'amr' group.")
             continue
         r = (pos - origin).norm
         c = (r < radius).values
@@ -39,8 +39,8 @@ def extract_box(dataset, dx, dy, dz, origin):
         pos = group.get("position", group.parent["amr"]["position"])
         if pos.shape != group.shape:
             warnings.warn(
-                "Ignoring datagroup '{}', which has no position " +
-                "vector and has different shape than 'amr' group.".format(group))
+                "Ignoring datagroup '{}', which has no position ".format(group) +
+                "vector and has different shape than 'amr' group.")
             continue
         centered_pos = pos - origin
         cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
