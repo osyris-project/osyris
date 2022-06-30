@@ -3,6 +3,7 @@
 
 import numpy as np
 from .. import Dataset
+import warnings
 
 
 def extract_sphere(dataset, radius, origin):
@@ -14,7 +15,10 @@ def extract_sphere(dataset, radius, origin):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
-        if pos.shape[0] != group.shape:
+        if pos.shape != group.shape:
+            warnings.warn(
+                "Ignoring datagroup '{}', which has no position " +
+                "vector and has different shape than 'amr' group.".format(group))
             continue
         r = (pos - origin).norm
         c = (r < radius).values
@@ -33,7 +37,10 @@ def extract_box(dataset, dx, dy, dz, origin):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
-        if pos.shape[0] != group.shape:
+        if pos.shape != group.shape:
+            warnings.warn(
+                "Ignoring datagroup '{}', which has no position " +
+                "vector and has different shape than 'amr' group.".format(group))
             continue
         centered_pos = pos - origin
         cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
