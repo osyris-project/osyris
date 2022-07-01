@@ -12,7 +12,7 @@ def change_origin(dataset, new_origin):
     for g in dataset.groups.keys():
         for element in dataset[g]:
             unit = dataset[g][element].unit
-            if unit.is_compatible_with("meter"):
+            if unit.is_compatible_with("meter") and element != "dx":
                 dataset[g][element] -= new_origin
     dataset.origin = new_origin
 
