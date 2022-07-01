@@ -3,6 +3,7 @@
 
 import numpy as np
 from .coordinate_transforms import change_origin, change_basis
+from .. import Dataset
 import warnings
 
 
@@ -10,7 +11,8 @@ def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
     """
     Extract a spherical subdomain around an origin point.
     """
-    subdomain = dataset.__class__(nout=dataset.meta["nout"], path=dataset.meta["path"])
+    subdomain = Dataset()
+    subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
@@ -35,7 +37,8 @@ def extract_box(dataset, dx, dy, dz, origin, basis=None, dr_L=None):
     """
     Extract a cubic domain of size dx, dy & dz around an origin point
     """
-    subdomain = dataset.__class__(nout=dataset.meta["nout"], path=dataset.meta["path"])
+    subdomain = Dataset()
+    subdomain.meta = dataset.meta.copy()
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
