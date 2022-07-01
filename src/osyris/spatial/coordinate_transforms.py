@@ -11,7 +11,8 @@ def change_origin(dataset, new_origin):
     """
     for g in dataset.groups.keys():
         for element in dataset[g]:
-            if "position" in element.lower():
+            unit = dataset[g][element].unit
+            if unit.is_compatible_with("meter"):
                 dataset[g][element] -= new_origin
     dataset.origin = new_origin
 

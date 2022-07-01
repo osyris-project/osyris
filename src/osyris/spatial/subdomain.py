@@ -3,6 +3,7 @@
 
 import numpy as np
 from .coordinate_transforms import change_origin, change_basis
+import warnings
 
 
 def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
@@ -13,6 +14,11 @@ def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
+        if pos.shape != group.shape:
+            warnings.warn(
+                "Ignoring datagroup '{}', which has no position ".format(group) +
+                "vector and has different shape than 'amr' group.")
+            continue
         r = (pos - origin).norm
         c = (r < radius).values
         if np.any(c):
@@ -33,6 +39,11 @@ def extract_box(dataset, dx, dy, dz, origin, basis=None, dr_L=None):
 
     for name, group in dataset.items():
         pos = group.get("position", group.parent["amr"]["position"])
+        if pos.shape != group.shape:
+            warnings.warn(
+                "Ignoring datagroup '{}', which has no position ".format(group) +
+                "vector and has different shape than 'amr' group.")
+            continue
         centered_pos = pos - origin
         cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
         cy = (centered_pos.y <= dy * .5) & (centered_pos.y >= -dy * .5)

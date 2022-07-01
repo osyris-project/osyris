@@ -7,6 +7,5 @@ from .histogram1d import histogram1d
 from .histogram2d import histogram2d
 from .map import map
 from .render import render
-from .plane import plane
 from .plot import plot
 from .scatter import scatter

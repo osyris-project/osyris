@@ -6,6 +6,7 @@ from .. import config
 
 
 class Units:
+
     def __init__(self):
         self._ureg = UnitRegistry(system="cgs")
         config.configure_constants(self._ureg)
