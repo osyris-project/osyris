@@ -31,6 +31,7 @@ def _get_azimuth(pos):
 
 
 class Vector(Base):
+
     def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
 
         if isinstance(x, Array):

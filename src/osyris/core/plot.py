@@ -3,6 +3,7 @@
 
 
 class Plot:
+
     def __init__(self, x=None, y=None, layers=None, fig=None, ax=None, filename=None):
         self.x = x
         self.y = y

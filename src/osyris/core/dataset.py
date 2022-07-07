@@ -10,6 +10,7 @@ from ..units import units, UnitsLibrary
 
 
 class Dataset:
+
     def __init__(self, nout=None, path=""):
         self.groups = {}
         self.meta = {}
