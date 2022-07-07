@@ -15,6 +15,19 @@ def get_ang_mom(subdomain, dr_L):
     return L
 
 
+def _rotation_matrix(vec, angle):
+    """
+    Returns 3D rotation matrix of angle 'angle' around rotation vector 'vec'.
+    """
+    if isinstance(vec, list):
+        vec = np.array(vec)
+    vec = vec / np.linalg.norm(vec)
+    r = np.cos(angle) * np.identity(3) + (np.sin(angle)) * np.cross(
+        vec,
+        np.identity(vec.shape[0]) * -1) + (1 - np.cos(angle)) * (np.outer(vec, vec))
+    return r
+
+
 def _parse_basis(subdomain, basis, dr_L):
     if isinstance(basis, str):
         if dr_L is None:
@@ -29,4 +42,7 @@ def _parse_basis(subdomain, basis, dr_L):
                                              ang_mom.z).values,
                                        unit=ang_mom.unit)
             basis = perp_v / perp_v.norm
+        else:
+            raise RuntimeError("Unknown basis keyword '{}'.\nAvailable keywords"
+                               " are 'top' and 'side'.".format(basis))
     return basis

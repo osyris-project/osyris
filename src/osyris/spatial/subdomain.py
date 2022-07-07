@@ -2,12 +2,11 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
-from .coordinate_transforms import change_origin, change_basis
 from .. import Dataset
 import warnings
 
 
-def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
+def extract_sphere(dataset, radius, origin):
     """
     Extract a spherical subdomain around an origin point.
     """
@@ -26,14 +25,10 @@ def extract_sphere(dataset, radius, origin, basis=None, dr_L=None):
         if np.any(c):
             subdomain[name] = dataset[name][c]
 
-    change_origin(subdomain, origin)
-    if basis is not None:
-        change_basis(subdomain, basis, dr_L)
-
     return subdomain
 
 
-def extract_box(dataset, dx, dy, dz, origin, basis=None, dr_L=None):
+def extract_box(dataset, xmin, xmax, ymin, ymax, zmin, zmax, origin):
     """
     Extract a cubic domain of size dx, dy & dz around an origin point
     """
@@ -48,15 +43,11 @@ def extract_box(dataset, dx, dy, dz, origin, basis=None, dr_L=None):
                 "vector and has different shape than 'amr' group.")
             continue
         centered_pos = pos - origin
-        cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
-        cy = (centered_pos.y <= dy * .5) & (centered_pos.y >= -dy * .5)
-        cz = (centered_pos.z <= dz * .5) & (centered_pos.z >= -dz * .5)
+        cx = (centered_pos.x <= xmax) & (centered_pos.x >= xmin)
+        cy = (centered_pos.y <= ymax) & (centered_pos.y >= ymin)
+        cz = (centered_pos.z <= zmax) & (centered_pos.z >= zmin)
         c = (cx & cy & cz).values
         if np.any(c):
             subdomain[name] = dataset[name][c]
-
-    change_origin(subdomain, origin)
-    if basis is not None:
-        change_basis(subdomain, basis, dr_L)
 
     return subdomain

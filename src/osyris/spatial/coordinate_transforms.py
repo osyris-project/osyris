@@ -5,7 +5,7 @@ import numpy as np
 from . import utils
 
 
-def change_origin(dataset, new_origin):
+def translate(dataset, new_origin):
     """
     Translate all positionnal coordinates to new origin
     """
@@ -18,27 +18,14 @@ def change_origin(dataset, new_origin):
     dataset.origin = new_origin
 
 
-def rotation_matrix(vec, angle):
-    """
-    Returns 3D rotation matrix of angle 'angle' around rotation vector 'vec'.
-    """
-    if isinstance(vec, list):
-        vec = np.array(vec)
-    vec = vec / np.linalg.norm(vec)
-    R = np.cos(angle) * np.identity(3) + (np.sin(angle)) * np.cross(
-        vec,
-        np.identity(vec.shape[0]) * -1) + (1 - np.cos(angle)) * (np.outer(vec, vec))
-    return R
-
-
-def change_basis(subdomain, new_basis, dr_L=None):
+def rotate(dataset, new_basis, dr_L=None):
     """
     Rotates all vectors in dataset to align with vector in 'new_basis'
     """
-    new_basis = utils._parse_basis(subdomain, new_basis, dr_L)
+    new_basis = utils._parse_basis(dataset, new_basis, dr_L)
 
     try:
-        old_basis = subdomain.basis
+        old_basis = dataset.basis
     except AttributeError:
         old_basis = [0, 0, 1]  # assume it's the ramses grid
     if hasattr(new_basis, 'nvec'):  # if it's a vector
@@ -47,19 +34,19 @@ def change_basis(subdomain, new_basis, dr_L=None):
         np.dot(old_basis, new_basis) /
         (np.linalg.norm(old_basis) * np.linalg.norm(new_basis)))
     rot_vector = np.cross(new_basis, old_basis)
-    R = rotation_matrix(rot_vector, rot_angle)
-    for g in subdomain.groups.keys():
-        for element in subdomain[g]:
-            if hasattr(subdomain[g][element], 'nvec'):
+    r_m = utils._rotation_matrix(rot_vector, rot_angle)
+    for g in dataset.groups.keys():
+        for element in dataset[g]:
+            if hasattr(dataset[g][element], 'nvec'):
                 # all of this will be simplified once matmul is integraded into Vector
                 vector = np.array([
-                    subdomain[g][element].x.values, subdomain[g][element].y.values,
-                    subdomain[g][element].z.values
+                    dataset[g][element].x.values, dataset[g][element].y.values,
+                    dataset[g][element].z.values
                 ])
-                vector = R @ vector
-                subdomain[g][element] = subdomain[g][element].__class__(
+                vector = r_m @ vector
+                dataset[g][element] = dataset[g][element].__class__(
                     x=vector[0],
                     y=vector[1],
                     z=vector[2],
-                    unit=subdomain[g][element].unit)
-    subdomain.basis = new_basis
+                    unit=dataset[g][element].unit)
+    dataset.basis = new_basis
