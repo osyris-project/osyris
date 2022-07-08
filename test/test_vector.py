@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 from common import vectorclose, vectorequal, arrayequal, arrayclose
-from osyris import Array, Vector, units
+from osyris import Array, Vector, Dataset, Datagroup, units
 from copy import copy, deepcopy
 import numpy as np
 import pytest
@@ -834,3 +834,39 @@ def test_numpy_binary():
     assert np.allclose(result.y.values, exp_y)
     assert np.allclose(result.z.values, exp_z)
     assert result.unit == units('m')
+
+
+def test_coordinate_transforms():
+    dataset = Dataset()
+    dataset["amr"] = Datagroup()
+    dataset["test"] = Datagroup()
+    pos_x = [1., 2., 3., 4., 5.]
+    pos_y = [6., 7., 8., 9., 10.]
+    pos_z = [11., 12., 13., 14., 15.]
+    vel_x = 2 * np.array(pos_x)
+    vel_y = 2 * np.array(pos_y)
+    vel_z = 2 * np.array(pos_z)
+    x = Array(values=pos_x, unit='m')
+    y = Array(values=pos_y, unit='m')
+    z = Array(values=pos_z, unit='m')
+    v = Vector(x, y, z)
+    dataset["amr"]["position"] = v
+    dataset["test"]["velocity"] = 2 * v * (1 * units("s^-1"))
+    exp_r = np.linalg.norm([pos_x, pos_y, pos_z], axis=0)
+    exp_theta = np.arctan2(np.linalg.norm([pos_x, pos_y], axis=0), pos_z)
+    exp_phi = np.arctan2(pos_y, pos_x)
+    exp_cyl_r = np.linalg.norm([pos_x, pos_y], axis=0)
+    exp_vr = np.cos(exp_phi) * np.sin(exp_theta) * vel_x + np.sin(exp_phi) * np.sin(
+        exp_theta) * vel_y + np.cos(exp_theta) * vel_z
+    exp_vtheta = np.cos(exp_theta) * np.cos(exp_phi) * vel_x + np.cos(
+        exp_theta) * np.sin(exp_phi) * vel_y - np.sin(exp_theta) * vel_z
+    exp_vphi = -np.sin(exp_phi) * vel_x + np.cos(exp_phi) * vel_y
+    exp_vcyl_r = np.cos(exp_phi) * vel_x + np.sin(exp_phi) * vel_y
+    assert np.allclose(dataset["amr"]["position"].r.values, exp_r)
+    assert np.allclose(dataset["amr"]["position"].theta.values, exp_theta)
+    assert np.allclose(dataset["amr"]["position"].phi.values, exp_phi)
+    assert np.allclose(dataset["amr"]["position"].cyl_r.values, exp_cyl_r)
+    assert np.allclose(dataset["test"]["velocity"].r.values, exp_vr)
+    assert np.allclose(dataset["test"]["velocity"].theta.values, exp_vtheta)
+    assert np.allclose(dataset["test"]["velocity"].phi.values, exp_vphi)
+    assert np.allclose(dataset["test"]["velocity"].cyl_r.values, exp_vcyl_r)
