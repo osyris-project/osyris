@@ -30,7 +30,7 @@ def extract_sphere(dataset, radius, origin):
 
 def extract_box(dataset, xmin, xmax, ymin, ymax, zmin, zmax, origin):
     """
-    Extract a cubic domain of size dx, dy & dz around an origin point
+    Extract a cubic domain extending from x,y,z min to x,y,z max around an origin point
     """
     subdomain = Dataset()
     subdomain.meta = dataset.meta.copy()
