@@ -6,4 +6,5 @@
 from .config import config
 from .units import units
 from .core import Array, Datagroup, Dataset, Plot, Vector
-from .plot import histogram1d, histogram2d, plane, scatter, map, plot
+from .plot import histogram1d, histogram2d, scatter, map, plot
+from .spatial import extract_box, extract_sphere

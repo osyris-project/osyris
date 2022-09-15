@@ -5,11 +5,11 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
+
     def __init__(self, data=None, parent=None):
         self._container = {}
         self.parent = parent
         self.name = ""
-        self.shape = None
         if data is not None:
             for key, array in data.items():
                 self[key] = array
@@ -32,18 +32,10 @@ class Datagroup:
             return d
 
     def __setitem__(self, key, value):
-        if len(value.shape) > 0:
-            shape = value.shape[0]
-        else:
-            shape = 1
-        if self.shape is None:
-            self.shape = shape
-        else:
-            if self.shape != shape:
-                raise RuntimeError(
-                    "Size mismatch on element insertion. Item "
-                    "shape is {} while container accepts shape {}.".format(
-                        shape, self.shape))
+        if self.shape and (self.shape != value.shape):
+            raise ValueError("Size mismatch on element insertion. Item "
+                             "shape is {} while container accepts shape {}.".format(
+                                 value.shape, self.shape))
         value.name = key
         value.parent = self
         self._container[key] = value
@@ -92,6 +84,13 @@ class Datagroup:
     def print_size(self):
         return bytes_to_human_readable(self.nbytes())
 
+    @property
+    def shape(self):
+        if len(self) == 0:
+            return ()
+        else:
+            return self[list(self.keys())[0]].shape
+
     def sortby(self, key):
         if key is not None:
             if isinstance(key, str):
@@ -101,7 +100,6 @@ class Datagroup:
 
     def clear(self):
         self._container.clear()
-        self.shape = None
 
     def get(self, key, default):
         return self._container.get(key, default)

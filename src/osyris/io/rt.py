@@ -6,6 +6,7 @@ from .reader import Reader, ReaderKind
 
 
 class RtReader(Reader):
+
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
