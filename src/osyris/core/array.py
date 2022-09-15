@@ -7,7 +7,7 @@ from .base import Base
 from .tools import value_to_string
 from .. import units
 
-APPLY_OP_TO_UNIT = ("multiply", "divide", "sqrt", "power", "reciprocal")
+APPLY_OP_TO_UNIT = ("multiply", "true_divide", "divide", "sqrt", "power", "reciprocal")
 
 
 def _binary_op(op, lhs, rhs, strict=True, **kwargs):
