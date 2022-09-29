@@ -60,7 +60,7 @@ def pcolormesh(ax, x, y, z, cbar=False, cblabel=None, zorder=1, **kwargs):
     """
     Wrapper around Matplotlib's pcolormesh plot.
     """
-    default_args = {"shading": "nearest", "zorder": zorder}
+    default_args = {"shading": "nearest", "zorder": zorder, "rasterized": True}
     default_args.update(kwargs)
     out = ax.pcolormesh(x, y, z, **default_args)
     if cbar:
