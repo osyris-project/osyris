@@ -203,7 +203,7 @@ def map(*layers,
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
-        raise RuntimeError("No cells were selected to construct the column density. "
+        raise RuntimeError("No cells were selected to construct the map. "
                            "The resulting figure would be empty.")
 
     xmin = None
@@ -292,7 +292,7 @@ def map(*layers,
                                resolution['z'])
     else:
         zmin = 0.
-        zspacing = 1.0
+        zspacing = zmax - zmin
         zcenters = [0.]
 
     xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing='ij')
@@ -316,24 +316,26 @@ def map(*layers,
         ygrid.shape + (1, )) * v_array + zgrid.reshape(zgrid.shape + (1, )) * n_array
 
     # Evaluate the values of the data layers at the grid positions
-    binned = evaluate_on_grid(cell_positions_in_new_basis_x=apply_mask(datax.values),
-                              cell_positions_in_new_basis_y=apply_mask(datay.values),
-                              cell_positions_in_new_basis_z=apply_mask(dataz.values),
-                              cell_positions_in_original_basis_x=coords.x.values,
-                              cell_positions_in_original_basis_y=coords.y.values
-                              if coords.y is not None else None,
-                              cell_positions_in_original_basis_z=coords.z.values
-                              if coords.z is not None else None,
-                              cell_values=np.array(to_binning),
-                              cell_sizes=datadx.values,
-                              grid_lower_edge_in_new_basis_x=xmin,
-                              grid_lower_edge_in_new_basis_y=ymin,
-                              grid_lower_edge_in_new_basis_z=zmin,
-                              grid_spacing_in_new_basis_x=xspacing,
-                              grid_spacing_in_new_basis_y=yspacing,
-                              grid_spacing_in_new_basis_z=zspacing,
-                              grid_positions_in_original_basis=pixel_positions,
-                              ndim=ndim)
+    div = dx.to(datadx.unit).magnitude
+    binned = evaluate_on_grid(
+        cell_positions_in_new_basis_x=apply_mask(datax.values / div),
+        cell_positions_in_new_basis_y=apply_mask(datay.values / div),
+        cell_positions_in_new_basis_z=apply_mask(dataz.values / div),
+        cell_positions_in_original_basis_x=coords.x.values / div,
+        cell_positions_in_original_basis_y=coords.y.values /
+        div if coords.y is not None else None,
+        cell_positions_in_original_basis_z=coords.z.values /
+        div if coords.z is not None else None,
+        cell_values=np.array(to_binning),
+        cell_sizes=datadx.values / div,
+        grid_lower_edge_in_new_basis_x=xmin / div,
+        grid_lower_edge_in_new_basis_y=ymin / div,
+        grid_lower_edge_in_new_basis_z=zmin / div,
+        grid_spacing_in_new_basis_x=xspacing / div,
+        grid_spacing_in_new_basis_y=yspacing / div,
+        grid_spacing_in_new_basis_z=zspacing / div,
+        grid_positions_in_original_basis=pixel_positions / div,
+        ndim=ndim)
 
     # Apply operation along depth
     binned = getattr(binned, operation)(axis=1)
