@@ -2,7 +2,7 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
-from pint.quantity import Quantity
+from pint import Quantity
 from typing import Union
 from ..core import Array, Plot
 from .render import render

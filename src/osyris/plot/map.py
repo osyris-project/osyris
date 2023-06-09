@@ -3,7 +3,7 @@
 
 import numpy as np
 import numpy.ma as ma
-from pint.quantity import Quantity
+from pint import Quantity
 from typing import Union
 from .direction import get_direction
 from .render import render

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
 import numpy as np
-from pint.quantity import Quantity
+from pint import Quantity
 
 
 def _add_colorbar(obj, ax, cax=None, label=None):
