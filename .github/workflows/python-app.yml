@@ -19,9 +19,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python 3.9
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: 3.9
     - name: Install dependencies
@@ -46,7 +46,7 @@ jobs:
       run: |
         sphinx-build -b html docs/. docs/build
     - name: Archive documentation artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: DocumentationHTML
         path: docs/build
@@ -56,6 +56,6 @@ jobs:
         python -m build --sdist --wheel --outdir dist/ .
     - name: Publish to PyPI
       if: startsWith(github.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@v1.8.6
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
