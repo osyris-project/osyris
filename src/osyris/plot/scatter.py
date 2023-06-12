@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from pint.quantity import Quantity
+from pint import Quantity
 from ..core import Plot, Array
 from .. import units
 from .render import render

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
 import numpy as np
-from pint.quantity import Quantity
+from pint import Quantity
 
 
 def _add_colorbar(obj, ax, cax=None, label=None):
@@ -41,7 +41,7 @@ def quiver(ax,
     default_args = {"angles": "xy", "pivot": "mid", "zorder": zorder}
     default_args.update(kwargs)
 
-    skips = np.around(np.array(z.shape) * 4.0 / 128.0 / density).astype(np.int)
+    skips = np.around(np.array(z.shape) * 4.0 / 128.0 / density).astype(int)
     skip = (slice(None, None, skips[0]), slice(None, None, skips[1]))
 
     args = [x[skip[0]], y[skip[1]], z[..., 0][skip], z[..., 1][skip]]
