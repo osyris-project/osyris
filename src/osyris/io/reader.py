@@ -13,8 +13,7 @@ class ReaderKind(Enum):
     PART = 2
 
 
-class Reader():
-
+class Reader:
     def __init__(self, kind=None):
         self.variables = {}
         self.offsets = {}
@@ -44,15 +43,16 @@ class Reader():
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
-                "unit": units[key]
+                "unit": units[key],
             }
 
     def allocate_buffers(self, ncache, twotondim):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"] = Array(values=np.empty([ncache * twotondim],
-                                                       dtype=np.dtype(item["type"])),
-                                       unit=item["unit"].units)
+                item["buffer"] = Array(
+                    values=np.empty([ncache * twotondim], dtype=np.dtype(item["type"])),
+                    unit=item["unit"].units,
+                )
 
     def read_header(self, *args, **kwargs):
         return
@@ -69,11 +69,16 @@ class Reader():
     def read_variables(self, ncache, ind, ilevel, cpuid, info):
         for item in self.variables.values():
             if item["read"]:
-                item["buffer"]._array[ind * ncache:(ind + 1) * ncache] = np.array(
-                    utils.read_binary_data(
-                        fmt="{}{}".format(ncache, item["type"]),
-                        content=self.bytes,
-                        offsets=self.offsets)) * item["unit"].magnitude
+                item["buffer"]._array[ind * ncache : (ind + 1) * ncache] = (
+                    np.array(
+                        utils.read_binary_data(
+                            fmt="{}{}".format(ncache, item["type"]),
+                            content=self.bytes,
+                            offsets=self.offsets,
+                        )
+                    )
+                    * item["unit"].magnitude
+                )
             else:
                 self.offsets[item["type"]] += ncache
                 self.offsets["n"] += 1
@@ -91,5 +96,8 @@ class Reader():
         return
 
     def step_over(self, ncache, twotondim, ndim):
-        self.offsets['d'] += ncache * twotondim * len(self.variables)
-        self.offsets['n'] += twotondim * len(self.variables)
+        self.offsets["d"] += ncache * twotondim * len(self.variables)
+        self.offsets["n"] += twotondim * len(self.variables)
+
+    def post_load(self, *args, **kwargs):
+        return

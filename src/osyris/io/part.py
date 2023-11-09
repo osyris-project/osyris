@@ -8,7 +8,6 @@ from . import utils
 
 
 class PartReader(Reader):
-
     def __init__(self):
         super().__init__(kind=ReaderKind.PART)
 
@@ -30,10 +29,9 @@ class PartReader(Reader):
             for i in range(len(desc_from_file))
         }
 
-        self.descriptor_to_variables(descriptor=descriptor,
-                                     meta=meta,
-                                     units=units,
-                                     select=select)
+        self.descriptor_to_variables(
+            descriptor=descriptor, meta=meta, units=units, select=select
+        )
         self.initialized = True
 
     def read_header(self, info):
@@ -41,21 +39,27 @@ class PartReader(Reader):
             return
         self.offsets["i"] += 2
         self.offsets["n"] += 2
-        [nparticles] = utils.read_binary_data(fmt="i",
-                                              content=self.bytes,
-                                              offsets=self.offsets)
+        [nparticles] = utils.read_binary_data(
+            fmt="i", content=self.bytes, offsets=self.offsets
+        )
         for i in range(5):
-            self.offsets["b"] += utils.skip_binary_line(content=self.bytes,
-                                                        offsets=self.offsets)
+            self.offsets["b"] += utils.skip_binary_line(
+                content=self.bytes, offsets=self.offsets
+            )
         for item in self.variables.values():
             if item["read"]:
                 npieces = len(item["pieces"])
-                item["pieces"][npieces] = Array(values=np.array(
-                    utils.read_binary_data(fmt="{}{}".format(nparticles, item["type"]),
-                                           content=self.bytes,
-                                           offsets=self.offsets)) *
-                                                item["unit"].magnitude,
-                                                unit=item["unit"].units)
+                item["pieces"][npieces] = Array(
+                    values=np.array(
+                        utils.read_binary_data(
+                            fmt="{}{}".format(nparticles, item["type"]),
+                            content=self.bytes,
+                            offsets=self.offsets,
+                        )
+                    )
+                    * item["unit"].magnitude,
+                    unit=item["unit"].units,
+                )
             else:
                 self.offsets[item["type"]] += nparticles
                 self.offsets["n"] += 1
@@ -75,3 +79,11 @@ class PartReader(Reader):
 
     def step_over(self, ncache, twotondim, ndim):
         return
+
+    def post_load(self, group, meta, units):
+        group["dx"] = Array(
+            values=0.5 ** (group["levelp"].values + 1)
+            * meta["boxlen"]
+            * units["dx"].magnitude,
+            unit=group["position"].unit,
+        )
