@@ -10,7 +10,6 @@ from ..units import units, UnitsLibrary
 
 
 class Dataset:
-
     def __init__(self, nout=None, path=""):
         self.groups = {}
         self.meta = {}
@@ -33,8 +32,9 @@ class Dataset:
 
     def __setitem__(self, key, value):
         if not isinstance(value, Datagroup):
-            raise TypeError("Only objects of type Datagroup can be inserted into a "
-                            "Dataset.")
+            raise TypeError(
+                "Only objects of type Datagroup can be inserted into a " "Dataset."
+            )
         self.groups.__setitem__(key, value)
         value.name = key
         value.parent = self
@@ -101,7 +101,7 @@ class Dataset:
         self.groups.clear()
         self.meta.clear()
 
-    def get(self, key, default):
+    def get(self, key, default=None):
         return self.groups.get(key, default)
 
     def pop(self, key):
@@ -112,9 +112,12 @@ class Dataset:
             self[key] = value
 
     def set_units(self):
-        self.units = UnitsLibrary(library=config.configure_units(
-            units=units,
-            unit_d=self.meta['unit_d'],
-            unit_l=self.meta['unit_l'],
-            unit_t=self.meta['unit_t']),
-                                  default_unit=1.0 * units(''))
+        self.units = UnitsLibrary(
+            library=config.configure_units(
+                units=units,
+                unit_d=self.meta["unit_d"],
+                unit_l=self.meta["unit_l"],
+                unit_t=self.meta["unit_t"],
+            ),
+            default_unit=1.0 * units(""),
+        )

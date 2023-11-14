@@ -163,12 +163,15 @@ def map(
                 }
             )
 
-    dataset = to_process[0].parent.parent
+    group = to_process[0].parent
+    dataset = group.parent
     ndim = dataset.meta["ndim"]
+    position = group["position"] if "position" in group else dataset["amr"]["position"]
+    celldx = group["dx"] if "dx" in group else dataset["amr"]["dx"]
 
     thick = dz is not None
 
-    spatial_unit = dataset["amr"]["position"].unit
+    spatial_unit = position.unit
     map_unit = spatial_unit
 
     # Set window size
@@ -187,8 +190,8 @@ def map(
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
-    xyz = dataset["amr"]["position"] - origin
-    selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
+    xyz = position - origin
+    selection_distance = 0.5 * diagonal * (dz if thick else celldx)
 
     normal = dir_vecs["normal"]
     vec_u = dir_vecs["pos_u"]
@@ -196,7 +199,7 @@ def map(
 
     dist_to_plane = xyz.dot(normal)
     # Create an array of indices to allow further narrowing of the selection below
-    global_indices = np.arange(len(dataset["amr"]["dx"]))
+    global_indices = np.arange(len(celldx))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
     indices_close_to_plane = global_indices[close_to_plane]
@@ -218,7 +221,7 @@ def map(
         # Limit selection further by using distance from center
         radial_distance = (
             xyz[indices_close_to_plane]
-            - 0.5 * dataset["amr"]["dx"][indices_close_to_plane] * diagonal
+            - 0.5 * celldx[indices_close_to_plane] * diagonal
         )
         radial_selection = (
             np.abs(radial_distance.norm.values)
@@ -231,7 +234,7 @@ def map(
     datax = coords.dot(vec_u)
     datay = coords.dot(vec_v)
     dataz = coords.dot(normal)
-    datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
+    datadx = celldx[indices_close_to_plane] * 0.5
 
     if xmin is None:
         xmin = (datax - datadx).min().values
@@ -408,6 +411,7 @@ def map(
         "filename": filename,
     }
     if plot:
+        print(to_render[0]["data"].array.min(), to_render[0]["data"].array.max())
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
         figure["ax"].set_xlabel(
