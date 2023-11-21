@@ -131,8 +131,8 @@ def map(*layers,
         Default is ``256``.
 
     :param operation: The operation to apply along the ``z`` dimension if ``dz`` is
-        not ``None``. Possible values are ``'sum'``, ``'mean'``, ``'min'``, and
-        ``'max'``. Default is ``'sum'``.
+        not ``None``. Possible values are ``'sum'``, ``'nansum'``,
+         ``'mean'``, ``'min'``, and ``'max'``. Default is ``'sum'``.
 
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
