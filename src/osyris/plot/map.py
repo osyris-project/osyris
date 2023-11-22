@@ -130,9 +130,9 @@ def map(*layers,
         the following syntax should be used: ``resolution={'x': 128, 'y': 192}``.
         Default is ``256``.
 
-    :param operation: The operation to apply along the ``z`` dimension if ``dz`` is
-        not ``None``. Possible values are ``'sum'``, ``'nansum'``,
-         ``'mean'``, ``'min'``, and ``'max'``. Default is ``'sum'``.
+    :param operation: Numpy operation to apply along the ``z`` dimension if ``dz`` is
+        not ``None``. Example values are ``'sum'``, ``'nansum'``, ``'nanmin'``,
+        ``'nanmax'`` ``'mean'``, ``'min'``, and ``'max'``. Default is ``'sum'``.
 
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
