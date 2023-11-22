@@ -132,7 +132,8 @@ def map(*layers,
 
     :param operation: Numpy operation to apply along the ``z`` dimension if ``dz`` is
         not ``None``. Example values are ``'sum'``, ``'nansum'``, ``'nanmin'``,
-        ``'nanmax'`` ``'mean'``, ``'min'``, and ``'max'``. Default is ``'sum'``.
+        ``'nanmax'``, ``'nanmean'``, ``'mean'``, ``'min'``, and ``'max'``.
+        Default is ``'sum'``.
 
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
