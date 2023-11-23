@@ -130,9 +130,10 @@ def map(*layers,
         the following syntax should be used: ``resolution={'x': 128, 'y': 192}``.
         Default is ``256``.
 
-    :param operation: The operation to apply along the ``z`` dimension if ``dz`` is
-        not ``None``. Possible values are ``'sum'``, ``'mean'``, ``'min'``, and
-        ``'max'``. Default is ``'sum'``.
+    :param operation: Numpy operation to apply along the ``z`` dimension if ``dz`` is
+        not ``None``. Example values are ``'sum'``, ``'nansum'``, ``'nanmin'``,
+        ``'nanmax'``, ``'nanmean'``, ``'mean'``, ``'min'``, and ``'max'``.
+        Default is ``'sum'``.
 
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
@@ -338,10 +339,10 @@ def map(*layers,
         ndim=ndim)
 
     # Apply operation along depth
-    binned = getattr(binned, operation)(axis=1)
+    binned = getattr(np, operation)(binned, axis=1)
 
     # Handle thick maps
-    if thick and (operation == "sum"):
+    if thick and ((operation == "sum") or (operation == "nansum")):
         binned *= zspacing
         for layer in to_render:
             layer["unit"] = layer["unit"] * dataz.unit
