@@ -6,5 +6,5 @@
 from .config import config
 from .units import units
 from .core import Array, Datagroup, Dataset, Plot, Vector
+from .spatial import extract_box, extract_sphere, translate, rotate
 from .plot import histogram1d, histogram2d, scatter, map, plot
-from .spatial import extract_box, extract_sphere

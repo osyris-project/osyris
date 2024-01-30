@@ -20,6 +20,16 @@ def _binary_op(op, lhs, rhs):
            for c, xyz in lhs._xyz.items()})
 
 
+def _get_colatitude(pos):
+    colatitude = np.arctan2(pos.cyl_r, pos.z).values
+    return Array(values=colatitude, unit="rad", name=pos.name + "_theta")
+
+
+def _get_azimuth(pos):
+    azimuth = np.arctan2(pos.y.values, pos.x.values)
+    return Array(values=azimuth, unit="rad", name=pos.name + "_phi")
+
+
 class Vector(Base):
 
     def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
@@ -252,3 +262,56 @@ class Vector(Base):
         z = self.x * other.y
         z -= self.y * other.x
         return self.__class__(x, y, z)
+
+    def _get_parent_pos(self):
+        group = self.parent
+        return group.get("position", group.parent["amr"]["position"])
+
+    @property
+    def r(self):
+        if self.unit.is_compatible_with("meter"):
+            v = self.norm
+            v.name = self.name + "_r"
+            return v
+        pos = self._get_parent_pos()
+        colatitude = _get_colatitude(pos)
+        azimuth = _get_azimuth(pos)
+        vec_r = np.cos(azimuth) * np.sin(colatitude) * self.x + np.sin(
+            azimuth) * np.sin(colatitude) * self.y + np.cos(colatitude) * self.z
+        vec_r.name = self.name + "_r"
+        return vec_r
+
+    @property
+    def theta(self):
+        if self.unit.is_compatible_with("meter"):
+            return _get_colatitude(self)
+        pos = self._get_parent_pos()
+        colatitude = _get_colatitude(pos)
+        azimuth = _get_azimuth(pos)
+        vec_theta = np.cos(colatitude) * np.cos(azimuth) * self.x + np.cos(
+            colatitude) * np.sin(azimuth) * self.y - np.sin(colatitude) * self.z
+        vec_theta.name = self.name + "_theta"
+        return vec_theta
+
+    @property
+    def phi(self):
+        if self.unit.is_compatible_with("meter"):
+            return _get_azimuth(self)
+        pos = self._get_parent_pos()
+        azimuth = _get_azimuth(pos)
+        vec_phi = -np.sin(azimuth) * self.x + np.cos(azimuth) * self.y
+        vec_phi.name = self.name + "_phi"
+        return vec_phi
+
+    @property
+    def cyl_r(self):
+        if self.unit.is_compatible_with("meter"):
+            v = Array(values=np.linalg.norm([self.x.values, self.y.values], axis=0),
+                      unit=self.unit)
+            v.name = self.name + "_cyl_r"
+            return v
+        pos = self._get_parent_pos()
+        azimuth = _get_azimuth(pos)
+        vec_cyl_r = np.cos(azimuth) * self.x + np.sin(azimuth) * self.y
+        vec_cyl_r.name = self.name + "_cyl_r"
+        return vec_cyl_r

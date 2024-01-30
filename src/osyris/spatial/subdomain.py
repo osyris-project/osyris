@@ -28,9 +28,9 @@ def extract_sphere(dataset, radius, origin):
     return subdomain
 
 
-def extract_box(dataset, dx, dy, dz, origin):
+def extract_box(dataset, xmin, xmax, ymin, ymax, zmin, zmax, origin):
     """
-    Extract a cubic domain of size dx, dy & dz around an origin point
+    Extract a cubic domain extending from x,y,z min to x,y,z max around an origin point
     """
     subdomain = Dataset()
     subdomain.meta = dataset.meta.copy()
@@ -43,9 +43,9 @@ def extract_box(dataset, dx, dy, dz, origin):
                 "vector and has different shape than 'amr' group.")
             continue
         centered_pos = pos - origin
-        cx = (centered_pos.x <= dx * .5) & (centered_pos.x >= -dx * .5)
-        cy = (centered_pos.y <= dy * .5) & (centered_pos.y >= -dy * .5)
-        cz = (centered_pos.z <= dz * .5) & (centered_pos.z >= -dz * .5)
+        cx = (centered_pos.x <= xmax) & (centered_pos.x >= xmin)
+        cy = (centered_pos.y <= ymax) & (centered_pos.y >= ymin)
+        cz = (centered_pos.z <= zmax) & (centered_pos.z >= zmin)
         c = (cx & cy & cz).values
         if np.any(c):
             subdomain[name] = dataset[name][c]
