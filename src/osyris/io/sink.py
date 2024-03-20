@@ -10,7 +10,6 @@ from . import utils
 
 
 class SinkReader:
-
     def __init__(self):
         self.kind = ReaderKind.SINK
         self.initialized = False
@@ -19,11 +18,9 @@ class SinkReader:
         if select is False:
             return
         sink = Datagroup()
-        sink_file = utils.generate_fname(meta["nout"],
-                                         meta["path"],
-                                         ftype="sink",
-                                         cpuid=0,
-                                         ext=".csv")
+        sink_file = utils.generate_fname(
+            meta["nout"], meta["path"], ftype="sink", cpuid=0, ext=".csv"
+        )
         if not os.path.exists(sink_file):
             return
 
@@ -31,29 +28,29 @@ class SinkReader:
             # This is an empty sink file
             return sink
         else:
-            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=',', skiprows=2))
+            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=",", skiprows=2))
 
-        with open(sink_file, 'r') as f:
+        with open(sink_file, "r") as f:
             key_list = f.readline()
             unit_combinations = f.readline()
 
-        key_list = key_list.lstrip(' #').rstrip('\n').split(',')
-        unit_combinations = unit_combinations.lstrip(' #').rstrip('\n').split(',')
+        key_list = key_list.lstrip(" #").rstrip("\n").split(",")
+        unit_combinations = unit_combinations.lstrip(" #").rstrip("\n").split(",")
 
         # Parse units
         unit_list = []
-        m = units['mass']  # noqa: F841
-        l = units['length']  # noqa: F841, E741
-        t = units['time']  # noqa: F841
+        m = units["mass"]  # noqa: F841
+        l = units["length"]  # noqa: F841, E741
+        t = units["time"]  # noqa: F841
         for u in unit_combinations:
-            if u.strip().replace("[", "").replace("]", "") == '1':
-                unit_list.append(1.0 * ureg('dimensionless'))
+            if u.strip().replace("[", "").replace("]", "") == "1":
+                unit_list.append(1.0 * ureg("dimensionless"))
             else:
                 if all(x in u for x in ["[", "]"]):
                     # Legacy sink format quantities are not in code units
                     unit_list.append(1.0 * ureg(u.replace("[", "").replace("]", "")))
                 else:
-                    unit_list.append(eval(u.replace(' ', '*')))
+                    unit_list.append(eval(u.replace(" ", "*")))
 
         sink = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):

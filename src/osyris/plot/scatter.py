@@ -8,22 +8,24 @@ from .render import render
 from .parser import parse_layer
 
 
-def scatter(x: Array,
-            y: Array,
-            logx: bool = False,
-            logy: bool = False,
-            loglog: bool = False,
-            norm: str = None,
-            filename: str = None,
-            title: str = None,
-            xmin: float = None,
-            xmax: float = None,
-            ymin: float = None,
-            ymax: float = None,
-            vmin: float = None,
-            vmax: float = None,
-            ax: object = None,
-            **kwargs) -> Plot:
+def scatter(
+    x: Array,
+    y: Array,
+    logx: bool = False,
+    logy: bool = False,
+    loglog: bool = False,
+    norm: str = None,
+    filename: str = None,
+    title: str = None,
+    xmin: float = None,
+    xmax: float = None,
+    ymin: float = None,
+    ymax: float = None,
+    vmin: float = None,
+    vmax: float = None,
+    ax: object = None,
+    **kwargs
+) -> Plot:
     """
     Make a 2D scatter plot with two variables as input.
 
@@ -74,11 +76,13 @@ def scatter(x: Array,
     yvals = y.norm.values
 
     _, _, params = parse_layer(layer=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
-    to_render = [{
-        "data": None,
-        "mode": "scatter",
-        "params": params,
-    }]
+    to_render = [
+        {
+            "data": None,
+            "mode": "scatter",
+            "params": params,
+        }
+    ]
     if "c" in params and not isinstance(params["c"], str):
         to_render[0].update({"unit": params["c"].unit, "name": params["c"].name})
         params["c"] = params["c"].norm.values
@@ -89,12 +93,14 @@ def scatter(x: Array,
         if isinstance(params["s"], Quantity):
             unit = params["s"].units
         if unit is not None:
-            if unit != units('dimensionless'):
+            if unit != units("dimensionless"):
                 if x.unit != y.unit:
-                    raise RuntimeError("Scatter: an Array with a unit was supplied "
-                                       "as a size, but the units of the x and y "
-                                       "Arrays do not agree. The size must either "
-                                       "be a float or a dimensionless Array.")
+                    raise RuntimeError(
+                        "Scatter: an Array with a unit was supplied "
+                        "as a size, but the units of the x and y "
+                        "Arrays do not agree. The size must either "
+                        "be a float or a dimensionless Array."
+                    )
                 params["s"] = params["s"].to(x.unit)
 
     figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
@@ -104,9 +110,11 @@ def scatter(x: Array,
     figure["ax"].set_xlim(xmin, xmax)
     figure["ax"].set_ylim(ymin, ymax)
 
-    return Plot(x=xvals,
-                y=yvals,
-                layers=to_render,
-                fig=figure["fig"],
-                ax=figure["ax"],
-                filename=filename)
+    return Plot(
+        x=xvals,
+        y=yvals,
+        layers=to_render,
+        fig=figure["fig"],
+        ax=figure["ax"],
+        filename=filename,
+    )

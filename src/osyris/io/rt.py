@@ -6,7 +6,6 @@ from .reader import Reader, ReaderKind
 
 
 class RtReader(Reader):
-
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
@@ -28,10 +27,9 @@ class RtReader(Reader):
             for i in range(len(desc_from_file))
         }
 
-        self.descriptor_to_variables(descriptor=descriptor,
-                                     meta=meta,
-                                     units=units,
-                                     select=select)
+        self.descriptor_to_variables(
+            descriptor=descriptor, meta=meta, units=units, select=select
+        )
         self.initialized = True
 
     def read_header(self, info):
@@ -40,5 +38,5 @@ class RtReader(Reader):
         self.offsets["d"] += 1
 
     def read_domain_header(self):
-        self.offsets['n'] += 2
-        self.offsets['i'] += 2
+        self.offsets["n"] += 2
+        self.offsets["i"] += 2

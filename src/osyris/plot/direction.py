@@ -38,7 +38,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     dir_list = {
         "x": Vector(1, 0, 0, name="x"),
         "y": Vector(0, 1, 0, name="y"),
-        "z": Vector(0, 0, 1, name="z")
+        "z": Vector(0, 0, 1, name="z"),
     }
     dir_names = ("normal", "pos_u", "pos_v")
 
@@ -46,7 +46,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         return {
             dir_names[0]: Vector(0, 0, name="z"),
             dir_names[1]: Vector(1, 0, name="x"),
-            dir_names[2]: Vector(0, 1, name="y")
+            dir_names[2]: Vector(0, 1, name="y"),
         }
 
     if isinstance(direction, str):
@@ -54,9 +54,18 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         if direction in ["top", "side"]:
             if dx is None:
                 pos = dataset["amr"]["position"]
-                sphere_rad = (0.5 * (pos.x.max() - pos.x.min() + pos.y.max() -
-                                     pos.y.min() + pos.z.max() - pos.z.min()) /
-                              3.) * dataset["amr"]["position"].unit
+                sphere_rad = (
+                    0.5
+                    * (
+                        pos.x.max()
+                        - pos.x.min()
+                        + pos.y.max()
+                        - pos.y.min()
+                        + pos.z.max()
+                        - pos.z.min()
+                    )
+                    / 3.0
+                ) * dataset["amr"]["position"].unit
             else:
                 sphere_rad = 0.25 * (dx + dy)
 
@@ -89,25 +98,25 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
             return {
                 "normal": dir_list[direction[0]],
                 "pos_u": dir_list[direction[1]],
-                "pos_v": dir_list[direction[2]]
+                "pos_v": dir_list[direction[2]],
             }
         elif direction == "x":
             return {
                 "normal": dir_list["x"],
                 "pos_u": dir_list["y"],
-                "pos_v": dir_list["z"]
+                "pos_v": dir_list["z"],
             }
         elif direction == "y":
             return {
                 "normal": dir_list["y"],
                 "pos_u": dir_list["z"],
-                "pos_v": dir_list["x"]
+                "pos_v": dir_list["x"],
             }
         elif direction == "z":
             return {
                 "normal": dir_list["z"],
                 "pos_u": dir_list["x"],
-                "pos_v": dir_list["y"]
+                "pos_v": dir_list["y"],
             }
     elif isinstance(direction, Vector):
         dir_vecs = {"normal": direction}

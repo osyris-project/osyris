@@ -33,7 +33,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
         "lic": "line_integral_convolution",
         None: "pcolormesh",
         "image": "pcolormesh",
-        "imshow": "pcolormesh"
+        "imshow": "pcolormesh",
     }
 
     mpl_objects = []
@@ -49,19 +49,23 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
             cbar = True
 
         if func == "line_integral_convolution" and "color" in item["params"]:
-            cblabel = make_label(name=item["params"]["color"].name,
-                                 unit=item["params"]["color"].unit)
+            cblabel = make_label(
+                name=item["params"]["color"].name, unit=item["params"]["color"].unit
+            )
         else:
             cblabel = make_label(name=item.get("name", ""), unit=item.get("unit", ""))
 
         mpl_objects.append(
-            getattr(wrappers, func)(ax=ax,
-                                    x=x,
-                                    y=y,
-                                    z=item["data"],
-                                    cbar=cbar,
-                                    cblabel=cblabel,
-                                    **item["params"]))
+            getattr(wrappers, func)(
+                ax=ax,
+                x=x,
+                y=y,
+                z=item["data"],
+                cbar=cbar,
+                cblabel=cblabel,
+                **item["params"]
+            )
+        )
 
     out["objects"] = mpl_objects
     return out

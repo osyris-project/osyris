@@ -6,7 +6,6 @@ from . import utils
 
 
 class GravReader(Reader):
-
     def __init__(self):
         super().__init__(kind=ReaderKind.AMR)
 
@@ -24,10 +23,9 @@ class GravReader(Reader):
         for n in range(meta["ndim"]):
             descriptor["grav_acceleration_" + "xyz"[n]] = "d"
 
-        self.descriptor_to_variables(descriptor=descriptor,
-                                     meta=meta,
-                                     units=units,
-                                     select=select)
+        self.descriptor_to_variables(
+            descriptor=descriptor, meta=meta, units=units, select=select
+        )
         self.initialized = True
 
     def read_header(self, info):
@@ -35,5 +33,5 @@ class GravReader(Reader):
         self.offsets["n"] += 4
 
     def read_domain_header(self):
-        self.offsets['n'] += 2
-        self.offsets['i'] += 2
+        self.offsets["n"] += 2
+        self.offsets["i"] += 2

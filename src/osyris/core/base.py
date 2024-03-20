@@ -6,7 +6,6 @@ import numpy as np
 
 
 class Base:
-
     def __repr__(self):
         return str(self)
 

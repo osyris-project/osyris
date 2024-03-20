@@ -16,20 +16,17 @@ def get_norm(norm=None, vmin=None, vmax=None):
         elif norm_lowercase == "linear":
             return Normalize(vmin=vmin, vmax=vmax)
         else:
-            raise RuntimeError("Unknown norm keyword '{}'.\nAvailable keywords"
-                               " are 'log', 'symlog' and 'linear'.".format(norm))
+            raise RuntimeError(
+                "Unknown norm keyword '{}'.\nAvailable keywords"
+                " are 'log', 'symlog' and 'linear'.".format(norm)
+            )
     else:
         return norm
 
 
-def parse_layer(layer,
-                mode=None,
-                norm=None,
-                vmin=None,
-                vmax=None,
-                operation=None,
-                **kwargs):
-
+def parse_layer(
+    layer, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs
+):
     if isinstance(layer, dict):
         params = {
             key: layer[key]

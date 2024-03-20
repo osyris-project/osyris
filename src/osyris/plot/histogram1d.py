@@ -8,18 +8,20 @@ from .render import render
 from ..core.tools import to_bin_centers, finmin, finmax
 
 
-def histogram1d(*layers: Union[Iterable, Array],
-                bins: Union[int, Iterable] = 50,
-                weights: Array = None,
-                logx: bool = False,
-                logy: bool = False,
-                loglog: bool = False,
-                filename: str = None,
-                title: str = None,
-                ymin: float = None,
-                ymax: float = None,
-                ax: object = None,
-                **kwargs) -> Plot:
+def histogram1d(
+    *layers: Union[Iterable, Array],
+    bins: Union[int, Iterable] = 50,
+    weights: Array = None,
+    logx: bool = False,
+    logy: bool = False,
+    loglog: bool = False,
+    filename: str = None,
+    title: str = None,
+    ymin: float = None,
+    ymax: float = None,
+    ax: object = None,
+    **kwargs
+) -> Plot:
     """
     Plot a 1D histogram with arbitrary number of variables as input.
     When a vector quantity is supplied, the function will histogram the norm of
@@ -68,38 +70,39 @@ def histogram1d(*layers: Union[Iterable, Array],
                     params[key] = param
                 else:
                     extra_args[key] = param
-            for key, arg in {'bins': bins, 'weights': weights}.items():
+            for key, arg in {"bins": bins, "weights": weights}.items():
                 if key not in params:
                     params[key] = arg
         else:
-            params = {'data': layer, 'bins': bins, 'weights': weights}
+            params = {"data": layer, "bins": bins, "weights": weights}
             extra_args = kwargs
 
-        xvals = params['data'].norm.values
-        if params['weights'] is not None:
-            params['weights'] = params['weights'].norm.values
+        xvals = params["data"].norm.values
+        if params["weights"] is not None:
+            params["weights"] = params["weights"].norm.values
 
         # Construct some bin edges
-        if isinstance(params['bins'], int):
+        if isinstance(params["bins"], int):
             xmin = finmin(xvals)
             xmax = finmax(xvals)
             if logx:
-                xedges = np.logspace(np.log10(xmin), np.log10(xmax), params['bins'] + 1)
+                xedges = np.logspace(np.log10(xmin), np.log10(xmax), params["bins"] + 1)
             else:
-                xedges = np.linspace(xmin, xmax, params['bins'] + 1)
+                xedges = np.linspace(xmin, xmax, params["bins"] + 1)
         else:
-            xedges = params['bins']
+            xedges = params["bins"]
 
-        ydata, _, _ = figure["ax"].hist(xvals,
-                                        bins=xedges,
-                                        weights=params['weights'],
-                                        **extra_args)
+        ydata, _, _ = figure["ax"].hist(
+            xvals, bins=xedges, weights=params["weights"], **extra_args
+        )
 
-        figure["ax"].set_xlabel(params['data'].label)
+        figure["ax"].set_xlabel(params["data"].label)
 
     figure["ax"].set_ylim(ymin, ymax)
-    return Plot(x=to_bin_centers(xedges),
-                y=ydata,
-                fig=figure["fig"],
-                ax=figure["ax"],
-                filename=filename)
+    return Plot(
+        x=to_bin_centers(xedges),
+        y=ydata,
+        fig=figure["fig"],
+        ax=figure["ax"],
+        filename=filename,
+    )

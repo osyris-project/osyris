@@ -20,7 +20,8 @@ def _parse_limit(limit, x, logx, reduction):
             limit = finmax(x.values)
         else:
             raise RuntimeError(
-                f"_parse_limit: unknown reduction operation {reduction}.")
+                f"_parse_limit: unknown reduction operation {reduction}."
+            )
         autox = True
     else:
         if isinstance(limit, Quantity):
@@ -30,27 +31,29 @@ def _parse_limit(limit, x, logx, reduction):
     return limit, autox
 
 
-def histogram2d(x: Array,
-                y: Array,
-                *layers,
-                mode: str = None,
-                logx: bool = False,
-                logy: bool = False,
-                loglog: bool = False,
-                norm: str = None,
-                filename: str = None,
-                resolution: Union[int, dict] = 256,
-                operation: str = "sum",
-                title: str = None,
-                xmin: float = None,
-                xmax: float = None,
-                ymin: float = None,
-                ymax: float = None,
-                vmin: float = None,
-                vmax: float = None,
-                plot: bool = True,
-                ax: object = None,
-                **kwargs) -> Plot:
+def histogram2d(
+    x: Array,
+    y: Array,
+    *layers,
+    mode: str = None,
+    logx: bool = False,
+    logy: bool = False,
+    loglog: bool = False,
+    norm: str = None,
+    filename: str = None,
+    resolution: Union[int, dict] = 256,
+    operation: str = "sum",
+    title: str = None,
+    xmin: float = None,
+    xmax: float = None,
+    ymin: float = None,
+    ymax: float = None,
+    vmin: float = None,
+    vmax: float = None,
+    plot: bool = True,
+    ax: object = None,
+    **kwargs,
+) -> Plot:
     """
     Plot a 2D histogram with two variables as input.
     When a vector quantity is supplied, the function will histogram the norm of
@@ -184,32 +187,38 @@ def histogram2d(x: Array,
         layers = [Array(values=np.ones_like(xvals), name="counts")]
 
     for layer in layers:
-        data, settings, params = parse_layer(layer=layer,
-                                             mode=mode,
-                                             norm=norm,
-                                             vmin=vmin,
-                                             vmax=vmax,
-                                             operation=operation,
-                                             **kwargs)
+        data, settings, params = parse_layer(
+            layer=layer,
+            mode=mode,
+            norm=norm,
+            vmin=vmin,
+            vmax=vmax,
+            operation=operation,
+            **kwargs,
+        )
         to_process.append(data.norm.values)
-        to_render.append({
-            "mode": settings["mode"],
-            "params": params,
-            "unit": data.unit,
-            "name": data.name
-        })
+        to_render.append(
+            {
+                "mode": settings["mode"],
+                "params": params,
+                "unit": data.unit,
+                "name": data.name,
+            }
+        )
         operations.append(settings["operation"])
 
     # Send to numba histogramming
-    binned, counts = hist2d(x=xvals,
-                            y=yvals,
-                            values=np.array(to_process),
-                            xmin=xmin,
-                            xmax=xmax,
-                            nx=nx,
-                            ymin=ymin,
-                            ymax=ymax,
-                            ny=ny)
+    binned, counts = hist2d(
+        x=xvals,
+        y=yvals,
+        values=np.array(to_process),
+        xmin=xmin,
+        xmax=xmax,
+        nx=nx,
+        ymin=ymin,
+        ymax=ymax,
+        ny=ny,
+    )
 
     mask = counts == 0
     for ind in range(len(to_process)):
@@ -222,16 +231,13 @@ def histogram2d(x: Array,
         "x": xcenters,
         "y": ycenters,
         "layers": to_render,
-        "filename": filename
+        "filename": filename,
     }
 
     if plot:
-        figure = render(x=xcenters,
-                        y=ycenters,
-                        data=to_render,
-                        logx=logx,
-                        logy=logy,
-                        ax=ax)
+        figure = render(
+            x=xcenters, y=ycenters, data=to_render, logx=logx, logy=logy, ax=ax
+        )
         figure["ax"].set_xlabel(x.label)
         figure["ax"].set_ylabel(y.label)
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})

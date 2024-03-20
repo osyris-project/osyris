@@ -5,7 +5,6 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-
     def __init__(self, data=None, parent=None):
         self._container = {}
         self.parent = parent
@@ -33,9 +32,12 @@ class Datagroup:
 
     def __setitem__(self, key, value):
         if self.shape and (self.shape != value.shape):
-            raise ValueError("Size mismatch on element insertion. Item "
-                             "shape is {} while container accepts shape {}.".format(
-                                 value.shape, self.shape))
+            raise ValueError(
+                "Size mismatch on element insertion. Item "
+                "shape is {} while container accepts shape {}.".format(
+                    value.shape, self.shape
+                )
+            )
         value.name = key
         value.parent = self
         self._container[key] = value
