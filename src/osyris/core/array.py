@@ -228,7 +228,7 @@ class Array(Base):
             if func.__name__ in APPLY_OP_TO_UNIT:
                 unit = func(
                     *self._extract_units(args),
-                    **{key: a for key, a in kwargs.items() if key != "out"}
+                    **{key: a for key, a in kwargs.items() if key != "out"},
                 ).units
             else:
                 unit = self.unit

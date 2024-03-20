@@ -63,7 +63,7 @@ def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):
                 z=item["data"],
                 cbar=cbar,
                 cblabel=cblabel,
-                **item["params"]
+                **item["params"],
             )
         )
 

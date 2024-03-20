@@ -170,7 +170,7 @@ def line_integral_convolution(
     length=None,
     color=None,
     verbose=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Wrapper that plots a line integral convolution of a vector field.

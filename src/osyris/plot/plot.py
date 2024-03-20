@@ -21,7 +21,7 @@ def plot(
     ymax: float = None,
     legend=True,
     ax: object = None,
-    **kwargs
+    **kwargs,
 ) -> Plot:
     """
     Make a 1D plot with two variables as input.
@@ -131,7 +131,7 @@ def plot(
             item["x"].values[sorting],
             item["y"].values[sorting],
             label=item["name"],
-            **item["params"]
+            **item["params"],
         )
 
     figure["ax"].set_xlabel(to_plot[0]["x"].label)

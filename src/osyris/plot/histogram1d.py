@@ -20,7 +20,7 @@ def histogram1d(
     ymin: float = None,
     ymax: float = None,
     ax: object = None,
-    **kwargs
+    **kwargs,
 ) -> Plot:
     """
     Plot a 1D histogram with arbitrary number of variables as input.
