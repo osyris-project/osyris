@@ -72,7 +72,7 @@ def map(
     resolution: Union[int, dict] = None,
     operation: str = "sum",
     ax: object = None,
-    **kwargs
+    **kwargs,
 ) -> Plot:
     """
     Create a 2D spatial map of a region inside a simulation domain.

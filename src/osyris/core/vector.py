@@ -64,7 +64,7 @@ class Vector(Base):
         return self.__class__(
             **{c: xyz[slice_] for c, xyz in self._xyz.items()},
             parent=self.parent,
-            name=self._name
+            name=self._name,
         )
 
     def __len__(self):
