@@ -75,7 +75,7 @@ jobs:
         path: docs/build
 
   deploy:
-    needs: tests
+    needs: docs
     runs-on: ubuntu-latest
     environment: release
     permissions:
