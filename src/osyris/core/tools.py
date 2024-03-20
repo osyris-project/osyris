@@ -50,12 +50,11 @@ def value_to_string(val, precision=3):
     """
     if (not isinstance(val, float)) or (val == 0):
         text = str(val)
-    elif (abs(val) >= 10.0**(precision)) or \
-         (abs(val) <= 10.0**(-precision)):
+    elif (abs(val) >= 10.0 ** (precision)) or (abs(val) <= 10.0 ** (-precision)):
         text = "{val:.{prec}e}".format(val=val, prec=precision)
     else:
         text = "{}".format(val)
-        if len(text) > precision + 2 + (text[0] == '-'):
+        if len(text) > precision + 2 + (text[0] == "-"):
             text = "{val:.{prec}f}".format(val=val, prec=precision)
     return text
 
@@ -67,7 +66,7 @@ def make_label(name=None, unit=None):
     lab = ""
     if name:
         lab += name
-    if unit and unit != units('dimensionless'):
+    if unit and unit != units("dimensionless"):
         if name:
             lab += " "
         lab += "[{:~}]".format(unit)

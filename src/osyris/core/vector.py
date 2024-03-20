@@ -16,14 +16,12 @@ def _binary_op(op, lhs, rhs):
         raise ValueError("Operands do not have the same number of components.")
 
     return lhs.__class__(
-        **{c: getattr(xyz, op)(getattr(rhs, c))
-           for c, xyz in lhs._xyz.items()})
+        **{c: getattr(xyz, op)(getattr(rhs, c)) for c, xyz in lhs._xyz.items()}
+    )
 
 
 class Vector(Base):
-
     def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
-
         if isinstance(x, Array):
             if unit is not None:
                 raise ValueError("Can only set unit when creating Vector from values.")
@@ -42,27 +40,32 @@ class Vector(Base):
         if array is None:
             return
         if array.shape != shape:
-            raise ValueError("The shape of the component does not match the "
-                             "shape of the x component")
+            raise ValueError(
+                "The shape of the component does not match the "
+                "shape of the x component"
+            )
         if array.unit != unit:
-            raise ValueError("The unit of the component does not match the "
-                             "unit of the x component")
+            raise ValueError(
+                "The unit of the component does not match the "
+                "unit of the x component"
+            )
         return array.values
 
     @property
     def _xyz(self):
-        out = {'x': self.x}
+        out = {"x": self.x}
         if self.y is not None:
-            out['y'] = self.y
+            out["y"] = self.y
         if self.z is not None:
-            out['z'] = self.z
+            out["z"] = self.z
         return out
 
     def __getitem__(self, slice_):
-        return self.__class__(**{c: xyz[slice_]
-                                 for c, xyz in self._xyz.items()},
-                              parent=self.parent,
-                              name=self._name)
+        return self.__class__(
+            **{c: xyz[slice_] for c, xyz in self._xyz.items()},
+            parent=self.parent,
+            name=self._name
+        )
 
     def __len__(self):
         return len(self.x)
@@ -73,7 +76,8 @@ class Vector(Base):
         comps_str = ", {" + ",".join(x for x in xyz) + "}"
         if len(self) == 0:
             values_str = "Value: " + ", ".join(
-                value_to_string(x.values) for x in xyz.values())
+                value_to_string(x.values) for x in xyz.values()
+            )
             unit_str = " [{:~}] ".format(self.unit)
             shape_str = str(self.shape)
             return name_str + values_str + unit_str + shape_str + comps_str
@@ -81,9 +85,9 @@ class Vector(Base):
             return str(self.norm) + comps_str
 
     def copy(self):
-        return self.__class__(**{c: xyz.copy()
-                                 for c, xyz in self._xyz.items()},
-                              name=str(self._name))
+        return self.__class__(
+            **{c: xyz.copy() for c, xyz in self._xyz.items()}, name=str(self._name)
+        )
 
     @property
     def norm(self):
@@ -219,7 +223,7 @@ class Vector(Base):
                 c: func(tuple(getattr(a, c) for a in args[0]), *args[1:], **kwargs)
                 for c, xyz in args[0][0]._xyz.items()
             }
-        elif (len(args) > 1 and isinstance(args[1], self.__class__)):
+        elif len(args) > 1 and isinstance(args[1], self.__class__):
             # Case of a binary operation, with two vectors, e.g. `dot`
             out = {
                 c: func(xyz, getattr(args[1], c), *args[2:], **kwargs)
@@ -231,8 +235,8 @@ class Vector(Base):
 
     def reshape(self, *shape):
         return self.__class__(
-            **{c: xyz.reshape(*shape)
-               for c, xyz in self._xyz.items()})
+            **{c: xyz.reshape(*shape) for c, xyz in self._xyz.items()}
+        )
 
     @property
     def nbytes(self):
@@ -240,7 +244,7 @@ class Vector(Base):
 
     def dot(self, other):
         out = np.zeros(self.shape)
-        for (c1, c2) in zip(self._xyz.values(), other._xyz.values()):
+        for c1, c2 in zip(self._xyz.values(), other._xyz.values()):
             out += (c1 * c2).values
         return Array(values=out, unit=self.unit * other.unit)
 

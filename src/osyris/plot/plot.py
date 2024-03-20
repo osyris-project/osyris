@@ -7,20 +7,22 @@ from ..core import Plot, Array
 from .render import render
 
 
-def plot(x: Array,
-         *y: Union[Array, dict],
-         logx: bool = False,
-         logy: bool = False,
-         loglog: bool = False,
-         filename: str = None,
-         title: str = None,
-         xmin: float = None,
-         xmax: float = None,
-         ymin: float = None,
-         ymax: float = None,
-         legend=True,
-         ax: object = None,
-         **kwargs) -> Plot:
+def plot(
+    x: Array,
+    *y: Union[Array, dict],
+    logx: bool = False,
+    logy: bool = False,
+    loglog: bool = False,
+    filename: str = None,
+    title: str = None,
+    xmin: float = None,
+    xmax: float = None,
+    ymin: float = None,
+    ymax: float = None,
+    legend=True,
+    ax: object = None,
+    **kwargs
+) -> Plot:
     """
     Make a 1D plot with two variables as input.
 
@@ -72,21 +74,20 @@ def plot(x: Array,
         x = Array(values=np.arange(len(x)))
 
     if isinstance(x, dict):
-        to_plot.append({
-            "x": x["x"].norm,
-            "y": x["y"].norm,
-            "params": {
-                **kwargs
-            },
-            "unit": x["y"].unit,
-            "name": x["y"].name
-        })
+        to_plot.append(
+            {
+                "x": x["x"].norm,
+                "y": x["y"].norm,
+                "params": {**kwargs},
+                "unit": x["y"].unit,
+                "name": x["y"].name,
+            }
+        )
         yaxis_unit = x["y"].unit
     else:
         xvals = x.norm
 
     for layer in y:
-
         if xvals is not None:
             layer_x = xvals
         else:
@@ -96,25 +97,23 @@ def plot(x: Array,
             layer_dict = {
                 "x": layer["x"].norm,
                 "y": layer["y"].norm,
-                "params": {
-                    **kwargs
-                },
+                "params": {**kwargs},
                 "unit": layer["y"].unit,
-                "name": layer["y"].name
+                "name": layer["y"].name,
             }
             layer_dict["x"] = layer["x"].norm if "x" in layer else layer_x
             to_plot.append(layer_dict)
             layer_unit = layer["y"].unit
         else:
-            to_plot.append({
-                "x": layer_x,
-                "y": layer.norm,
-                "params": {
-                    **kwargs
-                },
-                "unit": layer.unit,
-                "name": layer.name
-            })
+            to_plot.append(
+                {
+                    "x": layer_x,
+                    "y": layer.norm,
+                    "params": {**kwargs},
+                    "unit": layer.unit,
+                    "name": layer.name,
+                }
+            )
             layer_unit = layer.unit
 
         if yaxis_unit is None:
@@ -122,18 +121,21 @@ def plot(x: Array,
         else:
             if layer_unit != yaxis_unit:
                 raise RuntimeError(
-                    "Different layers in 1D plots must all have the same unit.")
+                    "Different layers in 1D plots must all have the same unit."
+                )
 
     figure = render(logx=logx, logy=logy, ax=ax)
     for item in to_plot:
         sorting = np.argsort(item["x"].values)
-        figure["ax"].plot(item["x"].values[sorting],
-                          item['y'].values[sorting],
-                          label=item["name"],
-                          **item["params"])
+        figure["ax"].plot(
+            item["x"].values[sorting],
+            item["y"].values[sorting],
+            label=item["name"],
+            **item["params"]
+        )
 
-    figure["ax"].set_xlabel(to_plot[0]['x'].label)
-    figure["ax"].set_ylabel(to_plot[0]['y'].label)
+    figure["ax"].set_xlabel(to_plot[0]["x"].label)
+    figure["ax"].set_ylabel(to_plot[0]["y"].label)
     figure["ax"].set_xlim(xmin, xmax)
     figure["ax"].set_ylim(ymin, ymax)
     figure["ax"].set_title(title)

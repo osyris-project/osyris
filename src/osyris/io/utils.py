@@ -9,7 +9,6 @@ from ..core import Vector
 
 
 def generate_fname(nout, path="", ftype="", cpuid=1, ext=""):
-
     if nout == -1:
         filelist = sorted(glob.glob(os.path.join(path, "output*")))
         number = filelist[-1].split("_")[-1]
@@ -33,7 +32,7 @@ def read_parameter_file(fname=None, delimiter="="):
     Read info file and create dictionary
     """
     out = {}
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         content = f.readlines()
     for line in content:
         sp = line.split(delimiter)
@@ -47,11 +46,9 @@ def read_parameter_file(fname=None, delimiter="="):
     return out
 
 
-def read_binary_data(content=None,
-                     fmt=None,
-                     offsets=None,
-                     skip_head=True,
-                     increment=True):
+def read_binary_data(
+    content=None, fmt=None, offsets=None, skip_head=True, increment=True
+):
     """
     Unpack binary data from a content buffer using a dict of offsets.
     Also increment the offsets of the corresponding data read, as well as
@@ -68,7 +65,7 @@ def read_binary_data(content=None,
         "e": 8,
         "n": 8,
         "l": 8,
-        "s": 1
+        "s": 1,
     }
 
     offset = 0
@@ -90,18 +87,16 @@ def read_binary_data(content=None,
         offsets[fmt[-1]] += mult
     offsets["n"] += 1
 
-    return struct.unpack(fmt, content[offset:offset + pack_size])
+    return struct.unpack(fmt, content[offset : offset + pack_size])
 
 
 def skip_binary_line(content, offsets):
     """
     Return the number of bytes necessary to skip the current line.
     """
-    [nbytes] = read_binary_data(fmt="i",
-                                content=content,
-                                offsets=offsets,
-                                skip_head=False,
-                                increment=False)
+    [nbytes] = read_binary_data(
+        fmt="i", content=content, offsets=offsets, skip_head=False, increment=False
+    )
     return nbytes
 
 
@@ -115,17 +110,17 @@ def make_vector_arrays(data, ndim):
         for key in list(data.keys()):
             comp_list = None
             rawkey = None
-            inds = [i for i, letter in enumerate(key) if letter == 'x']
+            inds = [i for i, letter in enumerate(key) if letter == "x"]
             for ind in inds:
-                comp_list = [key[:ind] + c + key[ind + 1:] for c in components]
+                comp_list = [key[:ind] + c + key[ind + 1 :] for c in components]
                 if all([item in data for item in comp_list]):
                     cut = ind - 1 if key[ind - 1] == "_" else ind
-                    rawkey = key[:cut] + key[ind + 1:]
+                    rawkey = key[:cut] + key[ind + 1 :]
                     if len(rawkey) == 0:
                         rawkey = "position"
                     data[rawkey] = Vector(
-                        **{components[c]: data[comp_list[c]]
-                           for c in range(ndim)})
+                        **{components[c]: data[comp_list[c]] for c in range(ndim)}
+                    )
                     delete += comp_list
         for key in delete:
             del data[key]

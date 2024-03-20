@@ -18,8 +18,8 @@ class UnitsLibrary:
         if key in self._library:
             return self._library[key]
         for name, unit in self._library.items():
-            if '*' in name:
-                regex = re.compile(name.replace('*', '.+'))
+            if "*" in name:
+                regex = re.compile(name.replace("*", ".+"))
                 if re.match(regex, key):
                     return unit
         return self._default_unit

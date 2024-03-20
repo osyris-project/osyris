@@ -28,6 +28,6 @@ class Config:
 config = Config()
 
 # Import list of object from user config if present, if not, load from defaults.
-objects = ['configure_constants', 'configure_units', 'additional_variables']
+objects = ["configure_constants", "configure_units", "additional_variables"]
 for obj in objects:
     setattr(config, obj, getattr(user_config, obj, getattr(default_config, obj)))
