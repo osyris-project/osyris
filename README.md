@@ -26,8 +26,10 @@ You can download the sample data
 Plot a 2D histogram of the cell magnetic field versus the gas density.
 
 ```python
+import numpy as np
 import osyris
-data = osyris.Dataset(8, scale="au", path="data").load()
+
+data = osyris.Dataset(8, path="data").load()
 osyris.histogram2d(data["hydro"]["density"], data["hydro"]["B_field"],
                    norm="log", loglog=True)
 ```
