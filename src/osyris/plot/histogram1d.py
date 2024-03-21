@@ -99,6 +99,7 @@ def histogram1d(
         figure["ax"].set_xlabel(params["data"].label)
 
     figure["ax"].set_ylim(ymin, ymax)
+    figure["ax"].set_title(title)
     return Plot(
         x=to_bin_centers(xedges),
         y=ydata,

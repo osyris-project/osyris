@@ -240,6 +240,7 @@ def histogram2d(
         )
         figure["ax"].set_xlabel(x.label)
         figure["ax"].set_ylabel(y.label)
+        figure["ax"].set_title(title)
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)

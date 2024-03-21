@@ -52,7 +52,7 @@ def test_datagroup_delitem():
 def test_datagroup_equal_operator():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")
-    assert Datagroup({"a": a, "b": b}) == Datagroup({"a": a, "b": b})
+    assert Datagroup({"a": a, "b": b}) == Datagroup({"a": a.copy(), "b": b.copy()})
 
 
 def test_datagroup_slice():
@@ -153,6 +153,7 @@ def test_copy():
     del dg1["b"]
     assert "b" in dg2
     dg1["a"] *= 10.0
+    # Note that Datagroup makes a deep copy of the Array objects
     assert arrayequal(dg2["a"], Array(values=[10.0, 20.0, 30.0, 40.0, 50.0], unit="m"))
 
 

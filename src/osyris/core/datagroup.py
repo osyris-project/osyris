@@ -5,13 +5,16 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, data=None, parent=None):
+    def __init__(self, args=None, **kwargs):
         self._container = {}
-        self.parent = parent
+        self.parent = None
         self.name = ""
-        if data is not None:
-            for key, array in data.items():
-                self[key] = array
+
+        entries = kwargs
+        if args is not None:
+            entries.update(args)
+        for key, array in entries.items():
+            self[key] = array
 
     def __iter__(self):
         return self._container.__iter__()
@@ -37,6 +40,10 @@ class Datagroup:
                 "shape is {} while container accepts shape {}.".format(
                     value.shape, self.shape
                 )
+            )
+        if value.parent is not None:
+            raise ValueError(
+                "Array is already assigned to a Datagroup. You must copy it first."
             )
         value.name = key
         value.parent = self
@@ -65,11 +72,10 @@ class Datagroup:
     def __copy__(self):
         return self.copy()
 
-    def __deepcopy__(self, memo):
-        return self.__class__(data={key: array.copy() for key, array in self.items()})
-
     def copy(self):
-        return self.__class__(data=self._container.copy())
+        # We need to make copies of the arrays because inserting the same Array in a
+        # different Datagroup would overwrite the parent attribute.
+        return self.__class__(**{key: array.copy() for key, array in self.items()})
 
     def keys(self):
         return self._container.keys()

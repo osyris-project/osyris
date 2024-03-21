@@ -17,7 +17,7 @@ def _perpendicular_vector(v):
         return Vector(1.0, 1.0, (-1.0 * (v.x + v.y) / v.z).values, unit=v.unit)
 
 
-def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
+def get_direction(direction, position, hydro=None, dx=None, dy=None, origin=None):
     """
     Find direction vectors for slice.
 
@@ -42,7 +42,7 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
     }
     dir_names = ("normal", "pos_u", "pos_v")
 
-    if dataset.meta["ndim"] < 3:
+    if position.nvec < 3:
         return {
             dir_names[0]: Vector(0, 0, name="z"),
             dir_names[1]: Vector(1, 0, name="x"),
@@ -53,29 +53,30 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         direction = direction.lower()
         if direction in ["top", "side"]:
             if dx is None:
-                pos = dataset["amr"]["position"]
+                # pos = dataset["amr"]["position"]
                 sphere_rad = (
                     0.5
                     * (
-                        pos.x.max()
-                        - pos.x.min()
-                        + pos.y.max()
-                        - pos.y.min()
-                        + pos.z.max()
-                        - pos.z.min()
+                        position.x.max()
+                        - position.x.min()
+                        + position.y.max()
+                        - position.y.min()
+                        + position.z.max()
+                        - position.z.min()
                     )
                     / 3.0
-                ) * dataset["amr"]["position"].unit
+                )
+                # * position.unit
             else:
                 sphere_rad = 0.25 * (dx + dy)
 
-            xyz = dataset["amr"]["position"]
+            xyz = position
             if origin is not None:
                 xyz = xyz - origin
             # Compute angular momentum vector
             sphere = (xyz.norm < sphere_rad).values
-            pos = xyz * dataset["hydro"]["mass"]
-            vel = dataset["hydro"]["velocity"]
+            pos = xyz * hydro["mass"]
+            vel = hydro["velocity"]
 
             ang_mom = np.sum(pos[sphere].cross(vel[sphere]))
             if direction == "side":

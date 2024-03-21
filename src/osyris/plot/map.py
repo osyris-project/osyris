@@ -164,12 +164,22 @@ def map(
                 }
             )
 
-    dataset = to_process[0].parent.parent
-    ndim = dataset.meta["ndim"]
+    # dataset = to_process[0].parent.parent
+
+    position, cell_size = (
+        (
+            to_process[0].parent[name]
+            if name in to_process[0].parent
+            else to_process[0].parent.parent["amr"][name]
+        )
+        for name in ("position", "dx")
+    )
+    # ndim = dataset.meta["ndim"]
+    ndim = position.nvec
 
     thick = dz is not None
 
-    spatial_unit = dataset["amr"]["position"].unit
+    spatial_unit = position.unit
     map_unit = spatial_unit
 
     # Set window size
@@ -183,13 +193,18 @@ def map(
         origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
 
     dir_vecs = get_direction(
-        direction=direction, dataset=dataset, dx=dx, dy=dy, origin=origin
+        direction=direction,
+        position=position,
+        hydro=to_process[0].parent.parent["hydro"],
+        dx=dx,
+        dy=dy,
+        origin=origin,
     )
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
-    xyz = dataset["amr"]["position"] - origin
-    selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
+    xyz = position - origin
+    selection_distance = 0.5 * diagonal * (dz if thick else cell_size)
 
     normal = dir_vecs["normal"]
     vec_u = dir_vecs["pos_u"]
@@ -197,7 +212,7 @@ def map(
 
     dist_to_plane = xyz.dot(normal)
     # Create an array of indices to allow further narrowing of the selection below
-    global_indices = np.arange(len(dataset["amr"]["dx"]))
+    global_indices = np.arange(len(cell_size))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
     indices_close_to_plane = global_indices[close_to_plane]
@@ -219,7 +234,7 @@ def map(
         # Limit selection further by using distance from center
         radial_distance = (
             xyz[indices_close_to_plane]
-            - 0.5 * dataset["amr"]["dx"][indices_close_to_plane] * diagonal
+            - 0.5 * cell_size[indices_close_to_plane] * diagonal
         )
         radial_selection = (
             np.abs(radial_distance.norm.values)
@@ -232,7 +247,7 @@ def map(
     datax = coords.dot(vec_u)
     datay = coords.dot(vec_v)
     dataz = coords.dot(normal)
-    datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
+    datadx = cell_size[indices_close_to_plane] * 0.5
 
     if xmin is None:
         xmin = (datax - datadx).min().values
@@ -438,6 +453,7 @@ def map(
         ymax *= scale_ratio
         figure["ax"].set_xlim(xmin, xmax)
         figure["ax"].set_ylim(ymin, ymax)
+        figure["ax"].set_title(title)
 
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 

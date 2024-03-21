@@ -1,25 +1,23 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
-from copy import copy, deepcopy
 from .. import config
-from ..io import Loader
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
 from ..units import units, UnitsLibrary
 
 
 class Dataset:
-    def __init__(self, nout=None, path=""):
+    def __init__(self, args=None, **kwargs):
         self.groups = {}
         self.meta = {}
         self.loader = None
         self.units = None
-        if nout is not None:
-            self.loader = Loader(nout=nout, path=path)
-            self.meta.update(self.loader.load_metadata())
-            self.set_units()
-            self.meta["time"] *= self.units["time"]
+        entries = kwargs
+        if args is not None:
+            entries.update(args)
+        for key, group in entries.items():
+            self[key] = group
 
     def __iter__(self):
         return self.groups.__iter__()
@@ -50,28 +48,17 @@ class Dataset:
         if "infile" in self.meta:
             output += "{}: ".format(self.meta["infile"])
         output += "{}\n".format(self.print_size())
-        for key, item in self.items():
+        for item in self.values():
             output += str(item) + "\n"
         return output
 
     def __copy__(self):
         return self.copy()
 
-    def __deepcopy__(self, memo):
-        nout = self.loader.nout if self.loader is not None else None
-        path = self.loader.path if self.loader is not None else ""
-        out = self.__class__(nout=nout, path=path)
-        for key, group in self.groups.items():
-            out[key] = deepcopy(group)
-        out.meta = {key: copy(item) for key, item in self.meta.items()}
-        return out
-
     def copy(self):
-        nout = self.loader.nout if self.loader is not None else None
-        path = self.loader.path if self.loader is not None else ""
-        out = self.__class__(nout=nout, path=path)
-        for key, group in self.groups.items():
-            out[key] = group
+        out = self.__class__(
+            **{key: group.copy() for key, group in self.groups.items()}
+        )
         out.meta = self.meta.copy()
         return out
 
@@ -84,12 +71,12 @@ class Dataset:
     def values(self):
         return self.groups.values()
 
-    def load(self, *args, **kwargs):
-        groups = self.loader.load(*args, meta=self.meta, units=self.units, **kwargs)
-        for name, group in groups.items():
-            self[name] = group
-        config.additional_variables(self)
-        return self
+    # def load(self, *args, **kwargs):
+    #     groups = self.loader.load(*args, meta=self.meta, units=self.units, **kwargs)
+    #     for name, group in groups.items():
+    #         self[name] = group
+    #     config.additional_variables(self)
+    #     return self
 
     def nbytes(self):
         return np.sum([item.nbytes() for item in self.groups.values()])
