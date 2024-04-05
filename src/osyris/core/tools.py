@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
 
