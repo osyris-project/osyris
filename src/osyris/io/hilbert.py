@@ -2,6 +2,7 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
+
 from ..core import Array
 
 

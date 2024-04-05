@@ -2,9 +2,11 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
 from enum import Enum
+
 import numpy as np
-from . import utils
+
 from ..core import Array
+from . import utils
 
 
 class ReaderKind(Enum):

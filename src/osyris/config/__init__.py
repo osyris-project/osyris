@@ -7,6 +7,7 @@
 import os
 import sys
 from shutil import copyfile
+
 from . import defaults as default_config
 
 user_config_dir = os.path.join(os.path.expanduser("~"), ".osyris")

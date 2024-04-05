@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-import numpy as np
 from copy import copy, deepcopy
+
+import numpy as np
+
 from .. import config
 from ..io import Loader
+from ..units import UnitsLibrary, units
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
-from ..units import units, UnitsLibrary
 
 
 class Dataset:

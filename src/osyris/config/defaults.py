@@ -4,7 +4,7 @@
 Define default values so that you don't have to specify them every time.
 """
 
-from math import sqrt, pi
+from math import pi, sqrt
 
 
 def configure_constants(units):

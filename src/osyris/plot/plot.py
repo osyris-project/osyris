@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-import numpy as np
 from typing import Union
-from ..core import Plot, Array
+
+import numpy as np
+
+from ..core import Array, Plot
 from .render import render
 
 

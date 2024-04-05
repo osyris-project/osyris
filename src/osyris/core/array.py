@@ -3,9 +3,10 @@
 import numpy as np
 from pint import Quantity
 from pint.errors import DimensionalityError
+
+from .. import units
 from .base import Base
 from .tools import value_to_string
-from .. import units
 
 APPLY_OP_TO_UNIT = ("multiply", "true_divide", "divide", "sqrt", "power", "reciprocal")
 

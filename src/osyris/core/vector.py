@@ -2,8 +2,9 @@
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 from pint import Quantity
-from .base import Base
+
 from .array import Array
+from .base import Base
 from .tools import value_to_string
 
 

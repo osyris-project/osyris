@@ -3,5 +3,5 @@
 
 # flake8: noqa
 
-from .units import units
 from .library import UnitsLibrary
+from .units import units
