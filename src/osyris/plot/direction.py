@@ -126,6 +126,11 @@ def get_direction(direction=None, dataset=None, dx=None, dy=None, origin=None):
         v = direction.cross(dir_vecs["pos_u"])
         v.name = "pos_v"
         dir_vecs["pos_v"] = v
+    elif isinstance(direction, dict):
+        dir_vecs = direction.copy()
+        assert "normal" in dir_vecs
+        assert "pos_u" in dir_vecs
+        assert "pos_v" in dir_vecs
     else:
         raise ValueError(f"Bad direction for slice: {direction}.")
 
