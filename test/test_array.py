@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import arrayclose, arraytrue, arrayequal
-from osyris import Array, units
 from copy import copy, deepcopy
+
 import numpy as np
-from pint.errors import DimensionalityError
 import pytest
+from common import arrayclose, arrayequal, arraytrue
+from pint.errors import DimensionalityError
+
+from osyris import Array, units
 
 
 def test_constructor_ndarray():

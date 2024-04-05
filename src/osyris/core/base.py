@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from .tools import make_label
 import numpy as np
+
+from .tools import make_label
 
 
 class Base:

@@ -25,13 +25,16 @@ jobs:
       run: |
         which python
         python -m pip install --upgrade pip
-        python -m pip install flake8==7.0.0 black[jupyter]==24.3.0
+        python -m pip install flake8==7.0.0 black[jupyter]==24.3.0 isort==5.13.2
     - name: Check black formatting
       run: |
         black --check .
     - name: Lint with flake8
       run: |
         flake8 . --count --statistics
+    - name: Check imports with isort
+      run: |
+        isort --check .
 
   tests:
     needs: formatting

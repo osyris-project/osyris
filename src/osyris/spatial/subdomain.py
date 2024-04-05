@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
-import numpy as np
-from .. import Dataset
 import warnings
+
+import numpy as np
+
+from .. import Dataset
 
 
 def extract_sphere(dataset, radius, origin):

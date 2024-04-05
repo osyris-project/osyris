@@ -3,8 +3,8 @@
 
 import matplotlib.pyplot as plt
 
-from . import wrappers
 from ..core.tools import make_label
+from . import wrappers
 
 
 def render(x=None, y=None, data=None, logx=False, logy=False, ax=None):

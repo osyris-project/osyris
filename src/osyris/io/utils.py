@@ -4,7 +4,9 @@
 import glob
 import os
 import struct
+
 import numpy as np
+
 from ..core import Vector
 
 

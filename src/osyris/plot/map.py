@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
 
+from typing import Union
+
 import numpy as np
 import numpy.ma as ma
 from pint import Quantity
-from typing import Union
+
+from ..core import Array, Plot, Vector
+from ..core.tools import apply_mask
 from .direction import get_direction
+from .parser import parse_layer
 from .render import render
 from .scatter import scatter
-from .parser import parse_layer
-from ..core import Plot, Array, Vector
-from ..core.tools import apply_mask
 from .utils import evaluate_on_grid
 
 
