@@ -4,10 +4,10 @@
 import importlib.metadata
 
 from .config import config
+from .units import units  # isort:skip
 from .core import Array, Datagroup, Dataset, Plot, Vector
 from .plot import histogram1d, histogram2d, map, plot, scatter
 from .spatial import extract_box, extract_sphere
-from .units import units
 
 try:
     __version__ = importlib.metadata.version(__package__ or __name__)
