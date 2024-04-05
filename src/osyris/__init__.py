@@ -15,3 +15,20 @@ except importlib.metadata.PackageNotFoundError:
     __version__ = "0.0.0"
 
 del importlib
+
+__all__ = [
+    "Array",
+    "Datagroup",
+    "Dataset",
+    "Plot",
+    "Vector",
+    "config",
+    "units",
+    "histogram1d",
+    "histogram2d",
+    "scatter",
+    "map",
+    "plot",
+    "extract_box",
+    "extract_sphere",
+]
