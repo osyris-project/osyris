@@ -5,14 +5,16 @@ from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, args=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         self._container = {}
         self.parent = None
         self.name = ""
 
         entries = kwargs
-        if args is not None:
-            entries.update(args)
+        if args:
+            if len(args) > 1:
+                raise TypeError("Only one positional argument is allowed.")
+            entries.update(args[0])
         for key, array in entries.items():
             self[key] = array
 

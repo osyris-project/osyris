@@ -8,14 +8,16 @@ from ..units import units, UnitsLibrary
 
 
 class Dataset:
-    def __init__(self, args=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.groups = {}
         self.meta = {}
         self.loader = None
         self.units = None
         entries = kwargs
-        if args is not None:
-            entries.update(args)
+        if args:
+            if len(args) > 1:
+                raise TypeError("Only one positional argument is allowed.")
+            entries.update(args[0])
         for key, group in entries.items():
             self[key] = group
 
