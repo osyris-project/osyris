@@ -10,10 +10,16 @@ import importlib.metadata
 
 from .config import config
 from .units import units
-from .core import Array, Datagroup, Dataset, Plot, Vector
+from .core import Array, Datagroup, Dataset, Plot, Vector, VectorBasis
 from .io import RamsesDataset
 from .plot import histogram1d, histogram2d, map, plot, scatter
-from .spatial import extract_box, extract_sphere
+from .spatial import (
+    angular_momentum_vector,
+    extract_box,
+    extract_sphere,
+    side_view,
+    top_view,
+)
 
 try:
     __version__ = importlib.metadata.version(__package__ or __name__)
@@ -28,6 +34,7 @@ __all__ = [
     "Dataset",
     "Plot",
     "Vector",
+    "VectorBasis",
     "RamsesDataset",
     "config",
     "units",
@@ -36,6 +43,9 @@ __all__ = [
     "scatter",
     "map",
     "plot",
+    "angular_momentum_vector",
     "extract_box",
     "extract_sphere",
+    "side_view",
+    "top_view",
 ]

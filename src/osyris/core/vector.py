@@ -8,6 +8,17 @@ from .base import Base
 from .tools import value_to_string
 
 
+def perpendicular_vector(v):
+    """
+    Compute a vector perpendicular to the input vector
+    """
+
+    if v.z.values == 0:
+        return Vector(-v.y.values, v.x.values, 0, unit=v.unit)
+    else:
+        return Vector(1.0, 1.0, (-1.0 * (v.x + v.y) / v.z).values, unit=v.unit)
+
+
 def _binary_op(op, lhs, rhs):
     if isinstance(rhs, (int, float, np.ndarray, Quantity)):
         rhs = Array(values=rhs)
@@ -257,3 +268,22 @@ class Vector(Base):
         z = self.x * other.y
         z -= self.y * other.x
         return self.__class__(x, y, z)
+
+
+class VectorBasis:
+
+    def __init__(self, n, u=None, v=None):
+        self.n = n / n.norm
+        self.u = perpendicular_vector(self.n) if u is None else u / u.norm
+        self.v = self.n.cross(self.u) if v is None else v / v.norm
+
+    def roll(self):
+        return VectorBasis(n=self.u, u=self.v, v=self.n)
+
+    def __str__(self) -> str:
+        header = "VectorBasis:\n    "
+        body = "\n    ".join(f"{x}: {getattr(self, x)}" for x in ("n", "u", "v"))
+        return header + body
+
+    def __repr__(self) -> str:
+        return str(self)

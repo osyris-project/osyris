@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 from pint import Quantity
 
-from ..core import Array, Plot, Vector
+from ..core import Array, Plot, Vector, VectorBasis
 from ..core.tools import apply_mask
 from .direction import get_direction
 from .parser import parse_layer
@@ -194,23 +194,28 @@ def map(
     if origin is None:
         origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
 
-    dir_vecs = get_direction(
-        direction=direction,
-        position=position,
-        hydro=to_process[0].parent.parent["hydro"],
-        dx=dx,
-        dy=dy,
-        origin=origin,
-    )
+    if position.nvec < 3:
+        basis = VectorBasis(
+            n=Vector(0, 0, name="z"), u=Vector(1, 0, name="x"), v=Vector(0, 1, name="y")
+        )
+    else:
+        basis = get_direction(
+            direction=direction,
+            # position=position,
+            # hydro=to_process[0].parent.parent["hydro"],
+            # dx=dx,
+            # dy=dy,
+            # origin=origin,
+        )
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
     xyz = position - origin
     selection_distance = 0.5 * diagonal * (dz if thick else cell_size)
 
-    normal = dir_vecs["normal"]
-    vec_u = dir_vecs["pos_u"]
-    vec_v = dir_vecs["pos_v"]
+    normal = basis.n
+    vec_u = basis.u
+    vec_v = basis.v
 
     dist_to_plane = xyz.dot(normal)
     # Create an array of indices to allow further narrowing of the selection below
@@ -428,12 +433,8 @@ def map(
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(
-            Array(values=0, unit=map_unit, name=dir_vecs["pos_u"].name).label
-        )
-        figure["ax"].set_ylabel(
-            Array(values=0, unit=map_unit, name=dir_vecs["pos_v"].name).label
-        )
+        figure["ax"].set_xlabel(Array(values=0, unit=map_unit, name=basis.u.name).label)
+        figure["ax"].set_ylabel(Array(values=0, unit=map_unit, name=basis.v.name).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 
