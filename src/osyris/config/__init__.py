@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 # Import the config from "/home/user/.osyris/conf.py if it exists.
 # If it doesn't, try to create one by copying the default from the source.
@@ -7,6 +7,7 @@
 import os
 import sys
 from shutil import copyfile
+
 from . import defaults as default_config
 
 user_config_dir = os.path.join(os.path.expanduser("~"), ".osyris")

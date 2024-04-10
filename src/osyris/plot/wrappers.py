@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from ..core import Array
-from contextlib import redirect_stderr, nullcontext
 import io
+from contextlib import nullcontext, redirect_stderr
+
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
-import numpy as np
 from pint import Quantity
+
+from ..core import Array
 
 
 def _add_colorbar(obj, ax, cax=None, label=None):

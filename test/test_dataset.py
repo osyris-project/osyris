@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import arrayequal
-from osyris import Array, Datagroup, Dataset
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 from copy import copy, deepcopy
+
+from common import arrayequal
+
+from osyris import Array, Datagroup, Dataset
 
 
 def test_dataset_creation():

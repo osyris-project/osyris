@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-
-from ..core import Vector
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 import numpy as np
+
+from ..core import Vector
 
 
 def _perpendicular_vector(v):
@@ -127,6 +127,11 @@ def get_direction(direction, position, hydro=None, dx=None, dy=None, origin=None
         v = direction.cross(dir_vecs["pos_u"])
         v.name = "pos_v"
         dir_vecs["pos_v"] = v
+    elif isinstance(direction, dict):
+        dir_vecs = direction.copy()
+        assert "normal" in dir_vecs
+        assert "pos_u" in dir_vecs
+        assert "pos_v" in dir_vecs
     else:
         raise ValueError(f"Bad direction for slice: {direction}.")
 

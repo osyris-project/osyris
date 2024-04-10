@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
+
+from typing import Iterable, Union
 
 import numpy as np
-from typing import Union, Iterable
-from ..core import Plot, Array
+
+from ..core import Array, Plot
+from ..core.tools import finmax, finmin, to_bin_centers
 from .render import render
-from ..core.tools import to_bin_centers, finmin, finmax
 
 
 def histogram1d(

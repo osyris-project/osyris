@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
+
+import os
 
 import numpy as np
-import os
-from ..core import Array, Datagroup
-from .reader import ReaderKind
+
 from .. import units as ureg
+from ..core import Array, Datagroup
 from . import utils
+from .reader import ReaderKind
 
 
 class SinkReader:

@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2022 Osyris contributors (https://github.com/osyris-project/osyris)
-from common import vectorclose, vectorequal, arrayequal, arrayclose
-from osyris import Array, Vector, units
+# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 from copy import copy, deepcopy
+
 import numpy as np
 import pytest
+from common import arrayclose, arrayequal, vectorclose, vectorequal
+
+from osyris import Array, Vector, units
 
 
 def test_constructor_from_arrays():
