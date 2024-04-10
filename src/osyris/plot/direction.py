@@ -17,8 +17,7 @@ def _perpendicular_vector(v):
         return Vector(1.0, 1.0, (-1.0 * (v.x + v.y) / v.z).values, unit=v.unit)
 
 
-def get_direction(direction):
-    # , position, hydro=None, dx=None, dy=None, origin=None):
+def get_direction(direction, position, dx=None, dy=None, origin=None):
     """
     Find direction vectors for slice.
 
@@ -50,49 +49,49 @@ def get_direction(direction):
 
     if isinstance(direction, str):
         direction = direction.lower()
-        # if direction in ["top", "side"]:
-        #     if dx is None:
-        #         # pos = dataset["amr"]["position"]
-        #         sphere_rad = (
-        #             0.5
-        #             * (
-        #                 position.x.max()
-        #                 - position.x.min()
-        #                 + position.y.max()
-        #                 - position.y.min()
-        #                 + position.z.max()
-        #                 - position.z.min()
-        #             )
-        #             / 3.0
-        #         )
-        #         # * position.unit
-        #     else:
-        #         sphere_rad = 0.25 * (dx + dy)
+        if direction in ["top", "side"]:
+            if dx is None:
+                # pos = dataset["amr"]["position"]
+                sphere_rad = (
+                    0.5
+                    * (
+                        position.x.max()
+                        - position.x.min()
+                        + position.y.max()
+                        - position.y.min()
+                        + position.z.max()
+                        - position.z.min()
+                    )
+                    / 3.0
+                )
+                # * position.unit
+            else:
+                sphere_rad = 0.25 * (dx + dy)
 
-        #     xyz = position
-        #     if origin is not None:
-        #         xyz = xyz - origin
-        #     # Compute angular momentum vector
-        #     sphere = (xyz.norm < sphere_rad).values
-        #     pos = xyz * hydro["mass"]
-        #     vel = hydro["velocity"]
+            xyz = position
+            if origin is not None:
+                xyz = xyz - origin
+            # Compute angular momentum vector
+            sphere = (xyz.norm < sphere_rad).values
+            pos = xyz * position.parent["mass"]
+            vel = position.parent["velocity"]
 
-        #     ang_mom = np.sum(pos[sphere].cross(vel[sphere]))
-        #     if direction == "side":
-        #         # Choose a vector perpendicular to the angular momentum vector
-        #         dir3 = ang_mom
-        #         dir1 = _perpendicular_vector(dir3)
-        #         dir2 = dir3.cross(dir1)
-        #     else:
-        #         dir1 = ang_mom
-        #         dir2 = _perpendicular_vector(dir1)
-        #         dir3 = dir1.cross(dir2)
-        #     dir_vecs = {}
-        #     print("Basis vectors:")
-        #     for key, vec in zip(dir_names, (dir1, dir2, dir3)):
-        #         vec.name = key
-        #         dir_vecs[key] = vec
-        #         print(vec)
+            ang_mom = np.sum(pos[sphere].cross(vel[sphere]))
+            if direction == "side":
+                # Choose a vector perpendicular to the angular momentum vector
+                dir3 = ang_mom
+                dir1 = _perpendicular_vector(dir3)
+                dir2 = dir3.cross(dir1)
+            else:
+                dir1 = ang_mom
+                dir2 = _perpendicular_vector(dir1)
+                dir3 = dir1.cross(dir2)
+            dir_vecs = {}
+            print("Basis vectors:")
+            for key, vec in zip(dir_names, (dir1, dir2, dir3)):
+                vec.name = key
+                dir_vecs[key] = vec
+                print(vec)
 
         if set(direction) == set("xyz"):  # case where direction = "xyz", "zyx" etc.
             return VectorBasis(

@@ -47,13 +47,12 @@ class Dataset:
         return str(self)
 
     def __str__(self):
-        output = "Dataset: "
+        header = "Dataset: "
         if "infile" in self.meta:
-            output += "{}: ".format(self.meta["infile"])
-        output += "{}\n".format(self.print_size())
-        for item in self.values():
-            output += str(item) + "\n"
-        return output
+            header += "{}: ".format(self.meta["infile"])
+        header += "{}\n".format(self.print_size())
+        body = "\n".join([str(item) for item in self.values()])
+        return header + body
 
     def __copy__(self):
         return self.copy()
@@ -97,7 +96,8 @@ class Dataset:
     def pop(self, key):
         return self.groups.pop(key)
 
-    def update(self, d):
+    def update(self, *args, **kwargs):
+        d = dict(*args, **kwargs)
         for key, value in d.items():
             self[key] = value
 

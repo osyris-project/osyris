@@ -6,12 +6,12 @@ import numpy as np
 
 from ..core import Array
 from . import utils
-from .reader import Reader, ReaderKind
+from .reader import Reader
 
 
 class PartReader(Reader):
     def __init__(self):
-        super().__init__(kind=ReaderKind.PART)
+        super().__init__(kind="part")
 
     def initialize(self, meta, units, select):
         self.initialized = False

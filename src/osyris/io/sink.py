@@ -8,12 +8,11 @@ import numpy as np
 from .. import units as ureg
 from ..core import Array, Datagroup
 from . import utils
-from .reader import ReaderKind
 
 
 class SinkReader:
     def __init__(self):
-        self.kind = ReaderKind.SINK
+        self.kind = "sink"
         self.initialized = False
 
     def initialize(self, meta, units, select):

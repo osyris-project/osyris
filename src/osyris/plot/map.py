@@ -143,39 +143,41 @@ def map(
         Default is ``None``, in which case some new axes a created.
     """
 
-    if isinstance(layers, Array):
-        layers = [layers]
+    # if isinstance(layers, Array):
+    #     layers = [layers]
 
     to_process = []
     to_render = []
     to_scatter = []
     for layer in layers:
-        data, settings, params = parse_layer(
-            layer=layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax, **kwargs
-        )
-        if settings["mode"] == "scatter":
-            to_scatter.append({"data": data, "params": params})
+        # data, settings, params = parse_layer(
+        #     layer=layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax, **kwargs
+        # )
+        if layer.mode == "scatter":
+            to_scatter.append({"data": layer.data, "params": {}})
         else:
-            to_process.append(data)
+            to_process.append(layer.data)
             to_render.append(
                 {
-                    "mode": settings["mode"],
-                    "params": params,
-                    "unit": data.unit,
-                    "name": data.name,
+                    "mode": layer.mode,
+                    "params": {},
+                    "unit": layer.data.unit,
+                    "name": layer.data.name,
                 }
             )
 
     # dataset = to_process[0].parent.parent
 
-    position, cell_size = (
-        (
-            to_process[0].parent[name]
-            if name in to_process[0].parent
-            else to_process[0].parent.parent["amr"][name]
-        )
-        for name in ("position", "dx")
-    )
+    # position, cell_size = (
+    #     (
+    #         to_process[0].parent[name]
+    #         if name in to_process[0].parent
+    #         else to_process[0].parent.parent["amr"][name]
+    #     )
+    #     for name in ("position", "dx")
+    # )
+    position = layers[0].position
+    cell_size = layers[0].size
     # ndim = dataset.meta["ndim"]
     ndim = position.nvec
 
@@ -194,14 +196,14 @@ def map(
     if origin is None:
         origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
 
-    if position.nvec < 3:
+    if ndim < 3:
         basis = VectorBasis(
             n=Vector(0, 0, name="z"), u=Vector(1, 0, name="x"), v=Vector(0, 1, name="y")
         )
     else:
         basis = get_direction(
             direction=direction,
-            # position=position,
+            position=position,
             # hydro=to_process[0].parent.parent["hydro"],
             # dx=dx,
             # dy=dy,

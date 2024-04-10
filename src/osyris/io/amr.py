@@ -4,12 +4,12 @@ import numpy as np
 
 from . import utils
 from .hilbert import hilbert_cpu_list
-from .reader import Reader, ReaderKind
+from .reader import Reader
 
 
 class AmrReader(Reader):
     def __init__(self):
-        super().__init__(kind=ReaderKind.AMR)
+        super().__init__(kind="mesh")
         self.cpu_list = None
 
     def initialize(self, meta, units, select):

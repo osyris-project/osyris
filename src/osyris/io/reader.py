@@ -9,14 +9,14 @@ from ..core import Array
 from . import utils
 
 
-class ReaderKind(Enum):
-    AMR = 0
-    SINK = 1
-    PART = 2
+# class ReaderKind(Enum):
+#     AMR = 0
+#     SINK = 1
+#     PART = 2
 
 
 class Reader:
-    def __init__(self, kind=None):
+    def __init__(self, kind: str = None):
         self.variables = {}
         self.offsets = {}
         self.meta = {}

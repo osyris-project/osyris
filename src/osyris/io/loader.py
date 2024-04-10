@@ -11,7 +11,6 @@ from .amr import AmrReader
 from .grav import GravReader
 from .hydro import HydroReader
 from .part import PartReader
-from .reader import ReaderKind
 from .rt import RtReader
 from .sink import SinkReader
 
@@ -96,9 +95,9 @@ class Loader:
                 out[group] = loaded_on_init
             if self.readers[group].initialized:
                 readers[group] = self.readers[group]
-                if self.readers[group].kind == ReaderKind.AMR:
+                if self.readers[group].kind == "mesh":
                     do_not_load_amr = False
-                if self.readers[group].kind in (ReaderKind.AMR, ReaderKind.PART):
+                if self.readers[group].kind in ("mesh", "part"):
                     do_not_load_cpus = False
         # If no reader requires the AMR tree to be read, set lmax to zero
         if do_not_load_amr:
@@ -212,7 +211,7 @@ class Loader:
                                 npieces += 1
                                 # Add the cells in the pieces dictionaries
                                 for reader in readers.values():
-                                    if reader.kind == ReaderKind.AMR:
+                                    if reader.kind == "mesh":
                                         for item in reader.variables.values():
                                             if item["read"]:
                                                 item["pieces"][npieces] = item[
@@ -229,12 +228,16 @@ class Loader:
 
         # Merge all the data pieces into the Arrays
         for group, reader in readers.items():
-            out[group] = Datagroup()
+            name = reader.kind
+            if name not in out:
+                out[name] = Datagroup()
             for key, item in reader.variables.items():
                 if item["read"] and len(item["pieces"]) > 0:
-                    out[group][key] = np.concatenate(list(item["pieces"].values()))
+                    out[name][key] = np.concatenate(list(item["pieces"].values()))
+
+        for dg in out.values():
             # If vector quantities are found, make them into vector Arrays
-            utils.make_vector_arrays(out[group], ndim=meta["ndim"])
+            utils.make_vector_arrays(dg, ndim=meta["ndim"])
 
         print(
             "Loaded: {} cells, {} particles.".format(meta["ncells"], meta["nparticles"])

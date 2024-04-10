@@ -5,10 +5,30 @@ import numpy as np
 from .tools import bytes_to_human_readable
 
 
+class Layer:
+
+    def __init__(self, data, position, size, mode=None, operation=None, **kwargs):
+        self.data = data
+        self.position = position
+        self.size = size
+        self.mode = mode
+        self.operation = operation
+        self.kwargs = kwargs
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return (
+            f"Layer({self.data.name}, mode={self.mode}, "
+            f"operation={self.operation}, {self.kwargs})"
+        )
+
+
 class Datagroup:
     def __init__(self, *args, **kwargs):
         self._container = {}
-        self.parent = None
+        # self.parent = None
         self.name = ""
 
         entries = kwargs
@@ -29,8 +49,8 @@ class Datagroup:
         if isinstance(key, str):
             return self._container[key]
         else:
-            if isinstance(key, int):
-                key = slice(key, key + 1, 1)
+            # if isinstance(key, int):
+            #     key = slice(key, key + 1, 1)
             d = self.__class__()
             for name, val in self.items():
                 d[name] = val[key]
@@ -44,12 +64,12 @@ class Datagroup:
                     value.shape, self.shape
                 )
             )
-        if value.parent is not None:
-            raise ValueError(
-                "Array is already assigned to a Datagroup. You must copy it first."
-            )
+        # if value.parent is not None:
+        #     raise ValueError(
+        #         "Array is already assigned to a Datagroup. You must copy it first."
+        #     )
         value.name = key
-        value.parent = self
+        # value.parent = self
         self._container[key] = value
 
     def __delitem__(self, key):
@@ -59,10 +79,9 @@ class Datagroup:
         return str(self)
 
     def __str__(self):
-        output = "Datagroup: {} {}\n".format(self.name, self.print_size())
-        for key, item in self.items():
-            output += str(item) + "\n"
-        return output
+        header = "Datagroup: {} {}\n".format(self.name, self.print_size())
+        body = "\n".join([str(item) for item in self.values()])
+        return header + body
 
     def __eq__(self, other):
         if self.keys() != other.keys():
@@ -76,9 +95,7 @@ class Datagroup:
         return self.copy()
 
     def copy(self):
-        # We need to make copies of the arrays because inserting the same Array in a
-        # different Datagroup would overwrite the parent attribute.
-        return self.__class__(**{key: array.copy() for key, array in self.items()})
+        return self.__class__(**{key: array for key, array in self.items()})
 
     def keys(self):
         return self._container.keys()
@@ -118,6 +135,18 @@ class Datagroup:
     def pop(self, key):
         return self._container.pop(key)
 
-    def update(self, d):
+    def update(self, *args, **kwargs):
+        d = dict(*args, **kwargs)
         for key, value in d.items():
             self[key] = value
+
+    def layer(self, key: str, **kwargs):
+        """
+        Make a layer for map plots which contains mesh information
+        """
+        return Layer(
+            data=self[key],
+            position=self["position"],
+            size=self["dx"],
+            **kwargs,
+        )

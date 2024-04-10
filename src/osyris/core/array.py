@@ -28,7 +28,7 @@ def _binary_op(op, lhs, rhs, strict=True, **kwargs):
 
 
 class Array(Base):
-    def __init__(self, values, unit=None, parent=None, name=""):
+    def __init__(self, values, unit=None, name=""):
         if isinstance(values, Base):
             raise NotImplementedError("Cannot create Array from Array or Vector.")
 
@@ -45,7 +45,7 @@ class Array(Base):
         if not isinstance(self._array, np.ndarray):
             self._array = np.asarray(self._array)
 
-        self.parent = parent
+        # self.parent = parent
         self.name = name
 
     def __getitem__(self, slice_):
@@ -62,7 +62,7 @@ class Array(Base):
         return self.__class__(
             values=self._array[slice_],
             unit=self.unit,
-            parent=self.parent,
+            # parent=self.parent[slice_],
             name=self.name,
         )
 
@@ -88,6 +88,7 @@ class Array(Base):
         return name_str + values_str + unit_str + shape_str
 
     def copy(self):
+        # values = self._array.copy() if deep else self._array
         return self.__class__(
             values=self._array.copy(), unit=units(self.unit), name=str(self.name)
         )
