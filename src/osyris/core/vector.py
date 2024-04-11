@@ -44,8 +44,6 @@ class Vector(Base):
         self.x = Array(values=x, unit=unit)
         self.y = Array(values=y, unit=unit) if y is not None else None
         self.z = Array(values=z, unit=unit) if z is not None else None
-
-        # self.parent = parent
         self.name = name
 
     def _validate_component(self, array, shape, unit):
@@ -74,9 +72,7 @@ class Vector(Base):
 
     def __getitem__(self, slice_):
         return self.__class__(
-            **{c: xyz[slice_] for c, xyz in self._xyz.items()},
-            # parent=self.parent,
-            name=self._name,
+            **{c: xyz[slice_] for c, xyz in self._xyz.items()}, name=self._name
         )
 
     def __len__(self):
@@ -273,9 +269,17 @@ class Vector(Base):
 class VectorBasis:
 
     def __init__(self, n, u=None, v=None):
-        self.n = n / n.norm
-        self.u = perpendicular_vector(self.n) if u is None else u / u.norm
-        self.v = self.n.cross(self.u) if v is None else v / v.norm
+        self.n = n
+        self.u = perpendicular_vector(self.n) if u is None else u
+        self.v = self.n.cross(self.u) if v is None else v
+        self.n = self.n / self.n.norm
+        self.u = self.u / self.u.norm
+        self.v = self.v / self.v.norm
+        self.n.name = n.name
+        if u is not None:
+            self.u.name = u.name
+        if v is not None:
+            self.v.name = v.name
 
     def roll(self):
         return VectorBasis(n=self.u, u=self.v, v=self.n)

@@ -14,12 +14,7 @@ class Dataset:
         self.meta = {}
         self.loader = None
         self.units = None
-        entries = kwargs
-        if args:
-            if len(args) > 1:
-                raise TypeError("Only one positional argument is allowed.")
-            entries.update(args[0])
-        for key, group in entries.items():
+        for key, group in dict(*args, **kwargs).items():
             self[key] = group
 
     def __iter__(self):
@@ -49,9 +44,9 @@ class Dataset:
     def __str__(self):
         header = "Dataset: "
         if "infile" in self.meta:
-            header += "{}: ".format(self.meta["infile"])
-        header += "{}\n".format(self.print_size())
-        body = "\n".join([str(item) for item in self.values()])
+            header += f"{self.meta['infile']}: "
+        header += f"{self.print_size()}\n\n"
+        body = "\n\n".join([str(item) for item in self.values()])
         return header + body
 
     def __copy__(self):
@@ -72,13 +67,6 @@ class Dataset:
 
     def values(self):
         return self.groups.values()
-
-    # def load(self, *args, **kwargs):
-    #     groups = self.loader.load(*args, meta=self.meta, units=self.units, **kwargs)
-    #     for name, group in groups.items():
-    #         self[name] = group
-    #     config.additional_variables(self)
-    #     return self
 
     def nbytes(self):
         return np.sum([item.nbytes() for item in self.groups.values()])

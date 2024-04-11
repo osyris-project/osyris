@@ -75,5 +75,6 @@ class Layer:
             self.vmin = vmin
         if self.vmax is None:
             self.vmax = vmax
-        # self.norm = get_norm(norm=self.norm, vmin=self.vmin, vmax=self.vmax)
-        self.kwargs.update(**kwargs)
+        self.kwargs.update(
+            {key: value for key, value in kwargs.items() if key not in self.kwargs}
+        )

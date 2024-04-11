@@ -9,15 +9,8 @@ from .tools import bytes_to_human_readable
 class Datagroup:
     def __init__(self, *args, **kwargs):
         self._container = {}
-        # self.parent = None
         self.name = ""
-
-        entries = kwargs
-        if args:
-            if len(args) > 1:
-                raise TypeError("Only one positional argument is allowed.")
-            entries.update(args[0])
-        for key, array in entries.items():
+        for key, array in dict(*args, **kwargs).items():
             self[key] = array
 
     def __iter__(self):
@@ -30,8 +23,6 @@ class Datagroup:
         if isinstance(key, str):
             return self._container[key]
         else:
-            # if isinstance(key, int):
-            #     key = slice(key, key + 1, 1)
             d = self.__class__()
             for name, val in self.items():
                 d[name] = val[key]
@@ -45,12 +36,7 @@ class Datagroup:
                     value.shape, self.shape
                 )
             )
-        # if value.parent is not None:
-        #     raise ValueError(
-        #         "Array is already assigned to a Datagroup. You must copy it first."
-        #     )
         value.name = key
-        # value.parent = self
         self._container[key] = value
 
     def __delitem__(self, key):
@@ -60,7 +46,7 @@ class Datagroup:
         return str(self)
 
     def __str__(self):
-        header = "Datagroup: {} {}\n".format(self.name, self.print_size())
+        header = f"Datagroup: {self.name} {self.print_size()}\n"
         body = "\n".join([str(item) for item in self.values()])
         return header + body
 

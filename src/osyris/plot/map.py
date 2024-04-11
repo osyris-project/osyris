@@ -17,7 +17,7 @@ from .tools import set_layer_norm
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
+def _add_scatter(to_scatter, origin, basis, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
     viewport = np.maximum(dx, dy)
     radius = None
@@ -29,15 +29,15 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
     if radius is None:
         # Fudge factor to select sinks close to the plane
         radius = Array(values=viewport * 0.05)
-    dist_to_plane = xyz.dot(dir_vecs["normal"])
+    dist_to_plane = xyz.dot(basis.n)
     global_selection = np.arange(len(to_scatter[0]["data"]))
     select = (np.abs(dist_to_plane) <= radius).values
     global_selection = global_selection[select]
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
-        datax = coords.dot(dir_vecs["pos_u"])
-        datay = coords.dot(dir_vecs["pos_v"])
+        datax = coords.dot(basis.u)
+        datay = coords.dot(basis.v)
 
         if dx is not None:
             # Limit selection further by using distance from center
@@ -51,8 +51,8 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection
                 ]
-        datax.name = dir_vecs["pos_u"].name
-        datay.name = dir_vecs["pos_v"].name
+        datax.name = basis.u.name
+        datay.name = basis.v.name
         scatter(
             x=datax.to(map_unit), y=datay.to(map_unit), ax=ax, **to_scatter[0]["params"]
         )
@@ -144,16 +144,10 @@ def map(
         Default is ``None``, in which case some new axes a created.
     """
 
-    # if isinstance(layers, Array):
-    #     layers = [layers]
-
     to_process = []
     to_render = []
     to_scatter = []
     for layer in layers:
-        # data, settings, params = parse_layer(
-        #     layer=layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax, **kwargs
-        # )
         layer.update(
             mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
         )
@@ -161,7 +155,6 @@ def map(
         if layer.mode == "scatter":
             to_scatter.append({"data": layer.data, "params": layer.kwargs})
         else:
-            print(layer.kwargs)
             to_process.append(layer.data)
             to_render.append(
                 {
@@ -172,19 +165,8 @@ def map(
                 }
             )
 
-    # dataset = to_process[0].parent.parent
-
-    # position, cell_size = (
-    #     (
-    #         to_process[0].parent[name]
-    #         if name in to_process[0].parent
-    #         else to_process[0].parent.parent["amr"][name]
-    #     )
-    #     for name in ("position", "dx")
-    # )
     position = layers[0]["position"]
     cell_size = layers[0]["dx"]
-    # ndim = dataset.meta["ndim"]
     ndim = position.nvec
 
     thick = dz is not None
@@ -200,7 +182,7 @@ def map(
     dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
+        origin = Vector(*([0] * ndim), unit=spatial_unit)
 
     if ndim < 3:
         basis = VectorBasis(
@@ -209,11 +191,10 @@ def map(
     else:
         basis = get_direction(
             direction=direction,
-            position=position,
-            # hydro=to_process[0].parent.parent["hydro"],
-            # dx=dx,
-            # dy=dy,
-            # origin=origin,
+            data=layers[0],
+            dx=dx,
+            dy=dy,
+            origin=origin,
         )
 
     # Distance to the plane
@@ -451,7 +432,7 @@ def map(
             _add_scatter(
                 to_scatter=to_scatter,
                 origin=origin,
-                dir_vecs=dir_vecs,
+                basis=basis,
                 dx=dx,
                 dy=dy,
                 ax=figure["ax"],
