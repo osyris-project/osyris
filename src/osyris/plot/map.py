@@ -13,6 +13,7 @@ from .direction import get_direction
 from .parser import parse_layer
 from .render import render
 from .scatter import scatter
+from .tools import set_layer_norm
 from .utils import evaluate_on_grid
 
 
@@ -153,14 +154,19 @@ def map(
         # data, settings, params = parse_layer(
         #     layer=layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax, **kwargs
         # )
+        layer.update(
+            mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
+        )
+        set_layer_norm(layer)
         if layer.mode == "scatter":
-            to_scatter.append({"data": layer.data, "params": {}})
+            to_scatter.append({"data": layer.data, "params": layer.kwargs})
         else:
+            print(layer.kwargs)
             to_process.append(layer.data)
             to_render.append(
                 {
                     "mode": layer.mode,
-                    "params": {},
+                    "params": layer.kwargs,
                     "unit": layer.data.unit,
                     "name": layer.data.name,
                 }
@@ -176,8 +182,8 @@ def map(
     #     )
     #     for name in ("position", "dx")
     # )
-    position = layers[0].position
-    cell_size = layers[0].size
+    position = layers[0]["position"]
+    cell_size = layers[0]["dx"]
     # ndim = dataset.meta["ndim"]
     ndim = position.nvec
 

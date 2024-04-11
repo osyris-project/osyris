@@ -2,27 +2,8 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 
+from .layer import Layer
 from .tools import bytes_to_human_readable
-
-
-class Layer:
-
-    def __init__(self, data, position, size, mode=None, operation=None, **kwargs):
-        self.data = data
-        self.position = position
-        self.size = size
-        self.mode = mode
-        self.operation = operation
-        self.kwargs = kwargs
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return (
-            f"Layer({self.data.name}, mode={self.mode}, "
-            f"operation={self.operation}, {self.kwargs})"
-        )
 
 
 class Datagroup:
@@ -140,13 +121,13 @@ class Datagroup:
         for key, value in d.items():
             self[key] = value
 
-    def layer(self, key: str, **kwargs):
+    def layer(self, key: str, **kwargs) -> Layer:
         """
         Make a layer for map plots which contains mesh information
         """
+        keys = ("position", "dx", "mass", "velocity")
         return Layer(
             data=self[key],
-            position=self["position"],
-            size=self["dx"],
+            aux={k: self[k] for k in keys if k in self},
             **kwargs,
         )

@@ -33,7 +33,7 @@ def _binary_op(op, lhs, rhs):
 
 
 class Vector(Base):
-    def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
+    def __init__(self, x, y=None, z=None, name="", unit=None):
         if isinstance(x, Array):
             if unit is not None:
                 raise ValueError("Can only set unit when creating Vector from values.")
@@ -45,7 +45,7 @@ class Vector(Base):
         self.y = Array(values=y, unit=unit) if y is not None else None
         self.z = Array(values=z, unit=unit) if z is not None else None
 
-        self.parent = parent
+        # self.parent = parent
         self.name = name
 
     def _validate_component(self, array, shape, unit):
@@ -75,7 +75,7 @@ class Vector(Base):
     def __getitem__(self, slice_):
         return self.__class__(
             **{c: xyz[slice_] for c, xyz in self._xyz.items()},
-            parent=self.parent,
+            # parent=self.parent,
             name=self._name,
         )
 
