@@ -72,6 +72,39 @@ def test_dataset_update():
     assert "c" in ds["three"]
 
 
+def test_dataset_update_kwargs():
+    a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")
+    c = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="K")
+    dg1 = Datagroup({"a": a, "b": b})
+    dg2 = Datagroup({"a": a[:-1], "b": b[:-1]})
+    dg3 = Datagroup({"a": a, "c": c})
+    ds = Dataset()
+    ds["one"] = dg1
+    ds["two"] = dg2
+    ds.update(one=Datagroup({"a": a * 2.0}), three=dg3)
+    assert "three" in ds
+    assert "b" not in ds["one"]
+    assert "c" in ds["three"]
+
+
+def test_dataset_update_mix():
+    a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")
+    c = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="K")
+    dg1 = Datagroup({"a": a, "b": b})
+    dg2 = Datagroup({"a": a[:-1], "b": b[:-1]})
+    dg3 = Datagroup({"a": a, "c": c})
+    ds = Dataset()
+    ds["one"] = dg1
+    ds["two"] = dg2
+    ds.update({"one": Datagroup({"a": a * 2.0}), "three": dg3}, four=dg3)
+    assert "three" in ds
+    assert "four" in ds
+    assert "b" not in ds["one"]
+    assert "c" in ds["three"]
+
+
 def test_copy():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")

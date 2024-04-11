@@ -53,9 +53,7 @@ class Dataset:
         return self.copy()
 
     def copy(self):
-        out = self.__class__(
-            **{key: group.copy() for key, group in self.groups.items()}
-        )
+        out = self.__class__(**dict(self.items()))
         out.meta = self.meta.copy()
         return out
 
