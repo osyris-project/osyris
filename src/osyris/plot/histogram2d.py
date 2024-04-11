@@ -189,25 +189,27 @@ def histogram2d(
         layers = [Layer(Array(values=np.ones_like(xvals), name="counts"))]
 
     for layer in layers:
-        data, settings, params = parse_layer(
-            layer=layer,
+        if isinstance(layer, Array):
+            layer = Layer(layer)
+        layer = parse_layer(
+            layer,
             mode=mode,
+            operation=operation,
             norm=norm,
             vmin=vmin,
             vmax=vmax,
-            operation=operation,
             **kwargs,
         )
-        to_process.append(data.norm.values)
+        to_process.append(layer.data.norm.values)
         to_render.append(
             {
-                "mode": settings["mode"],
-                "params": params,
-                "unit": data.unit,
-                "name": data.name,
+                "mode": layer.mode,
+                "params": layer.kwargs,
+                "unit": layer.data.unit,
+                "name": layer.data.name,
             }
         )
-        operations.append(settings["operation"])
+        operations.append(layer.operation)
 
     # Send to numba histogramming
     binned, counts = hist2d(

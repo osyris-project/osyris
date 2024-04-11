@@ -13,7 +13,8 @@ from .direction import get_direction
 from .parser import parse_layer
 from .render import render
 from .scatter import scatter
-from .tools import set_layer_norm
+
+# from .tools import set_layer_norm
 from .utils import evaluate_on_grid
 
 
@@ -150,10 +151,19 @@ def map(
     for layer in layers:
         if not isinstance(layer, Layer):
             raise TypeError(f"Expected Layer object, got {type(layer)} instead. ")
-        layer.update(
-            mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
+        # layer.update(
+        #     mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
+        # )
+        # set_layer_norm(layer)
+        layer = parse_layer(
+            layer,
+            mode=mode,
+            operation=operation,
+            norm=norm,
+            vmin=vmin,
+            vmax=vmax,
+            **kwargs,
         )
-        set_layer_norm(layer)
         if layer.mode == "scatter":
             to_scatter.append({"data": layer.data, "params": layer.kwargs})
         else:

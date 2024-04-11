@@ -114,7 +114,7 @@ def parse_layer(
             out.norm = Normalize(vmin=out.vmin, vmax=out.vmax)
         else:
             raise RuntimeError(
-                f"Unknown norm keyword '{out.norm}'.\nAvailable keywords"
+                f"Unknown norm keyword '{out.norm}'. Available keywords"
                 " are 'log', 'symlog' and 'linear'."
             )
     out.kwargs.update(norm=out.norm)
