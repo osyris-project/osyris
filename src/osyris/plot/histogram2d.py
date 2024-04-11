@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 from pint import Quantity
 
-from ..core import Array, Plot
+from ..core import Array, Layer, Plot
 from ..core.tools import finmax, finmin, to_bin_centers
 from .parser import parse_layer
 from .render import render
@@ -186,7 +186,7 @@ def histogram2d(
 
     # If no layers are defined, make a layer for counting cells
     if len(layers) == 0:
-        layers = [Array(values=np.ones_like(xvals), name="counts")]
+        layers = [Layer(Array(values=np.ones_like(xvals), name="counts"))]
 
     for layer in layers:
         data, settings, params = parse_layer(

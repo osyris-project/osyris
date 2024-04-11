@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 from typing import Dict, Optional
 
-from ..core.array import Array
+from .array import Array
 
 
 class Layer:
@@ -50,6 +50,22 @@ class Layer:
         return (
             f"Layer({self.data.name}, mode={self.mode}, "
             f"operation={self.operation}, {self.kwargs})"
+        )
+
+    def copy(self):
+        return self.__class__(
+            self.data,
+            aux={
+                key: value.copy()
+                for key, value in self.arrays.items()
+                if key != self.key
+            },
+            mode=self.mode,
+            operation=self.operation,
+            norm=self.norm,
+            vmin=self.vmin,
+            vmax=self.vmax,
+            **self.kwargs,
         )
 
     @property

@@ -7,7 +7,7 @@ import numpy as np
 import numpy.ma as ma
 from pint import Quantity
 
-from ..core import Array, Plot, Vector, VectorBasis
+from ..core import Array, Layer, Plot, Vector, VectorBasis
 from ..core.tools import apply_mask
 from .direction import get_direction
 from .parser import parse_layer
@@ -148,6 +148,8 @@ def map(
     to_render = []
     to_scatter = []
     for layer in layers:
+        if not isinstance(layer, Layer):
+            raise TypeError(f"Expected Layer object, got {type(layer)} instead. ")
         layer.update(
             mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
         )
