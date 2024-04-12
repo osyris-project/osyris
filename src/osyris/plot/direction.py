@@ -69,6 +69,7 @@ def get_direction(direction, data=None, dx=None, dy=None, origin=None):
             basis = VectorBasis(n=ang_mom)
             if direction == "side":
                 basis = basis.roll()
+            print(basis)
             return _basis_with_names(basis)
 
         if set(direction) == set("xyz"):  # case where direction = "xyz", "zyx" etc.
