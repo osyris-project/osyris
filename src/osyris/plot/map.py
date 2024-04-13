@@ -13,8 +13,6 @@ from .direction import get_direction
 from .parser import parse_layer
 from .render import render
 from .scatter import scatter
-
-# from .tools import set_layer_norm
 from .utils import evaluate_on_grid
 
 

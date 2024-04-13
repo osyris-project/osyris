@@ -17,6 +17,9 @@ and enables the production of publication grade figures.
 It was designed to be portable, lightweight and fast,
 requiring minimum dependencies and resources.
 It currently only works with the native ``binary`` Ramses data output format.
+Osyris stores the data internally as one-dimensional arrays, and can also be used to
+visualize outputs from other simulation codes, such as e.g.
+`Dispatch <https://dispatch.readthedocs.io>`_.
 It uses `Numpy <https://numpy.org>`_ for data
 manipulation, `Pint <https://pint.readthedocs.io>`_ for physical units,
 and `Matplotlib <https://matplotlib.org/stable/>`_ for visualization.
