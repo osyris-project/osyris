@@ -14,7 +14,6 @@ class AmrReader(Reader):
 
     def initialize(self, meta, units, select):
         self.initialized = False
-        print("AMR select", select)
         if select is False:
             return
 
@@ -31,7 +30,6 @@ class AmrReader(Reader):
 
         self.xcent = np.zeros([8, 3], dtype=np.float64)
 
-        # if select is not False:
         self.initialized = True
 
     def allocate_buffers(self, ncache, twotondim):

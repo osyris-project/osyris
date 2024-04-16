@@ -84,7 +84,15 @@ from ..core.layer import Layer
 
 
 def parse_layer(
-    layer: Layer, mode=None, operation=None, norm=None, vmin=None, vmax=None, **kwargs
+    layer: Layer,
+    mode=None,
+    operation=None,
+    norm=None,
+    vmin=None,
+    vmax=None,
+    bins=None,
+    weights=None,
+    **kwargs,
 ):
     out = layer.copy()
     if out.mode is None:
@@ -97,6 +105,10 @@ def parse_layer(
         out.vmin = vmin
     if out.vmax is None:
         out.vmax = vmax
+    if out.bins is None:
+        out.bins = bins
+    if out.weights is None:
+        out.weights = weights
     out.kwargs.update(
         {key: value for key, value in kwargs.items() if key not in out.kwargs}
     )

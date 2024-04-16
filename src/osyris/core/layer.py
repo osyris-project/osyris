@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 from collections.abc import Iterable
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 from .array import Array
 
@@ -18,6 +18,8 @@ class Layer:
         norm: Optional[str] = None,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
+        bins: Union[int, Iterable] = None,
+        weights: Array = None,
         **kwargs,
     ):
         self.key = data.name
@@ -29,6 +31,8 @@ class Layer:
         self.norm = norm
         self.vmin = vmin
         self.vmax = vmax
+        self.bins = bins
+        self.weights = weights
         self.kwargs = kwargs
 
     def __getitem__(self, key: str) -> Array:
@@ -56,7 +60,7 @@ class Layer:
         return self.__class__(
             self.data,
             aux={
-                key: value.copy()
+                key: value  # .copy()
                 for key, value in self.arrays.items()
                 if key != self.key
             },
@@ -71,6 +75,24 @@ class Layer:
     @property
     def data(self) -> Array:
         return self.arrays[self.key]
+
+    @property
+    def x(self):
+        out = self.copy()
+        out.arrays[self.key] = self.data.x
+        return out
+
+    @property
+    def y(self):
+        out = self.copy()
+        out.arrays[self.key] = self.data.y
+        return out
+
+    @property
+    def z(self):
+        out = self.copy()
+        out.arrays[self.key] = self.data.z
+        return out
 
     def update(
         self,

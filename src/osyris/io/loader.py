@@ -47,7 +47,6 @@ class Loader:
 
     def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
         out = {}
-        # groups = list(self.readers.keys())
 
         _select = {reader.kind: {} for reader in self.readers.values()}
         if isinstance(select, dict):
@@ -61,22 +60,6 @@ class Loader:
         elif select:
             for key in _select:
                 _select[key] = key in select
-
-        # elif isinstance(select, str):
-        #     for key in _select:
-        #         if key != select:
-        #             _select[key] = False
-        # elif isinstance(select, list) or isinstance(select, tuple):
-        #     for key in _select:
-        #         if key not in select:
-        #             _select[key] = False
-
-        # # Replace aliases for x,y,z in select: x,y,x -> position_x,y,z
-        # for group in _select.values():
-        #     if isinstance(group, dict):
-        #         for c in "xyz":
-        #             if c in group:
-        #                 group[f"position_{c}"] = group.pop(c)
 
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]

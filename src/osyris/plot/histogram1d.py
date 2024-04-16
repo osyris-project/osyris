@@ -5,8 +5,9 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from ..core import Array, Plot
+from ..core import Array, Layer, Plot
 from ..core.tools import finmax, finmin, to_bin_centers
+from .parser import parse_layer
 from .render import render
 
 
@@ -64,41 +65,45 @@ def histogram1d(
     figure = render(logx=logx, logy=logy, ax=ax)
 
     for layer in layers:
-        if isinstance(layer, dict):
-            params = {}
-            extra_args = {}
-            for key, param in layer.items():
-                if key in ["data", "bins", "weights"]:
-                    params[key] = param
-                else:
-                    extra_args[key] = param
-            for key, arg in {"bins": bins, "weights": weights}.items():
-                if key not in params:
-                    params[key] = arg
-        else:
-            params = {"data": layer, "bins": bins, "weights": weights}
-            extra_args = kwargs
+        # if isinstance(layer, dict):
+        #     params = {}
+        #     extra_args = {}
+        #     for key, param in layer.items():
+        #         if key in ["data", "bins", "weights"]:
+        #             params[key] = param
+        #         else:
+        #             extra_args[key] = param
+        #     for key, arg in {"bins": bins, "weights": weights}.items():
+        #         if key not in params:
+        #             params[key] = arg
+        # else:
+        #     params = {"data": layer, "bins": bins, "weights": weights}
+        #     extra_args = kwargs
+        if isinstance(layer, Array):
+            layer = Layer(layer)
+        layer = parse_layer(layer, bins=bins, weights=weights, **kwargs)
+        print(layer)
 
-        xvals = params["data"].norm.values
-        if params["weights"] is not None:
-            params["weights"] = params["weights"].norm.values
+        xvals = layer.data.norm.values
+        if layer.weights is not None:
+            layer.weights = layer.weights.norm.values
 
         # Construct some bin edges
-        if isinstance(params["bins"], int):
+        if isinstance(layer.bins, int):
             xmin = finmin(xvals)
             xmax = finmax(xvals)
             if logx:
-                xedges = np.logspace(np.log10(xmin), np.log10(xmax), params["bins"] + 1)
+                xedges = np.logspace(np.log10(xmin), np.log10(xmax), layer.bins + 1)
             else:
-                xedges = np.linspace(xmin, xmax, params["bins"] + 1)
+                xedges = np.linspace(xmin, xmax, layer.bins + 1)
         else:
-            xedges = params["bins"]
+            xedges = layer.bins
 
         ydata, _, _ = figure["ax"].hist(
-            xvals, bins=xedges, weights=params["weights"], **extra_args
+            xvals, bins=xedges, weights=layer.weights, **layer.kwargs
         )
 
-        figure["ax"].set_xlabel(params["data"].label)
+        figure["ax"].set_xlabel(layer.data.label)
 
     figure["ax"].set_ylim(ymin, ymax)
     figure["ax"].set_title(title)

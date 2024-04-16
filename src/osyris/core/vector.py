@@ -19,6 +19,16 @@ def perpendicular_vector(v):
         return Vector(1.0, 1.0, (-1.0 * (v.x + v.y) / v.z).values, unit=v.unit)
 
 
+def normalize(v):
+    """
+    Normalize the input vector
+    """
+    norm = v.norm
+    if norm.shape:
+        return v / np.where(norm.values == 0, 1, norm.values)
+    return v / (norm or 1)
+
+
 def _binary_op(op, lhs, rhs):
     if isinstance(rhs, (int, float, np.ndarray, Quantity)):
         rhs = Array(values=rhs)
@@ -272,9 +282,9 @@ class VectorBasis:
         self.n = n
         self.u = perpendicular_vector(self.n) if u is None else u
         self.v = self.n.cross(self.u) if v is None else v
-        self.n = self.n / self.n.norm
-        self.u = self.u / self.u.norm
-        self.v = self.v / self.v.norm
+        self.n = normalize(self.n)
+        self.u = normalize(self.u)
+        self.v = normalize(self.v)
         self.n.name = n.name
         if u is not None:
             self.u.name = u.name
