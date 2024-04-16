@@ -47,32 +47,36 @@ class Loader:
 
     def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
         out = {}
-        groups = list(self.readers.keys())
+        # groups = list(self.readers.keys())
 
-        _select = {group: {} for group in self.readers}
+        _select = {reader.kind: {} for reader in self.readers.values()}
         if isinstance(select, dict):
             for key in select:
-                if key not in self.readers:
+                if key not in _select:
                     print(
-                        "Warning: {} found in select is not a valid "
-                        "Datagroup.".format(key)
+                        f"Warning: {key} found in select is not a valid " "Datagroup."
                     )
                 else:
                     _select[key] = select[key]
-        elif isinstance(select, str):
+        elif select:
             for key in _select:
-                if key != select:
-                    _select[key] = False
-        elif isinstance(select, list) or isinstance(select, tuple):
-            for key in _select:
-                if key not in select:
-                    _select[key] = False
-        # Replace aliases for x,y,z in select: x,y,x -> position_x,y,z
-        for group in _select.values():
-            if isinstance(group, dict):
-                for c in "xyz":
-                    if c in group:
-                        group[f"position_{c}"] = group.pop(c)
+                _select[key] = key in select
+
+        # elif isinstance(select, str):
+        #     for key in _select:
+        #         if key != select:
+        #             _select[key] = False
+        # elif isinstance(select, list) or isinstance(select, tuple):
+        #     for key in _select:
+        #         if key not in select:
+        #             _select[key] = False
+
+        # # Replace aliases for x,y,z in select: x,y,x -> position_x,y,z
+        # for group in _select.values():
+        #     if isinstance(group, dict):
+        #         for c in "xyz":
+        #             if c in group:
+        #                 group[f"position_{c}"] = group.pop(c)
 
         # Take into account user specified lmax
         meta["lmax"] = meta["levelmax"]
@@ -87,17 +91,17 @@ class Loader:
         readers = {}
         do_not_load_amr = True
         do_not_load_cpus = True
-        for group in groups:
-            loaded_on_init = self.readers[group].initialize(
-                meta=meta, units=units, select=_select[group]
+        for group, reader in self.readers.items():
+            loaded_on_init = reader.initialize(
+                meta=meta, units=units, select=_select[reader.kind]
             )
             if loaded_on_init is not None:
                 out[group] = loaded_on_init
-            if self.readers[group].initialized:
-                readers[group] = self.readers[group]
-                if self.readers[group].kind == "mesh":
+            if reader.initialized:
+                readers[group] = reader
+                if reader.kind == "mesh":
                     do_not_load_amr = False
-                if self.readers[group].kind in ("mesh", "part"):
+                if reader.kind in ("mesh", "part"):
                     do_not_load_cpus = False
         # If no reader requires the AMR tree to be read, set lmax to zero
         if do_not_load_amr:
@@ -188,9 +192,9 @@ class Loader:
                             # Apply selection criteria: select only leaf cells and
                             # add any criteria requested by the user via select.
                             conditions = {}
-                            for group, reader in readers.items():
+                            for reader in readers.values():
                                 conditions.update(
-                                    reader.make_conditions(_select[group])
+                                    reader.make_conditions(_select[reader.kind])
                                 )
                             # Combine all selection criteria together with AND
                             # operation by using a product on bools

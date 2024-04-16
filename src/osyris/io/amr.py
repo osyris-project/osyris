@@ -14,6 +14,9 @@ class AmrReader(Reader):
 
     def initialize(self, meta, units, select):
         self.initialized = False
+        print("AMR select", select)
+        if select is False:
+            return
 
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
         descriptor.update({f"position_{c}": "d" for c in "xyz"[: meta["ndim"]]})
@@ -28,8 +31,8 @@ class AmrReader(Reader):
 
         self.xcent = np.zeros([8, 3], dtype=np.float64)
 
-        if select is not False:
-            self.initialized = True
+        # if select is not False:
+        self.initialized = True
 
     def allocate_buffers(self, ncache, twotondim):
         super().allocate_buffers(ncache, twotondim)

@@ -25,28 +25,44 @@ class Reader:
         self.kind = kind
 
     def descriptor_to_variables(self, descriptor, meta, units, select):
-        drop_others = False
+        # drop_others = False
+        # if not isinstance(select, dict):
+        #     for key in select:
+        #         if value is True:
+        #             drop_others = True
+        # keep_all = isinstance(select, dict) or (select is True)
+
+        read = {key: False for key in descriptor}
         if isinstance(select, dict):
-            for key, value in select.items():
-                if value is True:
-                    drop_others = True
+            for key in read:
+                read[key] = select.get(key, True)
+        elif isinstance(select, bool):
+            for key in read:
+                read[key] = select
+        else:
+            for key in select:
+                read[key] = True
 
         for key in descriptor:
-            read = True
-            if isinstance(select, bool):
-                read = select
-            elif key in select:
-                if isinstance(select[key], bool):
-                    read = select[key]
-            elif drop_others:
-                read = False
+            # if keep_all:
+            #     read = True
+            # else:
+            #     read = False if select and (key not in select) else True
+            # if isinstance(select, bool):
+            #     read = select
+            # elif key in select:
+            #     if isinstance(select[key], bool):
+            #         read = select[key]
+            # elif drop_others:
+            #     read = False
             self.variables[key] = {
-                "read": read,
+                "read": read[key],
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
                 "unit": units[key],
             }
+        print(self.variables)
 
     def allocate_buffers(self, ncache, twotondim):
         for item in self.variables.values():
@@ -87,11 +103,12 @@ class Reader:
 
     def make_conditions(self, select):
         conditions = {}
-        if not isinstance(select, bool):
+        if isinstance(select, dict):
             for key, func in select.items():
-                if not isinstance(func, bool):
-                    if key in self.variables:
-                        conditions[key] = func(self.variables[key]["buffer"])
+                # if isinstance(func, dict):
+                if key in self.variables:
+                    # print(key, self.variables)
+                    conditions[key] = func(self.variables[key]["buffer"])
         return conditions
 
     def read_footer(self, *args, **kwargs):
