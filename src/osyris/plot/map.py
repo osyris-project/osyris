@@ -209,7 +209,6 @@ def map(
             dy=dy,
             origin=origin,
         )
-    print("Basis", basis)
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
