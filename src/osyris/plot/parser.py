@@ -6,24 +6,24 @@ from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 from ..core.layer import Layer
 
 
-# def get_norm(norm=None, vmin=None, vmax=None):
-#     if norm is None:
-#         return Normalize(vmin=vmin, vmax=vmax)
-#     if isinstance(norm, str):
-#         norm_lowercase = norm.lower()
-#         if norm_lowercase == "log":
-#             return LogNorm(vmin=vmin, vmax=vmax)
-#         elif norm_lowercase == "symlog":
-#             return SymLogNorm(linthresh=1e-2, vmin=vmin, vmax=vmax, base=10)
-#         elif norm_lowercase == "linear":
-#             return Normalize(vmin=vmin, vmax=vmax)
-#         else:
-#             raise RuntimeError(
-#                 "Unknown norm keyword '{}'.\nAvailable keywords"
-#                 " are 'log', 'symlog' and 'linear'.".format(norm)
-#             )
-#     else:
-#         return norm
+def get_norm(norm=None, vmin=None, vmax=None):
+    if norm is None:
+        return Normalize(vmin=vmin, vmax=vmax)
+    if isinstance(norm, str):
+        norm_lowercase = norm.lower()
+        if norm_lowercase == "log":
+            return LogNorm(vmin=vmin, vmax=vmax)
+        elif norm_lowercase == "symlog":
+            return SymLogNorm(linthresh=1e-2, vmin=vmin, vmax=vmax, base=10)
+        elif norm_lowercase == "linear":
+            return Normalize(vmin=vmin, vmax=vmax)
+        else:
+            raise RuntimeError(
+                "Unknown norm keyword '{}'.\nAvailable keywords"
+                " are 'log', 'symlog' and 'linear'.".format(norm)
+            )
+    else:
+        return norm
 
 
 # def parse_layer(
@@ -113,21 +113,21 @@ def parse_layer(
         {key: value for key, value in kwargs.items() if key not in out.kwargs}
     )
 
-    # Set the norm
-    if out.norm is None:
-        out.norm = Normalize(vmin=out.vmin, vmax=out.vmax)
-    if isinstance(out.norm, str):
-        norm_lowercase = out.norm.lower()
-        if norm_lowercase == "log":
-            out.norm = LogNorm(vmin=out.vmin, vmax=out.vmax)
-        elif norm_lowercase == "symlog":
-            out.norm = SymLogNorm(linthresh=1e-2, vmin=out.vmin, vmax=out.vmax, base=10)
-        elif norm_lowercase == "linear":
-            out.norm = Normalize(vmin=out.vmin, vmax=out.vmax)
-        else:
-            raise RuntimeError(
-                f"Unknown norm keyword '{out.norm}'. Available keywords"
-                " are 'log', 'symlog' and 'linear'."
-            )
-    out.kwargs.update(norm=out.norm)
+    # # Set the norm
+    # if out.norm is None:
+    #     out.norm = Normalize(vmin=out.vmin, vmax=out.vmax)
+    # if isinstance(out.norm, str):
+    #     norm_lowercase = out.norm.lower()
+    #     if norm_lowercase == "log":
+    #         out.norm = LogNorm(vmin=out.vmin, vmax=out.vmax)
+    #     elif norm_lowercase == "symlog":
+    #         out.norm = SymLogNorm(linthresh=1e-2, vmin=out.vmin, vmax=out.vmax, base=10)
+    #     elif norm_lowercase == "linear":
+    #         out.norm = Normalize(vmin=out.vmin, vmax=out.vmax)
+    #     else:
+    #         raise RuntimeError(
+    #             f"Unknown norm keyword '{out.norm}'. Available keywords"
+    #             " are 'log', 'symlog' and 'linear'."
+    #         )
+    # out.kwargs.update(norm=out.norm)
     return out

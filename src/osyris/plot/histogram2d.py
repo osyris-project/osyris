@@ -8,7 +8,7 @@ from pint import Quantity
 
 from ..core import Array, Layer, Plot
 from ..core.tools import finmax, finmin, to_bin_centers
-from .parser import parse_layer
+from .parser import get_norm, parse_layer
 from .render import render
 from .utils import hist2d
 
@@ -199,6 +199,9 @@ def histogram2d(
             vmin=vmin,
             vmax=vmax,
             **kwargs,
+        )
+        layer.kwargs.update(
+            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
         )
         to_process.append(layer.data.norm.values)
         to_render.append(

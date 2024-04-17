@@ -18,8 +18,8 @@ class Layer:
         norm: Optional[str] = None,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
-        bins: Union[int, Iterable] = None,
-        weights: Array = None,
+        bins: Optional[Union[int, Iterable]] = None,
+        weights: Optional[Array] = None,
         **kwargs,
     ):
         self.key = data.name
@@ -69,6 +69,8 @@ class Layer:
             norm=self.norm,
             vmin=self.vmin,
             vmax=self.vmax,
+            bins=self.bins,
+            weights=self.weights,
             **self.kwargs,
         )
 
@@ -101,6 +103,8 @@ class Layer:
         norm: Optional[str] = None,
         vmin: Optional[float] = None,
         vmax: Optional[float] = None,
+        bins: Optional[Union[int, Iterable]] = None,
+        weights: Optional[Array] = None,
         **kwargs,
     ):
         if self.mode is None:
@@ -113,6 +117,10 @@ class Layer:
             self.vmin = vmin
         if self.vmax is None:
             self.vmax = vmax
+        if self.bins is None:
+            self.bins = bins
+        if self.weights is None:
+            self.weights = weights
         self.kwargs.update(
             {key: value for key, value in kwargs.items() if key not in self.kwargs}
         )

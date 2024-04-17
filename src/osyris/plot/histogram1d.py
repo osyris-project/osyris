@@ -65,24 +65,9 @@ def histogram1d(
     figure = render(logx=logx, logy=logy, ax=ax)
 
     for layer in layers:
-        # if isinstance(layer, dict):
-        #     params = {}
-        #     extra_args = {}
-        #     for key, param in layer.items():
-        #         if key in ["data", "bins", "weights"]:
-        #             params[key] = param
-        #         else:
-        #             extra_args[key] = param
-        #     for key, arg in {"bins": bins, "weights": weights}.items():
-        #         if key not in params:
-        #             params[key] = arg
-        # else:
-        #     params = {"data": layer, "bins": bins, "weights": weights}
-        #     extra_args = kwargs
         if isinstance(layer, Array):
             layer = Layer(layer)
         layer = parse_layer(layer, bins=bins, weights=weights, **kwargs)
-        print(layer)
 
         xvals = layer.data.norm.values
         if layer.weights is not None:

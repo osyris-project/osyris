@@ -10,7 +10,7 @@ from pint import Quantity
 from ..core import Array, Layer, Plot, Vector, VectorBasis
 from ..core.tools import apply_mask
 from .direction import get_direction
-from .parser import parse_layer
+from .parser import get_norm, parse_layer
 from .render import render
 from .scatter import scatter
 from .utils import evaluate_on_grid
@@ -161,6 +161,9 @@ def map(
             vmin=vmin,
             vmax=vmax,
             **kwargs,
+        )
+        layer.kwargs.update(
+            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
         )
         if layer.mode == "scatter":
             to_scatter.append({"data": layer.data, "params": layer.kwargs})
