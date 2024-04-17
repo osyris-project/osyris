@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..core.vector import Vector, VectorBasis
+from ..core.vector import Array, Vector, VectorBasis
 
 
 def _basis_with_names(basis):
@@ -65,6 +65,7 @@ def get_direction(direction, data=None, dx=None, dy=None, origin=None):
             weighted_pos = pos[sphere] * data["mass"][sphere]
             vel = data["velocity"][sphere]
             ang_mom = np.sum(weighted_pos.cross(vel))
+            ang_mom.unit = ""
 
             basis = VectorBasis(n=ang_mom)
             if direction == "side":

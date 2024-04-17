@@ -209,6 +209,7 @@ def map(
             dy=dy,
             origin=origin,
         )
+    print("Basis", basis)
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
@@ -223,6 +224,8 @@ def map(
     # Create an array of indices to allow further narrowing of the selection below
     global_indices = np.arange(len(cell_size))
     # Select cells close to the plane, including factor of sqrt(ndim)
+    print(np.abs(dist_to_plane))
+    print(selection_distance)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
     indices_close_to_plane = global_indices[close_to_plane]
 

@@ -38,10 +38,10 @@ class Array(Base):
                     "Cannot set unit when creating an Array from a Quantity."
                 )
             self._array = values.magnitude
-            self.unit = values.units
+            self._unit = values.units
         else:
             self._array = values
-            self.unit = units(unit)
+            self._unit = units(unit)
         if not isinstance(self._array, np.ndarray):
             self._array = np.asarray(self._array)
 
@@ -101,6 +101,14 @@ class Array(Base):
     @values.setter
     def values(self, values_):
         self._array = values_
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit_):
+        self._unit = units(unit_)
 
     @property
     def norm(self):

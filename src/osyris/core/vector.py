@@ -3,6 +3,7 @@
 import numpy as np
 from pint import Quantity
 
+from .. import units
 from .array import Array
 from .base import Base
 from .tools import value_to_string
@@ -24,9 +25,10 @@ def normalize(v):
     Normalize the input vector
     """
     norm = v.norm
+    nvals = norm.values
     if norm.shape:
-        return v / np.where(norm.values == 0, 1, norm.values)
-    return v / (norm or 1)
+        return v / np.where(nvals == 0, 1, nvals)
+    return v / (nvals or 1)
 
 
 def _binary_op(op, lhs, rhs):
@@ -123,11 +125,12 @@ class Vector(Base):
 
     @unit.setter
     def unit(self, unit_):
-        self.x.unit = unit_
+        u = units(unit_)
+        self.x.unit = u
         if self.y is not None:
-            self.y.unit = unit_
+            self.y.unit = u
         if self.z is not None:
-            self.z.unit = unit_
+            self.z.unit = u
 
     @property
     def ndim(self):
