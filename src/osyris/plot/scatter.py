@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
+from typing import Union
+
 from pint import Quantity
 
 from .. import units
-from ..core import Array, Plot
+from ..core import Array, Layer, Plot
 from .parser import parse_layer
 from .render import render
 
@@ -16,6 +18,7 @@ def scatter(
     logy: bool = False,
     loglog: bool = False,
     norm: str = None,
+    color: Union[str, Array] = None,
     filename: str = None,
     title: str = None,
     xmin: float = None,
@@ -50,6 +53,8 @@ def scatter(
     :param norm: The colormap normalization. Possible values are ``'linear'`` and
         ``'log'``. Default is ``None`` (= ``'linear'``).
 
+    :param color: The color of the scatter points. Default is ``None``.
+
     :param filename: If specified, the returned figure is also saved to file.
         Default is ``None``.
 
@@ -75,6 +80,10 @@ def scatter(
 
     xvals = x.norm.values
     yvals = y.norm.values
+
+    if len(layers) > 1:
+        raise RuntimeError("Only one layer can be plotted on a scatter plot.")
+    layer = layers[0] if layers else None
 
     _, _, params = parse_layer(layer=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
     to_render = [
