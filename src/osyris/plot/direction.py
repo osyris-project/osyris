@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from ..core.vector import Array, Vector, VectorBasis
+from ..core.vector import Vector, VectorBasis
 
 
 def _basis_with_names(basis):

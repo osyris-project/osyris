@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from enum import Enum
-
 import numpy as np
 
 from ..core import Array
@@ -19,7 +17,6 @@ class Reader:
         self.kind = kind
 
     def descriptor_to_variables(self, descriptor, meta, units, select):
-
         read = {key: False for key in descriptor}
         if isinstance(select, dict):
             for key in read:
