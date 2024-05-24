@@ -280,7 +280,6 @@ class Vector(Base):
 
 
 class VectorBasis:
-
     def __init__(self, n, u=None, v=None):
         self.n = n
         self.u = perpendicular_vector(self.n) if u is None else u

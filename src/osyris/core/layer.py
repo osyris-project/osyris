@@ -7,7 +7,6 @@ from .array import Array
 
 
 class Layer:
-
     def __init__(
         self,
         data: Array,
