@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
-from .loader import Loader
 from .. import config
 from ..core import Dataset
+from .loader import Loader
 
 
 class RamsesDataset(Dataset):
