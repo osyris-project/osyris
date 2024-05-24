@@ -149,10 +149,6 @@ def map(
     for layer in layers:
         if not isinstance(layer, Layer):
             raise TypeError(f"Expected Layer object, got {type(layer)} instead. ")
-        # layer.update(
-        #     mode=mode, operation=operation, norm=norm, vmin=vmin, vmax=vmax, **kwargs
-        # )
-        # set_layer_norm(layer)
         layer = parse_layer(
             layer,
             mode=mode,
