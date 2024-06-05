@@ -2,17 +2,16 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 
+from .layer import Layer
 from .tools import bytes_to_human_readable
 
 
 class Datagroup:
-    def __init__(self, data=None, parent=None):
+    def __init__(self, *args, **kwargs):
         self._container = {}
-        self.parent = parent
         self.name = ""
-        if data is not None:
-            for key, array in data.items():
-                self[key] = array
+        for key, array in dict(*args, **kwargs).items():
+            self[key] = array
 
     def __iter__(self):
         return self._container.__iter__()
@@ -24,8 +23,6 @@ class Datagroup:
         if isinstance(key, str):
             return self._container[key]
         else:
-            if isinstance(key, int):
-                key = slice(key, key + 1, 1)
             d = self.__class__()
             for name, val in self.items():
                 d[name] = val[key]
@@ -40,7 +37,6 @@ class Datagroup:
                 )
             )
         value.name = key
-        value.parent = self
         self._container[key] = value
 
     def __delitem__(self, key):
@@ -50,10 +46,9 @@ class Datagroup:
         return str(self)
 
     def __str__(self):
-        output = "Datagroup: {} {}\n".format(self.name, self.print_size())
-        for key, item in self.items():
-            output += str(item) + "\n"
-        return output
+        header = f"Datagroup: {self.name} {self.print_size()}\n"
+        body = "\n".join([str(item) for item in self.values()])
+        return header + body
 
     def __eq__(self, other):
         if self.keys() != other.keys():
@@ -66,11 +61,8 @@ class Datagroup:
     def __copy__(self):
         return self.copy()
 
-    def __deepcopy__(self, memo):
-        return self.__class__(data={key: array.copy() for key, array in self.items()})
-
     def copy(self):
-        return self.__class__(data=self._container.copy())
+        return self.__class__(**{key: array for key, array in self.items()})
 
     def keys(self):
         return self._container.keys()
@@ -110,6 +102,18 @@ class Datagroup:
     def pop(self, key):
         return self._container.pop(key)
 
-    def update(self, d):
+    def update(self, *args, **kwargs):
+        d = dict(*args, **kwargs)
         for key, value in d.items():
             self[key] = value
+
+    def layer(self, key: str, **kwargs) -> Layer:
+        """
+        Make a layer for map plots which contains mesh information
+        """
+        keys = ("position", "dx", "mass", "velocity")
+        return Layer(
+            data=self[key],
+            aux={k: self[k] for k in keys if k in self},
+            **kwargs,
+        )

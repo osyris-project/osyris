@@ -28,7 +28,7 @@ def _binary_op(op, lhs, rhs, strict=True, **kwargs):
 
 
 class Array(Base):
-    def __init__(self, values, unit=None, parent=None, name=""):
+    def __init__(self, values, unit=None, name=""):
         if isinstance(values, Base):
             raise NotImplementedError("Cannot create Array from Array or Vector.")
 
@@ -38,14 +38,13 @@ class Array(Base):
                     "Cannot set unit when creating an Array from a Quantity."
                 )
             self._array = values.magnitude
-            self.unit = values.units
+            self._unit = values.units
         else:
             self._array = values
-            self.unit = units(unit)
+            self._unit = units(unit)
         if not isinstance(self._array, np.ndarray):
             self._array = np.asarray(self._array)
 
-        self.parent = parent
         self.name = name
 
     def __getitem__(self, slice_):
@@ -60,10 +59,7 @@ class Array(Base):
                 )
             slice_ = slice_.values
         return self.__class__(
-            values=self._array[slice_],
-            unit=self.unit,
-            parent=self.parent,
-            name=self.name,
+            values=self._array[slice_], unit=self.unit, name=self.name
         )
 
     def __len__(self):
@@ -88,6 +84,9 @@ class Array(Base):
         return name_str + values_str + unit_str + shape_str
 
     def copy(self):
+        """
+        Make a (deep) copy of the array.
+        """
         return self.__class__(
             values=self._array.copy(), unit=units(self.unit), name=str(self.name)
         )
@@ -102,6 +101,14 @@ class Array(Base):
     @values.setter
     def values(self, values_):
         self._array = values_
+
+    @property
+    def unit(self):
+        return self._unit
+
+    @unit.setter
+    def unit(self, unit_):
+        self._unit = units(unit_)
 
     @property
     def norm(self):

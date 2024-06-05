@@ -10,7 +10,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PatchCollection
 from pint import Quantity
 
-from ..core import Array
+from ..core import Array, Vector
 
 
 def _add_colorbar(obj, ax, cax=None, label=None):
@@ -121,7 +121,7 @@ def scatter(ax, x, y, z, cbar=False, cblabel=None, zorder=2, **kwargs):
     use_patchcollection = False
     need_cbar = False
     if "s" in default_args:
-        if isinstance(default_args["s"], Array):
+        if isinstance(default_args["s"], (Array, Vector)):
             default_args["s"] = default_args["s"].norm.values
             use_patchcollection = True
         if isinstance(default_args["s"], Quantity):

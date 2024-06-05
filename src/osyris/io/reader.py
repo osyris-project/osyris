@@ -1,22 +1,14 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from enum import Enum
-
 import numpy as np
 
 from ..core import Array
 from . import utils
 
 
-class ReaderKind(Enum):
-    AMR = 0
-    SINK = 1
-    PART = 2
-
-
 class Reader:
-    def __init__(self, kind=None):
+    def __init__(self, kind: str = None):
         self.variables = {}
         self.offsets = {}
         self.meta = {}
@@ -25,23 +17,20 @@ class Reader:
         self.kind = kind
 
     def descriptor_to_variables(self, descriptor, meta, units, select):
-        drop_others = False
+        read = {key: False for key in descriptor}
         if isinstance(select, dict):
-            for key, value in select.items():
-                if value is True:
-                    drop_others = True
+            for key in read:
+                read[key] = select.get(key, True)
+        elif isinstance(select, bool):
+            for key in read:
+                read[key] = select
+        else:
+            for key in select:
+                read[key] = True
 
         for key in descriptor:
-            read = True
-            if isinstance(select, bool):
-                read = select
-            elif key in select:
-                if isinstance(select[key], bool):
-                    read = select[key]
-            elif drop_others:
-                read = False
             self.variables[key] = {
-                "read": read,
+                "read": read[key],
                 "type": descriptor[key],
                 "buffer": None,
                 "pieces": {},
@@ -87,11 +76,10 @@ class Reader:
 
     def make_conditions(self, select):
         conditions = {}
-        if not isinstance(select, bool):
+        if isinstance(select, dict):
             for key, func in select.items():
-                if not isinstance(func, bool):
-                    if key in self.variables:
-                        conditions[key] = func(self.variables[key]["buffer"])
+                if key in self.variables:
+                    conditions[key] = func(self.variables[key]["buffer"])
         return conditions
 
     def read_footer(self, *args, **kwargs):

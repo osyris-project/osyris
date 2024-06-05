@@ -3,6 +3,8 @@
 
 from matplotlib.colors import LogNorm, Normalize, SymLogNorm
 
+from ..core.layer import Layer
+
 
 def get_norm(norm=None, vmin=None, vmax=None):
     if norm is None:
@@ -25,34 +27,32 @@ def get_norm(norm=None, vmin=None, vmax=None):
 
 
 def parse_layer(
-    layer, mode=None, norm=None, vmin=None, vmax=None, operation=None, **kwargs
+    layer: Layer,
+    mode=None,
+    operation=None,
+    norm=None,
+    vmin=None,
+    vmax=None,
+    bins=None,
+    weights=None,
+    **kwargs,
 ):
-    if isinstance(layer, dict):
-        params = {
-            key: layer[key]
-            for key in set(layer.keys()) - set(["data", "mode", "operation"])
-        }
-        if "norm" not in params:
-            params["norm"] = norm
-        if "vmin" in params:
-            vmin = params["vmin"]
-            del params["vmin"]
-        if "vmax" in params:
-            vmax = params["vmax"]
-            del params["vmax"]
-
-        params["norm"] = get_norm(norm=params["norm"], vmin=vmin, vmax=vmax)
-
-        for key, arg in kwargs.items():
-            if key not in params:
-                params[key] = arg
-
-        settings = {}
-        for key in ["mode", "operation"]:
-            settings[key] = layer[key] if key in layer else eval(key)
-        return layer["data"], settings, params
-    else:
-        params = {"norm": get_norm(norm=norm, vmin=vmin, vmax=vmax)}
-        settings = {"mode": mode, "operation": operation}
-        params.update(kwargs)
-        return layer, settings, params
+    out = layer.copy()
+    if out.mode is None:
+        out.mode = mode
+    if out.operation is None:
+        out.operation = operation
+    if out.norm is None:
+        out.norm = norm
+    if out.vmin is None:
+        out.vmin = vmin
+    if out.vmax is None:
+        out.vmax = vmax
+    if out.bins is None:
+        out.bins = bins
+    if out.weights is None:
+        out.weights = weights
+    out.kwargs.update(
+        {key: value for key, value in kwargs.items() if key not in out.kwargs}
+    )
+    return out

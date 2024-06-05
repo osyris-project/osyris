@@ -54,7 +54,7 @@ def test_datagroup_delitem():
 def test_datagroup_equal_operator():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")
-    assert Datagroup({"a": a, "b": b}) == Datagroup({"a": a, "b": b})
+    assert Datagroup({"a": a, "b": b}) == Datagroup({"a": a.copy(), "b": b.copy()})
 
 
 def test_datagroup_slice():
@@ -189,3 +189,15 @@ def test_datagroup_shape():
     dg = Datagroup()
     dg["a"] = a
     assert dg.shape == (2, 3)
+
+
+def test_can_share_arrays_between_datagroups():
+    a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    dg1 = Datagroup({"a1": a})
+    dg2 = Datagroup({"a2": a})
+    assert dg1["a1"] is dg2["a2"]
+    dg1["a1"] *= 10.0
+    assert arrayequal(dg2["a2"], Array(values=[10.0, 20.0, 30.0, 40.0, 50.0], unit="m"))
+    dg2["a2"] /= 10.0
+    assert arrayequal(dg1["a1"], Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m"))
+    assert arrayequal(dg2["a2"], Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m"))

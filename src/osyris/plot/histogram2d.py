@@ -6,9 +6,9 @@ from typing import Union
 import numpy as np
 from pint import Quantity
 
-from ..core import Array, Plot
+from ..core import Array, Layer, Plot
 from ..core.tools import finmax, finmin, to_bin_centers
-from .parser import parse_layer
+from .parser import get_norm, parse_layer
 from .render import render
 from .utils import hist2d
 
@@ -186,28 +186,33 @@ def histogram2d(
 
     # If no layers are defined, make a layer for counting cells
     if len(layers) == 0:
-        layers = [Array(values=np.ones_like(xvals), name="counts")]
+        layers = [Layer(Array(values=np.ones_like(xvals), name="counts"))]
 
     for layer in layers:
-        data, settings, params = parse_layer(
-            layer=layer,
+        if isinstance(layer, Array):
+            layer = Layer(layer)
+        layer = parse_layer(
+            layer,
             mode=mode,
+            operation=operation,
             norm=norm,
             vmin=vmin,
             vmax=vmax,
-            operation=operation,
             **kwargs,
         )
-        to_process.append(data.norm.values)
+        layer.kwargs.update(
+            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
+        )
+        to_process.append(layer.data.norm.values)
         to_render.append(
             {
-                "mode": settings["mode"],
-                "params": params,
-                "unit": data.unit,
-                "name": data.name,
+                "mode": layer.mode,
+                "params": layer.kwargs,
+                "unit": layer.data.unit,
+                "name": layer.data.name,
             }
         )
-        operations.append(settings["operation"])
+        operations.append(layer.operation)
 
     # Send to numba histogramming
     binned, counts = hist2d(
@@ -242,6 +247,7 @@ def histogram2d(
         )
         figure["ax"].set_xlabel(x.label)
         figure["ax"].set_ylabel(y.label)
+        figure["ax"].set_title(title)
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)

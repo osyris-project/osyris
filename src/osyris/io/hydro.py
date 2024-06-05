@@ -5,12 +5,12 @@ import os
 import numpy as np
 
 from . import utils
-from .reader import Reader, ReaderKind
+from .reader import Reader
 
 
 class HydroReader(Reader):
     def __init__(self):
-        super().__init__(kind=ReaderKind.AMR)
+        super().__init__(kind="mesh")
 
     def initialize(self, meta, units, select):
         self.initialized = False

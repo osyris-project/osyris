@@ -7,16 +7,16 @@ import numpy as np
 import numpy.ma as ma
 from pint import Quantity
 
-from ..core import Array, Plot, Vector
+from ..core import Array, Layer, Plot, Vector, VectorBasis
 from ..core.tools import apply_mask
 from .direction import get_direction
-from .parser import parse_layer
+from .parser import get_norm, parse_layer
 from .render import render
 from .scatter import scatter
 from .utils import evaluate_on_grid
 
 
-def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
+def _add_scatter(to_scatter, origin, basis, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
     viewport = np.maximum(dx, dy)
     radius = None
@@ -28,15 +28,15 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
     if radius is None:
         # Fudge factor to select sinks close to the plane
         radius = Array(values=viewport * 0.05)
-    dist_to_plane = xyz.dot(dir_vecs["normal"])
+    dist_to_plane = xyz.dot(basis.n)
     global_selection = np.arange(len(to_scatter[0]["data"]))
     select = (np.abs(dist_to_plane) <= radius).values
     global_selection = global_selection[select]
     if len(select) > 0:
         # Project coordinates onto the plane by taking dot product with axes vectors
         coords = xyz[select]
-        datax = coords.dot(dir_vecs["pos_u"])
-        datay = coords.dot(dir_vecs["pos_v"])
+        datax = coords.dot(basis.u)
+        datay = coords.dot(basis.v)
 
         if dx is not None:
             # Limit selection further by using distance from center
@@ -50,8 +50,8 @@ def _add_scatter(to_scatter, origin, dir_vecs, dx, dy, ax, map_unit):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
                     global_selection
                 ]
-        datax.name = dir_vecs["pos_u"].name
-        datay.name = dir_vecs["pos_v"].name
+        datax.name = basis.u.name
+        datay.name = basis.v.name
         scatter(
             x=datax.to(map_unit), y=datay.to(map_unit), ax=ax, **to_scatter[0]["params"]
         )
@@ -143,35 +143,44 @@ def map(
         Default is ``None``, in which case some new axes a created.
     """
 
-    if isinstance(layers, Array):
-        layers = [layers]
-
     to_process = []
     to_render = []
     to_scatter = []
     for layer in layers:
-        data, settings, params = parse_layer(
-            layer=layer, mode=mode, norm=norm, vmin=vmin, vmax=vmax, **kwargs
+        if not isinstance(layer, Layer):
+            raise TypeError(f"Expected Layer object, got {type(layer)} instead. ")
+        layer = parse_layer(
+            layer,
+            mode=mode,
+            operation=operation,
+            norm=norm,
+            vmin=vmin,
+            vmax=vmax,
+            **kwargs,
         )
-        if settings["mode"] == "scatter":
-            to_scatter.append({"data": data, "params": params})
+        layer.kwargs.update(
+            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
+        )
+        if layer.mode == "scatter":
+            to_scatter.append({"data": layer.data, "params": layer.kwargs})
         else:
-            to_process.append(data)
+            to_process.append(layer.data)
             to_render.append(
                 {
-                    "mode": settings["mode"],
-                    "params": params,
-                    "unit": data.unit,
-                    "name": data.name,
+                    "mode": layer.mode,
+                    "params": layer.kwargs,
+                    "unit": layer.data.unit,
+                    "name": layer.data.name,
                 }
             )
 
-    dataset = to_process[0].parent.parent
-    ndim = dataset.meta["ndim"]
+    position = layers[0]["position"]
+    cell_size = layers[0]["dx"]
+    ndim = position.nvec
 
     thick = dz is not None
 
-    spatial_unit = dataset["amr"]["position"].unit
+    spatial_unit = position.unit
     map_unit = spatial_unit
 
     # Set window size
@@ -182,24 +191,33 @@ def map(
     dz = dx if dz is None else dz.to(spatial_unit)
 
     if origin is None:
-        origin = Vector(*[0 for n in range(ndim)], unit=spatial_unit)
+        origin = Vector(*([0] * ndim), unit=spatial_unit)
 
-    dir_vecs = get_direction(
-        direction=direction, dataset=dataset, dx=dx, dy=dy, origin=origin
-    )
+    if ndim < 3:
+        basis = VectorBasis(
+            n=Vector(0, 0, name="z"), u=Vector(1, 0, name="x"), v=Vector(0, 1, name="y")
+        )
+    else:
+        basis = get_direction(
+            direction=direction,
+            data=layers[0],
+            dx=dx,
+            dy=dy,
+            origin=origin,
+        )
 
     # Distance to the plane
     diagonal = np.sqrt(ndim)
-    xyz = dataset["amr"]["position"] - origin
-    selection_distance = 0.5 * diagonal * (dz if thick else dataset["amr"]["dx"])
+    xyz = position - origin
+    selection_distance = 0.5 * diagonal * (dz if thick else cell_size)
 
-    normal = dir_vecs["normal"]
-    vec_u = dir_vecs["pos_u"]
-    vec_v = dir_vecs["pos_v"]
+    normal = basis.n
+    vec_u = basis.u
+    vec_v = basis.v
 
     dist_to_plane = xyz.dot(normal)
     # Create an array of indices to allow further narrowing of the selection below
-    global_indices = np.arange(len(dataset["amr"]["dx"]))
+    global_indices = np.arange(len(cell_size))
     # Select cells close to the plane, including factor of sqrt(ndim)
     close_to_plane = (np.abs(dist_to_plane) <= selection_distance).values
     indices_close_to_plane = global_indices[close_to_plane]
@@ -221,7 +239,7 @@ def map(
         # Limit selection further by using distance from center
         radial_distance = (
             xyz[indices_close_to_plane]
-            - 0.5 * dataset["amr"]["dx"][indices_close_to_plane] * diagonal
+            - 0.5 * cell_size[indices_close_to_plane] * diagonal
         )
         radial_selection = (
             np.abs(radial_distance.norm.values)
@@ -234,7 +252,7 @@ def map(
     datax = coords.dot(vec_u)
     datay = coords.dot(vec_v)
     dataz = coords.dot(normal)
-    datadx = dataset["amr"]["dx"][indices_close_to_plane] * 0.5
+    datadx = cell_size[indices_close_to_plane] * 0.5
 
     if xmin is None:
         xmin = (datax - datadx).min().values
@@ -413,12 +431,8 @@ def map(
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(
-            Array(values=0, unit=map_unit, name=dir_vecs["pos_u"].name).label
-        )
-        figure["ax"].set_ylabel(
-            Array(values=0, unit=map_unit, name=dir_vecs["pos_v"].name).label
-        )
+        figure["ax"].set_xlabel(Array(values=0, unit=map_unit, name=basis.u.name).label)
+        figure["ax"].set_ylabel(Array(values=0, unit=map_unit, name=basis.v.name).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 
@@ -427,7 +441,7 @@ def map(
             _add_scatter(
                 to_scatter=to_scatter,
                 origin=origin,
-                dir_vecs=dir_vecs,
+                basis=basis,
                 dx=dx,
                 dy=dy,
                 ax=figure["ax"],
@@ -440,6 +454,7 @@ def map(
         ymax *= scale_ratio
         figure["ax"].set_xlim(xmin, xmax)
         figure["ax"].set_ylim(ymin, ymax)
+        figure["ax"].set_title(title)
 
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 

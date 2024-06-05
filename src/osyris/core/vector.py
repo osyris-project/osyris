@@ -3,9 +3,32 @@
 import numpy as np
 from pint import Quantity
 
+from .. import units
 from .array import Array
 from .base import Base
 from .tools import value_to_string
+
+
+def perpendicular_vector(v):
+    """
+    Compute a vector perpendicular to the input vector
+    """
+
+    if v.z.values == 0:
+        return Vector(-v.y.values, v.x.values, 0, unit=v.unit)
+    else:
+        return Vector(1.0, 1.0, (-1.0 * (v.x + v.y) / v.z).values, unit=v.unit)
+
+
+def normalize(v):
+    """
+    Normalize the input vector
+    """
+    norm = v.norm
+    nvals = norm.values
+    if norm.shape:
+        return v / np.where(nvals == 0, 1, nvals)
+    return v / (nvals or 1)
 
 
 def _binary_op(op, lhs, rhs):
@@ -22,7 +45,7 @@ def _binary_op(op, lhs, rhs):
 
 
 class Vector(Base):
-    def __init__(self, x, y=None, z=None, parent=None, name="", unit=None):
+    def __init__(self, x, y=None, z=None, name="", unit=None):
         if isinstance(x, Array):
             if unit is not None:
                 raise ValueError("Can only set unit when creating Vector from values.")
@@ -33,8 +56,6 @@ class Vector(Base):
         self.x = Array(values=x, unit=unit)
         self.y = Array(values=y, unit=unit) if y is not None else None
         self.z = Array(values=z, unit=unit) if z is not None else None
-
-        self.parent = parent
         self.name = name
 
     def _validate_component(self, array, shape, unit):
@@ -63,9 +84,7 @@ class Vector(Base):
 
     def __getitem__(self, slice_):
         return self.__class__(
-            **{c: xyz[slice_] for c, xyz in self._xyz.items()},
-            parent=self.parent,
-            name=self._name,
+            **{c: xyz[slice_] for c, xyz in self._xyz.items()}, name=self._name
         )
 
     def __len__(self):
@@ -106,11 +125,12 @@ class Vector(Base):
 
     @unit.setter
     def unit(self, unit_):
-        self.x.unit = unit_
+        u = units(unit_)
+        self.x.unit = u
         if self.y is not None:
-            self.y.unit = unit_
+            self.y.unit = u
         if self.z is not None:
-            self.z.unit = unit_
+            self.z.unit = u
 
     @property
     def ndim(self):
@@ -257,3 +277,29 @@ class Vector(Base):
         z = self.x * other.y
         z -= self.y * other.x
         return self.__class__(x, y, z)
+
+
+class VectorBasis:
+    def __init__(self, n, u=None, v=None):
+        self.n = n
+        self.u = perpendicular_vector(self.n) if u is None else u
+        self.v = self.n.cross(self.u) if v is None else v
+        self.n = normalize(self.n)
+        self.u = normalize(self.u)
+        self.v = normalize(self.v)
+        self.n.name = n.name
+        if u is not None:
+            self.u.name = u.name
+        if v is not None:
+            self.v.name = v.name
+
+    def roll(self):
+        return VectorBasis(n=self.u, u=self.v, v=self.n)
+
+    def __str__(self) -> str:
+        header = "VectorBasis:\n    "
+        body = "\n    ".join(f"{x}: {getattr(self, x)}" for x in ("n", "u", "v"))
+        return header + body
+
+    def __repr__(self) -> str:
+        return str(self)

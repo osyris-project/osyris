@@ -4,16 +4,18 @@ import numpy as np
 
 from . import utils
 from .hilbert import hilbert_cpu_list
-from .reader import Reader, ReaderKind
+from .reader import Reader
 
 
 class AmrReader(Reader):
     def __init__(self):
-        super().__init__(kind=ReaderKind.AMR)
+        super().__init__(kind="mesh")
         self.cpu_list = None
 
     def initialize(self, meta, units, select):
         self.initialized = False
+        if select is False:
+            return
 
         descriptor = {"level": "i", "cpu": "i", "dx": "d"}
         descriptor.update({f"position_{c}": "d" for c in "xyz"[: meta["ndim"]]})
@@ -28,8 +30,7 @@ class AmrReader(Reader):
 
         self.xcent = np.zeros([8, 3], dtype=np.float64)
 
-        if select is not False:
-            self.initialized = True
+        self.initialized = True
 
     def allocate_buffers(self, ncache, twotondim):
         super().allocate_buffers(ncache, twotondim)

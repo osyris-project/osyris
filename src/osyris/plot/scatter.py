@@ -1,17 +1,21 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
+from typing import Union
+
 from pint import Quantity
 
 from .. import units
-from ..core import Array, Plot
-from .parser import parse_layer
+from ..core import Array, Plot, Vector
+from .parser import get_norm
 from .render import render
 
 
 def scatter(
     x: Array,
     y: Array,
+    color: Union[str, Array] = None,
+    size: Union[float, Array] = None,
     logx: bool = False,
     logy: bool = False,
     loglog: bool = False,
@@ -24,19 +28,23 @@ def scatter(
     ymax: float = None,
     vmin: float = None,
     vmax: float = None,
+    aspect: str = "auto",
     ax: object = None,
     **kwargs,
 ) -> Plot:
     """
     Make a 2D scatter plot with two variables as input.
 
-    This function has an API very close to that of matplotlib's ``scatter`` function.
-    For the documentation of any parameters that are not listed below, see
-    https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html.
-
     :param x: Array to use for scatter point positions along the horizontal dimension.
 
     :param y: Array to use for scatter point positions along the vertical dimension.
+
+    :param color: The color of the scatter points. Can be a string or an Array. If an
+        Array is supplied, a colormap is used. Default is ``None``.
+
+    :param size: Size of the scatter points. If a float is provided, all points will
+        have the same size. If an Array is provided, the size of each point will be
+        determined by the values of the Array. Default is ``None``.
 
     :param logx: If ``True``, use logarithmic scaling on the horizontal axis.
         Default is ``False``.
@@ -67,6 +75,8 @@ def scatter(
 
     :param vmax: Maximum value for colorbar range. Default is ``None``.
 
+    :param aspect: The aspect ratio of the plot. Default is ``'auto'``.
+
     :param ax: A matplotlib axes inside which the figure will be plotted.
         Default is ``None``, in which case some new axes a created.
     """
@@ -76,23 +86,24 @@ def scatter(
     xvals = x.norm.values
     yvals = y.norm.values
 
-    _, _, params = parse_layer(layer=None, norm=norm, vmin=vmin, vmax=vmax, **kwargs)
-    to_render = [
-        {
-            "data": None,
-            "mode": "scatter",
-            "params": params,
-        }
-    ]
-    if "c" in params and not isinstance(params["c"], str):
-        to_render[0].update({"unit": params["c"].unit, "name": params["c"].name})
-        params["c"] = params["c"].norm.values
-    if "s" in params:
+    params = {k: v for k, v in kwargs.items() if k not in ["c", "s"]}
+    to_render = {"data": None, "mode": "scatter"}
+
+    if color is not None:
+        if isinstance(color, str):
+            params["c"] = color
+        else:
+            to_render.update({"unit": color.unit, "name": color.name})
+            params.update(
+                c=color.norm.values, norm=get_norm(norm=norm, vmin=vmin, vmax=vmax)
+            )
+
+    if size is not None:
         unit = None
-        if isinstance(params["s"], Array):
-            unit = params["s"].unit
-        if isinstance(params["s"], Quantity):
-            unit = params["s"].units
+        if isinstance(size, (Array, Vector)):
+            unit = size.unit
+        if isinstance(size, Quantity):
+            unit = size.units
         if unit is not None:
             if unit != units("dimensionless"):
                 if x.unit != y.unit:
@@ -102,14 +113,30 @@ def scatter(
                         "Arrays do not agree. The size must either "
                         "be a float or a dimensionless Array."
                     )
-                params["s"] = params["s"].to(x.unit)
+                size = size.to(x.unit)
+        params["s"] = size
 
-    figure = render(x=xvals, y=yvals, data=to_render, logx=logx, logy=logy, ax=ax)
+    to_render["params"] = params
+
+    figure = render(x=xvals, y=yvals, data=[to_render], logx=logx, logy=logy, ax=ax)
 
     figure["ax"].set_xlabel(x.label)
     figure["ax"].set_ylabel(y.label)
+    figure["ax"].set_title(title)
+    figure["ax"].autoscale_view()
+    _xmin, _xmax = figure["ax"].get_xlim()
+    _ymin, _ymax = figure["ax"].get_ylim()
+    if xmin is None:
+        xmin = _xmin
+    if xmax is None:
+        xmax = _xmax
+    if ymin is None:
+        ymin = _ymin
+    if ymax is None:
+        ymax = _ymax
     figure["ax"].set_xlim(xmin, xmax)
     figure["ax"].set_ylim(ymin, ymax)
+    figure["ax"].set_aspect(aspect)
 
     return Plot(
         x=xvals,

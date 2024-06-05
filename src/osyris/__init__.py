@@ -10,7 +10,8 @@ import importlib.metadata
 
 from .config import config
 from .units import units
-from .core import Array, Datagroup, Dataset, Plot, Vector
+from .core import Array, Datagroup, Dataset, Plot, Vector, VectorBasis
+from .io import RamsesDataset
 from .plot import histogram1d, histogram2d, map, plot, scatter
 from .spatial import extract_box, extract_sphere
 
@@ -27,6 +28,8 @@ __all__ = [
     "Dataset",
     "Plot",
     "Vector",
+    "VectorBasis",
+    "RamsesDataset",
     "config",
     "units",
     "histogram1d",
@@ -36,4 +39,6 @@ __all__ = [
     "plot",
     "extract_box",
     "extract_sphere",
+    "side_view",
+    "top_view",
 ]

@@ -88,15 +88,15 @@ def additional_variables(data):
 
     # Magnetic field
     try:
-        data["hydro"]["B_field"] = 0.5 * (
-            data["hydro"]["B_left"] + data["hydro"]["B_right"]
+        data["mesh"]["B_field"] = 0.5 * (
+            data["mesh"]["B_left"] + data["mesh"]["B_right"]
         )
     except KeyError:
         pass
 
     # Mass
     try:
-        data["hydro"]["mass"] = (data["hydro"]["density"] * data["amr"]["dx"] ** 3).to(
+        data["mesh"]["mass"] = (data["mesh"]["density"] * data["mesh"]["dx"] ** 3).to(
             "M_sun"
         )
     except KeyError:
