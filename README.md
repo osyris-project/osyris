@@ -29,8 +29,8 @@ Plot a 2D histogram of the cell magnetic field versus the gas density.
 import numpy as np
 import osyris
 
-data = osyris.Dataset(8, path="data").load()
-osyris.histogram2d(data["hydro"]["density"], data["hydro"]["B_field"],
+data = osyris.RamsesDataset(8, path="data").load()
+osyris.histogram2d(data["mesh"]["density"], data["mesh"]["B_field"],
                    norm="log", loglog=True)
 ```
 ![hist2d](https://osyris.readthedocs.io/en/stable/_images/plotting_histograms_13_1.png)
@@ -39,13 +39,15 @@ Create a 2D gas density map 2000 au wide through the plane normal to ``z``,
 with velocity vectors overlayed as arrows, once again using ``layers``:
 
 ```python
-ind = np.argmax(data["hydro"]["density"])
-center = data["amr"]["position"][ind.values]
-osyris.map({"data": data["hydro"]["density"], "norm": "log"}, # layer 1
-           {"data": data["hydro"]["velocity"], "mode": "vec"}, # layer 2
-           dx=2000 * osyris.units("au"),
-           origin=center,
-           direction="z")
+ind = np.argmax(data["mesh"]["density"])
+center = data["mesh"]["position"][ind]
+osyris.map(
+    data["mesh"].layer("density", norm="log"),
+    data["mesh"].layer("velocity", mode="vec"),
+    dx=2000 * osyris.units("au"),
+    origin=center,
+    direction="z",
+)
 ```
 ![map2d](https://osyris.readthedocs.io/en/stable/_images/plotting_maps_23_1.png)
 
