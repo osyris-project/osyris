@@ -1,8 +1,3 @@
-.. osyris documentation master file, created by
-   sphinx-quickstart on Mon Jul 15 16:29:19 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 *********************************
 Osyris - Visualization for Ramses
 *********************************
@@ -24,131 +19,107 @@ It uses `Numpy <https://numpy.org>`_ for data
 manipulation, `Pint <https://pint.readthedocs.io>`_ for physical units,
 and `Matplotlib <https://matplotlib.org/stable/>`_ for visualization.
 
-.. image:: images/demo.png
-   :width: 680
-
 Installation
 ============
 
-.. toctree::
-   :maxdepth: 2
+.. tab-set::
 
-   installation
+   .. tab-item:: pip
 
-Basics
-======
+      .. code-block:: bash
 
-.. toctree::
-   :maxdepth: 2
+         pip install osyris
 
-   basics
+   .. tab-item:: conda
 
-Configuration
-=============
+      .. code-block:: bash
 
-.. toctree::
-   :maxdepth: 2
+         conda install -c conda-forge osyris
 
-   configuration
+   .. tab-item:: source
 
-Data structures
+      .. code-block:: bash
+
+         git clone https://github.com/osyris-project/osyris.git
+         cd osyris
+         python -m pip install -e .
+
+Getting started
 ===============
 
-.. toctree::
-   :maxdepth: 2
+.. grid:: 2
 
-   data_structures
+   .. grid-item-card:: Setup
 
-Loading Ramses data
-===================
+      - :doc:`basics`
+      - :doc:`configuration`
 
-.. toctree::
-   :maxdepth: 2
+   .. grid-item-card:: Loadind data
 
-   loading_data
+      - :doc:`data_structures`
+      - :doc:`loading_data`
+      - :doc:`custom_datasets`
 
-Custom datasets
-===================
+Plotting
+========
 
-.. toctree::
-   :maxdepth: 2
+.. grid:: 3
 
-   custom_datasets
+   .. grid-item-card:: 1D data
+      :link: plotting_1d_2d.html
+      :img-bottom: _images/plotting_1d_2d_5_1.png
 
-Plotting: 1D and 2D data
-========================
+   .. grid-item-card:: 2D data
+      :link: plotting_1d_2d.html#Plotting-2D-data
+      :img-bottom: _images/plotting_1d_2d_24_1.png
 
-.. toctree::
-   :maxdepth: 2
+   .. grid-item-card:: 1D histograms
+      :link: plotting_histograms.html
+      :img-bottom: _images/plotting_histograms_9_1.png
 
-   plotting_1d_2d
+.. grid:: 3
 
-Plotting: histograms
-====================
+   .. grid-item-card:: 2D histograms
+      :link: plotting_histograms.html#2D-histograms
+      :img-bottom: _images/plotting_histograms_13_1.png
 
-.. toctree::
-   :maxdepth: 2
+   .. grid-item-card:: Spatial maps
+      :link: plotting_maps.html
+      :img-bottom: _images/plotting_maps_23_1.png
 
-   plotting_histograms
+   .. grid-item-card:: Thick maps
+      :link: plotting_thick_maps.html
+      :img-bottom: _images/plotting_thick_maps_6_1.png
 
-Plotting: spatial maps
-======================
+.. grid:: 3
 
-.. toctree::
-   :maxdepth: 2
+   .. grid-item-card:: Scatter plots
+      :link: plotting_scatter.html
+      :img-bottom: _images/plotting_scatter_11_1.png
 
-   plotting_maps
+   .. grid-item-card:: Particles
+      :link: plotting_particles.html
+      :img-bottom: _images/plotting_particles_5_1.png
 
-Plotting: thick maps
-====================
-
-.. toctree::
-   :maxdepth: 2
-
-   plotting_thick_maps
-
-Plotting: scatter plots
-=======================
-
-.. toctree::
-   :maxdepth: 2
-
-   plotting_scatter
-
-Plotting: particles
-===================
+   .. grid-item-card:: Recipes
+      :link: recipes.html
+      :img-bottom: _images/recipes_3_1.png
 
 .. toctree::
-   :maxdepth: 2
+    :hidden:
+    :maxdepth: 2
 
-   plotting_particles
-
-Recipes
-=======
-
-.. toctree::
-   :maxdepth: 2
-
-   recipes
-
-API
-===
-
-.. toctree::
-   :maxdepth: 2
-
-   api
-
-Support
-=======
-
-.. toctree::
-   :maxdepth: 2
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    installation
+    basics
+    configuration
+    data_structures
+    loading_data
+    custom_datasets
+    plotting_1d_2d
+    plotting_histograms
+    plotting_maps
+    plotting_thick_maps
+    plotting_scatter
+    plotting_particles
+    recipes
+    api

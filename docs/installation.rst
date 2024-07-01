@@ -1,14 +1,6 @@
-***********
-Instalation
-***********
-
-.. attention::
-
-   If you are upgrading from an old version to a version >= 2.6.0, and you are getting some strange errors,
-   you may need to update your ``config_osyris.py`` configuration file in ``/home/user/.osyris``.
-
-   - If you had never touched the configuration file, it is safe to simply delete it (a new one will be created when importing ``osyris``).
-   - If you had made changes to the configuration, the easiest is probably to move it to a new location/filename. Then import ``osyris`` and update the newly created file to incorporate the changes you had made previously.
+************
+Installation
+************
 
 Using pip
 =========
@@ -28,7 +20,7 @@ If you have already installed ``osyris`` in the past, but would like to upgrade,
 Using conda
 ===========
 
-Osyris is also available on ``conda-forge``. To install using ``conda``, do
+Osyris is also available on ``conda-forge``. To install using ``conda``, use
 
 .. code-block:: bash
 
