@@ -2,6 +2,7 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 
+from .vector import Vector
 from .layer import Layer
 from .tools import bytes_to_human_readable
 
@@ -117,3 +118,14 @@ class Datagroup:
             aux={k: self[k] for k in keys if k in self},
             **kwargs,
         )
+
+    def to_pandas(self):
+        import pandas as pd
+
+        data = {}
+        for key, item in self.items():
+            data[key] = item.norm.values
+            if isinstance(item, Vector):
+                for c, xyz in item._xyz.items():
+                    data[f"{key}_{c}"] = xyz.values
+        return pd.DataFrame(data)
