@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
+from functools import partial
 
 import numpy as np
 
@@ -18,13 +19,10 @@ class Base:
 
     @property
     def label(self):
+        """
+        Return a label for the object with name and unit.
+        """
         return make_label(name=self.name, unit=self.unit)
-
-    def min(self):
-        return np.amin(self)
-
-    def max(self):
-        return np.amax(self)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         """
@@ -41,3 +39,8 @@ class Base:
         functions.
         """
         return self._wrap_numpy(func, *args, **kwargs)
+
+    def __getattr__(self, name):
+        if hasattr(np, name):
+            return partial(getattr(np, name), self)
+        raise AttributeError(f"No attribute named '{name}'")
