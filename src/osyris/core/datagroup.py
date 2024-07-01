@@ -63,31 +63,61 @@ class Datagroup:
         return self.copy()
 
     def copy(self):
+        """
+        Create a shallow copy of the Datagroup.
+        """
         return self.__class__(**{key: array for key, array in self.items()})
 
     def keys(self):
+        """
+        The keys of the Datagroup (iterable).
+        """
         return self._container.keys()
 
     def items(self):
+        """
+        The items of the Datagroup (iterable).
+        """
         return self._container.items()
 
     def values(self):
+        """
+        The values of the Datagroup (iterable).
+        """
         return self._container.values()
 
     def nbytes(self):
+        """
+        The number of bytes used by the Datagroup.
+        """
         return np.sum([item.nbytes for item in self.values()])
 
     def print_size(self):
+        """
+        Return the size of the Datagroup in human readable format.
+        """
         return bytes_to_human_readable(self.nbytes())
 
     @property
     def shape(self):
+        """
+        The shape of the Datagroup.
+        """
         if len(self) == 0:
             return ()
         else:
             return self[list(self.keys())[0]].shape
 
     def sortby(self, key):
+        """
+        Sort the Datagroup by key.
+
+        Parameters
+        ----------
+        key : str or list
+            The key to sort the Datagroup by. If a list of indices is given, the
+            Datagroup will be sorted by the indices.
+        """
         if key is not None:
             if isinstance(key, str):
                 key = np.argsort(self[key]).values
@@ -95,22 +125,34 @@ class Datagroup:
                 self[var] = self[var][key]
 
     def clear(self):
+        """
+        Clear the Datagroup.
+        """
         self._container.clear()
 
     def get(self, key, default):
+        """
+        Get the value of a key in the Datagroup.
+        """
         return self._container.get(key, default)
 
     def pop(self, key):
+        """
+        Pop a key from the Datagroup.
+        """
         return self._container.pop(key)
 
     def update(self, *args, **kwargs):
+        """
+        Update the Datagroup with new values.
+        """
         d = dict(*args, **kwargs)
         for key, value in d.items():
             self[key] = value
 
     def layer(self, key: str, **kwargs) -> Layer:
         """
-        Make a layer for map plots which contains mesh information
+        Make a layer for map plots which contains mesh information.
         """
         keys = ("position", "dx", "mass", "velocity")
         return Layer(
@@ -120,6 +162,9 @@ class Datagroup:
         )
 
     def to_pandas(self):
+        """
+        Convert the Datagroup to a pandas DataFrame.
+        """
         import pandas as pd
 
         data = {}
