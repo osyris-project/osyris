@@ -2,9 +2,9 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 import numpy as np
 
-from .vector import Vector
 from .layer import Layer
 from .tools import bytes_to_human_readable
+from .vector import Vector
 
 
 class Datagroup:
