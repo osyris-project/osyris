@@ -2,10 +2,12 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 from copy import copy, deepcopy
 
+import numpy as np
+import pandas as pd
 import pytest
 from common import arrayequal
 
-from osyris import Array, Datagroup
+from osyris import Array, Datagroup, Vector
 
 
 def test_datagroup_creation():
@@ -201,3 +203,21 @@ def test_can_share_arrays_between_datagroups():
     dg2["a2"] /= 10.0
     assert arrayequal(dg1["a1"], Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m"))
     assert arrayequal(dg2["a2"], Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m"))
+
+
+def test_convert_to_pandas():
+    a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="s")
+    x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="cm")
+    y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="cm")
+    z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="cm")
+    v = Vector(x=x, y=y, z=z)
+    dg = Datagroup({"a": a, "b": b, "v": v})
+    df = dg.to_pandas()
+    assert isinstance(df, pd.DataFrame)
+    assert np.array_equal(df["a"], a.values)
+    assert np.array_equal(df["b"], b.values)
+    assert np.array_equal(df["v_x"], x.values)
+    assert np.array_equal(df["v_y"], y.values)
+    assert np.array_equal(df["v_z"], z.values)
+    assert np.array_equal(df["v"], v.norm.values)

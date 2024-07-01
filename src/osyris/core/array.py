@@ -93,6 +93,9 @@ class Array(Base):
 
     @property
     def values(self):
+        """
+        The values of the array.
+        """
         if not self._array.shape:
             return self._array[()]
         else:
@@ -104,6 +107,9 @@ class Array(Base):
 
     @property
     def unit(self):
+        """
+        The unit of the array.
+        """
         return self._unit
 
     @unit.setter
@@ -112,18 +118,30 @@ class Array(Base):
 
     @property
     def norm(self):
+        """
+        The norm of the array (just returns itself).
+        """
         return self
 
     @property
     def ndim(self):
+        """
+        The number of dimensions of the array.
+        """
         return self._array.ndim
 
     @property
     def shape(self):
+        """
+        The shape of the array.
+        """
         return self._array.shape
 
     @property
     def dtype(self):
+        """
+        The dtype of the array.
+        """
         return self._array.dtype
 
     def __add__(self, other):
@@ -193,6 +211,9 @@ class Array(Base):
         return np.logical_not(self)
 
     def to(self, unit):
+        """
+        Convert the array to a new unit.
+        """
         new_unit = units(unit)
         if self.unit == new_unit:
             return self
@@ -248,8 +269,19 @@ class Array(Base):
             return self.__class__(values=result, unit=unit)
 
     def reshape(self, *shape):
+        """
+        Reshape the array.
+
+        Parameters
+        ----------
+        shape : tuple
+            The new shape of the array.
+        """
         return self.__class__(values=self._array.reshape(*shape), unit=self.unit)
 
     @property
     def nbytes(self):
+        """
+        The number of bytes used by the array.
+        """
         return self._array.nbytes

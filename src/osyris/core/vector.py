@@ -105,12 +105,18 @@ class Vector(Base):
             return str(self.norm) + comps_str
 
     def copy(self):
+        """
+        Create a (deep) copy of the vector.
+        """
         return self.__class__(
             **{c: xyz.copy() for c, xyz in self._xyz.items()}, name=str(self._name)
         )
 
     @property
     def norm(self):
+        """
+        Compute the norm of the vector.
+        """
         if (self.y is None) and (self.z is None):
             return self.x
         out = self.x.values * self.x.values
@@ -121,6 +127,9 @@ class Vector(Base):
 
     @property
     def unit(self):
+        """
+        The unit of the vector.
+        """
         return self.x.unit
 
     @unit.setter
@@ -134,10 +143,17 @@ class Vector(Base):
 
     @property
     def ndim(self):
+        """
+        The number of dimensions of the vector array
+        (this is not the same as the number of components).
+        """
         return self.x.ndim
 
     @property
     def nvec(self):
+        """
+        The number of components of the vector.
+        """
         if (self.y is None) and (self.z is None):
             return 1
         if self.z is None:
@@ -146,14 +162,24 @@ class Vector(Base):
 
     @property
     def shape(self):
+        """
+        The shape of the vector array
+        (this is not the same as the shape of the components).
+        """
         return self.x.shape
 
     @property
     def dtype(self):
+        """
+        The dtype of the vector array.
+        """
         return self.x.dtype
 
     @property
     def name(self):
+        """
+        The name of the vector.
+        """
         return self._name
 
     @name.setter
@@ -235,6 +261,9 @@ class Vector(Base):
         return np.logical_not(self)
 
     def to(self, unit):
+        """
+        Convert the vector to a new unit.
+        """
         return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
     def _wrap_numpy(self, func, *args, **kwargs):
@@ -255,21 +284,38 @@ class Vector(Base):
         return self.__class__(**out)
 
     def reshape(self, *shape):
+        """
+        Reshape the vector arrays.
+
+        Parameters
+        ----------
+        shape : tuple
+            The new shape of the vector arrays.
+        """
         return self.__class__(
             **{c: xyz.reshape(*shape) for c, xyz in self._xyz.items()}
         )
 
     @property
     def nbytes(self):
+        """
+        The number of bytes used by the vector.
+        """
         return np.sum([xyz.nbytes for xyz in self._xyz.values()])
 
     def dot(self, other):
+        """
+        Compute the dot product of two vectors.
+        """
         out = np.zeros(self.shape)
         for c1, c2 in zip(self._xyz.values(), other._xyz.values()):
             out += (c1 * c2).values
         return Array(values=out, unit=self.unit * other.unit)
 
     def cross(self, other):
+        """
+        Compute the cross product of two vectors.
+        """
         x = self.y * other.z
         x -= self.z * other.y
         y = self.z * other.x
