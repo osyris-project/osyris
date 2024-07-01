@@ -4,6 +4,7 @@ numpy
 sphinx
 nbsphinx
 jupyter
+pandas
 pint
 pythreejs
 sphinx-copybutton
