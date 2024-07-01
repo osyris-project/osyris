@@ -59,13 +59,21 @@ Data structures
 
    data_structures
 
-Loading data
-============
+Loading Ramses data
+===================
 
 .. toctree::
    :maxdepth: 2
 
    loading_data
+
+Custom datasets
+===================
+
+.. toctree::
+   :maxdepth: 2
+
+   custom_datasets
 
 Plotting: 1D and 2D data
 ========================
