@@ -9,6 +9,7 @@ from .base import Base
 from .tools import value_to_string
 
 APPLY_OP_TO_UNIT = ("multiply", "true_divide", "divide", "sqrt", "power", "reciprocal")
+NO_UNIT_IN_RESULT = ("argmin", "argmax", "argpartition", "argsort")
 
 
 def _binary_op(op, lhs, rhs, strict=True, **kwargs):
@@ -253,13 +254,13 @@ class Array(Base):
         result = func(*array_args, **self._extract_arrays_from_kwargs(kwargs))
 
         unit = None
-        if result.dtype in (int, float):
+        if getattr(result, "dtype", None) in (int, float):
             if func.__name__ in APPLY_OP_TO_UNIT:
                 unit = func(
                     *self._extract_units(args),
                     **{key: a for key, a in kwargs.items() if key != "out"},
                 ).units
-            else:
+            elif func.__name__ not in NO_UNIT_IN_RESULT:
                 unit = self.unit
 
         if "out" in kwargs:

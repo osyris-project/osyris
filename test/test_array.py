@@ -817,3 +817,18 @@ def test_numpy_divide_with_float():
     result = np.divide(b, a)
     assert np.array_equal(result.values, expected)
     assert result.unit == units("1/m")
+
+
+def test_numpy_array_methods():
+    a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    assert arrayequal(a.mean(), Array(values=3.0, unit="m"))
+    assert arrayclose(a.std(), Array(values=1.41421356, unit="m"))
+    assert arrayequal(a.sum(), Array(values=15.0, unit="m"))
+    assert arrayequal(a.prod(), Array(values=120.0, unit="m"))
+    assert arrayequal(a.cumsum(), Array(values=[1.0, 3.0, 6.0, 10.0, 15.0], unit="m"))
+    assert arrayequal(a.cumprod(), Array(values=[1.0, 2.0, 6.0, 24.0, 120.0], unit="m"))
+    assert arrayequal(a.min(), Array(values=1.0, unit="m"))
+    assert arrayequal(a.max(), Array(values=5.0, unit="m"))
+    assert arrayequal(a.argmin(), Array(values=0, unit="dimensionless"))
+    assert arrayequal(a.argmax(), Array(values=4, unit="dimensionless"))
+    assert arrayequal(a.ptp(), Array(values=4.0, unit="m"))
