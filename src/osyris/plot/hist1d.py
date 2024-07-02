@@ -11,7 +11,7 @@ from .parser import parse_layer
 from .render import render
 
 
-def histogram1d(
+def hist1d(
     *layers: Union[Iterable, Array],
     bins: Union[int, Iterable] = 50,
     weights: Array = None,
@@ -38,7 +38,9 @@ def histogram1d(
     :param layers: Dicts or Arrays representing the quantities to be mapped onto the
         colormap of the generated image.
 
-    :param bins: The number of bins to use. Default is 50.
+    :param bins: The number of bins to use. Default is 50. Can also be an array of
+        bin edges. If a single integer is passed, the bin edges are determined
+        automatically.
 
     :param weights: An array of the same length as the data, representing the weights
         of each data point. Default is ``None``, meaning all weights are 1.
