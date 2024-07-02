@@ -138,6 +138,13 @@ def hist2d(
     # Digitize the x and y positions to get bin indices
     x_bin_indices = np.digitize(xvals, xedges) - 1
     y_bin_indices = np.digitize(yvals, yedges) - 1
+    sel = x_bin_indices >= 0
+    sel &= x_bin_indices < len(xedges) - 1
+    sel &= y_bin_indices >= 0
+    sel &= y_bin_indices < len(yedges) - 1
+    x_bin_indices = x_bin_indices[sel]
+    y_bin_indices = y_bin_indices[sel]
+
     counts = np.zeros((len(ycenters), len(xcenters)))
     np.add.at(counts, (y_bin_indices, x_bin_indices), 1)
     mask = counts == 0
@@ -160,7 +167,7 @@ def hist2d(
         )
 
         binned = np.zeros((len(ycenters), len(xcenters)))
-        np.add.at(binned, (y_bin_indices, x_bin_indices), layer.data.norm.values)
+        np.add.at(binned, (y_bin_indices, x_bin_indices), layer.data.norm.values[sel])
 
         if layer.operation == "mean":
             with np.errstate(invalid="ignore"):
