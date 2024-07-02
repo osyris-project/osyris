@@ -38,6 +38,11 @@ def histogram1d(
     :param layers: Dicts or Arrays representing the quantities to be mapped onto the
         colormap of the generated image.
 
+    :param bins: The number of bins to use. Default is 50.
+
+    :param weights: An array of the same length as the data, representing the weights
+        of each data point. Default is ``None``, meaning all weights are 1.
+
     :param logx: If ``True``, use logarithmic scaling on the horizontal axis.
         Default is ``False``.
 
@@ -78,9 +83,11 @@ def histogram1d(
             xmin = finmin(xvals)
             xmax = finmax(xvals)
             if logx:
-                xedges = np.logspace(np.log10(xmin), np.log10(xmax), layer.bins + 1)
+                xedges = np.logspace(
+                    np.log10(xmin), np.nextafter(np.log10(xmax), np.inf), layer.bins + 1
+                )
             else:
-                xedges = np.linspace(xmin, xmax, layer.bins + 1)
+                xedges = np.linspace(xmin, np.nextafter(xmax, np.inf), layer.bins + 1)
         else:
             xedges = layer.bins
 
