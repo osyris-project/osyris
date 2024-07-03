@@ -30,8 +30,8 @@ import numpy as np
 import osyris
 
 data = osyris.RamsesDataset(8, path="data").load()
-osyris.histogram2d(data["mesh"]["density"], data["mesh"]["B_field"],
-                   norm="log", loglog=True)
+osyris.hist2d(data["mesh"]["density"], data["mesh"]["B_field"],
+              norm="log", loglog=True)
 ```
 ![hist2d](https://osyris.readthedocs.io/en/stable/_images/plotting_histograms_13_1.png)
 
