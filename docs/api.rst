@@ -22,8 +22,8 @@ Plotting
 .. autosummary::
    :toctree: generated
 
-   histogram1d
-   histogram2d
+   hist1d
+   hist2d
    map
    plot
    scatter
