@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-""" Osyris: A Python package for the analysis of astrophysical simulations
+"""Osyris: A Python package for the analysis of astrophysical simulations
 
-   isort:skip_file
+isort:skip_file
 """
 
 import importlib.metadata
@@ -12,7 +12,7 @@ from .config import config
 from .units import units
 from .core import Array, Datagroup, Dataset, Plot, Vector, VectorBasis
 from .io import RamsesDataset
-from .plot import histogram1d, histogram2d, map, plot, scatter
+from .plot import hist1d, hist2d, map, plot, scatter
 from .spatial import extract_box, extract_sphere
 
 try:
@@ -32,8 +32,8 @@ __all__ = [
     "RamsesDataset",
     "config",
     "units",
-    "histogram1d",
-    "histogram2d",
+    "hist1d",
+    "hist2d",
     "scatter",
     "map",
     "plot",

@@ -1,55 +1,41 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from typing import Union
+from typing import Iterable, Literal, Union
 
 import numpy as np
-from pint import Quantity
 
 from ..core import Array, Layer, Plot
 from ..core.tools import finmax, finmin, to_bin_centers
 from .parser import get_norm, parse_layer
 from .render import render
-from .utils import hist2d
 
 
-def _parse_limit(limit, x, logx, reduction):
-    autox = False
-    if limit is None:
-        if reduction == "min":
-            limit = finmin(x.values)
-        elif reduction == "max":
-            limit = finmax(x.values)
-        else:
-            raise RuntimeError(
-                f"_parse_limit: unknown reduction operation {reduction}."
-            )
-        autox = True
+def _padded_limits(x: np.ndarray, log: bool, pad: float = 0.05):
+    if log:
+        xmin, xmax = np.log10([x[0], x[-1]])
+        padx = (xmax - xmin) * pad
+        xmin, xmax = 10.0 ** (xmin - padx), 10.0 ** (xmax + padx)
     else:
-        if isinstance(limit, Quantity):
-            limit = limit.to(x.unit.units).magnitude
-        if logx:
-            limit = np.log10(limit)
-    return limit, autox
+        xmin, xmax = x[0], x[-1]
+        padx = (x[-1] - x[0]) * pad
+        xmin, xmax = x[0] - padx, x[-1] + padx
+    return xmin, xmax
 
 
-def histogram2d(
+def hist2d(
     x: Array,
     y: Array,
     *layers,
+    bins: Union[int, Iterable, tuple] = 256,
     mode: str = None,
     logx: bool = False,
     logy: bool = False,
     loglog: bool = False,
     norm: str = None,
     filename: str = None,
-    resolution: Union[int, dict] = 256,
-    operation: str = "sum",
+    operation: Literal["sum", "mean"] = "sum",
     title: str = None,
-    xmin: float = None,
-    xmax: float = None,
-    ymin: float = None,
-    ymax: float = None,
     vmin: float = None,
     vmax: float = None,
     plot: bool = True,
@@ -68,6 +54,11 @@ def histogram2d(
 
     :param layers: Dicts or Arrays representing the quantities to be mapped onto the
         colormap of the generated image.
+
+    :param bins: The number of bins to use. Default is 256. Can also be an array of
+        bin edges. If a single integer is passed, the bin edges are determined
+        automatically. Can also be a tuple of two integers or arrays,
+        representing the number of bins in the x and y directions.
 
     :param mode: The rendering mode for the histogram. Possible choices are
         ``'image'``, ``'contourf'``, ``'contour'``, and ``'scatter'``. Default is
@@ -89,24 +80,10 @@ def histogram2d(
     :param filename: If specified, the returned figure is also saved to file.
         Default is ``None``.
 
-    :param resolution: Resolution of the generated map. This can either be an
-        integer or a dict. In the case of an integer, it represents the number of
-        pixels used for the horizontal and vertical dimensions. For a dictionary,
-        the following syntax should be used: ``resolution={'x': 128, 'y': 192}``.
-        Default is ``256``.
-
     :param operation: The operation to apply inside the bins of the histogram.
         Possible values are ``'sum'`` and ``'mean'``. Default is ``'sum'``.
 
     :param title: The title of the figure. Default is ``None``.
-
-    :param xmin: Minimum value for the horizontal axis. Default is ``None``.
-
-    :param xmax: Maximum value for the horizontal axis. Default is ``None``.
-
-    :param ymin: Minimum value for the vertical axis. Default is ``None``.
-
-    :param ymax: Maximum value for the vertical axis. Default is ``None``.
 
     :param vmin: Minimum value for colorbar range. Default is ``None``.
 
@@ -122,72 +99,57 @@ def histogram2d(
 
     x = x.norm
     y = y.norm
+    xvals = x.values
+    yvals = y.values
 
     if loglog:
         logx = logy = True
-    if logx:
-        x = np.log10(x)
-    if logy:
-        y = np.log10(y)
 
-    nx = resolution
-    ny = resolution
+    xbins, ybins = (bins, bins) if isinstance(bins, int) else bins
 
-    xmin, autoxmin = _parse_limit(xmin, x, logx, "min")
-    xmax, autoxmax = _parse_limit(xmax, x, logx, "max")
-    ymin, autoymin = _parse_limit(ymin, y, logy, "min")
-    ymax, autoymax = _parse_limit(ymax, y, logy, "max")
-
-    # Protect against empty plots if xmin==xmax or ymin==ymax
-    if xmin == xmax:
-        if xmin == 0.0:
-            xmin = -0.1
-            xmax = 0.1
+    # Construct bin edges
+    edges = []
+    for axis, binning in zip([xvals, yvals], [xbins, ybins]):
+        if isinstance(binning, int):
+            xmin = finmin(axis)
+            xmax = finmax(axis)
+            if logx:
+                edges.append(
+                    np.logspace(
+                        np.log10(xmin),
+                        np.nextafter(np.log10(xmax), np.inf),
+                        binning + 1,
+                    )
+                )
+            else:
+                edges.append(np.linspace(xmin, np.nextafter(xmax, np.inf), binning + 1))
         else:
-            xmin = xmin - 0.05 * abs(xmin)
-            xmax = xmax + 0.05 * abs(xmax)
-    if ymin == ymax:
-        if ymin == 0.0:
-            ymin = -0.1
-            ymax = 0.1
-        else:
-            ymin = ymin - 0.05 * abs(ymin)
-            ymax = ymax + 0.05 * abs(ymax)
+            edges.append(binning)
 
-    dx = xmax - xmin
-    dy = ymax - ymin
-    if autoxmin:
-        xmin = xmin - 0.05 * dx
-    if autoxmax:
-        xmax = xmax + 0.05 * dx
-    if autoymin:
-        ymin = ymin - 0.05 * dy
-    if autoymax:
-        ymax = ymax + 0.05 * dy
+    xedges, yedges = edges
 
-    # Construct some bin edges and centers
-    if logx:
-        xedges = np.logspace(xmin, xmax, nx + 1)
-    else:
-        xedges = np.linspace(xmin, xmax, nx + 1)
-    if logy:
-        yedges = np.logspace(ymin, ymax, ny + 1)
-    else:
-        yedges = np.linspace(ymin, ymax, ny + 1)
     xcenters = to_bin_centers(xedges)
     ycenters = to_bin_centers(yedges)
-
-    to_render = []
-    to_process = []
-    operations = []
-
-    xvals = x.values
-    yvals = y.values
 
     # If no layers are defined, make a layer for counting cells
     if len(layers) == 0:
         layers = [Layer(Array(values=np.ones_like(xvals), name="counts"))]
 
+    # Digitize the x and y positions to get bin indices
+    x_bin_indices = np.digitize(xvals, xedges) - 1
+    y_bin_indices = np.digitize(yvals, yedges) - 1
+    sel = x_bin_indices >= 0
+    sel &= x_bin_indices < len(xedges) - 1
+    sel &= y_bin_indices >= 0
+    sel &= y_bin_indices < len(yedges) - 1
+    x_bin_indices = x_bin_indices[sel]
+    y_bin_indices = y_bin_indices[sel]
+
+    counts = np.zeros((len(ycenters), len(xcenters)))
+    np.add.at(counts, (y_bin_indices, x_bin_indices), 1)
+    mask = counts == 0
+
+    to_render = []
     for layer in layers:
         if isinstance(layer, Array):
             layer = Layer(layer)
@@ -203,36 +165,23 @@ def histogram2d(
         layer.kwargs.update(
             norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
         )
-        to_process.append(layer.data.norm.values)
+
+        binned = np.zeros((len(ycenters), len(xcenters)))
+        np.add.at(binned, (y_bin_indices, x_bin_indices), layer.data.norm.values[sel])
+
+        if layer.operation == "mean":
+            with np.errstate(invalid="ignore"):
+                binned /= counts
+
         to_render.append(
             {
                 "mode": layer.mode,
                 "params": layer.kwargs,
                 "unit": layer.data.unit,
                 "name": layer.data.name,
+                "data": np.ma.masked_where(mask, binned),
             }
         )
-        operations.append(layer.operation)
-
-    # Send to numba histogramming
-    binned, counts = hist2d(
-        x=xvals,
-        y=yvals,
-        values=np.array(to_process),
-        xmin=xmin,
-        xmax=xmax,
-        nx=nx,
-        ymin=ymin,
-        ymax=ymax,
-        ny=ny,
-    )
-
-    mask = counts == 0
-    for ind in range(len(to_process)):
-        if operations[ind] == "mean":
-            with np.errstate(invalid="ignore"):
-                binned[ind, ...] /= counts
-        to_render[ind]["data"] = np.ma.masked_where(mask, binned[ind, ...])
 
     to_return = {
         "x": xcenters,
@@ -248,6 +197,10 @@ def histogram2d(
         figure["ax"].set_xlabel(x.label)
         figure["ax"].set_ylabel(y.label)
         figure["ax"].set_title(title)
+
+        figure["ax"].set_xlim(*_padded_limits(xedges, logx))
+        figure["ax"].set_ylim(*_padded_limits(yedges, logy))
+
         to_return.update({"fig": figure["fig"], "ax": figure["ax"]})
 
     return Plot(**to_return)
