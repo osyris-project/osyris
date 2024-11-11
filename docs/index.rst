@@ -4,7 +4,7 @@ Osyris - Visualization for Ramses
 
 Osyris is a python utility to read, manipulate and visualize simulation data
 created by the astrophysical software
-`Ramses <https://bitbucket.org/rteyssie/ramses>`_.
+`Ramses <https://github.com/ramses-organisation/ramses>`_.
 Osyris provides automatic handling of physical units,
 loading of sub-regions inside a large simulation,
 and enables the production of publication grade figures.
