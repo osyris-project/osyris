@@ -53,8 +53,13 @@ class SinkReader:
                 else:
                     unit_list.append(eval(u.replace(" ", "*")))
 
-        sink = Datagroup()
         for i, (key, unit) in enumerate(zip(key_list, unit_list)):
-            sink[key] = Array(values=sink_data[:, i] * unit.magnitude, unit=unit.units)
+            if sink_data.shape[1] == 0:
+                # No sinks were formed
+                sink[key] = Array(values=np.array([], dtype=float), unit=unit.units)
+            else:
+                sink[key] = Array(
+                    values=sink_data[:, i] * unit.magnitude, unit=unit.units
+                )
         utils.make_vector_arrays(sink, ndim=meta["ndim"])
         return sink
