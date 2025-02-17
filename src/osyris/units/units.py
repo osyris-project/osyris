@@ -1,8 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
-from pint import Quantity, Unit, UnitRegistry
-from pint import compat
+from pint import Quantity, Unit, UnitRegistry, compat
 
 from .. import config
 
