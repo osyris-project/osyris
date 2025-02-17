@@ -2,6 +2,7 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 from pint import Quantity, Unit, UnitRegistry
+from pint import compat
 
 from .. import config
 
@@ -23,3 +24,7 @@ class Units:
 
 
 units = Units()
+
+# Add compatibility for upcasting
+compat.upcast_type_map["osyris.core.array.Array"] = None
+compat.upcast_type_map["osyris.core.array.Vector"] = None

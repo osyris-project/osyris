@@ -103,6 +103,13 @@ def test_addition_quantity():
     assert arrayclose(a + b, expected)
 
 
+def test_addition_quantity_rhs():
+    a = 3.5 * units("m")
+    b = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    expected = Array(values=[4.5, 5.5, 6.5, 7.5, 8.5], unit="m")
+    assert arrayclose(a + b, expected)
+
+
 def test_addition_inplace():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
@@ -139,6 +146,13 @@ def test_subtraction_quantity():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = 3.5 * units("m")
     expected = Array(values=[-2.5, -1.5, -0.5, 0.5, 1.5], unit="m")
+    assert arrayclose(a - b, expected)
+
+
+def test_subtraction_quantity_rhs():
+    a = 3.5 * units("m")
+    b = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    expected = Array(values=[2.5, 1.5, 0.5, -0.5, -1.5], unit="m")
     assert arrayclose(a - b, expected)
 
 
@@ -191,6 +205,13 @@ def test_multiplication_ndarray():
 def test_multiplication_quantity():
     a = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     b = 3.5 * units("s")
+    expected = Array(values=[3.5, 7.0, 10.5, 14.0, 17.5], unit="m*s")
+    assert arrayclose(a * b, expected)
+
+
+def test_multiplication_quantity_rhs():
+    a = 3.5 * units("s")
+    b = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     expected = Array(values=[3.5, 7.0, 10.5, 14.0, 17.5], unit="m*s")
     assert arrayclose(a * b, expected)
 
@@ -258,6 +279,13 @@ def test_division_quantity():
     a = Array(values=[0.0, 2.0, 4.0, 6.0, 200.0], unit="s")
     b = 2.0 * units("s")
     expected = Array(values=[0.0, 1.0, 2.0, 3.0, 100.0], unit="dimensionless")
+    assert arrayclose(a / b, expected)
+
+
+def test_division_quantity_rhs():
+    a = 2.0 * units("s")
+    b = Array(values=[1.0, 2.0, 4.0, 6.0, 200.0], unit="s")
+    expected = Array(values=[2.0, 1.0, 0.5, 1.0 / 3.0, 0.01], unit="dimensionless")
     assert arrayclose(a / b, expected)
 
 
