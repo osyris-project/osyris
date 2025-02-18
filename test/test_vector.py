@@ -87,8 +87,10 @@ def test_addition():
     y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
     v = Vector(x, y, z)
-    expected = Vector(x=x + x, y=y + y, z=z + z)
-    assert vectorequal(v + v, expected)
+    w = Vector(y, x, z)
+    expected = Vector(x=x + y, y=y + x, z=z + z)
+    assert vectorequal(v + w, expected)
+    assert vectorequal(w + v, expected)
 
 
 def test_addition_array():
@@ -98,6 +100,7 @@ def test_addition_array():
     v = Vector(x, y, z)
     expected = Vector(x=x + x, y=y + x, z=z + x)
     assert vectorequal(v + x, expected)
+    assert vectorequal(x + v, expected)
 
 
 def test_addition_quantity():
@@ -108,6 +111,7 @@ def test_addition_quantity():
     q = 3.5 * units("m")
     expected = Vector(x=x + q, y=y + q, z=z + q)
     assert vectorequal(v + q, expected)
+    assert vectorequal(q + v, expected)
 
 
 def test_addition_inplace():
@@ -147,8 +151,10 @@ def test_subtraction():
     y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
     v = Vector(x, y, z)
-    expected = Vector(x=x - x, y=y - y, z=z - z)
-    assert vectorequal(v - v, expected)
+    w = Vector(y, x, z)
+    expected = Vector(x=x - y, y=y - x, z=z - z)
+    assert vectorequal(v - w, expected)
+    assert vectorequal(w - v, -expected)
 
 
 def test_subtraction_array():
@@ -158,6 +164,7 @@ def test_subtraction_array():
     v = Vector(x, y, z)
     expected = Vector(x=x - x, y=y - x, z=z - x)
     assert vectorequal(v - x, expected)
+    assert vectorequal(x - v, -expected)
 
 
 def test_subtraction_quantity():
@@ -168,6 +175,7 @@ def test_subtraction_quantity():
     q = 3.5 * units("m")
     expected = Vector(x=x - q, y=y - q, z=z - q)
     assert vectorequal(v - q, expected)
+    assert vectorequal(q - v, -expected)
 
 
 def test_subtraction_inplace():
@@ -207,8 +215,10 @@ def test_multiplication():
     y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
     v = Vector(x, y, z)
-    expected = Vector(x=x * x, y=y * y, z=z * z)
-    assert vectorequal(v * v, expected)
+    w = Vector(z, x, y)
+    expected = Vector(x=x * z, y=y * x, z=z * y)
+    assert vectorequal(v * w, expected)
+    assert vectorequal(w * v, expected)
 
 
 def test_multiplication_array():
@@ -240,6 +250,7 @@ def test_multiplication_ndarray():
     a = np.arange(5.0)
     expected = Vector(x=x * a, y=y * a, z=z * a)
     assert vectorequal(v * a, expected)
+    assert vectorequal(a * v, expected)
 
 
 def test_multiplication_quantity():
@@ -250,6 +261,7 @@ def test_multiplication_quantity():
     q = 3.5 * units("m")
     expected = Vector(x=x * q, y=y * q, z=z * q)
     assert vectorequal(v * q, expected)
+    assert vectorequal(q * v, expected)
 
 
 def test_multiplication_inplace():
@@ -315,6 +327,8 @@ def test_division():
     v2 = Vector(w, y, w)
     expected = Vector(x=x / w, y=y / y, z=z / w)
     assert vectorequal(v1 / v2, expected)
+    expected = Vector(x=w / x, y=y / y, z=w / z)
+    assert vectorequal(v2 / v1, expected)
 
 
 def test_division_array():
@@ -324,6 +338,8 @@ def test_division_array():
     v = Vector(x, y, z)
     expected = Vector(x=x / x, y=y / x, z=z / x)
     assert vectorequal(v / x, expected)
+    expected = Vector(x=x / x, y=x / y, z=x / z)
+    assert vectorequal(x / v, expected)
 
 
 def test_division_float():
@@ -334,6 +350,8 @@ def test_division_float():
     f = 3.5
     expected = Vector(x=x / f, y=y / f, z=z / f)
     assert vectorequal(v / f, expected)
+    expected = Vector(x=f / x, y=f / y, z=f / z)
+    assert vectorequal(f / v, expected)
 
 
 def test_division_ndarray():
@@ -344,6 +362,8 @@ def test_division_ndarray():
     a = np.arange(3.0, 8.0)
     expected = Vector(x=x / a, y=y / a, z=z / a)
     assert vectorequal(v / a, expected)
+    expected = Vector(x=a / x, y=a / y, z=a / z)
+    assert vectorequal(a / v, expected)
 
 
 def test_division_quantity():
@@ -354,6 +374,8 @@ def test_division_quantity():
     q = 3.5 * units("m")
     expected = Vector(x=x / q, y=y / q, z=z / q)
     assert vectorequal(v / q, expected)
+    expected = Vector(x=q / x, y=q / y, z=q / z)
+    assert vectorequal(q / v, expected)
 
 
 def test_division_inplace():
@@ -410,36 +432,6 @@ def test_division_quantity_inplace():
     expected = Vector(x=x / q, y=y / q, z=z / q)
     v /= q
     assert vectorequal(v, expected)
-
-
-def test_rdivision_array():
-    x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
-    y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
-    z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
-    v = Vector(x, y, z)
-    a = Array(values=[21.0, 22.0, 23.0, 24.0, 25.0], unit="s")
-    expected = Vector(x=a / x, y=a / y, z=a / z)
-    assert vectorclose(a / v, expected)
-
-
-def test_rdivision_float():
-    x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
-    y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
-    z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
-    v = Vector(x, y, z)
-    f = 3.5
-    expected = Vector(x=f / x, y=f / y, z=f / z)
-    assert vectorclose(f / v, expected)
-
-
-# def test_division_ndarray():
-#     x = Array(values=[1., 2., 3., 4., 5.], unit='m')
-#     y = Array(values=[6., 7., 8., 9., 10.], unit='m')
-#     z = Array(values=[11., 12., 13., 14., 15.], unit='m')
-#     v = Vector(x, y, z)
-#     a = np.arange(3., 8.)
-#     expected = Vector(x=a / x, y=a / y, z=a / z)
-#     assert vectorclose(a / v, expected)
 
 
 def test_norm():
@@ -853,3 +845,14 @@ def test_numpy_binary():
     assert np.allclose(result.y.values, exp_y)
     assert np.allclose(result.z.values, exp_z)
     assert result.unit == units("m")
+
+
+def test_numpy_vstack():
+    x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
+    y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
+    z = Array(values=[11.0, 12.0, 13.0, 14.0, 15.0], unit="m")
+    v = Vector(x, y, z)
+    w = Vector(y, x, z)
+    result = np.vstack([v, w])
+    assert vectorequal(result[0], v)
+    assert vectorequal(result[1], w)

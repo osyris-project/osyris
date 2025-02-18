@@ -26,4 +26,4 @@ units = Units()
 
 # Add compatibility for upcasting
 compat.upcast_type_map["osyris.core.array.Array"] = None
-compat.upcast_type_map["osyris.core.array.Vector"] = None
+compat.upcast_type_map["osyris.core.vector.Vector"] = None
