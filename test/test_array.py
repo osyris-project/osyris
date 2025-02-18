@@ -78,6 +78,7 @@ def test_addition():
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     expected = Array(values=[7.0, 9.0, 11.0, 13.0, 15.0], unit="m")
     assert arrayclose(a + b, expected)
+    assert arrayclose(b + a, expected)
 
 
 def test_addition_conversion():
@@ -85,6 +86,8 @@ def test_addition_conversion():
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="cm")
     expected = Array(values=[1.06, 2.07, 3.08, 4.09, 5.1], unit="m")
     assert arrayclose(a + b, expected)
+    expected = Array(values=[106.0, 207.0, 308.0, 409.0, 510.0], unit="cm")
+    assert arrayclose(b + a, expected)
 
 
 def test_addition_bad_units():
@@ -101,6 +104,7 @@ def test_addition_quantity():
     b = 3.5 * units("m")
     expected = Array(values=[4.5, 5.5, 6.5, 7.5, 8.5], unit="m")
     assert arrayclose(a + b, expected)
+    assert arrayclose(b + a, expected)
 
 
 def test_addition_inplace():
@@ -124,6 +128,8 @@ def test_subtraction():
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     expected = Array(values=[5.0, 5.0, 5.0, 5.0, 5.0], unit="m")
     assert arrayclose(b - a, expected)
+    expected = Array(values=[-5.0, -5.0, -5.0, -5.0, -5.0], unit="m")
+    assert arrayclose(a - b, expected)
 
 
 def test_subtraction_bad_units():
@@ -140,6 +146,8 @@ def test_subtraction_quantity():
     b = 3.5 * units("m")
     expected = Array(values=[-2.5, -1.5, -0.5, 0.5, 1.5], unit="m")
     assert arrayclose(a - b, expected)
+    expected = Array(values=[2.5, 1.5, 0.5, -0.5, -1.5], unit="m")
+    assert arrayclose(b - a, expected)
 
 
 def test_subtraction_inplace():
@@ -163,6 +171,7 @@ def test_multiplication():
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
     expected = Array(values=[6.0, 14.0, 24.0, 36.0, 50.0], unit="m*m")
     assert arrayclose(a * b, expected)
+    assert arrayclose(b * a, expected)
 
 
 def test_multiplication_conversion():
@@ -170,6 +179,8 @@ def test_multiplication_conversion():
     b = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="cm")
     expected = Array(values=[0.06, 0.14, 0.24, 0.36, 0.5], unit="m*m")
     assert arrayclose(a * b, expected)
+    expected = Array(values=[600.0, 1400.0, 2400.0, 3600.0, 5000.0], unit="cm*cm")
+    assert arrayclose(b * a, expected)
 
 
 def test_multiplication_float():
@@ -193,6 +204,7 @@ def test_multiplication_quantity():
     b = 3.5 * units("s")
     expected = Array(values=[3.5, 7.0, 10.5, 14.0, 17.5], unit="m*s")
     assert arrayclose(a * b, expected)
+    assert arrayclose(b * a, expected)
 
 
 def test_multiplication_inplace():
@@ -250,15 +262,19 @@ def test_division_ndarray():
         values=[1.0 / 5.0, 2.0 / 6.0, 3.0 / 7.0, 4.0 / 8.0, 5.0 / 9.0], unit="s"
     )
     assert arrayclose(a / b, expected)
-    # expected = Array(values=[3., 3. / 2., 1., 3. / 4., 3. / 5.], unit='1/s')
-    # assert arrayclose(b / a, expected)
+    expected = Array(
+        values=[5.0, 6.0 / 2.0, 7.0 / 3.0, 8.0 / 4.0, 9.0 / 5.0], unit="1/s"
+    )
+    assert arrayclose(b / a, expected)
 
 
 def test_division_quantity():
-    a = Array(values=[0.0, 2.0, 4.0, 6.0, 200.0], unit="s")
+    a = Array(values=[1.0, 2.0, 4.0, 6.0, 200.0], unit="s")
     b = 2.0 * units("s")
-    expected = Array(values=[0.0, 1.0, 2.0, 3.0, 100.0], unit="dimensionless")
+    expected = Array(values=[0.5, 1.0, 2.0, 3.0, 100.0], unit="dimensionless")
     assert arrayclose(a / b, expected)
+    expected = Array(values=[2.0, 1.0, 0.5, 1.0 / 3.0, 0.01], unit="dimensionless")
+    assert arrayclose(b / a, expected)
 
 
 def test_division_inplace():
@@ -285,8 +301,6 @@ def test_division_ndarray_inplace():
     )
     a /= b
     assert arrayclose(a, expected)
-    # expected = Array(values=[3., 3. / 2., 1., 3. / 4., 3. / 5.], unit='1/s')
-    # assert arrayclose(b / a, expected)
 
 
 def test_division_quantity_inplace():

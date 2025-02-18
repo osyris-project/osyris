@@ -31,19 +31,6 @@ def normalize(v):
     return v / (nvals or 1)
 
 
-def _binary_op(op, lhs, rhs):
-    if isinstance(rhs, (int, float, np.ndarray, Quantity)):
-        rhs = Array(values=rhs)
-    if isinstance(rhs, Array):
-        rhs = lhs.__class__(**{c: rhs for c in lhs._xyz.keys()})
-    if lhs.nvec != rhs.nvec:
-        raise ValueError("Operands do not have the same number of components.")
-
-    return lhs.__class__(
-        **{c: getattr(xyz, op)(getattr(rhs, c)) for c, xyz in lhs._xyz.items()}
-    )
-
-
 class Vector(Base):
     def __init__(self, x, y=None, z=None, name="", unit=None):
         if isinstance(x, Array):
@@ -188,29 +175,44 @@ class Vector(Base):
         for c, xyz in self._xyz.items():
             xyz.name = self._name + "_" + c
 
+    def _to_vector(self, x):
+        if isinstance(x, (int, float, np.ndarray, Quantity)):
+            x = Array(values=x)
+        if isinstance(x, Array):
+            x = self.__class__(**{c: x for c in self._xyz.keys()})
+        return x
+
+    def _binary_op(self, op, other):
+        other = self._to_vector(other)
+        if self.nvec != other.nvec:
+            raise ValueError("Operands do not have the same number of components.")
+        return self.__class__(
+            **{c: getattr(xyz, op)(getattr(other, c)) for c, xyz in self._xyz.items()}
+        )
+
     def __add__(self, other):
-        return _binary_op("__add__", self, other)
+        return self._binary_op("__add__", other)
 
     def __iadd__(self, other):
-        return _binary_op("__iadd__", self, other)
+        return self._binary_op("__iadd__", other)
 
     def __sub__(self, other):
-        return _binary_op("__sub__", self, other)
+        return self._binary_op("__sub__", other)
 
     def __isub__(self, other):
-        return _binary_op("__isub__", self, other)
+        return self._binary_op("__isub__", other)
 
     def __mul__(self, other):
-        return _binary_op("__mul__", self, other)
+        return self._binary_op("__mul__", other)
 
     def __imul__(self, other):
-        return _binary_op("__imul__", self, other)
+        return self._binary_op("__imul__", other)
 
     def __truediv__(self, other):
-        return _binary_op("__truediv__", self, other)
+        return self._binary_op("__truediv__", other)
 
     def __itruediv__(self, other):
-        return _binary_op("__itruediv__", self, other)
+        return self._binary_op("__itruediv__", other)
 
     def __rmul__(self, other):
         return self * other
@@ -231,31 +233,31 @@ class Vector(Base):
         return self.__class__(**{c: -xyz for c, xyz in self._xyz.items()})
 
     def __lt__(self, other):
-        return _binary_op("__lt__", self, other)
+        return self._binary_op("__lt__", other)
 
     def __le__(self, other):
-        return _binary_op("__le__", self, other)
+        return self._binary_op("__le__", other)
 
     def __gt__(self, other):
-        return _binary_op("__gt__", self, other)
+        return self._binary_op("__gt__", other)
 
     def __ge__(self, other):
-        return _binary_op("__ge__", self, other)
+        return self._binary_op("__ge__", other)
 
     def __eq__(self, other):
-        return _binary_op("__eq__", self, other)
+        return self._binary_op("__eq__", other)
 
     def __ne__(self, other):
-        return _binary_op("__ne__", self, other)
+        return self._binary_op("__ne__", other)
 
     def __and__(self, other):
-        return _binary_op("__and__", self, other)
+        return self._binary_op("__and__", other)
 
     def __or__(self, other):
-        return _binary_op("__or__", self, other)
+        return self._binary_op("__or__", other)
 
     def __xor__(self, other):
-        return _binary_op("__xor__", self, other)
+        return self._binary_op("__xor__", other)
 
     def __invert__(self):
         return np.logical_not(self)
@@ -266,22 +268,31 @@ class Vector(Base):
         """
         return self.__class__(**{c: xyz.to(unit) for c, xyz in self._xyz.items()})
 
+    def _maybe_vector_attr(self, arg, attr):
+        if isinstance(arg, (tuple, list)):
+            return tuple(self._maybe_vector_attr(a, attr) for a in arg)
+        if isinstance(arg, self.__class__):
+            return getattr(arg, attr)
+        return arg
+
     def _wrap_numpy(self, func, *args, **kwargs):
         if isinstance(args[0], (tuple, list)):
-            # Case where we have a sequence of vectors, e.g. `concatenate`
-            out = {
-                c: func(tuple(getattr(a, c) for a in args[0]), *args[1:], **kwargs)
-                for c, xyz in args[0][0]._xyz.items()
-            }
-        elif len(args) > 1 and isinstance(args[1], self.__class__):
-            # Case of a binary operation, with two vectors, e.g. `dot`
-            out = {
-                c: func(xyz, getattr(args[1], c), *args[2:], **kwargs)
-                for c, xyz in args[0]._xyz.items()
-            }
+            arg0 = tuple(self._to_vector(arg) for arg in args[0])
         else:
-            out = {c: func(xyz, *args[1:], **kwargs) for c, xyz in args[0]._xyz.items()}
-        return self.__class__(**out)
+            arg0 = self._to_vector(args[0])
+        _args = (arg0, *[self._to_vector(arg) for arg in args[1:]])
+        _kwargs = {key: self._to_vector(val) for key, val in kwargs.items()}
+        return self.__class__(
+            **{
+                c: func(
+                    *[self._maybe_vector_attr(a, c) for a in _args],
+                    **{
+                        k: self._maybe_vector_attr(kwa, c) for k, kwa in _kwargs.items()
+                    },
+                )
+                for c in self._xyz.keys()
+            }
+        )
 
     def reshape(self, *shape):
         """

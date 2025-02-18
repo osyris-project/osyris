@@ -151,11 +151,17 @@ class Array(Base):
     def __iadd__(self, other):
         return _binary_op(np.add, self, other, out=self)
 
+    def __radd__(self, other):
+        return self + other
+
     def __sub__(self, other):
         return _binary_op(np.subtract, self, other)
 
     def __isub__(self, other):
         return _binary_op(np.subtract, self, other, out=self)
+
+    def __rsub__(self, other):
+        return -(self - other)
 
     def __mul__(self, other):
         return _binary_op(np.multiply, self, other, strict=False)
