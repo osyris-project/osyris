@@ -100,6 +100,13 @@ class Vector(Base):
         )
 
     @property
+    def values(self):
+        """
+        A numpy array with the values of each component
+        """
+        return np.array([xyz.values for c, xyz in self._xyz.items()]).T
+
+    @property
     def norm(self):
         """
         Compute the norm of the vector.
