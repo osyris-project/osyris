@@ -787,7 +787,7 @@ def test_vector_values():
         ]
     )
     assert val.shape == (5, 3)
-    assert np.all(val == expected)
+    assert np.array_equal(val, expected)
 
 
 def test_deepcopy():
