@@ -30,7 +30,7 @@ dependencies = [
     "matplotlib",
     "numba",
     "numpy",
-    "pint",
+    "pint>=0.21.1",
 ]
 
 dynamic = ["version"]
