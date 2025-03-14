@@ -788,7 +788,9 @@ def test_vector_values():
     )
     assert val.shape == (5, 3)
     assert np.array_equal(val, expected)
-
+    assert np.array_equal(val[:, 0], x.values)
+    assert np.array_equal(val[:, 1], y.values)
+    assert np.array_equal(val[:, 2], z.values)
 
 def test_deepcopy():
     x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
