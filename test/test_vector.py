@@ -792,6 +792,7 @@ def test_vector_values():
     assert np.array_equal(val[:, 1], y.values)
     assert np.array_equal(val[:, 2], z.values)
 
+
 def test_deepcopy():
     x = Array(values=[1.0, 2.0, 3.0, 4.0, 5.0], unit="m")
     y = Array(values=[6.0, 7.0, 8.0, 9.0, 10.0], unit="m")
