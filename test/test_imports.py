@@ -2,18 +2,22 @@
 # Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 
-from osyris import *  # noqa: F401, F403
-from osyris.config import *  # noqa: F401, F403
-from osyris.core import *  # noqa: F401, F403
-from osyris.io import *  # noqa: F401, F403
-from osyris.plot import *  # noqa: F401, F403
-from osyris.spatial import *  # noqa: F401, F403
-from osyris.units import *  # noqa: F401, F403
-
-
-def test_imports_star():
+def test_star_import_all():
     """
-    Tests that the package and its submodules can be imported with a star import.
+    Tests if the package can be imported with a star import.
     If failing, check the __init__.py files.
     """
-    pass
+    exec("from osyris import *", {})
+
+
+def test_star_import_submodules():
+    """
+    Tests if the package submodules can be imported with a star import.
+    If failing, check the __init__.py files.
+    """
+    exec("from osyris.config import *", {})
+    exec("from osyris.core import *", {})
+    exec("from osyris.io import *", {})
+    exec("from osyris.plot import *", {})
+    exec("from osyris.spatial import *", {})
+    exec("from osyris.units import *", {})
