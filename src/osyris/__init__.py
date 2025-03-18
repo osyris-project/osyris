@@ -39,6 +39,4 @@ __all__ = [
     "plot",
     "extract_box",
     "extract_sphere",
-    "side_view",
-    "top_view",
 ]
