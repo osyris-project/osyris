@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 # Import the config from "/home/user/.osyris/conf.py if it exists.
 # If it doesn't, try to create one by copying the default from the source.
