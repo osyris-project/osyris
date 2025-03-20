@@ -21,7 +21,7 @@ sys.path.insert(0, src)
 # -- Project information -----------------------------------------------------
 
 project = "osyris"
-copyright = "2024, Osyris contributors"
+copyright = "2025, Osyris contributors"
 author = "Neil Vaytet"
 
 # -- General configuration ---------------------------------------------------
