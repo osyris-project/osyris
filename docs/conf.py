@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -22,7 +21,7 @@ sys.path.insert(0, src)
 # -- Project information -----------------------------------------------------
 
 project = "osyris"
-copyright = "2024, Osyris contributors"
+copyright = "2025, Osyris contributors"
 author = "Neil Vaytet"
 
 # -- General configuration ---------------------------------------------------

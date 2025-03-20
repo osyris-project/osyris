@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Copyright (c) 2024 Osyris contributors (https://github.com/osyris-project/osyris)
 from collections.abc import Iterable
 from typing import Dict, Optional, Union
 
