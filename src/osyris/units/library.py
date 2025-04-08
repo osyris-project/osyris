@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import re
+
 import numpy as np
 
 from .units import units
