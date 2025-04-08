@@ -7,7 +7,6 @@ isort:skip_file
 
 import importlib.metadata
 
-from .config import config
 from .units import units
 from .core import Array, Datagroup, Dataset, Plot, Vector, VectorBasis
 from .io import RamsesDataset

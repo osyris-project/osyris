@@ -66,7 +66,6 @@ class UnitsLibrary:
             "mass": mass,
             "temperature": temperature,
         }
-        # self._library = library
         self._default_unit = default_unit
 
     def __getitem__(self, key):
