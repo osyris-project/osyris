@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 
-from .. import config
 from ..units import UnitsLibrary, units
 from .datagroup import Datagroup
 from .tools import bytes_to_human_readable
@@ -88,11 +87,14 @@ class Dataset:
 
     def set_units(self):
         self.units = UnitsLibrary(
-            library=config.configure_units(
-                units=units,
-                unit_d=self.meta["unit_d"],
-                unit_l=self.meta["unit_l"],
-                unit_t=self.meta["unit_t"],
-            ),
+            unit_d=self.meta["unit_d"],
+            unit_l=self.meta["unit_l"],
+            unit_t=self.meta["unit_t"],
+            # library=config.configure_units(
+            #     units=units,
+            #     unit_d=self.meta["unit_d"],
+            #     unit_l=self.meta["unit_l"],
+            #     unit_t=self.meta["unit_t"],
+            # ),
             default_unit=1.0 * units(""),
         )
