@@ -28,7 +28,6 @@ __all__ = [
     "Vector",
     "VectorBasis",
     "RamsesDataset",
-    "config",
     "units",
     "hist1d",
     "hist2d",
