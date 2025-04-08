@@ -90,11 +90,5 @@ class Dataset:
             unit_d=self.meta["unit_d"],
             unit_l=self.meta["unit_l"],
             unit_t=self.meta["unit_t"],
-            # library=config.configure_units(
-            #     units=units,
-            #     unit_d=self.meta["unit_d"],
-            #     unit_l=self.meta["unit_l"],
-            #     unit_t=self.meta["unit_t"],
-            # ),
             default_unit=1.0 * units(""),
         )
