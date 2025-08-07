@@ -96,4 +96,4 @@ jobs:
       run: |
         python -m build --sdist --wheel --outdir dist/ .
     - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.8.10
+      uses: pypa/gh-action-pypi-publish@v1.12.4
