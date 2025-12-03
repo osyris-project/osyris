@@ -2,13 +2,23 @@
 
 from pint import Quantity, Unit, UnitRegistry, compat
 
-from .. import config
-
 
 class Units:
     def __init__(self):
         self._ureg = UnitRegistry(system="cgs")
-        config.configure_constants(self._ureg)
+
+        # Define some useful constants
+        self._ureg.define("bolometric_luminosity = 3.0128e+28 * W = L_bol0")
+        self._ureg.define("solar_luminosity = 3.828e+26 * W = L_sun = L_sol")
+        self._ureg.define("earth_mass = 5.97216787e+27 * g = M_earth")
+        self._ureg.define("jupiter_mass = 1.8981246e+30 * g = M_jup")
+        self._ureg.define("solar_mass = 1.9889e+33 * g = M_sun = M_sol")
+        self._ureg.define("earth_radius = 6.3781e+08 * cm = R_earth")
+        self._ureg.define("jupiter_radius = 7.1492e+09 * cm = R_jup")
+        self._ureg.define("solar_radius = 6.957e+10 * cm = R_sun = R_sol")
+        self._ureg.define(
+            "radiation_constant = 7.56591469318689378e-015 * erg / cm^3 / K^4 = ar"
+        )
 
     def __call__(self, arg):
         if isinstance(arg, Quantity):
