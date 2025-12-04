@@ -127,13 +127,22 @@ class AmrReader(Reader):
         # Determine bound key precision
         self.offsets["i"] += 5
         self.offsets["s"] += 128
-        [key_size] = utils.read_binary_data(
-            fmt="i",
-            content=self.bytes,
-            offsets=self.offsets,
-            skip_head=False,
-            increment=False,
-        )
+        if info["ordering type"] == "bisection":
+            nbinodes = int(
+                2 ** (np.ceil(np.log(float(info["ncpu"])) / np.log(2.0)) + 1) - 1
+            )
+            self.offsets["i"] += 3 * nbinodes
+            self.offsets["d"] += nbinodes + 2 * info["ncpu"] * info["ndim"]
+            self.offsets["n"] += 5
+            key_size = 0
+        else:
+            [key_size] = utils.read_binary_data(
+                fmt="i",
+                content=self.bytes,
+                offsets=self.offsets,
+                skip_head=False,
+                increment=False,
+            )
 
         # Offset for AMR
         self.offsets["i"] += 3 * ncoarse
