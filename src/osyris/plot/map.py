@@ -56,14 +56,17 @@ def evaluate_on_grid(
     ncells = len(cell_positions_in_new_basis_x)
     diagonal = np.sqrt(ndim)
 
+    has_y = cell_positions_in_original_basis_y is not None
+    has_z = cell_positions_in_original_basis_z is not None
+
     for n in prange(ncells):
         half_size = cell_sizes[n] * diagonal
         current_val = cell_values[:, n]
         current_size = cell_sizes[n]
 
         pos_orig_x = cell_positions_in_original_basis_x[n]
-        pos_orig_y = cell_positions_in_original_basis_y[n]
-        pos_orig_z = cell_positions_in_original_basis_z[n]
+        pos_orig_y = cell_positions_in_original_basis_y[n] if has_y else 0.0
+        pos_orig_z = cell_positions_in_original_basis_z[n] if has_z else 0.0
 
         rel_x = cell_positions_in_new_basis_x[n] - grid_lower_edge_in_new_basis_x
         rel_y = cell_positions_in_new_basis_y[n] - grid_lower_edge_in_new_basis_y
@@ -121,15 +124,17 @@ def evaluate_on_grid(
                     if np.abs(dist_x) > current_size:
                         continue
 
-                    grid_y = x_map * uy + pyz_y
-                    dist_y = grid_y - pos_orig_y
-                    if np.abs(dist_y) > current_size:
-                        continue
+                    if has_y:
+                        grid_y = x_map * uy + pyz_y
+                        dist_y = grid_y - pos_orig_y
+                        if np.abs(dist_y) > current_size:
+                            continue
 
-                    grid_z = x_map * uz + pyz_z
-                    dist_z = grid_z - pos_orig_z
-                    if np.abs(dist_z) > current_size:
-                        continue
+                    if has_z:
+                        grid_z = x_map * uz + pyz_z
+                        dist_z = grid_z - pos_orig_z
+                        if np.abs(dist_z) > current_size:
+                            continue
 
                     out[:, k, j, i] = current_val
 
