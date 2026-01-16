@@ -15,129 +15,100 @@ from .render import render
 from .scatter import scatter
 
 
-@njit(parallel=True)
-def _evaluate_on_grid(
-    cell_positions_in_new_basis_x,
-    cell_positions_in_new_basis_y,
-    cell_positions_in_new_basis_z,
-    cell_positions_in_original_basis_x,
-    cell_positions_in_original_basis_y,
-    cell_positions_in_original_basis_z,
-    cell_values,
-    cell_sizes,
-    grid_lower_edge_in_new_basis_x,
-    grid_lower_edge_in_new_basis_y,
-    grid_lower_edge_in_new_basis_z,
-    grid_spacing_in_new_basis_x,
-    grid_spacing_in_new_basis_y,
-    grid_spacing_in_new_basis_z,
-    grid_positions_in_original_basis,
-    ndim,
-):
-    nz, ny, nx = grid_positions_in_original_basis.shape[:3]
-    diagonal = np.sqrt(ndim)
-    out = np.full(
-        shape=(cell_values.shape[0], nz, ny, nx), fill_value=np.nan, dtype=np.float64
-    )
+@njit(parallel=True, fastmath=True)
+def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_y,
+                     cell_positions_in_new_basis_z, cell_positions_in_original_basis_x,
+                     cell_positions_in_original_basis_y,
+                     cell_positions_in_original_basis_z, cell_values, cell_sizes,
+                     grid_lower_edge_in_new_basis_x, grid_lower_edge_in_new_basis_y,
+                     grid_lower_edge_in_new_basis_z, grid_spacing_in_new_basis_x,
+                     grid_spacing_in_new_basis_y, grid_spacing_in_new_basis_z, nx, ny,
+                     nz, ndim, ux, uy, uz, vx, vy, vz, nx_vec, ny_vec, nz_vec):
+
+    inv_dx = 1.0 / grid_spacing_in_new_basis_x
+    inv_dy = 1.0 / grid_spacing_in_new_basis_y
+    inv_dz = 1.0 / grid_spacing_in_new_basis_z
+
+    out = np.full(shape=(cell_values.shape[0], nz, ny, nx),
+                  fill_value=np.nan,
+                  dtype=np.float64)
 
     ncells = len(cell_positions_in_new_basis_x)
+    diagonal = np.sqrt(ndim)
+
+    has_y = cell_positions_in_original_basis_y is not None
+    has_z = cell_positions_in_original_basis_z is not None
+
     for n in prange(ncells):
         half_size = cell_sizes[n] * diagonal
-        ix1 = max(
-            int(
-                (
-                    (cell_positions_in_new_basis_x[n] - half_size)
-                    - grid_lower_edge_in_new_basis_x
-                )
-                / grid_spacing_in_new_basis_x
-            ),
-            0,
-        )
-        ix2 = min(
-            int(
-                (
-                    (cell_positions_in_new_basis_x[n] + half_size)
-                    - grid_lower_edge_in_new_basis_x
-                )
-                / grid_spacing_in_new_basis_x
-            )
-            + 1,
-            nx,
-        )
-        iy1 = max(
-            int(
-                (
-                    (cell_positions_in_new_basis_y[n] - half_size)
-                    - grid_lower_edge_in_new_basis_y
-                )
-                / grid_spacing_in_new_basis_y
-            ),
-            0,
-        )
-        iy2 = min(
-            int(
-                (
-                    (cell_positions_in_new_basis_y[n] + half_size)
-                    - grid_lower_edge_in_new_basis_y
-                )
-                / grid_spacing_in_new_basis_y
-            )
-            + 1,
-            ny,
-        )
-        iz1 = max(
-            int(
-                (
-                    (cell_positions_in_new_basis_z[n] - half_size)
-                    - grid_lower_edge_in_new_basis_z
-                )
-                / grid_spacing_in_new_basis_z
-            ),
-            0,
-        )
-        iz2 = min(
-            int(
-                (
-                    (cell_positions_in_new_basis_z[n] + half_size)
-                    - grid_lower_edge_in_new_basis_z
-                )
-                / grid_spacing_in_new_basis_z
-            )
-            + 1,
-            nz,
-        )
+        current_val = cell_values[:, n]
+        current_size = cell_sizes[n]
+
+        pos_orig_x = cell_positions_in_original_basis_x[n]
+        pos_orig_y = cell_positions_in_original_basis_y[n] if has_y else 0.0
+        pos_orig_z = cell_positions_in_original_basis_z[n] if has_z else 0.0
+
+        rel_x = cell_positions_in_new_basis_x[n] - grid_lower_edge_in_new_basis_x
+        rel_y = cell_positions_in_new_basis_y[n] - grid_lower_edge_in_new_basis_y
+        rel_z = cell_positions_in_new_basis_z[n] - grid_lower_edge_in_new_basis_z
+
+        ix1 = int((rel_x - half_size) * inv_dx)
+        ix2 = int((rel_x + half_size) * inv_dx) + 1
+        iy1 = int((rel_y - half_size) * inv_dy)
+        iy2 = int((rel_y + half_size) * inv_dy) + 1
+        iz1 = int((rel_z - half_size) * inv_dz)
+        iz2 = int((rel_z + half_size) * inv_dz) + 1
+
+        ix1 = max(ix1, 0)
+        ix2 = min(ix2, nx)
+        iy1 = max(iy1, 0)
+        iy2 = min(iy2, ny)
+        iz1 = max(iz1, 0)
+        iz2 = min(iz2, nz)
 
         for k in range(iz1, iz2):
-            for j in range(iy1, iy2):
-                for i in range(ix1, ix2):
-                    ok_x = (
-                        np.abs(
-                            grid_positions_in_original_basis[k, j, i, 0]
-                            - cell_positions_in_original_basis_x[n]
-                        )
-                        <= cell_sizes[n]
-                    )
-                    ok_y = True
-                    if cell_positions_in_original_basis_y is not None:
-                        ok_y = (
-                            np.abs(
-                                grid_positions_in_original_basis[k, j, i, 1]
-                                - cell_positions_in_original_basis_y[n]
-                            )
-                            <= cell_sizes[n]
-                        )
-                    ok_z = True
-                    if cell_positions_in_original_basis_z is not None:
-                        ok_z = (
-                            np.abs(
-                                grid_positions_in_original_basis[k, j, i, 2]
-                                - cell_positions_in_original_basis_z[n]
-                            )
-                            <= cell_sizes[n]
-                        )
+            # get z coords
+            z_map = grid_lower_edge_in_new_basis_z + (k +
+                                                      0.5) * grid_spacing_in_new_basis_z
 
-                    if ok_x and ok_y and ok_z:
-                        out[:, k, j, i] = cell_values[:, n]
+            pz_x = z_map * nx_vec
+            pz_y = z_map * ny_vec
+            pz_z = z_map * nz_vec
+
+            for j in range(iy1, iy2):
+                # get y coords
+                y_map = grid_lower_edge_in_new_basis_y + (
+                    j + 0.5) * grid_spacing_in_new_basis_y
+
+                py_x = y_map * vx
+                py_y = y_map * vy
+                py_z = y_map * vz
+
+                pyz_x = py_x + pz_x
+                pyz_y = py_y + pz_y
+                pyz_z = py_z + pz_z
+
+                for i in range(ix1, ix2):
+                    # get x coords
+                    x_map = grid_lower_edge_in_new_basis_x + (
+                        i + 0.5) * grid_spacing_in_new_basis_x
+
+                    grid_x = x_map * ux + pyz_x
+
+                    dist_x = grid_x - pos_orig_x
+                    if np.abs(dist_x) > current_size: continue
+
+                    if has_y:
+                        grid_y = x_map * uy + pyz_y
+                        dist_y = grid_y - pos_orig_y
+                        if np.abs(dist_y) > current_size: continue
+
+                    if has_z:
+                        grid_z = x_map * uz + pyz_z
+                        dist_z = grid_z - pos_orig_z
+                        if np.abs(dist_z) > current_size: continue
+
+                    out[:, k, j, i] = current_val
 
     return out
 
@@ -423,92 +394,78 @@ def map(
 
     # Create a grid of pixel centers
     default_resolution = 256
-    if resolution is None:
-        resolution = default_resolution
-    if isinstance(resolution, int):
-        resolution = {"x": resolution, "y": resolution}
+    if resolution is None: resolution = default_resolution
+    if isinstance(resolution, int): resolution = {'x': resolution, 'y': resolution}
     else:
-        for xy in "xy":
-            if xy not in resolution:
-                resolution[xy] = default_resolution
-    xspacing = (xmax - xmin) / resolution["x"]
-    yspacing = (ymax - ymin) / resolution["y"]
-    xcenters = np.linspace(
-        xmin + 0.5 * xspacing, xmax - 0.5 * xspacing, resolution["x"]
-    )
-    ycenters = np.linspace(
-        ymin + 0.5 * yspacing, ymax - 0.5 * yspacing, resolution["y"]
-    )
+        for xy in 'xy':
+            if xy not in resolution: resolution[xy] = default_resolution
+
+    xspacing = (xmax - xmin) / resolution['x']
+    yspacing = (ymax - ymin) / resolution['y']
+
+    nx_pix = int(resolution['x'])
+    ny_pix = int(resolution['y'])
 
     if thick:
-        if "z" not in resolution:
-            resolution["z"] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
-        zspacing = (zmax - zmin) / resolution["z"]
-        zcenters = np.linspace(
-            zmin + 0.5 * zspacing, zmax - 0.5 * zspacing, resolution["z"]
-        )
+        if 'z' not in resolution:
+            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
+        zspacing = (zmax - zmin) / resolution['z']
+        nz_pix = int(resolution['z'])
     else:
-        zmin = 0.0
-        zspacing = zmax - zmin
-        zcenters = [0.0]
+        zmin = 0.
+        zspacing = 1.0
+        nz_pix = 1
 
-    xg, yg, zg = np.meshgrid(xcenters, ycenters, zcenters, indexing="ij")
-    xgrid = xg.T
-    ygrid = yg.T
-    zgrid = zg.T
-    u_array = np.array(
-        [
-            vec_u.x.values,
-            vec_u.y.values,
-            vec_u.z.values if vec_u.z is not None else np.zeros_like(vec_u.x.values),
-        ]
-    )
-    v_array = np.array(
-        [
-            vec_v.x.values,
-            vec_v.y.values,
-            vec_v.z.values if vec_v.z is not None else np.zeros_like(vec_v.x.values),
-        ]
-    )
-    n_array = np.array(
-        [
-            normal.x.values,
-            normal.y.values,
-            normal.z.values if normal.z is not None else np.zeros_like(normal.x.values),
-        ]
-    )
+    # flatten vectors for Numba
+    u_vals = np.array([
+        vec_u.x.values, vec_u.y.values, vec_u.z.values if vec_u.z is not None else 0.0
+    ])
+    v_vals = np.array([
+        vec_v.x.values, vec_v.y.values, vec_v.z.values if vec_v.z is not None else 0.0
+    ])
+    n_vals = np.array([
+        normal.x.values, normal.y.values,
+        normal.z.values if normal.z is not None else 0.0
+    ])
 
-    pixel_positions = (
-        xgrid.reshape(xgrid.shape + (1,)) * u_array
-        + ygrid.reshape(ygrid.shape + (1,)) * v_array
-        + zgrid.reshape(zgrid.shape + (1,)) * n_array
-    )
+    cell_values_arr = np.array(to_binning)
 
     # Evaluate the values of the data layers at the grid positions
     div = dx.to(datadx.unit).magnitude
-    binned = _evaluate_on_grid(
-        cell_positions_in_new_basis_x=apply_mask(datax.values / div),
-        cell_positions_in_new_basis_y=apply_mask(datay.values / div),
-        cell_positions_in_new_basis_z=apply_mask(dataz.values / div),
-        cell_positions_in_original_basis_x=coords.x.values / div,
-        cell_positions_in_original_basis_y=(
-            coords.y.values / div if coords.y is not None else None
-        ),
-        cell_positions_in_original_basis_z=(
-            coords.z.values / div if coords.z is not None else None
-        ),
-        cell_values=np.array(to_binning),
-        cell_sizes=datadx.values / div,
-        grid_lower_edge_in_new_basis_x=xmin / div,
-        grid_lower_edge_in_new_basis_y=ymin / div,
-        grid_lower_edge_in_new_basis_z=zmin / div,
-        grid_spacing_in_new_basis_x=xspacing / div,
-        grid_spacing_in_new_basis_y=yspacing / div,
-        grid_spacing_in_new_basis_z=zspacing / div,
-        grid_positions_in_original_basis=pixel_positions / div,
+    binned = evaluate_on_grid(
+        cell_positions_in_new_basis_x=apply_mask(datax.values),
+        cell_positions_in_new_basis_y=apply_mask(datay.values),
+        cell_positions_in_new_basis_z=apply_mask(dataz.values),
+        cell_positions_in_original_basis_x=coords.x.values,
+        cell_positions_in_original_basis_y=coords.y.values
+        if coords.y is not None else None,
+        cell_positions_in_original_basis_z=coords.z.values
+        if coords.z is not None else None,
+        cell_values=cell_values_arr,
+        cell_sizes=datadx.values,
+        grid_lower_edge_in_new_basis_x=xmin,
+        grid_lower_edge_in_new_basis_y=ymin,
+        grid_lower_edge_in_new_basis_z=zmin,
+        grid_spacing_in_new_basis_x=xspacing,
+        grid_spacing_in_new_basis_y=yspacing,
+        grid_spacing_in_new_basis_z=zspacing,
+        nx=nx_pix,
+        ny=ny_pix,
+        nz=nz_pix,
         ndim=ndim,
-    )
+        # Basis vectors
+        ux=u_vals[0],
+        uy=u_vals[1],
+        uz=u_vals[2],
+        vx=v_vals[0],
+        vy=v_vals[1],
+        vz=v_vals[2],
+        nx_vec=n_vals[0],
+        ny_vec=n_vals[1],
+        nz_vec=n_vals[2])
 
+    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing, nx_pix)
+    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing, ny_pix)
     # Apply operation along depth
     binned = getattr(np, operation)(binned, axis=1)
 
