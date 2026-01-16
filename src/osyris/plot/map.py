@@ -16,14 +16,15 @@ from .scatter import scatter
 
 
 @njit(parallel=True, fastmath=True)
-def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_y,
-                     cell_positions_in_new_basis_z, cell_positions_in_original_basis_x,
-                     cell_positions_in_original_basis_y,
-                     cell_positions_in_original_basis_z, cell_values, cell_sizes,
-                     grid_lower_edge_in_new_basis_x, grid_lower_edge_in_new_basis_y,
-                     grid_lower_edge_in_new_basis_z, grid_spacing_in_new_basis_x,
-                     grid_spacing_in_new_basis_y, grid_spacing_in_new_basis_z, nx, ny,
-                     nz, ndim, ux, uy, uz, vx, vy, vz, nx_vec, ny_vec, nz_vec):
+def evaluate_on_grid(
+        cell_positions_in_new_basis_x, cell_positions_in_new_basis_y,
+        cell_positions_in_new_basis_z, cell_positions_in_original_basis_x,
+        cell_positions_in_original_basis_y, cell_positions_in_original_basis_z,
+        cell_values, cell_sizes, grid_lower_edge_in_new_basis_x,
+        grid_lower_edge_in_new_basis_y, grid_lower_edge_in_new_basis_z,
+        grid_spacing_in_new_basis_x, grid_spacing_in_new_basis_y,
+        grid_spacing_in_new_basis_z, nx, ny, nz, ndim, ux, uy, uz, vx, vy, vz,
+        nx_vec, ny_vec, nz_vec):
 
     inv_dx = 1.0 / grid_spacing_in_new_basis_x
     inv_dy = 1.0 / grid_spacing_in_new_basis_y
@@ -48,9 +49,12 @@ def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_
         pos_orig_y = cell_positions_in_original_basis_y[n] if has_y else 0.0
         pos_orig_z = cell_positions_in_original_basis_z[n] if has_z else 0.0
 
-        rel_x = cell_positions_in_new_basis_x[n] - grid_lower_edge_in_new_basis_x
-        rel_y = cell_positions_in_new_basis_y[n] - grid_lower_edge_in_new_basis_y
-        rel_z = cell_positions_in_new_basis_z[n] - grid_lower_edge_in_new_basis_z
+        rel_x = cell_positions_in_new_basis_x[
+            n] - grid_lower_edge_in_new_basis_x
+        rel_y = cell_positions_in_new_basis_y[
+            n] - grid_lower_edge_in_new_basis_y
+        rel_z = cell_positions_in_new_basis_z[
+            n] - grid_lower_edge_in_new_basis_z
 
         ix1 = int((rel_x - half_size) * inv_dx)
         ix2 = int((rel_x + half_size) * inv_dx) + 1
@@ -68,8 +72,8 @@ def evaluate_on_grid(cell_positions_in_new_basis_x, cell_positions_in_new_basis_
 
         for k in range(iz1, iz2):
             # get z coords
-            z_map = grid_lower_edge_in_new_basis_z + (k +
-                                                      0.5) * grid_spacing_in_new_basis_z
+            z_map = grid_lower_edge_in_new_basis_z + (
+                k + 0.5) * grid_spacing_in_new_basis_z
 
             pz_x = z_map * nx_vec
             pz_y = z_map * ny_vec
@@ -137,7 +141,8 @@ def _add_scatter(to_scatter, origin, basis, dx, dy, ax, map_unit):
 
         if dx is not None:
             # Limit selection further by using distance from center
-            select2 = (np.abs(coords.norm) <= viewport * 0.6 * np.sqrt(2.0)).values
+            select2 = (np.abs(coords.norm)
+                       <= viewport * 0.6 * np.sqrt(2.0)).values
             datax = datax[select2]
             datay = datay[select2]
             global_selection = global_selection[select2]
@@ -145,13 +150,13 @@ def _add_scatter(to_scatter, origin, basis, dx, dy, ax, map_unit):
             # TODO: also check that parents are the same to ensure size match?
             if isinstance(to_scatter[0]["params"]["c"], Array):
                 to_scatter[0]["params"]["c"] = to_scatter[0]["params"]["c"][
-                    global_selection
-                ]
+                    global_selection]
         datax.name = basis.u.name
         datay.name = basis.v.name
-        scatter(
-            x=datax.to(map_unit), y=datay.to(map_unit), ax=ax, **to_scatter[0]["params"]
-        )
+        scatter(x=datax.to(map_unit),
+                y=datay.to(map_unit),
+                ax=ax,
+                **to_scatter[0]["params"])
 
 
 def map(
@@ -245,7 +250,8 @@ def map(
     to_scatter = []
     for layer in layers:
         if not isinstance(layer, Layer):
-            raise TypeError(f"Expected Layer object, got {type(layer)} instead. ")
+            raise TypeError(
+                f"Expected Layer object, got {type(layer)} instead. ")
         layer = parse_layer(
             layer,
             mode=mode,
@@ -256,20 +262,17 @@ def map(
             **kwargs,
         )
         layer.kwargs.update(
-            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax)
-        )
+            norm=get_norm(norm=layer.norm, vmin=layer.vmin, vmax=layer.vmax))
         if layer.mode == "scatter":
             to_scatter.append({"data": layer.data, "params": layer.kwargs})
         else:
             to_process.append(layer.data)
-            to_render.append(
-                {
-                    "mode": layer.mode,
-                    "params": layer.kwargs,
-                    "unit": layer.data.unit,
-                    "name": layer.data.name,
-                }
-            )
+            to_render.append({
+                "mode": layer.mode,
+                "params": layer.kwargs,
+                "unit": layer.data.unit,
+                "name": layer.data.name,
+            })
 
     position = layers[0]["position"]
     cell_size = layers[0]["dx"]
@@ -291,9 +294,9 @@ def map(
         origin = Vector(*([0] * ndim), unit=spatial_unit)
 
     if ndim < 3:
-        basis = VectorBasis(
-            n=Vector(0, 0, name="z"), u=Vector(1, 0, name="x"), v=Vector(0, 1, name="y")
-        )
+        basis = VectorBasis(n=Vector(0, 0, name="z"),
+                            u=Vector(1, 0, name="x"),
+                            v=Vector(0, 1, name="y"))
     else:
         basis = get_direction(
             direction=direction,
@@ -320,10 +323,8 @@ def map(
     indices_close_to_plane = global_indices[close_to_plane]
 
     if len(indices_close_to_plane) == 0:
-        raise RuntimeError(
-            "No cells were selected to construct the map. "
-            "The resulting figure would be empty."
-        )
+        raise RuntimeError("No cells were selected to construct the map. "
+                           "The resulting figure would be empty.")
 
     xmin = None
     if dx is not None:
@@ -334,14 +335,11 @@ def map(
         zmin = -0.5 * dz.magnitude
         zmax = zmin + dz.magnitude
         # Limit selection further by using distance from center
-        radial_distance = (
-            xyz[indices_close_to_plane]
-            - 0.5 * cell_size[indices_close_to_plane] * diagonal
-        )
-        radial_selection = (
-            np.abs(radial_distance.norm.values)
-            <= max(dx.magnitude, dy.magnitude, dz.magnitude) * 0.6 * diagonal
-        )
+        radial_distance = (xyz[indices_close_to_plane] -
+                           0.5 * cell_size[indices_close_to_plane] * diagonal)
+        radial_selection = (np.abs(radial_distance.norm.values)
+                            <= max(dx.magnitude, dy.magnitude, dz.magnitude) *
+                            0.6 * diagonal)
         indices_close_to_plane = indices_close_to_plane[radial_selection]
 
     # Project coordinates onto the plane by taking dot product with axes vectors
@@ -374,10 +372,10 @@ def map(
                 v = uv.dot(vec_v).values
 
             w = None
-            if isinstance(to_render[ind]["params"].get("color"), (Array, Vector)):
+            if isinstance(to_render[ind]["params"].get("color"),
+                          (Array, Vector)):
                 w = to_render[ind]["params"]["color"].norm.values[
-                    indices_close_to_plane
-                ]
+                    indices_close_to_plane]
             else:
                 w = u * u
                 w += v * v
@@ -388,14 +386,15 @@ def map(
             scalar_layer.append(False)
         else:
             to_binning.append(
-                apply_mask(to_process[ind].norm.values[indices_close_to_plane])
-            )
+                apply_mask(
+                    to_process[ind].norm.values[indices_close_to_plane]))
             scalar_layer.append(True)
 
     # Create a grid of pixel centers
     default_resolution = 256
     if resolution is None: resolution = default_resolution
-    if isinstance(resolution, int): resolution = {'x': resolution, 'y': resolution}
+    if isinstance(resolution, int):
+        resolution = {'x': resolution, 'y': resolution}
     else:
         for xy in 'xy':
             if xy not in resolution: resolution[xy] = default_resolution
@@ -408,7 +407,8 @@ def map(
 
     if thick:
         if 'z' not in resolution:
-            resolution['z'] = round((zmax - zmin) / (0.5 * (xspacing + yspacing)))
+            resolution['z'] = round(
+                (zmax - zmin) / (0.5 * (xspacing + yspacing)))
         zspacing = (zmax - zmin) / resolution['z']
         nz_pix = int(resolution['z'])
     else:
@@ -418,10 +418,12 @@ def map(
 
     # flatten vectors for Numba
     u_vals = np.array([
-        vec_u.x.values, vec_u.y.values, vec_u.z.values if vec_u.z is not None else 0.0
+        vec_u.x.values, vec_u.y.values,
+        vec_u.z.values if vec_u.z is not None else 0.0
     ])
     v_vals = np.array([
-        vec_v.x.values, vec_v.y.values, vec_v.z.values if vec_v.z is not None else 0.0
+        vec_v.x.values, vec_v.y.values,
+        vec_v.z.values if vec_v.z is not None else 0.0
     ])
     n_vals = np.array([
         normal.x.values, normal.y.values,
@@ -464,8 +466,10 @@ def map(
         ny_vec=n_vals[1],
         nz_vec=n_vals[2])
 
-    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing, nx_pix)
-    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing, ny_pix)
+    xcenters = np.linspace(xmin + 0.5 * xspacing, xmax - 0.5 * xspacing,
+                           nx_pix)
+    ycenters = np.linspace(ymin + 0.5 * yspacing, ymax - 0.5 * yspacing,
+                           ny_pix)
     # Apply operation along depth
     binned = getattr(np, operation)(binned, axis=1)
 
@@ -477,26 +481,25 @@ def map(
 
     # Mask NaN values
     mask = np.isnan(binned[-1, ...])
-    mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1), mask.shape + (3,))
+    mask_vec = np.broadcast_to(mask.reshape(*mask.shape, 1),
+                               mask.shape + (3, ))
 
     # Now we fill the arrays to be sent to the renderer, also constructing vectors
     counter = 0
     for ind in range(len(to_render)):
         if scalar_layer[ind]:
-            to_render[ind]["data"] = ma.masked_where(
-                mask, binned[counter, ...], copy=False
-            )
+            to_render[ind]["data"] = ma.masked_where(mask,
+                                                     binned[counter, ...],
+                                                     copy=False)
             counter += 1
         else:
             to_render[ind]["data"] = ma.masked_where(
                 mask_vec,
-                np.array(
-                    [
-                        binned[counter, ...].T,
-                        binned[counter + 1, ...].T,
-                        binned[counter + 2, ...].T,
-                    ]
-                ).T,
+                np.array([
+                    binned[counter, ...].T,
+                    binned[counter + 1, ...].T,
+                    binned[counter + 2, ...].T,
+                ]).T,
                 copy=False,
             )
             counter += 3
@@ -514,8 +517,10 @@ def map(
     if plot:
         # Render the map
         figure = render(x=xcenters, y=ycenters, data=to_render, ax=ax)
-        figure["ax"].set_xlabel(Array(values=0, unit=map_unit, name=basis.u.name).label)
-        figure["ax"].set_ylabel(Array(values=0, unit=map_unit, name=basis.v.name).label)
+        figure["ax"].set_xlabel(
+            Array(values=0, unit=map_unit, name=basis.u.name).label)
+        figure["ax"].set_ylabel(
+            Array(values=0, unit=map_unit, name=basis.v.name).label)
         if ax is None:
             figure["ax"].set_aspect("equal")
 
