@@ -466,12 +466,12 @@ def map(
         cell_positions_in_new_basis_y=apply_mask(datay.values),
         cell_positions_in_new_basis_z=apply_mask(dataz.values),
         cell_positions_in_original_basis_x=coords.x.values,
-        cell_positions_in_original_basis_y=coords.y.values
-        if coords.y is not None
-        else None,
-        cell_positions_in_original_basis_z=coords.z.values
-        if coords.z is not None
-        else None,
+        cell_positions_in_original_basis_y=(
+            coords.y.values if coords.y is not None else None
+        ),
+        cell_positions_in_original_basis_z=(
+            coords.z.values if coords.z is not None else None
+        ),
         cell_values=cell_values_arr,
         cell_sizes=datadx.values,
         grid_lower_edge_in_new_basis_x=xmin,
