@@ -459,8 +459,6 @@ def map(
 
     cell_values_arr = np.array(to_binning)
 
-    # Evaluate the values of the data layers at the grid positions
-    div = dx.to(datadx.unit).magnitude
     binned = evaluate_on_grid(
         cell_positions_in_new_basis_x=apply_mask(datax.values),
         cell_positions_in_new_basis_y=apply_mask(datay.values),
