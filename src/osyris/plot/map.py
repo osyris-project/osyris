@@ -443,7 +443,7 @@ def map(
         zspacing = (zmax - zmin) / resolution["z"]
         nz_pix = int(resolution["z"])
     else:
-        zmin = 0.0
+        zmin = -0.5
         zspacing = 1.0
         nz_pix = 1
 
