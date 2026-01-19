@@ -15,6 +15,7 @@ from .render import render
 from .scatter import scatter
 
 
+@njit(parallel=True)
 def _evaluate_on_grid(
     cell_positions_in_new_basis_x,
     cell_positions_in_new_basis_y,
@@ -140,11 +141,6 @@ def _evaluate_on_grid(
     return out
 
 
-# compile two versions of the above function
-_evaluate_on_grid_fastmath = njit(parallel=True, fastmath=True)(_evaluate_on_grid)
-_evaluate_on_grid_precise = njit(parallel=True, fastmath=False)(_evaluate_on_grid)
-
-
 def _add_scatter(to_scatter, origin, basis, dx, dy, ax, map_unit):
     xyz = to_scatter[0]["data"] - origin
     viewport = np.maximum(dx, dy)
@@ -203,7 +199,6 @@ def map(
     resolution: Union[int, dict] = None,
     operation: str = "sum",
     ax: object = None,
-    fastmath: bool = False,
     **kwargs,
 ) -> Plot:
     """
@@ -469,9 +464,7 @@ def map(
 
     cell_values_arr = np.array(to_binning)
 
-    grid_eval = _evaluate_on_grid_fastmath if fastmath else _evaluate_on_grid_precise
-
-    binned = grid_eval(
+    binned = _evaluate_on_grid(
         cell_positions_in_new_basis_x=apply_mask(datax.values),
         cell_positions_in_new_basis_y=apply_mask(datay.values),
         cell_positions_in_new_basis_z=apply_mask(dataz.values),
