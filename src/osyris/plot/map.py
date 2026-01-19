@@ -469,7 +469,7 @@ def map(
 
     cell_values_arr = np.array(to_binning)
 
-    grid_eval = _evaluate_on_grid_fast if fastmath else _evaluate_on_grid_precise
+    grid_eval = _evaluate_on_grid_fastmath if fastmath else _evaluate_on_grid_precise
 
     binned = grid_eval(
         cell_positions_in_new_basis_x=apply_mask(datax.values),
