@@ -61,8 +61,7 @@ def hist2d(
 
     :param mode: The rendering mode for the histogram. Possible choices are
         ``'image'``, ``'contourf'``, ``'contour'``, and ``'scatter'``. Default is
-        ``None``, which selects the ``render_mode`` set in the user configuration
-        file (``'image'`` by default).
+        ``'image'``.
 
     :param logx: If ``True``, use logarithmic scaling on the horizontal axis.
         Default is ``False``.
