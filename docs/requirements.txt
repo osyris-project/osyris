@@ -10,4 +10,4 @@ pythreejs
 sphinx-copybutton
 sphinx-book-theme
 sphinx-design
-lic
+# lic
