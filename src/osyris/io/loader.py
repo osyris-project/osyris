@@ -44,16 +44,22 @@ class Loader:
         meta["nparticles"] = 0
         return meta
 
-    def load(self, select=None, cpu_list=None, sortby=None, meta=None, units=None):
+    def load(
+        self,
+        select=None,
+        cpu_list=None,
+        sortby=None,
+        meta=None,
+        units=None,
+        verbose=True,
+    ):
         out = {}
 
         _select = {reader.kind: {} for reader in self.readers.values()}
         if isinstance(select, dict):
             for key in select:
                 if key not in _select:
-                    print(
-                        f"Warning: {key} found in select is not a valid " "Datagroup."
-                    )
+                    print(f"Warning: {key} found in select is not a valid Datagroup.")
                 else:
                     _select[key] = select[key]
         elif select:
@@ -107,7 +113,8 @@ class Loader:
             cpu_list = []
         else:
             meta["nparticles"] = 0
-            print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
+            if verbose:
+                print("Processing {} files in {}".format(len(cpu_list), meta["infile"]))
 
         # Allocate work arrays
         twotondim = 2 ** meta["ndim"]
@@ -123,7 +130,7 @@ class Loader:
         for cpu_ind, cpu_num in enumerate(cpu_list):
             # Print progress
             percentage = int(float(cpu_ind) * 100.0 / float(len(cpu_list)))
-            if percentage >= iprog * istep:
+            if verbose and (percentage >= iprog * istep):
                 print(
                     "{:>3d}% : read {:>10d} cells, {:>10d} particles".format(
                         percentage, meta["ncells"], meta["nparticles"]
@@ -225,9 +232,12 @@ class Loader:
             # If vector quantities are found, make them into vector Arrays
             utils.make_vector_arrays(dg, ndim=meta["ndim"])
 
-        print(
-            "Loaded: {} cells, {} particles.".format(meta["ncells"], meta["nparticles"])
-        )
+        if verbose:
+            print(
+                "Loaded: {} cells, {} particles.".format(
+                    meta["ncells"], meta["nparticles"]
+                )
+            )
 
         # Apply sorting if any requested from args
         if sortby is not None:
