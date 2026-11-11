@@ -45,7 +45,7 @@ class SinkReader:
         # Parse units
         unit_list = []
         m = units["mass"]  # noqa: F841
-        l = units["length"]  # noqa: F841
+        l = units["length"]  # noqa: F841, E741
         t = units["time"]  # noqa: F841
         for u in unit_combinations:
             if u.strip().replace("[", "").replace("]", "") == "1":
