@@ -2,6 +2,13 @@
 from ..core import Dataset
 from .loader import Loader
 
+_default_additional_variables = {
+    "mesh": {
+        "B_field": lambda B_left, B_right: 0.5 * (B_left + B_right),
+        "mass": lambda density, dx: density * dx**3,
+    }
+}
+
 
 class RamsesDataset(Dataset):
     def __init__(self, nout, path=""):
@@ -18,13 +25,28 @@ class RamsesDataset(Dataset):
         self.compute_additional_variables()
         return self
 
-    def compute_additional_variables(self):
-        if "mesh" in self.groups:
-            mesh = self.groups["mesh"]
-            if {"B_left", "B_right"}.issubset(mesh.keys()):
-                mesh["B_field"] = 0.5 * (mesh["B_left"] + mesh["B_right"])
-            if {"density", "dx"}.issubset(mesh.keys()):
-                mesh["mass"] = mesh["density"] * mesh["dx"] ** 3
+    def compute_additional_variables(self, additional_variables=None):
+        to_add = _default_additional_variables
+        if additional_variables is not None:
+            to_add.update(additional_variables)
+
+        for group_name, variables in to_add.items():
+            if group_name in self.groups:
+                group = self.groups[group_name]
+                for var_name, func in variables.items():
+                    if var_name not in group:
+                        required_vars = func.__code__.co_varnames[
+                            : func.__code__.co_argcount
+                        ]
+                        if all(rv in group for rv in required_vars):
+                            group[var_name] = func(*(group[rv] for rv in required_vars))
+
+        # if "mesh" in self.groups:
+        #     mesh = self.groups["mesh"]
+        #     if {"B_left", "B_right"}.issubset(mesh.keys()) and ("B_field" not in mesh):
+        #         mesh["B_field"] = 0.5 * (mesh["B_left"] + mesh["B_right"])
+        #     if {"density", "dx"}.issubset(mesh.keys()) and ("mass" not in mesh):
+        #         mesh["mass"] = mesh["density"] * mesh["dx"] ** 3
 
     def copy(self):
         nout = self.loader.nout
