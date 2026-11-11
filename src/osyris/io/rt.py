@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import os
+import warnings
 
 import numpy as np
 
@@ -19,8 +20,10 @@ class RtReader(Reader):
         # and select the ones to be read if specified by user
         fname = os.path.join(meta["infile"], "rt_file_descriptor.txt")
         try:
-            desc_from_file = np.loadtxt(fname, dtype=str, delimiter=",")
-        except IOError:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)
+                desc_from_file = np.loadtxt(fname, dtype=str, delimiter=",")
+        except OSError:
             return
 
         descriptor = {

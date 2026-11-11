@@ -7,7 +7,6 @@ isort:skip_file
 
 import importlib.metadata
 
-from .config import config
 from .units import units
 from .core import Array, Datagroup, Dataset, Plot, Vector, VectorBasis
 from .io import RamsesDataset
@@ -29,7 +28,6 @@ __all__ = [
     "Vector",
     "VectorBasis",
     "RamsesDataset",
-    "config",
     "units",
     "hist1d",
     "hist2d",
