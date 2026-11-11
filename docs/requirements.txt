@@ -1,6 +1,7 @@
 matplotlib
 numba
-numpy
+# TODO: lic prevents numpy>=2, remove pin when https://gitlab.com/szs/lic/-/merge_requests/1 is accepted
+numpy<2
 sphinx
 nbsphinx
 jupyter
@@ -10,4 +11,4 @@ pythreejs
 sphinx-copybutton
 sphinx-book-theme
 sphinx-design
-# lic
+lic
