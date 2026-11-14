@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
+import warnings
 
 import numpy as np
 
@@ -28,7 +29,11 @@ class SinkReader:
             # This is an empty sink file
             return sink
         else:
-            sink_data = np.atleast_2d(np.loadtxt(sink_file, delimiter=",", skiprows=2))
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)
+                sink_data = np.atleast_2d(
+                    np.loadtxt(sink_file, delimiter=",", skiprows=2)
+                )
 
         with open(sink_file, "r") as f:
             key_list = f.readline()

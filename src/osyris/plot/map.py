@@ -72,19 +72,21 @@ def _evaluate_on_grid(
         rel_y = cell_positions_in_new_basis_y[n] - grid_lower_edge_in_new_basis_y
         rel_z = cell_positions_in_new_basis_z[n] - grid_lower_edge_in_new_basis_z
 
-        ix1 = int((rel_x - half_size) * inv_dx)
-        ix2 = int((rel_x + half_size) * inv_dx) + 1
-        iy1 = int((rel_y - half_size) * inv_dy)
-        iy2 = int((rel_y + half_size) * inv_dy) + 1
-        iz1 = int((rel_z - half_size) * inv_dz)
-        iz2 = int((rel_z + half_size) * inv_dz) + 1
+        f_ix1 = (rel_x - half_size) * inv_dx
+        f_ix2 = (rel_x + half_size) * inv_dx + 1.0
 
-        ix1 = max(ix1, 0)
-        ix2 = min(ix2, nx)
-        iy1 = max(iy1, 0)
-        iy2 = min(iy2, ny)
-        iz1 = max(iz1, 0)
-        iz2 = min(iz2, nz)
+        f_iy1 = (rel_y - half_size) * inv_dy
+        f_iy2 = (rel_y + half_size) * inv_dy + 1.0
+
+        f_iz1 = (rel_z - half_size) * inv_dz
+        f_iz2 = (rel_z + half_size) * inv_dz + 1.0
+
+        ix1 = int(max(0.0, min(float(nx), f_ix1)))
+        ix2 = int(max(0.0, min(float(nx), f_ix2)))
+        iy1 = int(max(0.0, min(float(ny), f_iy1)))
+        iy2 = int(max(0.0, min(float(ny), f_iy2)))
+        iz1 = int(max(0.0, min(float(nz), f_iz1)))
+        iz2 = int(max(0.0, min(float(nz), f_iz2)))
 
         for k in range(iz1, iz2):
             # get z coords
@@ -240,8 +242,7 @@ def map(
 
     :param mode: The rendering mode for the map. Possible choices are ``'image'``,
         ``'contourf'``, and ``'contour'`` for scalar Arrays, ``'vec'`` and
-        ``'stream'`` for vector quantities. Default is ``None``, which selects the
-        ``render_mode`` set in the user configuration file (``'image'`` by default).
+        ``'stream'`` for vector quantities. Default is ``'image'``.
 
     :param norm: The colormap normalization. Possible values are ``'linear'`` and
         ``'log'``. Default is ``None`` (= ``'linear'``).
@@ -443,8 +444,8 @@ def map(
         zspacing = (zmax - zmin) / resolution["z"]
         nz_pix = int(resolution["z"])
     else:
-        zmin = -0.5
-        zspacing = 1.0
+        zspacing = xspacing
+        zmin = -0.5 * zspacing
         nz_pix = 1
 
     # flatten vectors for Numba
