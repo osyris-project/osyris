@@ -1,9 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-import pytest
-
-
 import pooch
+import pytest
 
 
 @pytest.fixture(scope="session")
