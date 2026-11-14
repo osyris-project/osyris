@@ -8,6 +8,14 @@ import osyris
 def test_load_ramses_data(starformation_data_path):
     data = osyris.RamsesDataset(8, path=starformation_data_path).load()
     assert "mesh" in data.keys()
+    assert "part" in data.keys()
+    assert "sink" in data.keys()
+    assert "density" in data["mesh"].keys()
+    assert "position" in data["mesh"].keys()
+    assert "velocity" in data["mesh"].keys()
+    assert "mass" in data["part"].keys()
+    assert "position" in data["part"].keys()
+    assert "position" in data["sink"].keys()
 
 
 def test_select_cells_based_on_value(starformation_data_path):

@@ -4,3 +4,4 @@ numpy
 pandas
 pint
 pytest
+pooch
