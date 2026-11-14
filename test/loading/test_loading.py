@@ -65,4 +65,4 @@ def test_select_cpu_list(starformation_data_path):
     data = osyris.RamsesDataset(8, path=starformation_data_path).load(
         cpu_list=[1, 2, 10, 4, 5]
     )
-    assert np.unique(data['mesh']['cpu'].values).tolist() == [1, 2, 4, 5, 10]
+    assert np.unique(data["mesh"]["cpu"].values).tolist() == [1, 2, 4, 5, 10]
