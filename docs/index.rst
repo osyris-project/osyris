@@ -49,16 +49,17 @@ Getting started
 
 .. grid:: 2
 
-   .. grid-item-card:: Setup
+   .. grid-item-card:: :octicon:`eye;1em`&nbsp; Basics
+      :link: basics
 
-      - :doc:`basics`
-      - :doc:`configuration`
+   .. grid-item-card:: :octicon:`settings-gear;1em`&nbsp; Data structures
+      :link: data_structures
 
-   .. grid-item-card:: Loadind data
+   .. grid-item-card:: :octicon:`file-binary;1em`&nbsp; Loading data
+      :link: loading_data
 
-      - :doc:`data_structures`
-      - :doc:`loading_data`
-      - :doc:`custom_datasets`
+   .. grid-item-card:: :octicon:`file-binary;1em`&nbsp; Custom datasets
+      :link: custom_datasets
 
 Plotting
 ========

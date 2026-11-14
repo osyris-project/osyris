@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
-""" Core data structures of Osyris
+"""Core data structures of Osyris
 
-   isort:skip_file
+isort:skip_file
 """
 
 from .array import Array
