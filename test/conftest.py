@@ -10,7 +10,7 @@ import pooch
 def registry():
     _registry = pooch.create(
         path=pooch.os_cache("osyris"),
-        base_url="https://github.com/osyris-project/osyrisdata/releases/download/1.0.0/",
+        base_url="https://github.com/osyris-project/osyrisdata/releases/download/1.0.0/",  # noqa: E501
         registry={
             "cosmology.zip": "md5:a0ab245d9226e2d324291b27fa178021",
             "sedov.zip": "md5:363d4f1a61cf574638b9a0c39d1707e8",
