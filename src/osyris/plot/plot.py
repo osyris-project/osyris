@@ -79,7 +79,10 @@ def plot(
             {
                 "x": x["x"].norm,
                 "y": x["y"].norm,
-                "params": {**kwargs},
+                "params": {
+                    **kwargs,
+                    **{k: v for k, v in x.items() if k not in ["x", "y"]},
+                },
                 "unit": x["y"].unit,
                 "name": x["y"].name,
             }
@@ -98,7 +101,10 @@ def plot(
             layer_dict = {
                 "x": layer["x"].norm,
                 "y": layer["y"].norm,
-                "params": {**kwargs},
+                "params": {
+                    **kwargs,
+                    **{k: v for k, v in layer.items() if k not in ["x", "y"]},
+                },
                 "unit": layer["y"].unit,
                 "name": layer["y"].name,
             }
@@ -121,7 +127,7 @@ def plot(
             yaxis_unit = layer_unit
         else:
             if layer_unit != yaxis_unit:
-                raise RuntimeError(
+                raise ValueError(
                     "Different layers in 1D plots must all have the same unit."
                 )
 
