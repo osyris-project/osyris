@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -156,3 +157,14 @@ def test_plot_two_lines_with_different_x_different_linestyles(sod_data_path):
     assert line1.get_color() == 'blue'
     assert line2.get_linestyle() == ':'
     assert line2.get_color() == 'red'
+
+
+def test_plot_using_subplots(sod_data_path):
+    data = osyris.RamsesDataset(1, path=sod_data_path).load()["mesh"]
+    _, ax = plt.subplots(2, 2, figsize=(12, 9))
+    osyris.plot(data["position_x"], data["density"], marker="o", ls="None", ax=ax[0, 0])
+    osyris.plot(data["position_x"], data["velocity_x"], color="green", ax=ax[0, 1])
+    osyris.plot(data["position_x"], data["pressure"], color="red", ax=ax[1, 0])
+    osyris.plot(
+        data["position_x"], data["level"], color="black", ls="dotted", ax=ax[1, 1]
+    )
