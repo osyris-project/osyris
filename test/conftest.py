@@ -8,7 +8,7 @@ import pytest
 def registry():
     _registry = pooch.create(
         path=pooch.os_cache("osyris"),
-        base_url="https://github.com/osyris-project/osyrisdata/releases/download/1.0.0/",  # noqa: E501
+        base_url="https://github.com/osyris-project/osyrisdata/releases/download/1.0.0/",
         registry={
             "cosmology.zip": "md5:a0ab245d9226e2d324291b27fa178021",
             "sedov.zip": "md5:363d4f1a61cf574638b9a0c39d1707e8",
@@ -19,28 +19,28 @@ def registry():
     return _registry
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def cosmology_data_path(registry):
     return registry.fetch("cosmology.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def sedov_data_path(registry):
     return registry.fetch("sedov.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def sod_data_path(registry):
     return registry.fetch("sod.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def starformation_data_path(registry):
     return registry.fetch("starformation.zip", processor=pooch.processors.Unzip())[
         0
