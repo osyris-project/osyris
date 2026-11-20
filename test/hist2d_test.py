@@ -82,7 +82,7 @@ def test_hist2d_mean_op(sf_data):
         sf_data.layer("level", operation="mean"),
         loglog=True,
     )
-    assert h.layers[0]['data'].max() < 10
+    assert h.layers[0]["data"].max() < 10
 
 
 def test_hist2d_multiple_layers(sf_data):
