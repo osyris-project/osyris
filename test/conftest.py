@@ -19,28 +19,28 @@ def registry():
     return _registry
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def cosmology_data_path(registry):
     return registry.fetch("cosmology.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def sedov_data_path(registry):
     return registry.fetch("sedov.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def sod_data_path(registry):
     return registry.fetch("sod.zip", processor=pooch.processors.Unzip())[0].split(
         "output_"
     )[0]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def starformation_data_path(registry):
     return registry.fetch("starformation.zip", processor=pooch.processors.Unzip())[
         0
