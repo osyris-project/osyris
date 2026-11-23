@@ -75,14 +75,18 @@ def test_hist2d_layer_as_color(sf_data):
     assert "mass" in h.fig.get_axes()[1].get_ylabel()
 
 
-def test_hist2d_mean_op(sf_data):
+@pytest.mark.parametrize("operation", ["sum", "mean"])
+def test_hist2d_operation(sf_data, operation):
     h = osyris.hist2d(
         sf_data["density"],
         sf_data["B_field"],
-        sf_data.layer("level", operation="mean"),
+        sf_data.layer("level", operation=operation),
         loglog=True,
     )
-    assert h.layers[0]["data"].max() < 10
+    if operation == "sum":
+        assert h.layers[0]["data"].max() > 10
+    if operation == "mean":
+        assert h.layers[0]["data"].max() < 10
 
 
 def test_hist2d_multiple_layers(sf_data):
